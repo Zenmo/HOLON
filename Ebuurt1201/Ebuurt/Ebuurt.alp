@@ -178,7 +178,19 @@ map.setCenterLongitude(5.132166296958928 );]]></StartupCode>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[double]]></Type>        
+						<Type><![CDATA[int]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1642585765163</Id>
+					<Name><![CDATA[aantalHuizenMetZonnepanelen]]></Name>
+					<X>100</X><Y>1260</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[int]]></Type>        
 					</Properties>
 				</Variable>
 				<Variable Class="CollectionVariable">
@@ -230,7 +242,7 @@ map.setCenterLongitude(5.132166296958928 );]]></StartupCode>
 						</RecurrenceCode>
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
-					<Action><![CDATA[pvOpwek = sum(huishoudens, x->x.zonnepanelen.pvOpwekKW);
+					<Action><![CDATA[pvOpwek = sumWhere(huishoudens, x->x.zonnepanelen.get(0).pvOpwekKW, x->x.zonnepanelen.size() > 0);
 warmtepompVerbruik = sum(huishoudens, x->x.leveringWarmtepomp / x.COP);
 
 pvOpwekChart.updateData();
@@ -443,9 +455,11 @@ warmtepompVerbruikChart.updateData();]]></Action>
 					<BasicProperties Width="100" Height="30">
                         <EmbeddedIcon>false</EmbeddedIcon>	
 						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[//traceln(huishoudnsSlider.getValue());
+//pvSlider.setStep(100/huishoudnsSlider.getValue());]]></ActionCode>
 					</BasicProperties>
 					<ExtendedProperties>
-						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
+						<DefaultValueCode><![CDATA[5]]></DefaultValueCode>
 						<Orientation>HORIZONTAL</Orientation>
 						<MinValue><![CDATA[5]]></MinValue>
 						<MaxValue><![CDATA[37]]></MaxValue>
@@ -534,9 +548,15 @@ warmtepompVerbruikChart.updateData();]]></Action>
                         <EmbeddedIcon>false</EmbeddedIcon>	
 						<TextColor/>
 						<Enabled>true</Enabled>
-						<ActionCode><![CDATA[map.setVisible(true);
-chartGroup.setVisible(true);
+						<ActionCode><![CDATA[if (huishoudens.size() > 0){
+	for (int i = huishoudens.size(); i > 0; i--){
+		remove_huishoudens(huishoudens.get(i-1));
+	}
+}
 
+map.setVisible(true);
+chartGroup.setVisible(true);
+	
 for ( int i = 0; i < huishoudnsSlider.getValue(); i++) {
 	Huishouden h = add_huishoudens();
 	h.isWarmtepomp = randomTrue( warmtepompSlider.getValue() );
@@ -545,8 +565,27 @@ for ( int i = 0; i < huishoudnsSlider.getValue(); i++) {
 	h.specifiekWarmteverlies = selectFrom(db_warmteverlies).where(db_warmteverlies.energielabel.eq(h.energieLabel)).uniqueResult(db_warmteverlies.vrijstaand);
 	h.transmissieverlies = h.vloeroppervlakte * h.specifiekWarmteverlies;
 }
-
-]]></ActionCode>
+	
+pvSlider.setStep(100/huishoudens.size());
+	
+	
+//Zonnepanelen
+aantalHuizenMetZonnepanelen = 0;
+if  (aantalHuizenMetZonnepanelen < floor(percentagePV * huishoudens.size()/100) ){
+	int pvInstallatiesToeTeVoegen = roundToInt(percentagePV * huishoudens.size()/100 - aantalHuizenMetZonnepanelen);
+	traceln(pvInstallatiesToeTeVoegen + "toe te voegen");
+	while (pvInstallatiesToeTeVoegen > 0){
+		Huishouden h = randomWhere(huishoudens, x->x.zonnepanelen.size() == 0);
+		//traceln(h);
+		h.add_zonnepanelen();
+		pvInstallatiesToeTeVoegen--;
+	}
+}
+	
+	
+	
+aantalHuizenMetZonnepanelen = roundToInt(sum(huishoudens, x->x.zonnepanelen.size()));
+traceln(aantalHuizenMetZonnepanelen + " aantal huizen met pv eindwaarde");]]></ActionCode>
 					</BasicProperties>
 					<ExtendedProperties>
 						<Font Name="Dialog" Size="11" Style="0"/>
@@ -1461,14 +1500,42 @@ for ( int i = 0; i < huishoudnsSlider.getValue(); i++) {
 					<BasicProperties Width="100" Height="30">
                         <EmbeddedIcon>false</EmbeddedIcon>	
 						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[aantalHuizenMetZonnepanelen = roundToInt(sum(huishoudens, x->x.zonnepanelen.size()));
+traceln(aantalHuizenMetZonnepanelen + " aantal huizen met pv startwaarde");
+
+if (aantalHuizenMetZonnepanelen > floor(percentagePV * huishoudens.size()/100) ){
+	int pvInstallatiesWegTeHalen = roundToInt(aantalHuizenMetZonnepanelen - percentagePV * huishoudens.size()/100);
+	traceln(pvInstallatiesWegTeHalen + " weg te halen");
+	while (pvInstallatiesWegTeHalen > 0){
+		Huishouden h = randomWhere(huishoudens, x->x.zonnepanelen.size() == 1);
+		h.remove_zonnepanelen(h.zonnepanelen.get(0));
+		pvInstallatiesWegTeHalen--;
+	}
+}
+
+else if  (aantalHuizenMetZonnepanelen < floor(percentagePV * huishoudens.size()/100) ){
+	int pvInstallatiesToeTeVoegen = roundToInt(percentagePV * huishoudens.size()/100 - aantalHuizenMetZonnepanelen);
+	traceln(pvInstallatiesToeTeVoegen + "toe te voegen");
+	while (pvInstallatiesToeTeVoegen > 0){
+		Huishouden h = randomWhere(huishoudens, x->x.zonnepanelen.size() == 0);
+		//traceln(h);
+		h.add_zonnepanelen();
+		pvInstallatiesToeTeVoegen--;
+	}
+}
+
+
+
+aantalHuizenMetZonnepanelen = roundToInt(sum(huishoudens, x->x.zonnepanelen.size()));
+traceln(aantalHuizenMetZonnepanelen + " aantal huizen met pv eindwaarde");]]></ActionCode>
 					</BasicProperties>
 					<ExtendedProperties>
 						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
 						<Orientation>HORIZONTAL</Orientation>
 						<MinValue><![CDATA[0]]></MinValue>
 						<MaxValue><![CDATA[100]]></MaxValue>
-						<Step><![CDATA[1]]></Step>
-						<LinkTo>false</LinkTo>
+						<LinkTo>true</LinkTo>
+						<Link>percentagePV</Link>
 					</ExtendedProperties>
 				</Control>
 				<Text>
