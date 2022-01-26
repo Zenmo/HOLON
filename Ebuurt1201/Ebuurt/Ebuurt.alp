@@ -4,7 +4,7 @@
 	         AnyLogic Project File 
 *************************************************	         
 -->
-<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.9.202112171527" AlpVersion="8.7.3">
+<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.9.202112171740" AlpVersion="8.7.3">
 <Model>
 	<Id>1641891178629</Id>
 	<Name><![CDATA[Ebuurt]]></Name>
@@ -196,6 +196,18 @@ balkConfiguratie.setY(1350);]]></StartupCode>
 						<Type><![CDATA[int]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1643192570431</Id>
+					<Name><![CDATA[Tbuiten]]></Name>
+					<X>-390</X><Y>290</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1642514169739</Id>
 					<Name><![CDATA[householdPoints]]></Name>
@@ -246,12 +258,62 @@ balkConfiguratie.setY(1350);]]></StartupCode>
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
 					<Action><![CDATA[pvOpwek = sumWhere(huishoudens, x->x.zonnepanelen.get(0).pvOpwekKW, x->x.zonnepanelen.size() > 0);
-warmtepompVerbruik = sum(huishoudens, x->x.leveringWarmtepomp / x.COP);
+warmtepompVerbruik = sum(huishoudens, x->x.elektriciteitsvraagWarmtepomp);
 
 pvOpwekChart.updateData();
-warmtepompVerbruikChart.updateData();]]></Action>
+warmtepompVerbruikChart.updateData();
+
+
+//Buiten temperatuur
+Tbuiten = temperatuurFunctie(time(HOUR));]]></Action>
 				</Event>
 			</Events>
+			<TableFunctions>
+				<TableFunction AccessType="public" StaticFunction="false">
+					<Id>1643192460783</Id>
+					<Name><![CDATA[temperatuurFunctie]]></Name>
+					<X>-390</X><Y>250</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<InterpolationMethod>LINEAR</InterpolationMethod>
+					<OutOfRangeBehaviour>REPEATING</OutOfRangeBehaviour>
+					<OutOfRangeCustomValue><![CDATA[0.0]]></OutOfRangeCustomValue>
+					<ApproximationOrder><![CDATA[1]]></ApproximationOrder>
+					<LoadFromDatabase><![CDATA[true]]></LoadFromDatabase>
+					<ValuesQuery>
+						<TableReference>
+							<PackageName><![CDATA[ebuurt]]></PackageName>
+							<ClassName><![CDATA[temperature]]></ClassName>
+						</TableReference>
+						<Condition>
+							<ColumnReference>
+								<PackageName><![CDATA[ebuurt]]></PackageName>
+								<ClassName><![CDATA[temperature]]></ClassName>
+								<ItemName><![CDATA[province]]></ItemName>
+							</ColumnReference>
+							<Value Class="CodeValue">
+								<Code><![CDATA["AverageOnshore"]]></Code>
+							</Value>
+							<Operator>EQUALS</Operator>
+						</Condition>
+							<ArgumentColumnReference>
+								<PackageName><![CDATA[ebuurt]]></PackageName>
+								<ClassName><![CDATA[temperature]]></ClassName>
+								<ItemName><![CDATA[timestep]]></ItemName>
+							</ArgumentColumnReference>
+							<ValueColumnReference>
+								<PackageName><![CDATA[ebuurt]]></PackageName>
+								<ClassName><![CDATA[temperature]]></ClassName>
+								<ItemName><![CDATA[temperature]]></ItemName>
+							</ValueColumnReference>
+					</ValuesQuery>
+// arguments and values
+					<Argument><![CDATA[0.0]]></Argument>
+					<Value><![CDATA[0.0]]></Value>
+				</TableFunction>
+			</TableFunctions>
 			<AgentLinks>
 				<AgentLink>
 					<Id>1641891178630</Id>
@@ -312,7 +374,7 @@ warmtepompVerbruikChart.updateData();]]></Action>
 							<Name><![CDATA[energieLabel]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[woningType]]></Name>
+							<Name><![CDATA[woningTypeString]]></Name>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[isWarmtepompHybride]]></Name>
@@ -321,25 +383,76 @@ warmtepompVerbruikChart.updateData();]]></Action>
 							<Name><![CDATA[specifiekWarmteverlies]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[transmissieverlies]]></Name>
+							<Name><![CDATA[roLucht]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[Tstookgrens]]></Name>
+							<Name><![CDATA[roThermischeMassa]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[specifiekeWarmteLucht]]></Name>
+							<Name><![CDATA[cpLucht]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[TdeltaRef]]></Name>
+							<Name><![CDATA[cpThermischeMassa]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[woninginhoud]]></Name>
+							<Name><![CDATA[fieInstraling]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[speciefiekeWarmteBeton]]></Name>
+							<Name><![CDATA[gemiddeldeRc]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[COP]]></Name>
+							<Name><![CDATA[woningOppervlakte]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[specifiekVentilatieDebiet]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[labdaMuur]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[HI]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[dikteMuur]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[rendementCv]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[vermogenCv]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[vermogenWarmtepomp]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[thermostaatStarttijd]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[thermostaatEindtijd]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[setpointOverdag]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[setpointNacht]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[energiewaardeGas]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[cvKetel]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[warmtepomp]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[woningType]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[debietVentilatie]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[schilOppervlakte]]></Name>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[isWPOpZon]]></Name>
@@ -544,7 +657,7 @@ balkConfiguratie.setVisible( false );]]></ActionCode>
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1641892220748</Id>
 					<Name><![CDATA[button]]></Name>
-					<X>520</X><Y>1820</Y>
+					<X>520</X><Y>1880</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -560,12 +673,23 @@ balkConfiguratie.setVisible( false );]]></ActionCode>
 	
 for ( int i = 0; i < huishoudensSlider.getValue(); i++) {
 	Huishouden h = add_huishoudens();
-	h.isWarmtepomp = randomTrue( warmtepompSlider.getValue() );
+	h.isWarmtepomp = randomTrue( warmtepompSlider.getValue() / 100 );
+	if ( h.isWarmtepomp ) {
+		h.warmtepomp = 1;
+		h.cvKetel = 0;
+	}
+	else {
+		h.warmtepomp = 0;
+		h.cvKetel = 1;
+	}
+	if ( setpointWPOpPV.isSelected() ) {
+		h.isWPOpZon = true;
+	}
 	//h.isWarmtepompHybride = randomTrue( warmtepompSlider1.getValue() );
 	h.energieLabel = energielabelBox.getValue();
-	h.specifiekWarmteverlies = selectFrom(db_warmteverlies).where(db_warmteverlies.energielabel.eq(h.energieLabel)).uniqueResult(db_warmteverlies.vrijstaand);
-	h.transmissieverlies = h.vloeroppervlakte * h.specifiekWarmteverlies;
 }
+
+traceln(count(huishoudens, x->x.isWarmtepomp == true) + " huizen met warmtepomp");
 	
 pvSlider.setStep( 100 / huishoudens.size() );
 	
@@ -2186,6 +2310,49 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 					</Font>
 					<Alignment>LEFT</Alignment>
 				</Text>
+				<Control Type="CheckBox">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1643195269794</Id>
+					<Name><![CDATA[setpointWPOpPV]]></Name>
+					<X>630</X><Y>1820</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="100" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<TextColor/>
+						<Enabled>true</Enabled>
+					</BasicProperties>
+					<ExtendedProperties>
+						<Font Name="Dialog" Size="11" Style="0"/>
+						<LabelText><![CDATA[]]></LabelText>
+						<DefaultValueCode><![CDATA[false]]></DefaultValueCode>
+						<LinkTo>false</LinkTo>
+	 				</ExtendedProperties>
+				</Control>
+				<Text>
+					<Id>1643195317814</Id>
+					<Name><![CDATA[text16]]></Name>
+					<X>750</X><Y>1825</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Sturingsmechanisme 1: Warmtepomp afstemmen op PV]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>16</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
 			</Presentation>
 
 				</Level>
@@ -2501,21 +2668,6 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 			<ConnectionsId>1641891521963</ConnectionsId>
 			<Variables>
 				<Variable Class="PlainVariable">
-					<Id>1641897327201</Id>
-					<Name><![CDATA[Tbuiten]]></Name>
-					<X>380</X><Y>970</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[double]]></Type>        
-						<InitialValue Class="CodeValue">
-							<Code><![CDATA[5]]></Code>
-						</InitialValue>
-					</Properties>
-				</Variable>
-				<Variable Class="PlainVariable">
 					<Id>1642520007390</Id>
 					<Name><![CDATA[warmtepompEVerbruik]]></Name>
 					<X>40</X><Y>375</Y>
@@ -2528,9 +2680,9 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 					</Properties>
 				</Variable>
 				<Variable Class="PlainVariable">
-					<Id>1642521471642</Id>
+					<Id>1643192813293</Id>
 					<Name><![CDATA[pvOpwek]]></Name>
-					<X>30</X><Y>1350</Y>
+					<X>790</X><Y>1480</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2540,117 +2692,374 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 					</Properties>
 				</Variable>
 				<Variable Class="AuxVariable">
-					<Id>1641904182011</Id>
-					<Name><![CDATA[Tbinnen]]></Name>
-					<X>550</X><Y>1130</Y>
-					<Label><X>0</X><Y>-20</Y></Label>
+					<Id>1643191901308</Id>
+					<Name><![CDATA[fieVerlies]]></Name>
+					<X>580</X><Y>1290.362</Y>
+					<Label><X>15</X><Y>-5</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties External="false" Constant="false" Array="false">
-						<Formula><![CDATA[warmteBinnenlucht/(specifiekeWarmteLucht*woninginhoud)]]></Formula>
+						<Formula><![CDATA[(Twoning - main.Tbuiten) * schilOppervlakte / gemiddeldeRc]]></Formula>
 						<Value><![CDATA[0]]></Value>
 						<Color/>
 					</Properties>
 
 				</Variable>
 				<Variable Class="AuxVariable">
-					<Id>1641904403836</Id>
-					<Name><![CDATA[Tdelta]]></Name>
-					<X>690</X><Y>1120</Y>
+					<Id>1643191901310</Id>
+					<Name><![CDATA[dQdtWoning]]></Name>
+					<X>560</X><Y>1349.64</Y>
 					<Label><X>0</X><Y>-20</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties External="false" Constant="false" Array="false">
-						<Formula><![CDATA[Tbinnen-Tbuiten]]></Formula>
+						<Formula><![CDATA[(fieInstraling + fieVerwarmingOutput - fieVerlies - fieVentilatie) * 60 * 60]]></Formula>
 						<Value><![CDATA[0]]></Value>
 						<Color/>
 					</Properties>
 
 				</Variable>
 				<Variable Class="AuxVariable">
-					<Id>1642503545161</Id>
-					<Name><![CDATA[tThermostaat]]></Name>
-					<X>30</X><Y>1280</Y>
+					<Id>1643191901312</Id>
+					<Name><![CDATA[fieVentilatie]]></Name>
+					<X>470</X><Y>1339.76</Y>
 					<Label><X>0</X><Y>-20</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties External="false" Constant="false" Array="false">
-						<Formula><![CDATA[isWPOpZon == true && pvOpwek >= 0.1 ? (Tstookgrens + 2) : Tstookgrens]]></Formula>
+						<Formula><![CDATA[debietVentilatie*cpLucht*roLucht*(Twoning-main.Tbuiten)]]></Formula>
+						<Value><![CDATA[0]]></Value>
+						<Color/>
+					</Properties>
+
+				</Variable>
+				<Variable Class="AuxVariable">
+					<Id>1643191901314</Id>
+					<Name><![CDATA[dQdtThermischeMassa]]></Name>
+					<X>420</X><Y>1547.238</Y>
+					<Label><X>0</X><Y>-20</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties External="false" Constant="false" Array="false">
+						<Formula><![CDATA[fieThermischeMassa * 60]]></Formula>
+						<Value><![CDATA[0]]></Value>
+						<Color/>
+					</Properties>
+
+				</Variable>
+				<Variable Class="AuxVariable">
+					<Id>1643191901316</Id>
+					<Name><![CDATA[fieThermischeMassa]]></Name>
+					<X>550</X><Y>1557.118</Y>
+					<Label><X>0</X><Y>-20</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties External="false" Constant="false" Array="false">
+						<Formula><![CDATA[1/((3/HI)+(dikteMuur/labdaMuur)+(2/HI)) * (Twoning-TThermischeMassa) * (woningOppervlakte + schilOppervlakte)]]></Formula>
+						<Value><![CDATA[0]]></Value>
+						<Color/>
+					</Properties>
+
+				</Variable>
+				<Variable Class="AuxVariable">
+					<Id>1643191901318</Id>
+					<Name><![CDATA[fieVerwarmingInput]]></Name>
+					<X>800</X><Y>1310.12</Y>
+					<Label><X>0</X><Y>-20</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties External="false" Constant="false" Array="false">
+						<Formula><![CDATA[(warmtepomp == 1 ? (vermogenWarmtepomp * COPWarmtepomp) : vermogenCv) * thermostaat]]></Formula>
+						<Value><![CDATA[0]]></Value>
+						<Color/>
+					</Properties>
+
+				</Variable>
+				<Variable Class="AuxVariable">
+					<Id>1643191901320</Id>
+					<Name><![CDATA[COPWarmtepomp]]></Name>
+					<X>690</X><Y>1191.562</Y>
+					<Label><X>0</X><Y>-20</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties External="false" Constant="false" Array="false">
+						<Formula><![CDATA[3.5]]></Formula>
+						<Value><![CDATA[0]]></Value>
+						<Color/>
+					</Properties>
+
+				</Variable>
+				<Variable Class="AuxVariable">
+					<Id>1643191901323</Id>
+					<Name><![CDATA[thermostaat]]></Name>
+					<X>790</X><Y>1410</Y>
+					<Label><X>0</X><Y>-20</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties External="false" Constant="false" Array="false">
+						<Formula><![CDATA[Twoning < setPointPV ? 1 : 0]]></Formula>
+						<Value><![CDATA[0]]></Value>
+						<Color/>
+					</Properties>
+
+				</Variable>
+				<Variable Class="AuxVariable">
+					<Id>1643191901326</Id>
+					<Name><![CDATA[setpointActief]]></Name>
+					<X>850</X><Y>1540.721</Y>
+					<Label><X>0</X><Y>-20</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties External="false" Constant="false" Array="false">
+						<Formula><![CDATA[(getHourOfDay(date()) > thermostaatStarttijd & getHourOfDay(date()) < thermostaatEindtijd ) ? setpointOverdag : setpointNacht]]></Formula>
+						<Value><![CDATA[0]]></Value>
+						<Color/>
+					</Properties>
+
+				</Variable>
+				<Variable Class="AuxVariable">
+					<Id>1643191901329</Id>
+					<Name><![CDATA[gasvraag]]></Name>
+					<Description><![CDATA[J/seconde]]></Description>
+					<X>890</X><Y>1181.682</Y>
+					<Label><X>0</X><Y>-20</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties External="false" Constant="false" Array="false">
+						<Formula><![CDATA[warmtepomp == 1 ? 0 : ( fieVerwarmingInput / rendementCv / 1000 )]]></Formula>
+						<Value><![CDATA[0]]></Value>
+						<Color/>
+					</Properties>
+
+				</Variable>
+				<Variable Class="AuxVariable">
+					<Id>1643191901331</Id>
+					<Name><![CDATA[elektriciteitsvraagWarmtepomp]]></Name>
+					<X>720</X><Y>1152.042</Y>
+					<Label><X>10</X><Y>-12.952</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties External="false" Constant="false" Array="false">
+						<Formula><![CDATA[warmtepomp == 1 ? (fieVerwarmingInput / COPWarmtepomp / 1000) : 0]]></Formula>
+						<Value><![CDATA[0]]></Value>
+						<Color/>
+					</Properties>
+
+				</Variable>
+				<Variable Class="AuxVariable">
+					<Id>1643191901333</Id>
+					<Name><![CDATA[dynamicVariable]]></Name>
+					<X>990</X><Y>1221.202</Y>
+					<Label><X>0</X><Y>-20</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties External="false" Constant="false" Array="false">
+						<Formula><![CDATA[0]]></Formula>
+						<Value><![CDATA[0]]></Value>
+						<Color/>
+					</Properties>
+
+				</Variable>
+				<Variable Class="AuxVariable">
+					<Id>1643195061312</Id>
+					<Name><![CDATA[setPointPV]]></Name>
+					<X>850</X><Y>1460</Y>
+					<Label><X>0</X><Y>-20</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties External="false" Constant="false" Array="false">
+						<Formula><![CDATA[isWPOpZon && pvOpwek >= 0.1 ? (setpointActief + 2) : setpointActief]]></Formula>
 						<Value><![CDATA[0]]></Value>
 						<Color/>
 					</Properties>
 
 				</Variable>
 				<Variable Class="StockVariable">
-					<Id>1641897134494</Id>
-					<Name><![CDATA[warmteBinnenlucht]]></Name>
-					<X>480</X><Y>1210</Y>
+					<Id>1643191901335</Id>
+					<Name><![CDATA[Twoning]]></Name>
+					<X>650</X><Y>1408.92</Y>
 					<Label><X>0</X><Y>-20</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties Array="false">
 					<EquationStyle>classic</EquationStyle>
-					<Width>280</Width>
-					<Height>80</Height>
-						<InitialValue><![CDATA[woninginhoud*specifiekeWarmteLucht*Tstookgrens]]></InitialValue>
+					<Width>20</Width>
+					<Height>20</Height>
+						<Expression><![CDATA[+]]></Expression>
+						<InitialValue><![CDATA[setpointNacht]]></InitialValue>
 						<Color/>
 					</Properties>
 				</Variable>
 				<Variable Class="StockVariable">
-					<Id>1641897239571</Id>
-					<Name><![CDATA[warmteThermischeMassa]]></Name>
-					<X>480</X><Y>1330</Y>
+					<Id>1643191901337</Id>
+					<Name><![CDATA[TThermischeMassa]]></Name>
+					<X>650</X><Y>1487.96</Y>
 					<Label><X>0</X><Y>-20</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties Array="false">
 					<EquationStyle>classic</EquationStyle>
-					<Width>280</Width>
-					<Height>80</Height>
+					<Width>20</Width>
+					<Height>20</Height>
+						<InitialValue><![CDATA[setpointNacht]]></InitialValue>
+						<Color/>
+					</Properties>
+				</Variable>
+				<Variable Class="StockVariable">
+					<Id>1643191901340</Id>
+					<Name><![CDATA[fieVerwarmingOutput]]></Name>
+					<X>960</X><Y>1349.64</Y>
+					<Label><X>0</X><Y>-20</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties Array="false">
+					<EquationStyle>classic</EquationStyle>
+					<Width>20</Width>
+					<Height>20</Height>
+						<InitialValue><![CDATA[0]]></InitialValue>
+						<Color/>
+					</Properties>
+				</Variable>
+				<Variable Class="StockVariable">
+					<Id>1643191901345</Id>
+					<Name><![CDATA[elektriciteitsvraagCumulatief]]></Name>
+					<X>770</X><Y>1109.09</Y>
+					<Label><X>10</X><Y>-5</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties Array="false">
+					<EquationStyle>classic</EquationStyle>
+					<Width>20</Width>
+					<Height>20</Height>
+						<InitialValue><![CDATA[0]]></InitialValue>
+						<Color/>
+					</Properties>
+				</Variable>
+				<Variable Class="StockVariable">
+					<Id>1643191901349</Id>
+					<Name><![CDATA[warmtevraagWoningCumulatief]]></Name>
+					<X>1070</X><Y>1289.09</Y>
+					<Label><X>15</X><Y>-5</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties Array="false">
+					<EquationStyle>classic</EquationStyle>
+					<Width>20</Width>
+					<Height>20</Height>
 						<InitialValue><![CDATA[0]]></InitialValue>
 						<Color/>
 					</Properties>
 				</Variable>
 				<Variable Class="Flow">
-					<Id>1641897286750</Id>
-					<Name><![CDATA[transmissie]]></Name>
-					<X>480</X><Y>1210</Y>
+					<Id>1643191901099</Id>
+					<Name><![CDATA[dTwoningdt]]></Name>
+					<X>500</X><Y>1408.92</Y>
 					<Label><X>0</X><Y>-20</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Properties SourceId="1641897134494" External="false" Constant="false" Array="false">
-						<Formula><![CDATA[(Tdelta/TdeltaRef)*transmissieverlies]]></Formula>
+					<Properties TargetId="1643191901335" External="false" Constant="false" Array="false">
+						<Formula><![CDATA[dQdtWoning / ((woningOppervlakte * 2.3) * roLucht * cpLucht)]]></Formula>
 						<Color/>
 						<ValveIndex>1</ValveIndex>
 						<Points>
 							<Point><X>0</X><Y>0</Y></Point>
-							<Point><X>240</X><Y>0</Y></Point>
-							<Point><X>340</X><Y>0</Y></Point>
+							<Point><X>60</X><Y>0</Y></Point>
+							<Point><X>150</X><Y>0</Y></Point>
 						</Points>
 					</Properties>
 				</Variable>
 				<Variable Class="Flow">
-					<Id>1641905552629</Id>
-					<Name><![CDATA[leveringWarmtepomp]]></Name>
-					<X>90</X><Y>1210</Y>
+					<Id>1643191901115</Id>
+					<Name><![CDATA[dTThermischeMassadt]]></Name>
+					<X>500</X><Y>1487.96</Y>
 					<Label><X>0</X><Y>-20</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Properties TargetId="1641897134494" External="false" Constant="false" Array="false">
-						<Formula><![CDATA[Tbinnen < tThermostaat ? transmissieverlies : 0 ]]></Formula>
+					<Properties TargetId="1643191901337" External="false" Constant="false" Array="false">
+						<Formula><![CDATA[dQdtThermischeMassa / ((woningOppervlakte + schilOppervlakte) * roThermischeMassa * cpThermischeMassa)]]></Formula>
 						<Color/>
 						<ValveIndex>1</ValveIndex>
 						<Points>
 							<Point><X>0</X><Y>0</Y></Point>
-							<Point><X>90</X><Y>0</Y></Point>
-							<Point><X>390</X><Y>0</Y></Point>
+							<Point><X>20</X><Y>0</Y></Point>
+							<Point><X>150</X><Y>0</Y></Point>
+						</Points>
+					</Properties>
+				</Variable>
+				<Variable Class="Flow">
+					<Id>1643191901119</Id>
+					<Name><![CDATA[flow]]></Name>
+					<X>860</X><Y>1349.64</Y>
+					<Label><X>0</X><Y>-20</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties TargetId="1643191901340" External="false" Constant="false" Array="false">
+						<Formula><![CDATA[(fieVerwarmingInput < fieVerwarmingOutput) ? ((fieVerwarmingInput - fieVerwarmingOutput)/ 10) : ((fieVerwarmingInput - fieVerwarmingOutput)/ 5)]]></Formula>
+						<Color/>
+						<ValveIndex>1</ValveIndex>
+						<Points>
+							<Point><X>0</X><Y>0</Y></Point>
+							<Point><X>40</X><Y>0</Y></Point>
+							<Point><X>100</X><Y>0</Y></Point>
+						</Points>
+					</Properties>
+				</Variable>
+				<Variable Class="Flow">
+					<Id>1643191901123</Id>
+					<Name><![CDATA[huidigeElektriciteitsvraag]]></Name>
+					<X>650</X><Y>1109.09</Y>
+					<Label><X>0</X><Y>-20</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties TargetId="1643191901345" External="false" Constant="false" Array="false">
+						<Formula><![CDATA[elektriciteitsvraagWarmtepomp]]></Formula>
+						<Color/>
+						<ValveIndex>1</ValveIndex>
+						<Points>
+							<Point><X>0</X><Y>0</Y></Point>
+							<Point><X>50</X><Y>0</Y></Point>
+							<Point><X>120</X><Y>0</Y></Point>
+						</Points>
+					</Properties>
+				</Variable>
+				<Variable Class="Flow">
+					<Id>1643191901128</Id>
+					<Name><![CDATA[huidigeWarmtevraag]]></Name>
+					<X>970</X><Y>1289.09</Y>
+					<Label><X>0</X><Y>-20</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties TargetId="1643191901349" External="false" Constant="false" Array="false">
+						<Formula><![CDATA[fieVerwarmingInput / 1000]]></Formula>
+						<Color/>
+						<ValveIndex>1</ValveIndex>
+						<Points>
+							<Point><X>0</X><Y>0</Y></Point>
+							<Point><X>20</X><Y>0</Y></Point>
+							<Point><X>100</X><Y>0</Y></Point>
 						</Points>
 					</Properties>
 				</Variable>
@@ -2687,9 +3096,6 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 						<Type><![CDATA[boolean]]></Type>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
-						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[randomTrue(0.3)]]></Code>
-						</DefaultValue>
 						<ParameterEditor>
 							<Id>1641891987660</Id>
 							<EditorContolType>CHECK_BOX</EditorContolType>
@@ -2749,7 +3155,7 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 				</Variable>
 				<Variable Class="Parameter">
 					<Id>1641892573268</Id>
-					<Name><![CDATA[woningType]]></Name>
+					<Name><![CDATA[woningTypeString]]></Name>
 					<X>40</X><Y>190</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -2814,30 +3220,9 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 					</Properties>                 
 				</Variable>
 				<Variable Class="Parameter">
-					<Id>1641896265513</Id>
-					<Name><![CDATA[transmissieverlies]]></Name>
-					<X>60</X><Y>970</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[double]]></Type>
-						<UnitType><![CDATA[NONE]]></UnitType>
-						<SdArray>false</SdArray>
-						<ParameterEditor>
-							<Id>1641896265511</Id>
-							<EditorContolType>TEXT_BOX</EditorContolType>
-							<MinSliderValue><![CDATA[0]]></MinSliderValue>
-							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
-							<DelimeterType>NO_DELIMETER</DelimeterType>
-						</ParameterEditor>
-					</Properties>                 
-				</Variable>
-				<Variable Class="Parameter">
-					<Id>1641897300651</Id>
-					<Name><![CDATA[Tstookgrens]]></Name>
-					<X>50</X><Y>1030</Y>
+					<Id>1643191901234</Id>
+					<Name><![CDATA[roLucht]]></Name>
+					<X>160</X><Y>1320</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2847,10 +3232,10 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[20]]></Code>
+							<Code><![CDATA[1.223]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
-							<Id>1641897300649</Id>
+							<Id>1643191901232</Id>
 							<EditorContolType>TEXT_BOX</EditorContolType>
 							<MinSliderValue><![CDATA[0]]></MinSliderValue>
 							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
@@ -2859,9 +3244,9 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 					</Properties>                 
 				</Variable>
 				<Variable Class="Parameter">
-					<Id>1641897575037</Id>
-					<Name><![CDATA[specifiekeWarmteLucht]]></Name>
-					<X>460</X><Y>1060</Y>
+					<Id>1643191901237</Id>
+					<Name><![CDATA[roThermischeMassa]]></Name>
+					<X>160</X><Y>1389.16</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2871,10 +3256,10 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[0.000256]]></Code>
+							<Code><![CDATA[2400]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
-							<Id>1641897575035</Id>
+							<Id>1643191901235</Id>
 							<EditorContolType>TEXT_BOX</EditorContolType>
 							<MinSliderValue><![CDATA[0]]></MinSliderValue>
 							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
@@ -2883,9 +3268,9 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 					</Properties>                 
 				</Variable>
 				<Variable Class="Parameter">
-					<Id>1641897778557</Id>
-					<Name><![CDATA[TdeltaRef]]></Name>
-					<X>20</X><Y>1100</Y>
+					<Id>1643191901240</Id>
+					<Name><![CDATA[cpLucht]]></Name>
+					<X>160</X><Y>1349.64</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2895,10 +3280,10 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[Tstookgrens+10]]></Code>
+							<Code><![CDATA[1007]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
-							<Id>1641897778555</Id>
+							<Id>1643191901238</Id>
 							<EditorContolType>TEXT_BOX</EditorContolType>
 							<MinSliderValue><![CDATA[0]]></MinSliderValue>
 							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
@@ -2907,10 +3292,9 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 					</Properties>                 
 				</Variable>
 				<Variable Class="Parameter">
-					<Id>1641903915910</Id>
-					<Name><![CDATA[woninginhoud]]></Name>
-					<Unit>m^3</Unit> 
-					<X>130</X><Y>960</Y>
+					<Id>1643191901243</Id>
+					<Name><![CDATA[cpThermischeMassa]]></Name>
+					<X>160</X><Y>1418.8</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2920,10 +3304,10 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[vloeroppervlakte*2.5]]></Code>
+							<Code><![CDATA[880]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
-							<Id>1641903915908</Id>
+							<Id>1643191901241</Id>
 							<EditorContolType>TEXT_BOX</EditorContolType>
 							<MinSliderValue><![CDATA[0]]></MinSliderValue>
 							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
@@ -2932,10 +3316,9 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 					</Properties>                 
 				</Variable>
 				<Variable Class="Parameter">
-					<Id>1641905415042</Id>
-					<Name><![CDATA[speciefiekeWarmteBeton]]></Name>
-					<Unit>kWh/(m^3*K)</Unit> 
-					<X>490</X><Y>1420</Y>
+					<Id>1643191901246</Id>
+					<Name><![CDATA[fieInstraling]]></Name>
+					<X>680</X><Y>1290.362</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2945,10 +3328,10 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[0.555]]></Code>
+							<Code><![CDATA[0]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
-							<Id>1641905415040</Id>
+							<Id>1643191901244</Id>
 							<EditorContolType>TEXT_BOX</EditorContolType>
 							<MinSliderValue><![CDATA[0]]></MinSliderValue>
 							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
@@ -2957,9 +3340,9 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 					</Properties>                 
 				</Variable>
 				<Variable Class="Parameter">
-					<Id>1642523617732</Id>
-					<Name><![CDATA[COP]]></Name>
-					<X>50</X><Y>920</Y>
+					<Id>1643191901249</Id>
+					<Name><![CDATA[gemiddeldeRc]]></Name>
+					<X>590</X><Y>1240.962</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2969,10 +3352,10 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[3.5]]></Code>
+							<Code><![CDATA[1.8]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
-							<Id>1642523617730</Id>
+							<Id>1643191901247</Id>
 							<EditorContolType>TEXT_BOX</EditorContolType>
 							<MinSliderValue><![CDATA[0]]></MinSliderValue>
 							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
@@ -2981,9 +3364,446 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 					</Properties>                 
 				</Variable>
 				<Variable Class="Parameter">
-					<Id>1642523788975</Id>
+					<Id>1643191901252</Id>
+					<Name><![CDATA[woningOppervlakte]]></Name>
+					<X>160</X><Y>1201.442</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[normal(20,120)]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1643191901250</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1643191901255</Id>
+					<Name><![CDATA[specifiekVentilatieDebiet]]></Name>
+					<Description><![CDATA[m3/m2]]></Description>
+					<X>310</X><Y>1161.922</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[5*2.3]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1643191901253</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1643191901258</Id>
+					<Name><![CDATA[labdaMuur]]></Name>
+					<X>610</X><Y>1596.638</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[1.5]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1643191901256</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1643191901261</Id>
+					<Name><![CDATA[HI]]></Name>
+					<X>640</X><Y>1616.398</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[8]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1643191901259</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1643191901264</Id>
+					<Name><![CDATA[dikteMuur]]></Name>
+					<X>640</X><Y>1636.158</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[0.2]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1643191901262</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1643191901267</Id>
+					<Name><![CDATA[rendementCv]]></Name>
+					<X>960</X><Y>1152.042</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[0.95]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1643191901265</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1643191901270</Id>
+					<Name><![CDATA[vermogenCv]]></Name>
+					<X>780</X><Y>1201.442</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[20000]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1643191901268</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1643191901273</Id>
+					<Name><![CDATA[vermogenWarmtepomp]]></Name>
+					<X>840</X><Y>1260.722</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[11500]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1643191901271</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1643191901276</Id>
+					<Name><![CDATA[thermostaatStarttijd]]></Name>
+					<X>930</X><Y>1540.721</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[int]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<UnitOfValue Class="TimeUnits"><![CDATA[HOUR]]></UnitOfValue>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[roundToInt(normal(1,7))]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1643191901274</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1643191901279</Id>
+					<Name><![CDATA[thermostaatEindtijd]]></Name>
+					<X>930</X><Y>1570.361</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[int]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<UnitOfValue Class="TimeUnits"><![CDATA[HOUR]]></UnitOfValue>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[roundToInt(normal(1,22))]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1643191901277</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1643191901282</Id>
+					<Name><![CDATA[setpointOverdag]]></Name>
+					<X>840</X><Y>1600</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[normal(1,20)]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1643191901280</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1643191901285</Id>
+					<Name><![CDATA[setpointNacht]]></Name>
+					<X>860</X><Y>1619.76</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[normal(0.5,18)]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1643191901283</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1643191901288</Id>
+					<Name><![CDATA[energiewaardeGas]]></Name>
+					<Description><![CDATA[kWh/m3]]></Description>
+					<X>960</X><Y>1119.09</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[9.769]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1643191901286</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1643191901294</Id>
+					<Name><![CDATA[cvKetel]]></Name>
+					<X>580</X><Y>1142.162</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[int]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1643191901292</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1643191901297</Id>
+					<Name><![CDATA[warmtepomp]]></Name>
+					<X>580</X><Y>1171.802</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[int]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1643191901295</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1643191901300</Id>
+					<Name><![CDATA[woningType]]></Name>
+					<Description><![CDATA[0: vrijstaand
+1: 2-onder-1-kap
+2: rijwoning hoek
+3: rijwoning tussen
+4: galerijwoning
+5: appartement]]></Description>
+					<X>160</X><Y>1160</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1643191901298</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1643191901303</Id>
+					<Name><![CDATA[debietVentilatie]]></Name>
+					<Description><![CDATA[m3/s]]></Description>
+					<X>340</X><Y>1189.09</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[specifiekVentilatieDebiet / 3600 * woningOppervlakte]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1643191901301</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1643191901306</Id>
+					<Name><![CDATA[schilOppervlakte]]></Name>
+					<X>340</X><Y>1229.09</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[vormfactor(woningType)*woningOppervlakte]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1643191901304</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1643195183393</Id>
 					<Name><![CDATA[isWPOpZon]]></Name>
-					<X>140</X><Y>1350</Y>
+					<X>930</X><Y>1460</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2992,11 +3812,8 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 						<Type><![CDATA[boolean]]></Type>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
-						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[false]]></Code>
-						</DefaultValue>
 						<ParameterEditor>
-							<Id>1642523788973</Id>
+							<Id>1643195183391</Id>
 							<EditorContolType>CHECK_BOX</EditorContolType>
 							<MinSliderValue><![CDATA[0]]></MinSliderValue>
 							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
@@ -3021,13 +3838,193 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 				</Variable>
 			</Variables>
 			<Dependences>
-				<Link SourceId="1641904403836" TargetId="1641897286750" Polarity="null">
+				<Link SourceId="1643191901234" TargetId="1643191901099" Polarity="null">
+					<Height>27.049</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>400</X><Y>88</Y></Direction>
+					<Id>1643191901132</Id>
+					<Name><![CDATA[roLucht - dTwoningdt]]></Name>
+					<X>160</X><Y>1320</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901240" TargetId="1643191901099" Polarity="null">
+					<Height>28.27</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>400</X><Y>59</Y></Direction>
+					<Id>1643191901134</Id>
+					<Name><![CDATA[cpLucht - dTwoningdt]]></Name>
+					<X>160</X><Y>1349.64</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901310" TargetId="1643191901099" Polarity="null">
+					<Height>-14.013</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>0</X><Y>59</Y></Direction>
+					<Id>1643191901136</Id>
+					<Name><![CDATA[dQdtWoning - dTwoningdt]]></Name>
+					<X>560</X><Y>1349.64</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901306" TargetId="1643191901308" Polarity="null">
+					<Height>25.384</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>240</X><Y>61</Y></Direction>
+					<Id>1643191901138</Id>
+					<Name><![CDATA[schilOppervlakte - fieVerlies]]></Name>
+					<X>340</X><Y>1229.09</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901249" TargetId="1643191901308" Polarity="null">
+					<Height>-11.544</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>-10</X><Y>48</Y></Direction>
+					<Id>1643191901140</Id>
+					<Name><![CDATA[gemiddeldeRc - fieVerlies]]></Name>
+					<X>590</X><Y>1240.962</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901335" TargetId="1643191901308" Polarity="null">
+					<Height>-25.321</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>-70</X><Y>-120</Y></Direction>
+					<Id>1643191901142</Id>
+					<Name><![CDATA[Twoning - fieVerlies]]></Name>
+					<X>650</X><Y>1408.92</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901308" TargetId="1643191901310" Polarity="null">
+					<Height>-12.975</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>-20</X><Y>59</Y></Direction>
+					<Id>1643191901144</Id>
+					<Name><![CDATA[fieVerlies - dQdtWoning]]></Name>
+					<X>580</X><Y>1290.362</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901246" TargetId="1643191901310" Polarity="null">
+					<Height>10.035</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>-120</X><Y>59</Y></Direction>
+					<Id>1643191901146</Id>
+					<Name><![CDATA[fieInstraling - dQdtWoning]]></Name>
+					<X>680</X><Y>1290.362</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901340" TargetId="1643191901310" Polarity="null">
+					<Height>26.003</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>-400</X><Y>0</Y></Direction>
+					<Id>1643191901148</Id>
+					<Name><![CDATA[fieVerwarmingOutput - dQdtWoning]]></Name>
+					<X>960</X><Y>1349.64</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901252" TargetId="1643191901099" Polarity="null">
+					<Height>33.669</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>400</X><Y>206</Y></Direction>
+					<Id>1643191901150</Id>
+					<Name><![CDATA[woningOppervlakte - dTwoningdt]]></Name>
+					<X>160</X><Y>1201.442</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901303" TargetId="1643191901312" Polarity="null">
+					<Height>8.999</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>130</X><Y>150</Y></Direction>
+					<Id>1643191901152</Id>
+					<Name><![CDATA[debietVentilatie - fieVentilatie]]></Name>
+					<X>340</X><Y>1189.09</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901312" TargetId="1643191901310" Polarity="null">
+					<Height>11.0</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>90</X><Y>9</Y></Direction>
+					<Id>1643191901154</Id>
+					<Name><![CDATA[fieVentilatie - dQdtWoning]]></Name>
+					<X>470</X><Y>1339.76</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901314" TargetId="1643191901115" Polarity="null">
 					<Height>20.0</Height>
 					<PolarityPosition>0.95</PolarityPosition>
-					<Direction><X>30</X><Y>90</Y></Direction>
-					<Id>1641897693807</Id>
-					<Name><![CDATA[Tdelta - transmissie]]></Name>
-					<X>690</X><Y>1120</Y>
+					<Direction><X>100</X><Y>-61</Y></Direction>
+					<Id>1643191901156</Id>
+					<Name><![CDATA[dQdtThermischeMassa - dTThermischeMassadt]]></Name>
+					<X>420</X><Y>1547.238</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3036,13 +4033,28 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 					<LineWidth>1</LineWidth>
 					<Delay>false</Delay>
 				</Link>
-				<Link SourceId="1641897778557" TargetId="1641897286750" Polarity="null">
+				<Link SourceId="1643191901316" TargetId="1643191901314" Polarity="null">
+					<Height>2.646</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>-130</X><Y>-11</Y></Direction>
+					<Id>1643191901158</Id>
+					<Name><![CDATA[fieThermischeMassa - dQdtThermischeMassa]]></Name>
+					<X>550</X><Y>1557.118</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901234" TargetId="1643191901312" Polarity="null">
 					<Height>20.0</Height>
 					<PolarityPosition>0.95</PolarityPosition>
-					<Direction><X>700</X><Y>110</Y></Direction>
-					<Id>1641898003571</Id>
-					<Name><![CDATA[TdeltaRef - transmissie]]></Name>
-					<X>20</X><Y>1100</Y>
+					<Direction><X>310</X><Y>19</Y></Direction>
+					<Id>1643191901160</Id>
+					<Name><![CDATA[roLucht - fieVentilatie]]></Name>
+					<X>160</X><Y>1320</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3051,13 +4063,13 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 					<LineWidth>1</LineWidth>
 					<Delay>false</Delay>
 				</Link>
-				<Link SourceId="1641896265513" TargetId="1641897286750" Polarity="null">
+				<Link SourceId="1643191901240" TargetId="1643191901312" Polarity="null">
 					<Height>20.0</Height>
 					<PolarityPosition>0.95</PolarityPosition>
-					<Direction><X>660</X><Y>240</Y></Direction>
-					<Id>1641898011064</Id>
-					<Name><![CDATA[transmissieverlies - transmissie]]></Name>
-					<X>60</X><Y>970</Y>
+					<Direction><X>310</X><Y>-11</Y></Direction>
+					<Id>1643191901162</Id>
+					<Name><![CDATA[cpLucht - fieVentilatie]]></Name>
+					<X>160</X><Y>1349.64</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3066,13 +4078,13 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 					<LineWidth>1</LineWidth>
 					<Delay>false</Delay>
 				</Link>
-				<Link SourceId="1641897134494" TargetId="1641904182011" Polarity="null">
+				<Link SourceId="1643191901335" TargetId="1643191901312" Polarity="null">
 					<Height>20.0</Height>
 					<PolarityPosition>0.95</PolarityPosition>
-					<Direction><X>70</X><Y>-80</Y></Direction>
-					<Id>1641904215350</Id>
-					<Name><![CDATA[warmteBinnenlucht - Tbinnen]]></Name>
-					<X>480</X><Y>1210</Y>
+					<Direction><X>-180</X><Y>-70</Y></Direction>
+					<Id>1643191901164</Id>
+					<Name><![CDATA[Twoning - fieVentilatie]]></Name>
+					<X>650</X><Y>1408.92</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3081,73 +4093,13 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 					<LineWidth>1</LineWidth>
 					<Delay>false</Delay>
 				</Link>
-				<Link SourceId="1641897575037" TargetId="1641904182011" Polarity="null">
-					<Height>0.0</Height>
-					<PolarityPosition>0.95</PolarityPosition>
-					<Direction><X>90</X><Y>70</Y></Direction>
-					<Id>1641904247745</Id>
-					<Name><![CDATA[specifiekeWarmteLucht - Tbinnen]]></Name>
-					<X>460</X><Y>1060</Y>
-					<Label><X>40</X><Y>-50</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<Color/>
-					<LineWidth>1</LineWidth>
-					<Delay>false</Delay>
-				</Link>
-				<Link SourceId="1641903915910" TargetId="1641904182011" Polarity="null">
-					<Height>0.0</Height>
-					<PolarityPosition>0.95</PolarityPosition>
-					<Direction><X>420</X><Y>170</Y></Direction>
-					<Id>1641904306895</Id>
-					<Name><![CDATA[woninginhoud - Tbinnen]]></Name>
-					<X>130</X><Y>960</Y>
-					<Label><X>40</X><Y>-50</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<Color/>
-					<LineWidth>1</LineWidth>
-					<Delay>false</Delay>
-				</Link>
-				<Link SourceId="1641897327201" TargetId="1641904403836" Polarity="null">
-					<Height>2.724</Height>
-					<PolarityPosition>0.95</PolarityPosition>
-					<Direction><X>310</X><Y>150</Y></Direction>
-					<Id>1641904387676</Id>
-					<Name><![CDATA[Tbuiten - Tdelta]]></Name>
-					<X>380</X><Y>970</Y>
-					<Label><X>40</X><Y>-50</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<Color/>
-					<LineWidth>1</LineWidth>
-					<Delay>false</Delay>
-				</Link>
-				<Link SourceId="1641904182011" TargetId="1641904403836" Polarity="null">
-					<Height>7.054</Height>
-					<PolarityPosition>0.95</PolarityPosition>
-					<Direction><X>140</X><Y>-10</Y></Direction>
-					<Id>1641904454575</Id>
-					<Name><![CDATA[Tbinnen - Tdelta]]></Name>
-					<X>550</X><Y>1130</Y>
-					<Label><X>40</X><Y>-50</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<Color/>
-					<LineWidth>1</LineWidth>
-					<Delay>false</Delay>
-				</Link>
-				<Link SourceId="1641897300651" TargetId="1641897134494" Polarity="null">
+				<Link SourceId="1643191901237" TargetId="1643191901115" Polarity="null">
 					<Height>20.0</Height>
 					<PolarityPosition>0.95</PolarityPosition>
-					<Direction><X>430</X><Y>180</Y></Direction>
-					<Id>1641904575215</Id>
-					<Name><![CDATA[Tstookgrens - warmteBinnenlucht]]></Name>
-					<X>50</X><Y>1030</Y>
+					<Direction><X>360</X><Y>97</Y></Direction>
+					<Id>1643191901166</Id>
+					<Name><![CDATA[roThermischeMassa - dTThermischeMassadt]]></Name>
+					<X>160</X><Y>1389.16</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3156,13 +4108,13 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 					<LineWidth>1</LineWidth>
 					<Delay>false</Delay>
 				</Link>
-				<Link SourceId="1641897575037" TargetId="1641897134494" Polarity="null">
+				<Link SourceId="1643191901243" TargetId="1643191901115" Polarity="null">
 					<Height>20.0</Height>
 					<PolarityPosition>0.95</PolarityPosition>
-					<Direction><X>20</X><Y>150</Y></Direction>
-					<Id>1641904808539</Id>
-					<Name><![CDATA[specifiekeWarmteLucht - warmteBinnenlucht]]></Name>
-					<X>460</X><Y>1060</Y>
+					<Direction><X>360</X><Y>68</Y></Direction>
+					<Id>1643191901168</Id>
+					<Name><![CDATA[cpThermischeMassa - dTThermischeMassadt]]></Name>
+					<X>160</X><Y>1418.8</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3171,13 +4123,43 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 					<LineWidth>1</LineWidth>
 					<Delay>false</Delay>
 				</Link>
-				<Link SourceId="1641903915910" TargetId="1641897134494" Polarity="null">
+				<Link SourceId="1643191901252" TargetId="1643191901115" Polarity="null">
+					<Height>48.57</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>360</X><Y>286</Y></Direction>
+					<Id>1643191901170</Id>
+					<Name><![CDATA[woningOppervlakte - dTThermischeMassadt]]></Name>
+					<X>160</X><Y>1201.442</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901306" TargetId="1643191901115" Polarity="null">
+					<Height>-79.211</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>180</X><Y>258</Y></Direction>
+					<Id>1643191901172</Id>
+					<Name><![CDATA[schilOppervlakte - dTThermischeMassadt]]></Name>
+					<X>340</X><Y>1228.842</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901258" TargetId="1643191901316" Polarity="null">
 					<Height>20.0</Height>
 					<PolarityPosition>0.95</PolarityPosition>
-					<Direction><X>350</X><Y>250</Y></Direction>
-					<Id>1641904819114</Id>
-					<Name><![CDATA[woninginhoud - warmteBinnenlucht]]></Name>
-					<X>130</X><Y>960</Y>
+					<Direction><X>-60</X><Y>-40</Y></Direction>
+					<Id>1643191901174</Id>
+					<Name><![CDATA[labdaMuur - fieThermischeMassa]]></Name>
+					<X>610</X><Y>1596.638</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3186,13 +4168,13 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 					<LineWidth>1</LineWidth>
 					<Delay>false</Delay>
 				</Link>
-				<Link SourceId="1641904182011" TargetId="1641905552629" Polarity="null">
-					<Height>-51.854</Height>
+				<Link SourceId="1643191901261" TargetId="1643191901316" Polarity="null">
+					<Height>33.816</Height>
 					<PolarityPosition>0.95</PolarityPosition>
-					<Direction><X>-370</X><Y>80</Y></Direction>
-					<Id>1641905739062</Id>
-					<Name><![CDATA[Tbinnen - leveringWarmtepomp]]></Name>
-					<X>550</X><Y>1130</Y>
+					<Direction><X>-90</X><Y>-61</Y></Direction>
+					<Id>1643191901176</Id>
+					<Name><![CDATA[HI - fieThermischeMassa]]></Name>
+					<X>640</X><Y>1616.398</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3201,13 +4183,13 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 					<LineWidth>1</LineWidth>
 					<Delay>false</Delay>
 				</Link>
-				<Link SourceId="1642503545161" TargetId="1641905552629" Polarity="null">
-					<Height>-53.45</Height>
+				<Link SourceId="1643191901264" TargetId="1643191901316" Polarity="null">
+					<Height>33.723</Height>
 					<PolarityPosition>0.95</PolarityPosition>
-					<Direction><X>150</X><Y>-70</Y></Direction>
-					<Id>1642503608658</Id>
-					<Name><![CDATA[tThermostaat - leveringWarmtepomp]]></Name>
-					<X>30</X><Y>1280</Y>
+					<Direction><X>-90</X><Y>-79</Y></Direction>
+					<Id>1643191901178</Id>
+					<Name><![CDATA[dikteMuur - fieThermischeMassa]]></Name>
+					<X>640</X><Y>1636.09</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3216,13 +4198,13 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 					<LineWidth>1</LineWidth>
 					<Delay>false</Delay>
 				</Link>
-				<Link SourceId="1641897300651" TargetId="1642503545161" Polarity="null">
-					<Height>-60.501</Height>
+				<Link SourceId="1643191901335" TargetId="1643191901316" Polarity="null">
+					<Height>107.497</Height>
 					<PolarityPosition>0.95</PolarityPosition>
-					<Direction><X>-20</X><Y>250</Y></Direction>
-					<Id>1642503677771</Id>
-					<Name><![CDATA[Tstookgrens - tThermostaat]]></Name>
-					<X>50</X><Y>1030</Y>
+					<Direction><X>-100</X><Y>147</Y></Direction>
+					<Id>1643191901180</Id>
+					<Name><![CDATA[Twoning - fieThermischeMassa]]></Name>
+					<X>650</X><Y>1408.92</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3231,13 +4213,28 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 					<LineWidth>1</LineWidth>
 					<Delay>false</Delay>
 				</Link>
-				<Link SourceId="1641896265513" TargetId="1641905552629" Polarity="null">
+				<Link SourceId="1643191901252" TargetId="1643191901316" Polarity="null">
+					<Height>-206.255</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>390</X><Y>356</Y></Direction>
+					<Id>1643191901182</Id>
+					<Name><![CDATA[woningOppervlakte - fieThermischeMassa]]></Name>
+					<X>160</X><Y>1201.09</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901337" TargetId="1643191901316" Polarity="null">
 					<Height>20.0</Height>
 					<PolarityPosition>0.95</PolarityPosition>
-					<Direction><X>120</X><Y>240</Y></Direction>
-					<Id>1642503820195</Id>
-					<Name><![CDATA[transmissieverlies - leveringWarmtepomp]]></Name>
-					<X>60</X><Y>970</Y>
+					<Direction><X>-100</X><Y>68</Y></Direction>
+					<Id>1643191901184</Id>
+					<Name><![CDATA[TThermischeMassa - fieThermischeMassa]]></Name>
+					<X>650</X><Y>1487.96</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3246,13 +4243,13 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 					<LineWidth>1</LineWidth>
 					<Delay>false</Delay>
 				</Link>
-				<Link SourceId="1642521471642" TargetId="1642503545161" Polarity="null">
-					<Height>20.0</Height>
+				<Link SourceId="1643191901306" TargetId="1643191901316" Polarity="null">
+					<Height>-161.148</Height>
 					<PolarityPosition>0.95</PolarityPosition>
-					<Direction><X>0</X><Y>-70</Y></Direction>
-					<Id>1642521596971</Id>
-					<Name><![CDATA[pvOpwek - tThermostaat]]></Name>
-					<X>30</X><Y>1350</Y>
+					<Direction><X>210</X><Y>327</Y></Direction>
+					<Id>1643191901186</Id>
+					<Name><![CDATA[schilOppervlakte - fieThermischeMassa]]></Name>
+					<X>340</X><Y>1228.842</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3261,13 +4258,358 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 					<LineWidth>1</LineWidth>
 					<Delay>false</Delay>
 				</Link>
-				<Link SourceId="1642523788975" TargetId="1642503545161" Polarity="null">
+				<Link SourceId="1643191901326" TargetId="1643195061312" Polarity="null">
+					<Height>-21.007</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>0</X><Y>-80</Y></Direction>
+					<Id>1643191901188</Id>
+					<Name><![CDATA[setpointActief - setPointPV]]></Name>
+					<X>850</X><Y>1540</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901335" TargetId="1643191901323" Polarity="null">
 					<Height>20.0</Height>
 					<PolarityPosition>0.95</PolarityPosition>
-					<Direction><X>-110</X><Y>-70</Y></Direction>
-					<Id>1642523868642</Id>
-					<Name><![CDATA[isWPOpZon - tThermostaat]]></Name>
-					<X>140</X><Y>1350</Y>
+					<Direction><X>140</X><Y>2</Y></Direction>
+					<Id>1643191901190</Id>
+					<Name><![CDATA[Twoning - thermostaat]]></Name>
+					<X>650</X><Y>1408</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901323" TargetId="1643191901318" Polarity="null">
+					<Height>3.002</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>10</X><Y>-100</Y></Direction>
+					<Id>1643191901192</Id>
+					<Name><![CDATA[thermostaat - fieVerwarmingInput]]></Name>
+					<X>790</X><Y>1410</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901320" TargetId="1643191901318" Polarity="null">
+					<Height>10.763</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>110</X><Y>118</Y></Direction>
+					<Id>1643191901194</Id>
+					<Name><![CDATA[COPWarmtepomp - fieVerwarmingInput]]></Name>
+					<X>690</X><Y>1191.562</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901273" TargetId="1643191901318" Polarity="null">
+					<Height>20.0</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>-40</X><Y>48</Y></Direction>
+					<Id>1643191901196</Id>
+					<Name><![CDATA[vermogenWarmtepomp - fieVerwarmingInput]]></Name>
+					<X>840</X><Y>1260.722</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901270" TargetId="1643191901318" Polarity="null">
+					<Height>-12.091</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>20</X><Y>107</Y></Direction>
+					<Id>1643191901198</Id>
+					<Name><![CDATA[vermogenCv - fieVerwarmingInput]]></Name>
+					<X>780</X><Y>1201.442</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901297" TargetId="1643191901318" Polarity="null">
+					<Height>20.0</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>220</X><Y>137</Y></Direction>
+					<Id>1643191901200</Id>
+					<Name><![CDATA[warmtepomp - fieVerwarmingInput]]></Name>
+					<X>580</X><Y>1171.802</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901318" TargetId="1643191901119" Polarity="null">
+					<Height>20.0</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>100</X><Y>38</Y></Direction>
+					<Id>1643191901202</Id>
+					<Name><![CDATA[fieVerwarmingInput - flow]]></Name>
+					<X>800</X><Y>1310.12</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901340" TargetId="1643191901119" Polarity="null">
+					<Height>20.0</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>-60</X><Y>0</Y></Direction>
+					<Id>1643191901204</Id>
+					<Name><![CDATA[fieVerwarmingOutput - flow]]></Name>
+					<X>960</X><Y>1349.64</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901276" TargetId="1643191901326" Polarity="null">
+					<Height>6.645</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>-80</X><Y>0</Y></Direction>
+					<Id>1643191901206</Id>
+					<Name><![CDATA[thermostaatStarttijd - setpointActief]]></Name>
+					<X>930</X><Y>1540.721</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901279" TargetId="1643191901326" Polarity="null">
+					<Height>20.0</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>-80</X><Y>-31</Y></Direction>
+					<Id>1643191901208</Id>
+					<Name><![CDATA[thermostaatEindtijd - setpointActief]]></Name>
+					<X>930</X><Y>1570.361</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901282" TargetId="1643191901326" Polarity="null">
+					<Height>15.769</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>10</X><Y>-61</Y></Direction>
+					<Id>1643191901210</Id>
+					<Name><![CDATA[setpointOverdag - setpointActief]]></Name>
+					<X>840</X><Y>1600</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901285" TargetId="1643191901326" Polarity="null">
+					<Height>20.0</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>-10</X><Y>-80</Y></Direction>
+					<Id>1643191901212</Id>
+					<Name><![CDATA[setpointNacht - setpointActief]]></Name>
+					<X>860</X><Y>1619.76</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901318" TargetId="1643191901329" Polarity="null">
+					<Height>20.0</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>90</X><Y>-130</Y></Direction>
+					<Id>1643191901214</Id>
+					<Name><![CDATA[fieVerwarmingInput - gasvraag]]></Name>
+					<X>800</X><Y>1310.12</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901267" TargetId="1643191901329" Polarity="null">
+					<Height>20.0</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>-70</X><Y>29</Y></Direction>
+					<Id>1643191901216</Id>
+					<Name><![CDATA[rendementCv - gasvraag]]></Name>
+					<X>960</X><Y>1152.042</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901297" TargetId="1643191901329" Polarity="null">
+					<Height>20.0</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>310</X><Y>9</Y></Direction>
+					<Id>1643191901218</Id>
+					<Name><![CDATA[warmtepomp - gasvraag]]></Name>
+					<X>580</X><Y>1171.802</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901320" TargetId="1643191901331" Polarity="null">
+					<Height>20.0</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>30</X><Y>-40</Y></Direction>
+					<Id>1643191901220</Id>
+					<Name><![CDATA[COPWarmtepomp - elektriciteitsvraagWarmtepomp]]></Name>
+					<X>690</X><Y>1191.562</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901318" TargetId="1643191901331" Polarity="null">
+					<Height>20.0</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>-80</X><Y>-159</Y></Direction>
+					<Id>1643191901222</Id>
+					<Name><![CDATA[fieVerwarmingInput - elektriciteitsvraagWarmtepomp]]></Name>
+					<X>800</X><Y>1310.12</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901297" TargetId="1643191901331" Polarity="null">
+					<Height>14.955</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>140</X><Y>-21</Y></Direction>
+					<Id>1643191901224</Id>
+					<Name><![CDATA[warmtepomp - elektriciteitsvraagWarmtepomp]]></Name>
+					<X>580</X><Y>1171.802</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901331" TargetId="1643191901123" Polarity="null">
+					<Height>11.469</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>-20</X><Y>-42</Y></Direction>
+					<Id>1643191901226</Id>
+					<Name><![CDATA[elektriciteitsvraagWarmtepomp - huidigeElektriciteitsvraag]]></Name>
+					<X>720</X><Y>1151.09</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901318" TargetId="1643191901128" Polarity="null">
+					<Height>4.694</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>190</X><Y>-21</Y></Direction>
+					<Id>1643191901228</Id>
+					<Name><![CDATA[fieVerwarmingInput - huidigeWarmtevraag]]></Name>
+					<X>800</X><Y>1310.09</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643192813293" TargetId="1643195061312" Polarity="null">
+					<Height>20.0</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>60</X><Y>-20</Y></Direction>
+					<Id>1643195013979</Id>
+					<Name><![CDATA[pvOpwek - setPointPV]]></Name>
+					<X>790</X><Y>1480</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643195061312" TargetId="1643191901323" Polarity="null">
+					<Height>-19.708</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>-60</X><Y>-50</Y></Direction>
+					<Id>1643195076411</Id>
+					<Name><![CDATA[setPointPV - thermostaat]]></Name>
+					<X>850</X><Y>1460</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643195183393" TargetId="1643195061312" Polarity="null">
+					<Height>-6.135</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>-80</X><Y>0</Y></Direction>
+					<Id>1643195198379</Id>
+					<Name><![CDATA[isWPOpZon - setPointPV]]></Name>
+					<X>930</X><Y>1460</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3277,6 +4619,44 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 					<Delay>false</Delay>
 				</Link>
 			</Dependences>
+			<TableFunctions>
+				<TableFunction AccessType="public" StaticFunction="false">
+					<Id>1643191901085</Id>
+					<Name><![CDATA[vormfactor]]></Name>
+					<Description><![CDATA[Bron: vormfactor per woningtype, Uniforme Maatlat Gebouwde Omgeving (versie 4.3.3)]]></Description>
+					<X>470</X><Y>1211.322</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<InterpolationMethod>LINEAR</InterpolationMethod>
+					<OutOfRangeBehaviour>ERROR</OutOfRangeBehaviour>
+					<OutOfRangeCustomValue><![CDATA[0.0]]></OutOfRangeCustomValue>
+					<ApproximationOrder><![CDATA[1]]></ApproximationOrder>
+					<LoadFromDatabase><![CDATA[false]]></LoadFromDatabase>
+					<ValuesQuery>
+						<TableReference>
+						</TableReference>
+							<ArgumentColumnReference>
+							</ArgumentColumnReference>
+							<ValueColumnReference>
+							</ValueColumnReference>
+					</ValuesQuery>
+// arguments and values
+					<Argument><![CDATA[0.0]]></Argument>
+					<Argument><![CDATA[1.0]]></Argument>
+					<Argument><![CDATA[2.0]]></Argument>
+					<Argument><![CDATA[3.0]]></Argument>
+					<Argument><![CDATA[4.0]]></Argument>
+					<Argument><![CDATA[5.0]]></Argument>
+					<Value><![CDATA[2.05]]></Value>
+					<Value><![CDATA[1.78]]></Value>
+					<Value><![CDATA[1.77]]></Value>
+					<Value><![CDATA[1.22]]></Value>
+					<Value><![CDATA[1.04]]></Value>
+					<Value><![CDATA[0.96]]></Value>
+				</TableFunction>
+			</TableFunctions>
 			<AgentLinks>
 				<AgentLink>
 					<Id>1641891521963</Id>
