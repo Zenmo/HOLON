@@ -208,6 +208,78 @@ balkConfiguratie.setY(1350);]]></StartupCode>
 						<Type><![CDATA[double]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1643300671746</Id>
+					<Name><![CDATA[basislastElektriciteitsverbruikHuishoudens]]></Name>
+					<X>-390</X><Y>320</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1643301178833</Id>
+					<Name><![CDATA[basislastElektriciteitsverbruikHuishoudensJaartotaal]]></Name>
+					<X>-390</X><Y>410</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1643301191667</Id>
+					<Name><![CDATA[pvOpwekJaartotaal]]></Name>
+					<X>-390</X><Y>440</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1643301201934</Id>
+					<Name><![CDATA[warmtepompVerbruikJaartotaal]]></Name>
+					<X>-390</X><Y>470</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1643302625784</Id>
+					<Name><![CDATA[eigenConsumptie]]></Name>
+					<X>-390</X><Y>350</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1643302651283</Id>
+					<Name><![CDATA[eigenConsumptieJaartotaal]]></Name>
+					<X>-390</X><Y>500</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1642514169739</Id>
 					<Name><![CDATA[householdPoints]]></Name>
@@ -230,11 +302,11 @@ balkConfiguratie.setY(1350);]]></StartupCode>
 			<Events>
 				<Event>
 					<Id>1642519686438</Id>
-					<Name><![CDATA[updateCharts]]></Name>
-					<X>-140</X><Y>50</Y>
+					<Name><![CDATA[uurtotalen]]></Name>
+					<X>-140</X><Y>90</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>false</PresentationFlag>
+					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties TriggerType="timeout" Mode="cyclic">
 						<Timeout Class="CodeUnitValue">
@@ -257,15 +329,103 @@ balkConfiguratie.setY(1350);]]></StartupCode>
 						</RecurrenceCode>
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
-					<Action><![CDATA[pvOpwek = sumWhere(huishoudens, x->x.zonnepanelen.get(0).pvOpwekKW, x->x.zonnepanelen.size() > 0);
+					<Action><![CDATA[for ( Huishouden h : huishoudens ) {
+	h.eigenConsumptieFunctie();
+}
+
+
+pvOpwek = sumWhere(huishoudens, x->x.zonnepanelen.get(0).pvOpwekKW, x->x.zonnepanelen.size() > 0);
 warmtepompVerbruik = sum(huishoudens, x->x.elektriciteitsvraagWarmtepomp);
+basislastElektriciteitsverbruikHuishoudens = sum(huishoudens, x->x.basislastElektriciteitsverbruik);
+eigenConsumptie = sum(huishoudens, x->x.eigenConsumptie);
+
+
 
 pvOpwekChart.updateData();
-warmtepompVerbruikChart.updateData();
+elektriciteitsVerbruikChart.updateData();
 
+
+//Totalen
+pvOpwekJaartotaal += pvOpwek;
+warmtepompVerbruikJaartotaal += warmtepompVerbruik;
+basislastElektriciteitsverbruikHuishoudensJaartotaal += basislastElektriciteitsverbruikHuishoudens;
+eigenConsumptieJaartotaal += eigenConsumptie;
 
 //Buiten temperatuur
-Tbuiten = temperatuurFunctie(time(HOUR));]]></Action>
+Tbuiten = temperatuurFunctie(time(HOUR));
+]]></Action>
+				</Event>
+				<Event>
+					<Id>1643300523117</Id>
+					<Name><![CDATA[kwartiertotalen]]></Name>
+					<X>-140</X><Y>50</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties TriggerType="timeout" Mode="cyclic">
+						<Timeout Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+						</Timeout>
+						<Rate Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="RateUnits"><![CDATA[PER_HOUR]]></Unit>
+						</Rate>
+						<OccurrenceAtTime>true</OccurrenceAtTime>
+						<OccurrenceDate>1643356800000</OccurrenceDate>
+						<OccurrenceTime Class="CodeUnitValue">
+							<Code><![CDATA[0]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+						</OccurrenceTime>
+						<RecurrenceCode Class="CodeUnitValue">
+							<Code><![CDATA[0.25]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+						</RecurrenceCode>
+						<Condition><![CDATA[false]]></Condition>
+					</Properties>
+					<Action><![CDATA[for (Huishouden h : huishoudens) {
+	h.elektriciteitsverbruikFunctie();
+}
+
+]]></Action>
+				</Event>
+				<Event>
+					<Id>1643300882975</Id>
+					<Name><![CDATA[jaartotalen]]></Name>
+					<X>-140</X><Y>130</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties TriggerType="timeout" Mode="cyclic">
+						<Timeout Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+						</Timeout>
+						<Rate Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="RateUnits"><![CDATA[PER_HOUR]]></Unit>
+						</Rate>
+						<OccurrenceAtTime>true</OccurrenceAtTime>
+						<OccurrenceDate>1643356800000</OccurrenceDate>
+						<OccurrenceTime Class="CodeUnitValue">
+							<Code><![CDATA[0]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+						</OccurrenceTime>
+						<RecurrenceCode Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+						</RecurrenceCode>
+						<Condition><![CDATA[false]]></Condition>
+					</Properties>
+					<Action><![CDATA[//print totalen
+traceln( pvOpwekJaartotaal / count(huishoudens, x->x.zonnepanelen != null) + " KWh gemiddelde opwek per huis met PV");
+traceln( warmtepompVerbruikJaartotaal / count(huishoudens, x->x.isWarmtepomp) + " KWh gemiddeld elektriciteitsverbruik warmtepomp per huis met warmtepomp");
+traceln( basislastElektriciteitsverbruikHuishoudensJaartotaal / huishoudens.size() + " KWh gemiddelde basislast elektriciteitsverbruik per huishouden");
+
+
+]]></Action>
 				</Event>
 			</Events>
 			<TableFunctions>
@@ -456,6 +616,9 @@ Tbuiten = temperatuurFunctie(time(HOUR));]]></Action>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[isWPOpZon]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[gemiddeldElektriciteitsverbruik]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -1780,7 +1943,7 @@ aantalHuizenMetZonnepanelen = roundToInt(sum(huishoudens, x->x.zonnepanelen.size
 				<Group>
 					<Id>1642520072620</Id>
 					<Name><![CDATA[chartGroup]]></Name>
-					<X>1120</X><Y>490</Y>
+					<X>1120</X><Y>430</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -1854,7 +2017,7 @@ aantalHuizenMetZonnepanelen = roundToInt(sum(huishoudens, x->x.zonnepanelen.size
     			</TimeStackChart>
     			<TimeStackChart>
 					<Id>1642519527505</Id>
-					<Name><![CDATA[warmtepompVerbruikChart]]></Name>
+					<Name><![CDATA[elektriciteitsVerbruikChart]]></Name>
 					<X>-260</X><Y>0</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
@@ -1901,12 +2064,20 @@ aantalHuizenMetZonnepanelen = roundToInt(sum(huishoudens, x->x.zonnepanelen.size
 					<TimeWindowUnits>MODEL_TIME_UNIT</TimeWindowUnits>
 					<TimeWindowExpression><![CDATA[168]]></TimeWindowExpression>
 					<DatasetExpression>
+					<Id>0</Id>
+					<Expression><![CDATA[my_dataset]]></Expression>
+					<Color>-10039894</Color>
+					<Expression2><![CDATA[basislastElektriciteitsverbruikHuishoudens]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>  
+							<Title><![CDATA[Basislast]]></Title>
+					</DatasetExpression>
+					<DatasetExpression>
 					<Id>1642519527502</Id>
 					<Expression><![CDATA[my_dataset]]></Expression>
 					<Color>-5383962</Color>
 					<Expression2><![CDATA[warmtepompVerbruik]]></Expression2>
 					<Expression2Flag>true</Expression2Flag>  
-							<Title><![CDATA[Warmtepomp verbruik]]></Title>
+							<Title><![CDATA[Warmtepomp]]></Title>
 					</DatasetExpression>
 					<SamplesToKeep>168</SamplesToKeep>
 					<VerScaleToExpression><![CDATA[1]]></VerScaleToExpression>
@@ -1947,7 +2118,7 @@ aantalHuizenMetZonnepanelen = roundToInt(sum(huishoudens, x->x.zonnepanelen.size
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
-					<Text><![CDATA[Warmtepomp verbruik in buurt]]></Text>
+					<Text><![CDATA[Elektriciteitsverbruik in buurt]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>18</Size>
@@ -2267,49 +2438,6 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 					</Font>
 					<Alignment>LEFT</Alignment>
 				</Text>
-				<Rectangle>
-					<Id>1643111418503</Id>
-					<Name><![CDATA[balkConfiguratie]]></Name>
-					<X>460</X><Y>2100</Y>
-					<Label><X>10</X><Y>10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<ZHeight>10</ZHeight>
-					<LineWidth>1</LineWidth>
-					<LineColor>-16777216</LineColor>
-					<LineMaterial>null</LineMaterial>
-					<LineStyle>SOLID</LineStyle>
-					<Width>660</Width>
-					<Height>680</Height>
-					<Rotation>0.0</Rotation>
-					<FillColor>-1</FillColor>
-					<FillMaterial>null</FillMaterial>
-				</Rectangle>
-				<Text>
-					<Id>1643136256698</Id>
-					<Name><![CDATA[text4]]></Name>
-					<X>480</X><Y>2120</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>false</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<Rotation>0.0</Rotation>
-					<Color>-65536</Color>
-					<Text><![CDATA[Dit vlak wordt gebruikt tijdens de configuratie van de holon]]></Text>
-					<Font>
-						<Name>SansSerif</Name>
-						<Size>14</Size>
-						<Style>0</Style>
-					</Font>
-					<Alignment>LEFT</Alignment>
-				</Text>
 				<Control Type="CheckBox">
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1643195269794</Id>
@@ -2350,6 +2478,115 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 						<Name>SansSerif</Name>
 						<Size>16</Size>
 						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Rectangle>
+					<Id>1643111418503</Id>
+					<Name><![CDATA[balkConfiguratie]]></Name>
+					<X>460</X><Y>2100</Y>
+					<Label><X>10</X><Y>10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor>-16777216</LineColor>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<Width>820</Width>
+					<Height>640</Height>
+					<Rotation>0.0</Rotation>
+					<FillColor>-1</FillColor>
+					<FillMaterial>null</FillMaterial>
+				</Rectangle>
+				<Text>
+					<Id>1643136256698</Id>
+					<Name><![CDATA[text4]]></Name>
+					<X>480</X><Y>2120</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>false</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-65536</Color>
+					<Text><![CDATA[Dit vlak wordt gebruikt tijdens de configuratie van de holon]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>14</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1643302547363</Id>
+					<Name><![CDATA[jaarlijksEigenConsumptieText]]></Name>
+					<X>910</X><Y>650</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[xx eigen consumptie]]></Text>
+					<TextCode><![CDATA[roundToInt(eigenConsumptieJaartotaal/1000) + " MWh eigen consumptie zonnepanelen"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>20</Size>
+						<Style>1</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1643304156781</Id>
+					<Name><![CDATA[jaarlijksEigenConsumptieText1]]></Name>
+					<X>910</X><Y>690</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[xx eigen consumptie]]></Text>
+					<TextCode><![CDATA[roundToInt((basislastElektriciteitsverbruikHuishoudensJaartotaal + warmtepompVerbruikJaartotaal)/1000)  + " MWh totaal elektriciteitsverbruik"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>20</Size>
+						<Style>1</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1643304263893</Id>
+					<Name><![CDATA[jaarlijksEigenConsumptieText2]]></Name>
+					<X>910</X><Y>730</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[% eigen consumptie]]></Text>
+					<TextCode><![CDATA[roundToDecimal(eigenConsumptieJaartotaal / (basislastElektriciteitsverbruikHuishoudensJaartotaal + warmtepompVerbruikJaartotaal), 2)  + "% eigen consumptie"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>20</Size>
+						<Style>1</Style>
 					</Font>
 					<Alignment>LEFT</Alignment>
 				</Text>
@@ -2683,6 +2920,42 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 					<Id>1643192813293</Id>
 					<Name><![CDATA[pvOpwek]]></Name>
 					<X>790</X><Y>1480</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1643300368475</Id>
+					<Name><![CDATA[basislastElektriciteitsverbruik]]></Name>
+					<X>40</X><Y>490</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1643302664215</Id>
+					<Name><![CDATA[eigenConsumptie]]></Name>
+					<X>40</X><Y>580</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1643302841761</Id>
+					<Name><![CDATA[pvSalderen]]></Name>
+					<X>40</X><Y>610</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3633,7 +3906,7 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 				<Variable Class="Parameter">
 					<Id>1643191901285</Id>
 					<Name><![CDATA[setpointNacht]]></Name>
-					<X>860</X><Y>1619.76</Y>
+					<X>760</X><Y>1580</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3815,6 +4088,30 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 						<ParameterEditor>
 							<Id>1643195183391</Id>
 							<EditorContolType>CHECK_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1643300243566</Id>
+					<Name><![CDATA[gemiddeldElektriciteitsverbruik]]></Name>
+					<X>40</X><Y>280</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[2730 //kWh per jaar]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1643300243564</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
 							<MinSliderValue><![CDATA[0]]></MinSliderValue>
 							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
 							<DelimeterType>NO_DELIMETER</DelimeterType>
@@ -4441,10 +4738,10 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 				<Link SourceId="1643191901285" TargetId="1643191901326" Polarity="null">
 					<Height>20.0</Height>
 					<PolarityPosition>0.95</PolarityPosition>
-					<Direction><X>-10</X><Y>-80</Y></Direction>
+					<Direction><X>90</X><Y>-40</Y></Direction>
 					<Id>1643191901212</Id>
 					<Name><![CDATA[setpointNacht - setpointActief]]></Name>
-					<X>860</X><Y>1619.76</Y>
+					<X>760</X><Y>1580</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -4618,7 +4915,70 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 					<LineWidth>1</LineWidth>
 					<Delay>false</Delay>
 				</Link>
+				<Link SourceId="1643191901285" TargetId="1643191901337" Polarity="null">
+					<Height>-18.1</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>-110</X><Y>-93</Y></Direction>
+					<Id>1643299948175</Id>
+					<Name><![CDATA[setpointNacht - TThermischeMassa]]></Name>
+					<X>760</X><Y>1580</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1643191901285" TargetId="1643191901335" Polarity="null">
+					<Height>-26.62</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>-110</X><Y>-172</Y></Direction>
+					<Id>1643299955644</Id>
+					<Name><![CDATA[setpointNacht - Twoning]]></Name>
+					<X>760</X><Y>1580</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
 			</Dependences>
+			<Functions>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1643300353139</Id>
+					<Name><![CDATA[elektriciteitsverbruikFunctie]]></Name>
+					<X>40</X><Y>450</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[basislastElektriciteitsverbruik = elektriciteitsverbruikFractie(time(HOUR)) * gemiddeldElektriciteitsverbruik * 4; // keer 4 om kwartierdata kwh om te rekenen naar MW wat gelijk staat aan MWh op uurbasis]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1643302685969</Id>
+					<Name><![CDATA[eigenConsumptieFunctie]]></Name>
+					<X>40</X><Y>550</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[if (pvOpwek < basislastElektriciteitsverbruik + warmtepompEVerbruik){
+	eigenConsumptie = pvOpwek;
+	pvSalderen = 0;
+}
+else {
+	eigenConsumptie = basislastElektriciteitsverbruik + warmtepompEVerbruik;
+	pvSalderen = pvOpwek - eigenConsumptie;
+}]]></Body>
+				</Function>
+			</Functions>
 			<TableFunctions>
 				<TableFunction AccessType="public" StaticFunction="false">
 					<Id>1643191901085</Id>
@@ -4655,6 +5015,39 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 					<Value><![CDATA[1.22]]></Value>
 					<Value><![CDATA[1.04]]></Value>
 					<Value><![CDATA[0.96]]></Value>
+				</TableFunction>
+				<TableFunction AccessType="public" StaticFunction="false">
+					<Id>1643300313268</Id>
+					<Name><![CDATA[elektriciteitsverbruikFractie]]></Name>
+					<X>40</X><Y>410</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<InterpolationMethod>LINEAR</InterpolationMethod>
+					<OutOfRangeBehaviour>REPEATING</OutOfRangeBehaviour>
+					<OutOfRangeCustomValue><![CDATA[0.0]]></OutOfRangeCustomValue>
+					<ApproximationOrder><![CDATA[1]]></ApproximationOrder>
+					<LoadFromDatabase><![CDATA[true]]></LoadFromDatabase>
+					<ValuesQuery>
+						<TableReference>
+							<PackageName><![CDATA[ebuurt]]></PackageName>
+							<ClassName><![CDATA[electricity_profile2019]]></ClassName>
+						</TableReference>
+							<ArgumentColumnReference>
+								<PackageName><![CDATA[ebuurt]]></PackageName>
+								<ClassName><![CDATA[electricity_profile2019]]></ClassName>
+								<ItemName><![CDATA[timestep]]></ItemName>
+							</ArgumentColumnReference>
+							<ValueColumnReference>
+								<PackageName><![CDATA[ebuurt]]></PackageName>
+								<ClassName><![CDATA[electricity_profile2019]]></ClassName>
+								<ItemName><![CDATA[e1_a]]></ItemName>
+							</ValueColumnReference>
+					</ValuesQuery>
+// arguments and values
+					<Argument><![CDATA[0.0]]></Argument>
+					<Value><![CDATA[0.0]]></Value>
 				</TableFunction>
 			</TableFunctions>
 			<AgentLinks>
@@ -6070,6 +6463,27 @@ if (aantalPanelen < 1){
 		<ShutdownCompact>false</ShutdownCompact>
 		<ImportSettings>
 			<ExternalConnection>
+				<Id>1643300057365</Id>
+				<Name><![CDATA[database]]></Name>
+				<X>0</X><Y>0</Y>
+				<Label><X>10</X><Y>0</Y></Label>
+				<PublicFlag>false</PublicFlag>
+				<PresentationFlag>true</PresentationFlag>
+				<ShowLabel>true</ShowLabel>
+				<DatabaseType>EXCEL_ACCESS</DatabaseType>
+				<ConnectionURL><![CDATA[]]></ConnectionURL>
+				<ConnectOnStartup>true</ConnectOnStartup>
+				<DatabaseName><![CDATA[]]></DatabaseName>
+				<ResourceReference>
+					<PackageName><![CDATA[ebuurt]]></PackageName>
+					<ClassName><![CDATA[../../Data/Energy Profiles 2019 NL.xlsx]]></ClassName>
+				</ResourceReference>
+				<Host><![CDATA[localhost]]></Host>
+				<JdbcDriverClassName><![CDATA[net.sourceforge.jtds.jdbc.Driver]]></JdbcDriverClassName>
+				<Login><![CDATA[]]></Login>
+				<Password><![CDATA[]]></Password>
+			</ExternalConnection>
+			<ExternalConnection>
 				<Id>1641992965338</Id>
 				<Name><![CDATA[database]]></Name>
 				<X>0</X><Y>0</Y>
@@ -6093,9 +6507,18 @@ if (aantalPanelen < 1){
 			<TableImportSettings>
 				<TableReference>
 					<PackageName><![CDATA[ebuurt]]></PackageName>
-					<ClassName><![CDATA[wind_speed]]></ClassName>
+					<ClassName><![CDATA[natural_gas_profile2019]]></ClassName>
 				</TableReference>
 				<ConnectionIndex>0</ConnectionIndex>
+				<ExternalTableName><![CDATA["NaturalGasProfile2019"]]></ExternalTableName>
+				<AutoImport>false</AutoImport>
+			</TableImportSettings>
+			<TableImportSettings>
+				<TableReference>
+					<PackageName><![CDATA[ebuurt]]></PackageName>
+					<ClassName><![CDATA[wind_speed]]></ClassName>
+				</TableReference>
+				<ConnectionIndex>1</ConnectionIndex>
 				<ExternalTableName><![CDATA["Wind speed"]]></ExternalTableName>
 				<AutoImport>false</AutoImport>
 			</TableImportSettings>
@@ -6104,7 +6527,7 @@ if (aantalPanelen < 1){
 					<PackageName><![CDATA[ebuurt]]></PackageName>
 					<ClassName><![CDATA[temperature]]></ClassName>
 				</TableReference>
-				<ConnectionIndex>0</ConnectionIndex>
+				<ConnectionIndex>1</ConnectionIndex>
 				<ExternalTableName><![CDATA["Temperature"]]></ExternalTableName>
 				<AutoImport>false</AutoImport>
 			</TableImportSettings>
@@ -6113,8 +6536,17 @@ if (aantalPanelen < 1){
 					<PackageName><![CDATA[ebuurt]]></PackageName>
 					<ClassName><![CDATA[irradiance]]></ClassName>
 				</TableReference>
-				<ConnectionIndex>0</ConnectionIndex>
+				<ConnectionIndex>1</ConnectionIndex>
 				<ExternalTableName><![CDATA["Irradiance"]]></ExternalTableName>
+				<AutoImport>false</AutoImport>
+			</TableImportSettings>
+			<TableImportSettings>
+				<TableReference>
+					<PackageName><![CDATA[ebuurt]]></PackageName>
+					<ClassName><![CDATA[electricity_profile2019]]></ClassName>
+				</TableReference>
+				<ConnectionIndex>0</ConnectionIndex>
+				<ExternalTableName><![CDATA["ElectricityProfile2019"]]></ExternalTableName>
 				<AutoImport>false</AutoImport>
 			</TableImportSettings>
 		</ImportSettings>
@@ -6196,11 +6628,11 @@ if (aantalPanelen < 1){
 				<RealTimeScale>1.0</RealTimeScale>
 			</PresentationProperties>
 			<ModelTimeProperties>
-				<StopOption><![CDATA[Never]]></StopOption>
-				<InitialDate><![CDATA[1641859200000]]></InitialDate>	
+				<StopOption><![CDATA[Stop at specified date]]></StopOption>
+				<InitialDate><![CDATA[1609459200000]]></InitialDate>	
 				<InitialTime><![CDATA[0.0]]></InitialTime>	
-				<FinalDate><![CDATA[1644537600000]]></FinalDate>	
-				<FinalTime><![CDATA[100.0]]></FinalTime>	
+				<FinalDate><![CDATA[1640995200000]]></FinalDate>	
+				<FinalTime><![CDATA[8760.0]]></FinalTime>	
 			</ModelTimeProperties>
 			<BypassInitialScreen>true</BypassInitialScreen>
 		</SimulationExperiment>	
@@ -6212,6 +6644,10 @@ if (aantalPanelen < 1){
 		</Resource>
 		<Resource>
 			<Path><![CDATA[greater-than-icon-4.png]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[../../Data/Energy Profiles 2019 NL.xlsx]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
