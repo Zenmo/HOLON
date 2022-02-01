@@ -35,18 +35,12 @@
 			<Id>1641891178635</Id>
 			<Name><![CDATA[Main]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
-			<StartupCode><![CDATA[//viewAreaConfig.navigateTo();
-
-for ( int i = 0; i < huishoudensSlider.getValue(); i++) {
-	Huishouden h = add_huishoudens();
-	h.initializeAutos( i );
-}
-
-//zet de configuratiebalk goed
+			<StartupCode><![CDATA[//zet de configuratiebalk goed
 balkConfiguratie.setLineColor(white);
 balkConfiguratie.setY(1350);
+viewAreaConfig.navigateTo();
 
-]]></StartupCode>
+getEngine().pause();]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1641891178633</Id>
@@ -1765,13 +1759,11 @@ balkConfiguratie.setVisible( false );]]></ActionCode>
                         <EmbeddedIcon>false</EmbeddedIcon>	
 						<TextColor/>
 						<Enabled>true</Enabled>
-						<ActionCode><![CDATA[for ( Huishouden h : huishoudens ) {
-	remove_huishoudens( h );
-}
-	
-for ( int i = 0; i < huishoudensSlider.getValue(); i++) {
+						<ActionCode><![CDATA[for ( int i = 0; i < huishoudensSlider.getValue(); i++) {
 	Huishouden h = add_huishoudens();
-	h.isWarmtepomp = randomTrue( warmtepompSlider.getValue() / 100 );
+	h.initializeAutos( i );
+	
+	h.isWarmtepomp = randomTrue( warmtepompSlider.getValue() / 100.0 );
 	if ( h.isWarmtepomp ) {
 		h.warmtepomp = 1;
 		h.cvKetel = 0;
@@ -1786,25 +1778,10 @@ for ( int i = 0; i < huishoudensSlider.getValue(); i++) {
 	//h.isWarmtepompHybride = randomTrue( warmtepompSlider1.getValue() );
 	h.energieLabel = energielabelBox.getValue();
 }
-
-//traceln(count(huishoudens, x->x.isWarmtepomp == true) + " huizen met warmtepomp");
-pvSlider.setStep( 100 / huishoudens.size() );
 	
 //Zonnepanelen
-aantalHuizenMetZonnepanelen = 0;
-if  (aantalHuizenMetZonnepanelen < floor(percentagePV * huishoudens.size()/100) ){
-	int pvInstallatiesToeTeVoegen = roundToInt(percentagePV * huishoudens.size()/100 - aantalHuizenMetZonnepanelen);
-	traceln(pvInstallatiesToeTeVoegen + "toe te voegen");
-	while (pvInstallatiesToeTeVoegen > 0){
-		Huishouden h = randomWhere(huishoudens, x->x.zonnepanelen.size() == 0);
-		//traceln(h);
-		h.add_zonnepanelen();
-		pvInstallatiesToeTeVoegen--;
-	}
-}
-	
-aantalHuizenMetZonnepanelen = roundToInt(sum(huishoudens, x->x.zonnepanelen.size()));
-//traceln(aantalHuizenMetZonnepanelen + " aantal huizen met pv eindwaarde");
+double perc = pvSlider.getValue() / 100.0;
+traceln(perc);
 
 viewAreaMain.navigateTo();]]></ActionCode>
 					</BasicProperties>
@@ -5424,32 +5401,6 @@ viewAreaMain.navigateTo();]]></ActionCode>
 					<BasicProperties Width="170" Height="30">
                         <EmbeddedIcon>false</EmbeddedIcon>	
 						<Enabled>true</Enabled>
-						<ActionCode><![CDATA[aantalHuizenMetZonnepanelen = roundToInt( sum( huishoudens, x->x.zonnepanelen.size() ) );
-//traceln(aantalHuizenMetZonnepanelen + " aantal huizen met pv startwaarde");
-
-if ( aantalHuizenMetZonnepanelen > floor( percentagePV * huishoudens.size() / 100 ) ){
-	int pvInstallatiesWegTeHalen = roundToInt(aantalHuizenMetZonnepanelen - percentagePV * huishoudens.size() / 100);
-	//traceln(pvInstallatiesWegTeHalen + " weg te halen");
-	while ( pvInstallatiesWegTeHalen > 0 ){
-		Huishouden h = randomWhere( huishoudens, x -> x.zonnepanelen.size() == 1 );
-		h.remove_zonnepanelen( h.zonnepanelen.get(0) );
-		pvInstallatiesWegTeHalen--;
-	}
-}
-
-else if  (aantalHuizenMetZonnepanelen < floor( percentagePV * huishoudens.size() / 100) ){
-	int pvInstallatiesToeTeVoegen = roundToInt( percentagePV * huishoudens.size() / 100 - aantalHuizenMetZonnepanelen );
-	//traceln(pvInstallatiesToeTeVoegen + "toe te voegen");
-	while ( pvInstallatiesToeTeVoegen > 0 ){
-		Huishouden h = randomWhere( huishoudens, x -> x.zonnepanelen.size() == 0);
-		//traceln(h);
-		h.add_zonnepanelen();
-		pvInstallatiesToeTeVoegen--;
-	}
-}
-
-aantalHuizenMetZonnepanelen = roundToInt(sum(huishoudens, x->x.zonnepanelen.size()));
-//traceln(aantalHuizenMetZonnepanelen + " aantal huizen met pv eindwaarde");]]></ActionCode>
 					</BasicProperties>
 					<ExtendedProperties>
 						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
