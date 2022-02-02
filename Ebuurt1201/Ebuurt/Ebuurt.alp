@@ -40,7 +40,10 @@ balkConfiguratie.setLineColor(white);
 balkConfiguratie.setY(1350);
 viewAreaConfig.navigateTo();
 
-getEngine().pause();]]></StartupCode>
+for ( int i = 0; i < huishoudensSlider.getValue(); i++) {
+	Huishouden h = add_huishoudens();
+	h.initializeAutos( i );
+}]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1641891178633</Id>
@@ -1098,12 +1101,43 @@ Tbuiten = temperatuurFunctie(time(HOUR));
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
 					<Action><![CDATA[//print totalen
-traceln( pvOpwekJaartotaal / count(huishoudens, x->x.zonnepanelen != null) + " KWh gemiddelde opwek per huis met PV");
-traceln( warmtepompVerbruikJaartotaal / count(huishoudens, x->x.isWarmtepomp) + " KWh gemiddeld elektriciteitsverbruik warmtepomp per huis met warmtepomp");
-traceln( basislastElektriciteitsverbruikHuishoudensJaartotaal / huishoudens.size() + " KWh gemiddelde basislast elektriciteitsverbruik per huishouden");
+//traceln( pvOpwekJaartotaal / count(huishoudens, x->x.zonnepanelen != null) + " KWh gemiddelde opwek per huis met PV");
+//traceln( warmtepompVerbruikJaartotaal / count(huishoudens, x->x.heeftWarmtepomp) + " KWh gemiddeld elektriciteitsverbruik warmtepomp per huis met warmtepomp");
+//traceln( basislastElektriciteitsverbruikHuishoudensJaartotaal / huishoudens.size() + " KWh gemiddelde basislast elektriciteitsverbruik per huishouden");
 
 
 ]]></Action>
+				</Event>
+				<Event>
+					<Id>1643705053834</Id>
+					<Name><![CDATA[event]]></Name>
+					<X>730</X><Y>1010</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties TriggerType="timeout" Mode="occuresOnce">
+						<Timeout Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+						</Timeout>
+						<Rate Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="RateUnits"><![CDATA[PER_HOUR]]></Unit>
+						</Rate>
+						<OccurrenceAtTime>true</OccurrenceAtTime>
+						<OccurrenceDate>1643788800000</OccurrenceDate>
+						<OccurrenceTime Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[SECOND]]></Unit>
+						</OccurrenceTime>
+						<RecurrenceCode Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+						</RecurrenceCode>
+						<Condition><![CDATA[false]]></Condition>
+					</Properties>
+					<Action><![CDATA[getEngine().pause();]]></Action>
 				</Event>
 			</Events>
 			<TableFunctions>
@@ -1197,7 +1231,7 @@ traceln( basislastElektriciteitsverbruikHuishoudensJaartotaal / huishoudens.size
 					</GenericParameterSubstitute>
 					<Parameters>
 						<Parameter>
-							<Name><![CDATA[isWarmtepomp]]></Name>
+							<Name><![CDATA[heeftWarmtepomp]]></Name>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[vloeroppervlakte]]></Name>
@@ -1367,6 +1401,20 @@ traceln( basislastElektriciteitsverbruikHuishoudensJaartotaal / huishoudens.size
 						<Code><![CDATA[100]]></Code>
 					</Replication>
 					<CollectionType>ARRAY_LIST_BASED</CollectionType>
+					<StatisticsItem>
+						<Id>1643704368906</Id>
+						<Name><![CDATA[warmtepompen]]></Name>
+						<Type>count</Type>
+						<Expression><![CDATA[]]></Expression>
+						<Condition><![CDATA[item.heeftWarmtepomp]]></Condition>
+					</StatisticsItem>
+					<StatisticsItem>
+						<Id>1643704422491</Id>
+						<Name><![CDATA[pv]]></Name>
+						<Type>count</Type>
+						<Expression><![CDATA[]]></Expression>
+						<Condition><![CDATA[item.zonnepanelen.size() > 0]]></Condition>
+					</StatisticsItem>
 					<InEnvironment>true</InEnvironment>	
 					<InitialLocationType>AT_ANIMATION_POSITION</InitialLocationType>
 					<XCode Class="CodeValue">
@@ -1670,7 +1718,7 @@ startTekst3.setVisible( false );
 balkConfiguratie.setVisible( false );]]></ActionCode>
 					</BasicProperties>
 					<ExtendedProperties>
-						<DefaultValueCode><![CDATA[40]]></DefaultValueCode>
+						<DefaultValueCode><![CDATA[30]]></DefaultValueCode>
 						<Orientation>HORIZONTAL</Orientation>
 						<MinValue><![CDATA[1]]></MinValue>
 						<MaxValue><![CDATA[40]]></MaxValue>
@@ -1759,12 +1807,9 @@ balkConfiguratie.setVisible( false );]]></ActionCode>
                         <EmbeddedIcon>false</EmbeddedIcon>	
 						<TextColor/>
 						<Enabled>true</Enabled>
-						<ActionCode><![CDATA[for ( int i = 0; i < huishoudensSlider.getValue(); i++) {
-	Huishouden h = add_huishoudens();
-	h.initializeAutos( i );
-	
-	h.isWarmtepomp = randomTrue( warmtepompSlider.getValue() / 100.0 );
-	if ( h.isWarmtepomp ) {
+						<ActionCode><![CDATA[for ( Huishouden h : huishoudens) {
+	h.heeftWarmtepomp = randomTrue( warmtepompSlider.getValue() / 100.0 );
+	if ( h.heeftWarmtepomp ) {
 		h.warmtepomp = 1;
 		h.cvKetel = 0;
 	}
@@ -1777,12 +1822,12 @@ balkConfiguratie.setVisible( false );]]></ActionCode>
 	}
 	//h.isWarmtepompHybride = randomTrue( warmtepompSlider1.getValue() );
 	h.energieLabel = energielabelBox.getValue();
+	double perc = pvSlider.getValue() / 100.0;
+	if ( randomTrue( perc )) {
+		h.add_zonnepanelen();
+	}
 }
 	
-//Zonnepanelen
-double perc = pvSlider.getValue() / 100.0;
-traceln(perc);
-
 viewAreaMain.navigateTo();]]></ActionCode>
 					</BasicProperties>
 					<ExtendedProperties>
@@ -7029,7 +7074,7 @@ else if ( navButtons1.getValue() == 2 ) {
 				<Rectangle>
 					<Id>1643559260367</Id>
 					<Name><![CDATA[rectangle4]]></Name>
-					<X>670</X><Y>100</Y>
+					<X>670</X><Y>80</Y>
 					<Label><X>10</X><Y>10</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -7043,7 +7088,7 @@ else if ( navButtons1.getValue() == 2 ) {
 					<LineMaterial>null</LineMaterial>
 					<LineStyle>SOLID</LineStyle>
 					<Width>660</Width>
-					<Height>140</Height>
+					<Height>160</Height>
 					<Rotation>0.0</Rotation>
 					<FillColor>-5383962</FillColor>
 					<FillMaterial>null</FillMaterial>
@@ -7051,7 +7096,7 @@ else if ( navButtons1.getValue() == 2 ) {
 				<Rectangle>
 					<Id>1643559260370</Id>
 					<Name><![CDATA[rectangle5]]></Name>
-					<X>690</X><Y>120</Y>
+					<X>690</X><Y>90</Y>
 					<Label><X>10</X><Y>10</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -7074,7 +7119,7 @@ else if ( navButtons1.getValue() == 2 ) {
 				<Rectangle>
 					<Id>1643563232252</Id>
 					<Name><![CDATA[rectangle7]]></Name>
-					<X>690</X><Y>180</Y>
+					<X>690</X><Y>190</Y>
 					<Label><X>10</X><Y>10</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -7097,7 +7142,7 @@ else if ( navButtons1.getValue() == 2 ) {
 				<Text>
 					<Id>1643563373001</Id>
 					<Name><![CDATA[text32]]></Name>
-					<X>732</X><Y>132</Y>
+					<X>732</X><Y>102</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -7119,7 +7164,7 @@ else if ( navButtons1.getValue() == 2 ) {
 				<Text>
 					<Id>1643563567057</Id>
 					<Name><![CDATA[text33]]></Name>
-					<X>730</X><Y>194</Y>
+					<X>730</X><Y>204</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -7186,7 +7231,7 @@ else if ( navButtons1.getValue() == 2 ) {
 					<ShowLegend>true</ShowLegend>
 					<TimeWindowsMovementType>MOVEMENT_WITH_TIME</TimeWindowsMovementType>		
 					<TimeWindowUnits>MODEL_TIME_UNIT</TimeWindowUnits>
-					<TimeWindowExpression><![CDATA[168]]></TimeWindowExpression>
+					<TimeWindowExpression><![CDATA[96]]></TimeWindowExpression>
 					<DatasetExpression>
 					<Id>0</Id>
 					<Expression><![CDATA[my_dataset]]></Expression>
@@ -7211,7 +7256,7 @@ else if ( navButtons1.getValue() == 2 ) {
 					<Expression2Flag>true</Expression2Flag>  
 							<Title><![CDATA[EVs die laden]]></Title>
 					</DatasetExpression>
-					<SamplesToKeep>96</SamplesToKeep>
+					<SamplesToKeep>200</SamplesToKeep>
 					<VerScaleToExpression><![CDATA[1]]></VerScaleToExpression>
 					<VerScaleType>AUTO</VerScaleType>
 					<LabelFormat>HH_mm</LabelFormat>
@@ -7263,7 +7308,7 @@ else if ( navButtons1.getValue() == 2 ) {
 					<ShowLegend>true</ShowLegend>
 					<TimeWindowsMovementType>MOVEMENT_WITH_TIME</TimeWindowsMovementType>		
 					<TimeWindowUnits>MODEL_TIME_UNIT</TimeWindowUnits>
-					<TimeWindowExpression><![CDATA[168]]></TimeWindowExpression>
+					<TimeWindowExpression><![CDATA[96]]></TimeWindowExpression>
 					<DatasetExpression>
 					<Id>0</Id>
 					<Expression><![CDATA[my_dataset]]></Expression>
@@ -7272,7 +7317,7 @@ else if ( navButtons1.getValue() == 2 ) {
 					<Expression2Flag>true</Expression2Flag>  
 							<Title><![CDATA[PV opwek]]></Title>
 					</DatasetExpression>
-					<SamplesToKeep>96</SamplesToKeep>
+					<SamplesToKeep>200</SamplesToKeep>
 					<VerScaleToExpression><![CDATA[1]]></VerScaleToExpression>
 					<VerScaleType>AUTO</VerScaleType>
 					<LabelFormat>HH_mm</LabelFormat>
@@ -7322,7 +7367,7 @@ else if ( navButtons1.getValue() == 2 ) {
 				<Oval>
 					<Id>1643564745161</Id>
 					<Name><![CDATA[oval12]]></Name>
-					<X>710</X><Y>203</Y>
+					<X>710</X><Y>213</Y>
 					<Label><X>0</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -7344,7 +7389,7 @@ else if ( navButtons1.getValue() == 2 ) {
 				<Oval>
 					<Id>1643564790793</Id>
 					<Name><![CDATA[oval13]]></Name>
-					<X>1036</X><Y>200</Y>
+					<X>1036</X><Y>210</Y>
 					<Label><X>0</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -7366,7 +7411,7 @@ else if ( navButtons1.getValue() == 2 ) {
 				<Text>
 					<Id>1643564796520</Id>
 					<Name><![CDATA[text34]]></Name>
-					<X>1055</X><Y>190</Y>
+					<X>1055</X><Y>200</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -7388,7 +7433,7 @@ else if ( navButtons1.getValue() == 2 ) {
 				<Rectangle>
 					<Id>1643564904407</Id>
 					<Name><![CDATA[rectangle6]]></Name>
-					<X>700</X><Y>130</Y>
+					<X>700</X><Y>100</Y>
 					<Label><X>10</X><Y>10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -7410,7 +7455,7 @@ else if ( navButtons1.getValue() == 2 ) {
 				<Oval>
 					<Id>1643564964513</Id>
 					<Name><![CDATA[oval14]]></Name>
-					<X>1037</X><Y>140</Y>
+					<X>1037</X><Y>110</Y>
 					<Label><X>0</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -7432,7 +7477,7 @@ else if ( navButtons1.getValue() == 2 ) {
 				<Text>
 					<Id>1643564985705</Id>
 					<Name><![CDATA[text35]]></Name>
-					<X>1052</X><Y>132</Y>
+					<X>1052</X><Y>102</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -7443,7 +7488,7 @@ else if ( navButtons1.getValue() == 2 ) {
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
 					<Text><![CDATA[bewoners]]></Text>
-					<TextCode><![CDATA["aantal bewoners: " + bewoners.size() + " waarvan " +
+					<TextCode><![CDATA["aantal bewoners: " + bewoners.size() + " (" +
 bewoners.bewonersThuis() + " thuis)"]]></TextCode>
 					<Font>
 						<Name>SansSerif</Name>
@@ -7739,6 +7784,95 @@ warmtepompVerbruik ) +
 			</Presentation>
 
 				</Group>
+				<Rectangle>
+					<Id>1643704277871</Id>
+					<Name><![CDATA[rectangle9]]></Name>
+					<X>690</X><Y>140</Y>
+					<Label><X>10</X><Y>10</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<Width>620</Width>
+					<Height>40</Height>
+					<Rotation>0.0</Rotation>
+					<FillColor>-5247250</FillColor>
+					<FillColorCode><![CDATA[lightBlue.brighter()]]></FillColorCode>
+					<FillMaterial>null</FillMaterial>
+				</Rectangle>
+				<Text>
+					<Id>1643704284447</Id>
+					<Name><![CDATA[text36]]></Name>
+					<X>720</X><Y>150</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[23 huishoudens]]></Text>
+					<TextCode><![CDATA[huishoudens.warmtepompen() + " huizen met warmtepompen" ]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>14</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1643704336088</Id>
+					<Name><![CDATA[text39]]></Name>
+					<X>1053</X><Y>150</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[23 huishoudens]]></Text>
+					<TextCode><![CDATA[huishoudens.pv() + " huizen met zonnepanelen" ]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>14</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1643704479861</Id>
+					<Name><![CDATA[text40]]></Name>
+					<X>600</X><Y>20</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-1</Color>
+					<Text><![CDATA[getHour()]]></Text>
+					<TextCode><![CDATA[date()]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>22</Size>
+						<Style>1</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
 			</Presentation>
 
 				</Level>
@@ -8366,7 +8500,7 @@ for( Bewoner b : bewoners ) {
 				</Variable>
 				<Variable Class="Parameter">
 					<Id>1641891987662</Id>
-					<Name><![CDATA[isWarmtepomp]]></Name>
+					<Name><![CDATA[heeftWarmtepomp]]></Name>
 					<X>40</X><Y>130</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -19098,7 +19232,7 @@ endTimeString =  x[0] + ":" + x[1];]]></Body>
 				<Title><![CDATA[Ebuurt : Simulation]]></Title>	
 				<EnableDeveloperPanel>true</EnableDeveloperPanel>
 				<ShowDeveloperPanelOnStart>false</ShowDeveloperPanelOnStart>
-				<RealTimeScale>1.0</RealTimeScale>
+				<RealTimeScale>0.1</RealTimeScale>
 			</PresentationProperties>
 			<ModelTimeProperties>
 				<StopOption><![CDATA[Stop at specified date]]></StopOption>
