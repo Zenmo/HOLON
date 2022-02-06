@@ -13050,6 +13050,21 @@ white]]></FillColorCode>
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1644159898438</Id>
+					<Name><![CDATA[shownActivities]]></Name>
+					<X>190</X><Y>1260</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>false</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
+						<ElementClass><![CDATA[Activity]]></ElementClass>
+						<ValueElementClass><![CDATA[String]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
 			</Variables>
 			<StatechartElements>
 				<StatechartElement Class="State" ParentState="ROOT_NODE">
@@ -14684,7 +14699,10 @@ else {
 						<Name><![CDATA[a]]></Name>
 						<Type><![CDATA[Activity]]></Type>
 					</Parameter>
-					<Body><![CDATA[//Maak nieuwe shape
+					<Body><![CDATA[//Add to collection
+shownActivities.add( a );
+
+//Maak nieuwe shape
 ShapeRectangle r = new ShapeRectangle();
 
 //Set positie
@@ -14734,6 +14752,46 @@ else if (a.type.equals( "Services" ) || a.type.equals( "Other" ) || a.type.equal
 	r.setFillColor( maroon );
 	r.setLineColor( maroon.darker() );
 }]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>RETURNS_VALUE</ReturnModificator>
+					<ReturnType><![CDATA[Activity]]></ReturnType>
+					<Id>1644160526475</Id>
+					<Name><![CDATA[berekenVolgendeCarTrip]]></Name>
+					<X>40</X><Y>1290</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>false</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[//Deze functie returned de volgende activiteit van deze bewoner met de auto vanuit huis, of null als die er niet meer is.
+//Code is uitbundig gechecked door Peter en er zijn geen buggs gevonden.
+//Gebruik de tracelns van hieronder om ook de code na te lopen via de console.
+
+int i = currentActivityEpisode;
+Activity a = null;
+//traceln( "current activityEpisode is i = " + i);
+
+if ( currentActivityEpisode == activities.size() - 1 ) {
+	return null;
+}
+else {
+	while ( 
+		//Bekijk een volgende trip zolang de volgende trip NIET met de auto vanuit huis is
+		 ! (  activities.get( i + 1 ).modality.equals("Car") && activities.get( i ).type.equals("Home") ) ) {
+		i ++;
+		//traceln( "i = " + i);
+		// Als de i groter is dan het aantal activiteiten, return dan null
+		if ( i + 1  == activities.size() ) {
+			//traceln("geen cartrip");
+			return null;
+		}
+	}
+}
+//traceln( "NU gaat hij eruit, en pakt activiteit i = " + ( i + 1 ) );
+a = activities.get( i + 1 );
+//traceln(" ");
+return a;
+]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -18867,6 +18925,28 @@ activities.get (currentActivityEpisode + 12 ).modality.toString()
 					<FillColor>-6632142</FillColor>
 					<FillMaterial>null</FillMaterial>
 				</Oval>
+				<Rectangle>
+					<Id>1644159960942</Id>
+					<Name><![CDATA[rectangle18]]></Name>
+					<X>420</X><Y>1240</Y>
+					<Label><X>10</X><Y>10</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<Width>700</Width>
+					<Height>60</Height>
+					<Rotation>0.0</Rotation>
+					<FillColor>-9543</FillColor>
+					<FillMaterial>null</FillMaterial>
+				</Rectangle>
 			</Presentation>
 
 				</Level>
@@ -19635,7 +19715,7 @@ if (aantalPanelen < 1){
 				<Variable Class="PlainVariable">
 					<Id>1643449292270</Id>
 					<Name><![CDATA[huidigBatterijCap]]></Name>
-					<X>120</X><Y>620</Y>
+					<X>50</X><Y>320</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19650,7 +19730,7 @@ if (aantalPanelen < 1){
 				<Variable Class="PlainVariable">
 					<Id>1643554894323</Id>
 					<Name><![CDATA[currentTripDistance]]></Name>
-					<X>290</X><Y>620</Y>
+					<X>50</X><Y>380</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19689,19 +19769,7 @@ if (aantalPanelen < 1){
 				<Variable Class="PlainVariable">
 					<Id>1644078674889</Id>
 					<Name><![CDATA[currentActivity]]></Name>
-					<X>290</X><Y>560</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[Activity]]></Type>        
-					</Properties>
-				</Variable>
-				<Variable Class="PlainVariable">
-					<Id>1644078707749</Id>
-					<Name><![CDATA[nextActivity]]></Name>
-					<X>290</X><Y>590</Y>
+					<X>220</X><Y>260</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19713,7 +19781,7 @@ if (aantalPanelen < 1){
 				<Variable Class="PlainVariable">
 					<Id>1644079012316</Id>
 					<Name><![CDATA[huidigBereik]]></Name>
-					<X>120</X><Y>650</Y>
+					<X>50</X><Y>350</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19725,13 +19793,40 @@ if (aantalPanelen < 1){
 				<Variable Class="PlainVariable">
 					<Id>1644079851049</Id>
 					<Name><![CDATA[laadbehoefte]]></Name>
-					<X>120</X><Y>590</Y>
+					<X>50</X><Y>290</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[Laadbehoefte]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1644165306238</Id>
+					<Name><![CDATA[laadflexibiliteitTotVolgendVertrek]]></Name>
+					<X>220</X><Y>320</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1644166660920</Id>
+					<Name><![CDATA[nextActivity]]></Name>
+					<X>220</X><Y>290</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[Activity]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[null]]></Code>
+						</InitialValue>
 					</Properties>
 				</Variable>
 				<Variable Class="Parameter">
@@ -19849,7 +19944,7 @@ if (aantalPanelen < 1){
 				<Variable Class="CollectionVariable">
 					<Id>1644080231074</Id>
 					<Name><![CDATA[activities]]></Name>
-					<X>290</X><Y>650</Y>
+					<X>50</X><Y>410</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19886,7 +19981,9 @@ isBeschikbaar = true;]]></EntryAction>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties Width="190" Height="30">
-						<EntryAction><![CDATA[oval.setFillColor( mistyRose );]]></EntryAction>
+						<EntryAction><![CDATA[oval.setFillColor( mistyRose );
+laadflexibiliteitTotVolgendVertrek = 0;
+nextActivity = null;]]></EntryAction>
 						<FillColor>-6943</FillColor>
 					</Properties>
 				</StatechartElement>
@@ -19951,6 +20048,7 @@ currentTripDistance = 0;]]></EntryAction>
 					</Points>
 					<IconOffset>20.0</IconOffset>
 					<Properties Source="1643556868348" Target="1643556868361" Trigger="message">
+						<Action><![CDATA[bepaalFlexibiliteit();]]></Action>
 						<Timeout Class="CodeUnitValue">
 							<Code><![CDATA[1]]></Code>
 							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
@@ -20132,18 +20230,12 @@ currentTripDistance = 0;]]></EntryAction>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1643554889729</Id>
 					<Name><![CDATA[bepaalLaadbehoefte]]></Name>
-					<X>120</X><Y>560</Y>
+					<X>50</X><Y>260</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[//traceln( " ");
-//traceln( getName() + " komt aan");
-//traceln( "Max bat: " + maxBatterijCap + ", huidig: " + huidigBatterijCap );
-//traceln("verbruikt deze trip: " + currentTripDistance * energieverbruik );
-
-
-// Bepaal SOC en huidig bereik
+					<Body><![CDATA[// Bepaal SOC en huidig bereik
 huidigBatterijCap = max( 0, huidigBatterijCap - currentTripDistance * energieverbruik );
 huidigBereik = huidigBatterijCap / energieverbruik;
 
@@ -20165,7 +20257,63 @@ else {
 	}
 }
 
-//traceln( getName() + " start laden van: " + ( maxBatterijCap - huidigBatterijCap ) + " kWh" );]]></Body>
+]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1644160208315</Id>
+					<Name><![CDATA[bepaalFlexibiliteit]]></Name>
+					<X>220</X><Y>350</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[//Deze functie berekent het aantal minuten tot het volgende vertrekmoment van deze auto. Wordt aangeroepen als de auto aankomt.
+
+// Als dit de tweede auto is, kijk dan alleen naar adult 2
+if (autoID == 2) {
+	nextActivity = huishouden.adult2.berekenVolgendeCarTrip();
+}
+
+else {
+	// als er maar 1 adult in het huishouden is of als er 2 voertuigen zijn, kijk dan alleen naar adult 1
+	if ( huishouden.nbAdults == 1 || huishouden.nbVehicles == 2 ) {
+		nextActivity = huishouden.adult1.berekenVolgendeCarTrip();
+	}
+	// anders kijk naar welke adult het snelste weg gaat en of ze uberhaupt weg gaan
+	else {
+		// als niemand meer weggaat
+		if ( huishouden.adult1.berekenVolgendeCarTrip() == null && huishouden.adult2.berekenVolgendeCarTrip() == null ){
+			nextActivity = null;
+		}
+		//Als adult 2 niet meer weg gaat en audlt 1 wel
+		else if ( huishouden.adult1.berekenVolgendeCarTrip() != null && huishouden.adult2.berekenVolgendeCarTrip() == null  ) {
+			nextActivity = huishouden.adult1.berekenVolgendeCarTrip();
+		}
+		//Als adult 1 niet meer weg gaat en audlt 2 wel
+		else if ( huishouden.adult1.berekenVolgendeCarTrip() == null && huishouden.adult2.berekenVolgendeCarTrip() != null  ) {
+			nextActivity = huishouden.adult2.berekenVolgendeCarTrip();
+		}
+		//Of als ze allebei nog weg gaan
+		else {
+			if( huishouden.adult1.berekenVolgendeCarTrip().startMinute < huishouden.adult2.berekenVolgendeCarTrip().startMinute ) {
+				nextActivity = huishouden.adult1.berekenVolgendeCarTrip();
+			}
+			else {
+				nextActivity = huishouden.adult2.berekenVolgendeCarTrip();
+			}
+		}
+	}
+}
+
+if ( nextActivity != null ) { 
+	laadflexibiliteitTotVolgendVertrek = nextActivity.startMinute - time(MINUTE);
+}
+
+
+//traceln ( getName() + ", min to next departure: " + laadflexibiliteitTotVolgendVertrek);
+//getEngine().pause();]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -20248,22 +20396,25 @@ else {
 					<FillMaterial>null</FillMaterial>
 				</Oval>
 				<Text>
-					<Id>1643554971571</Id>
-					<Name><![CDATA[text]]></Name>
-					<X>60</X><Y>500</Y>
+					<Id>1644166801219</Id>
+					<Name><![CDATA[text1]]></Name>
+					<X>630</X><Y>10</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>false</PresentationFlag>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D</DrawMode>
 					<EmbeddedIcon>false</EmbeddedIcon>
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
-					<Color>-65536</Color>
-					<Text><![CDATA[TIJDELIJK LAADGEDRAG VOOR SPRINT 1]]></Text>
+					<Color>-16777216</Color>
+					<Text><![CDATA[text]]></Text>
+					<TextCode><![CDATA[nextActivity == null ? " "
+:
+"Time to next activity: " + roundToInt( nextActivity.startMinute - time(MINUTE)) +  " min"]]></TextCode>
 					<Font>
 						<Name>SansSerif</Name>
-						<Size>16</Size>
+						<Size>20</Size>
 						<Style>0</Style>
 					</Font>
 					<Alignment>LEFT</Alignment>
