@@ -56,6 +56,9 @@
 for ( int i = 0; i < huishoudensSlider.getValue(); i++) {
 	Huishouden h = add_huishoudens();
 	h.initializeAutos( i );
+	if ( randomTrue( pvSlider.getValue() / 100 ) ) {
+		h.add_zonnepanelen();
+	}
 }
 ]]></StartupCode>
 			<Generic>false</Generic>
@@ -9431,76 +9434,9 @@ bezoekPT / 10]]></LineWidthCode>
 					<LabelFormat>HH_mm</LabelFormat>
     			</TimePlot>
     			<TimePlot>
-					<Id>1644311148747</Id>
-					<Name><![CDATA[Wijktrafo_vermogen_plot1]]></Name>
-					<X>1060</X><Y>860</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<AutoUpdate>true</AutoUpdate>
-					<OccurrenceAtTime>true</OccurrenceAtTime>
-					<OccurrenceDate>1644307200000</OccurrenceDate>
-					<OccurrenceTime Class="CodeUnitValue">
-						<Code><![CDATA[0]]></Code>
-						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
-					</OccurrenceTime>
-					<RecurrenceCode Class="CodeUnitValue">
-						<Code><![CDATA[1]]></Code>
-						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
-					</RecurrenceCode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Width>410</Width>
-					<Height>250</Height>
-					<BackgroundColor/>
-					<BorderColor/>
-					<ChartArea>
-						<XOffset>50</XOffset>
-						<YOffset>30</YOffset>
-						<Width>330</Width>
-						<Height>160</Height>
-						<BackgroundColor>-1</BackgroundColor>
-						<BorderColor>-16777216</BorderColor>
-						<GridColor>-12566464</GridColor>
-					</ChartArea>
-					<Legend>
-						<Place>SOUTH</Place>
-						<TextColor>-16777216</TextColor>
-						<Size>30</Size>
-					</Legend>
-					<Labels>
-						<HorLabelsPosition>DEFAULT</HorLabelsPosition>
-						<VerLabelsPosition>DEFAULT</VerLabelsPosition>
-						<TextColor>-12566464</TextColor>
-					</Labels>
-					<ShowLegend>true</ShowLegend>
-					<TimeWindowsMovementType>MOVEMENT_WITH_TIME</TimeWindowsMovementType>		
-					<TimeWindowUnits>MODEL_TIME_UNIT</TimeWindowUnits>
-					<VerScaleFromExpression><![CDATA[-30]]></VerScaleFromExpression>
-					<VerScaleToExpression><![CDATA[30]]></VerScaleToExpression>
-					<VerScaleType>FIXED</VerScaleType>
-					<DrawLine>true</DrawLine>
-					<Interpolation>LINEAR</Interpolation>
-					<DatasetExpression>  
-						<Title><![CDATA[Wijktrafo vermogen [kW]]]></Title>
-					<Id>1644311148744</Id>
-					<Expression><![CDATA[my_dataset]]></Expression>
-					<Color>-60269</Color>
-					<Expression2><![CDATA[trafoVermogen_kW]]></Expression2>
-					<Expression2Flag>true</Expression2Flag>
-						<PointStyle>NONE</PointStyle>
-						<LineWidth>1.0</LineWidth>
-					</DatasetExpression>
-					<SamplesToKeep>180</SamplesToKeep>
-					<TimeWindowExpression><![CDATA[96]]></TimeWindowExpression>
-					<FillAreaUnderLine>false</FillAreaUnderLine>
-					<LabelFormat>HH_mm</LabelFormat>
-    			</TimePlot>
-    			<TimePlot>
 					<Id>1644311151556</Id>
 					<Name><![CDATA[Gemiddelde_SoC_plot]]></Name>
-					<X>-560</X><Y>680</Y>
+					<X>-500</X><Y>680</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -12432,9 +12368,7 @@ if ( nbAdults > 1 ) {
 	adult2.setLocation( adult2.thuisLocatie );
 	g_adult2.setVisible(true);
 	bewoners.add( adult2 );
-}
-if ( randomTrue(0.8) )
-add_zonnepanelen();]]></Body>
+}]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -14877,6 +14811,27 @@ for( Tuple tup : tuples ) {
 		drawActivity(a);
 	}
 }
+
+
+/* // Duplicate activity list
+for( Tuple tup : tuples ) {
+	Activity a = add_activities();
+	a.type = tup.get ( db_activiteiten_1313.activity_type );
+	a.modality = tup.get ( db_activiteiten_1313.mode );
+	a.locStart = tup.get ( db_activiteiten_1313.orig_loc );
+	a.locEnd = tup.get ( db_activiteiten_1313.dest_loc );
+	a.leaveTime = tup.get ( db_activiteiten_1313.leave_time );
+	a.travelTime = tup.get ( db_activiteiten_1313.travel_time );
+	a.beginTime = tup.get ( db_activiteiten_1313.begin_time );
+	a.endTime = tup.get ( db_activiteiten_1313.end_time );
+	a.episode = tup.get ( db_activiteiten_1313.episode_id ) + tuples.size() - 1 ;
+	a.processAlbatrossInput();
+	a.adult = this;
+	a.household = household;
+	if ( ! a.type.equals( "Home" ) ) {
+		drawActivity(a);
+	}
+} */
 
 //initialize acitivities
 currentActivity = this.activities(0);
@@ -19942,7 +19897,7 @@ activities.get (currentActivityEpisode + 12 ).modality.toString()
 						</RecurrenceCode>
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
-					<Action><![CDATA[pvOpwekKW = zonnestraling(time(HOUR) + 2856) / 1000 * efficientie * oppervlaktePerPaneelM2 * capaciteitsFactor * aantalPanelen;
+					<Action><![CDATA[pvOpwekKW = zonnestraling(time(HOUR) + 2856 + 31*24) / 1000 * efficientie * oppervlaktePerPaneelM2 * capaciteitsFactor * aantalPanelen;
 //traceln( time(HOUR) ); // Debug
 //capaciteitsfactor kan afhankelijk door temperatuur, hellingshoek, orientatie, schaduw, e.d. meer detail nodig
 huishouden.pvOpwek = pvOpwekKW;
@@ -20828,7 +20783,7 @@ currentTripDistance = 0;]]></EntryAction>
 			<Events>
 				<Event>
 					<Id>1643555911499</Id>
-					<Name><![CDATA[UpdateSoC]]></Name>
+					<Name><![CDATA[updateSoC]]></Name>
 					<X>700</X><Y>70</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -20919,7 +20874,7 @@ else {
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[//Deze functie berekent het aantal minuten tot het volgende vertrekmoment van deze auto. Wordt aangeroepen als de auto aankomt.
-SoCnaTrip();
+socNaTrip();
 // Als dit de tweede auto is, kijk dan alleen naar adult 2
 if (autoID == 2) {
 	nextActivity = huishouden.adult2.berekenVolgendeCarTrip();
@@ -20973,7 +20928,7 @@ main.flexPlot.update();
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1644252464522</Id>
-					<Name><![CDATA[SoCnaTrip]]></Name>
+					<Name><![CDATA[socNaTrip]]></Name>
 					<X>50</X><Y>230</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -20982,7 +20937,7 @@ main.flexPlot.update();
 					<Body><![CDATA[// Bepaal SOC en huidig bereik
 huidigBatterijCap = max( 0, huidigBatterijCap - currentTripDistance * energieverbruik );
 if (huidigBatterijCap == 0) {
-	traceln("Batterij leeg bij thuiskomst!");
+	traceln( getName() + " batterij leeg bij thuiskomst!" );
 }
 huidigBereik = huidigBatterijCap / energieverbruik;
 ]]></Body>
@@ -22059,10 +22014,10 @@ else {
 			</PresentationProperties>
 			<ModelTimeProperties>
 				<StopOption><![CDATA[Stop at specified time]]></StopOption>
-				<InitialDate><![CDATA[1619827200000]]></InitialDate>	
+				<InitialDate><![CDATA[1622505600000]]></InitialDate>	
 				<InitialTime><![CDATA[0.0]]></InitialTime>	
-				<FinalDate><![CDATA[1621555200000]]></FinalDate>	
-				<FinalTime><![CDATA[480.0]]></FinalTime>	
+				<FinalDate><![CDATA[1623110400000]]></FinalDate>	
+				<FinalTime><![CDATA[168.0]]></FinalTime>	
 			</ModelTimeProperties>
 			<BypassInitialScreen>true</BypassInitialScreen>
 		</SimulationExperiment>	
