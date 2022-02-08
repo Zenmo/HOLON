@@ -4,7 +4,7 @@
 	         AnyLogic Project File 
 *************************************************	         
 -->
-<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.9.202112171527" AlpVersion="8.7.3">
+<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.9.202112171712" AlpVersion="8.7.3">
 <Model>
 	<Id>1641891178629</Id>
 	<Name><![CDATA[Ebuurt]]></Name>
@@ -844,6 +844,30 @@ for ( int i = 0; i < huishoudensSlider.getValue(); i++) {
 						</InitialValue>
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1644254922015</Id>
+					<Name><![CDATA[trafoVermogen_kW]]></Name>
+					<X>-390</X><Y>580</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1644311235339</Id>
+					<Name><![CDATA[gemiddeldeSoC_pct]]></Name>
+					<X>-380</X><Y>620</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1643465996971</Id>
 					<Name><![CDATA[wandelSnelheid]]></Name>
@@ -1296,19 +1320,20 @@ for ( int i = 0; i < huishoudensSlider.getValue(); i++) {
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
 					<Action><![CDATA[for ( Huishouden h : huishoudens ) {
-	h.eigenConsumptieFunctie();
+	h.netVermogenFunctie();
 }
-
 
 pvOpwek = sumWhere(huishoudens, x->x.zonnepanelen.get(0).pvOpwekKW, x->x.zonnepanelen.size() > 0);
 warmtepompVerbruik = sum(huishoudens, x->x.elektriciteitsvraagWarmtepomp);
 basislastElektriciteitsverbruikHuishoudens = sum(huishoudens, x->x.basislastElektriciteitsverbruik);
 eigenConsumptie = sum(huishoudens, x->x.eigenConsumptie);
+trafoVermogen_kW = basislastElektriciteitsverbruikHuishoudens + autos.laadvraag() + warmtepompVerbruik - pvOpwek;
+gemiddeldeSoC_pct = averageWhere(autos, x->x.huidigBatterijCap/x.maxBatterijCap_kWh, x->x.elektrisch);
 
-
-
+//Grafieken updaten
 pvOpwekChart.updateData();
 elektriciteitsVerbruikChart.updateData();
+Wijktrafo_vermogen_plot.updateData();
 
 
 //Totalen
@@ -1902,7 +1927,10 @@ traceln( basislastElektriciteitsverbruikHuishoudensJaartotaal / huishoudens.size
 							<Name><![CDATA[energieverbruik]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[maxBatterijCap]]></Name>
+							<Name><![CDATA[maxBatterijCap_kWh]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[maxLaadsnelheid_kW]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -1914,7 +1942,7 @@ traceln( basislastElektriciteitsverbruikHuishoudensJaartotaal / huishoudens.size
 						<Id>1643558600793</Id>
 						<Name><![CDATA[laadvraag]]></Name>
 						<Type>sum</Type>
-						<Expression><![CDATA[item.laadsnelheid]]></Expression>
+						<Expression><![CDATA[item.laadsnelheid_kW]]></Expression>
 						<Condition><![CDATA[item.isLaden]]></Condition>
 					</StatisticsItem>
 					<StatisticsItem>
@@ -6340,7 +6368,7 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
 					<Text><![CDATA[% eigen consumptie]]></Text>
-					<TextCode><![CDATA[roundToDecimal(eigenConsumptieJaartotaal / (basislastElektriciteitsverbruikHuishoudensJaartotaal + warmtepompVerbruikJaartotaal), 2)  + "% eigen consumptie"]]></TextCode>
+					<TextCode><![CDATA[roundToDecimal(100*eigenConsumptieJaartotaal / (basislastElektriciteitsverbruikHuishoudensJaartotaal + warmtepompVerbruikJaartotaal), 2)  + "% eigen consumptie"]]></TextCode>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>12</Size>
@@ -7017,7 +7045,7 @@ bewoners.bewonersThuis() + " thuis)"]]></TextCode>
 				<Line>
 					<Id>1643565185364</Id>
 					<Name><![CDATA[line8]]></Name>
-					<X>300</X><Y>400</Y>
+					<X>559</X><Y>398</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -7041,7 +7069,7 @@ bewoners.bewonersThuis() + " thuis)"]]></TextCode>
 				<Text>
 					<Id>1643565370932</Id>
 					<Name><![CDATA[text38]]></Name>
-					<X>101</X><Y>192</Y>
+					<X>360</X><Y>190</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -7062,7 +7090,7 @@ bewoners.bewonersThuis() + " thuis)"]]></TextCode>
 				<Rectangle>
 					<Id>1643565492245</Id>
 					<Name><![CDATA[rectangle8]]></Name>
-					<X>375</X><Y>400</Y>
+					<X>634</X><Y>398</Y>
 					<Label><X>10</X><Y>10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -7080,7 +7108,7 @@ bewoners.bewonersThuis() + " thuis)"]]></TextCode>
 					<HeightCode><![CDATA[2.5 *
 (basislastElektriciteitsverbruikHuishoudens +
 autos.laadvraag() +
-warmtepompVerbruik ) 
+warmtepompVerbruik - pvOpwek) 
 ]]></HeightCode>
 					<Rotation>180.0</Rotation>
 					<FillColor>-10496</FillColor>
@@ -7089,7 +7117,7 @@ warmtepompVerbruik )
 				<Line>
 					<Id>1643565246564</Id>
 					<Name><![CDATA[line9]]></Name>
-					<X>310</X><Y>200</Y>
+					<X>569</X><Y>198</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -7113,7 +7141,7 @@ warmtepompVerbruik )
 				<Line>
 					<Id>1643565710617</Id>
 					<Name><![CDATA[line17]]></Name>
-					<X>282.467</X><Y>197.533</Y>
+					<X>541.467</X><Y>195.533</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -7137,7 +7165,7 @@ warmtepompVerbruik )
 				<Line>
 					<Id>1643565710619</Id>
 					<Name><![CDATA[line14]]></Name>
-					<X>267</X><Y>200</Y>
+					<X>526</X><Y>198</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -7161,7 +7189,7 @@ warmtepompVerbruik )
 				<Line>
 					<Id>1643565710621</Id>
 					<Name><![CDATA[line18]]></Name>
-					<X>286.801</X><Y>200.344</Y>
+					<X>545.801</X><Y>198.344</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -7185,7 +7213,7 @@ warmtepompVerbruik )
 				<Group>
 					<Id>1643565842346</Id>
 					<Name><![CDATA[belastingPijl]]></Name>
-					<X>200</X><Y>280</Y>
+					<X>459</X><Y>278</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -7194,7 +7222,7 @@ warmtepompVerbruik )
 					<YCode><![CDATA[395 - 2.5 * (
 	basislastElektriciteitsverbruikHuishoudens +
 	autos.laadvraag() +
-	warmtepompVerbruik )]]></YCode>
+	warmtepompVerbruik - pvOpwek)]]></YCode>
 					<EmbeddedIcon>false</EmbeddedIcon>
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
@@ -7238,10 +7266,10 @@ warmtepompVerbruik )
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
 					<Text><![CDATA[de huidige belasting is: 43 kW]]></Text>
-					<TextCode><![CDATA["de huidige belasting is: " + 
+					<TextCode><![CDATA["belasting is: " + 
 roundToInt( basislastElektriciteitsverbruikHuishoudens +
 autos.laadvraag() +
-warmtepompVerbruik ) + 
+warmtepompVerbruik - pvOpwek) + 
 " kW"]]></TextCode>
 					<Font>
 						<Name>SansSerif</Name>
@@ -9335,6 +9363,207 @@ bezoekPT / 10]]></LineWidthCode>
 					</Font>
 					<Alignment>LEFT</Alignment>
 				</Text>
+    			<TimePlot>
+					<Id>1644254896512</Id>
+					<Name><![CDATA[Wijktrafo_vermogen_plot]]></Name>
+					<X>20</X><Y>190</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<AutoUpdate>true</AutoUpdate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1644307200000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</RecurrenceCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Width>410</Width>
+					<Height>250</Height>
+					<BackgroundColor/>
+					<BorderColor/>
+					<ChartArea>
+						<XOffset>50</XOffset>
+						<YOffset>30</YOffset>
+						<Width>330</Width>
+						<Height>160</Height>
+						<BackgroundColor>-1</BackgroundColor>
+						<BorderColor>-16777216</BorderColor>
+						<GridColor>-12566464</GridColor>
+					</ChartArea>
+					<Legend>
+						<Place>SOUTH</Place>
+						<TextColor>-16777216</TextColor>
+						<Size>30</Size>
+					</Legend>
+					<Labels>
+						<HorLabelsPosition>DEFAULT</HorLabelsPosition>
+						<VerLabelsPosition>DEFAULT</VerLabelsPosition>
+						<TextColor>-12566464</TextColor>
+					</Labels>
+					<ShowLegend>true</ShowLegend>
+					<TimeWindowsMovementType>MOVEMENT_WITH_TIME</TimeWindowsMovementType>		
+					<TimeWindowUnits>MODEL_TIME_UNIT</TimeWindowUnits>
+					<VerScaleFromExpression><![CDATA[-30]]></VerScaleFromExpression>
+					<VerScaleToExpression><![CDATA[30]]></VerScaleToExpression>
+					<VerScaleType>FIXED</VerScaleType>
+					<DrawLine>true</DrawLine>
+					<Interpolation>LINEAR</Interpolation>
+					<DatasetExpression>  
+						<Title><![CDATA[Wijktrafo vermogen [kW]]]></Title>
+					<Id>0</Id>
+					<Expression><![CDATA[my_dataset]]></Expression>
+					<Color>-60269</Color>
+					<Expression2><![CDATA[trafoVermogen_kW]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>
+						<PointStyle>NONE</PointStyle>
+						<LineWidth>1.0</LineWidth>
+					</DatasetExpression>
+					<SamplesToKeep>180</SamplesToKeep>
+					<TimeWindowExpression><![CDATA[96]]></TimeWindowExpression>
+					<FillAreaUnderLine>false</FillAreaUnderLine>
+					<LabelFormat>HH_mm</LabelFormat>
+    			</TimePlot>
+    			<TimePlot>
+					<Id>1644311148747</Id>
+					<Name><![CDATA[Wijktrafo_vermogen_plot1]]></Name>
+					<X>1060</X><Y>860</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<AutoUpdate>true</AutoUpdate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1644307200000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</RecurrenceCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Width>410</Width>
+					<Height>250</Height>
+					<BackgroundColor/>
+					<BorderColor/>
+					<ChartArea>
+						<XOffset>50</XOffset>
+						<YOffset>30</YOffset>
+						<Width>330</Width>
+						<Height>160</Height>
+						<BackgroundColor>-1</BackgroundColor>
+						<BorderColor>-16777216</BorderColor>
+						<GridColor>-12566464</GridColor>
+					</ChartArea>
+					<Legend>
+						<Place>SOUTH</Place>
+						<TextColor>-16777216</TextColor>
+						<Size>30</Size>
+					</Legend>
+					<Labels>
+						<HorLabelsPosition>DEFAULT</HorLabelsPosition>
+						<VerLabelsPosition>DEFAULT</VerLabelsPosition>
+						<TextColor>-12566464</TextColor>
+					</Labels>
+					<ShowLegend>true</ShowLegend>
+					<TimeWindowsMovementType>MOVEMENT_WITH_TIME</TimeWindowsMovementType>		
+					<TimeWindowUnits>MODEL_TIME_UNIT</TimeWindowUnits>
+					<VerScaleFromExpression><![CDATA[-30]]></VerScaleFromExpression>
+					<VerScaleToExpression><![CDATA[30]]></VerScaleToExpression>
+					<VerScaleType>FIXED</VerScaleType>
+					<DrawLine>true</DrawLine>
+					<Interpolation>LINEAR</Interpolation>
+					<DatasetExpression>  
+						<Title><![CDATA[Wijktrafo vermogen [kW]]]></Title>
+					<Id>1644311148744</Id>
+					<Expression><![CDATA[my_dataset]]></Expression>
+					<Color>-60269</Color>
+					<Expression2><![CDATA[trafoVermogen_kW]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>
+						<PointStyle>NONE</PointStyle>
+						<LineWidth>1.0</LineWidth>
+					</DatasetExpression>
+					<SamplesToKeep>180</SamplesToKeep>
+					<TimeWindowExpression><![CDATA[96]]></TimeWindowExpression>
+					<FillAreaUnderLine>false</FillAreaUnderLine>
+					<LabelFormat>HH_mm</LabelFormat>
+    			</TimePlot>
+    			<TimePlot>
+					<Id>1644311151556</Id>
+					<Name><![CDATA[Gemiddelde_SoC_plot]]></Name>
+					<X>-560</X><Y>680</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<AutoUpdate>true</AutoUpdate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1644307200000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</RecurrenceCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Width>410</Width>
+					<Height>250</Height>
+					<BackgroundColor/>
+					<BorderColor/>
+					<ChartArea>
+						<XOffset>50</XOffset>
+						<YOffset>30</YOffset>
+						<Width>330</Width>
+						<Height>160</Height>
+						<BackgroundColor>-1</BackgroundColor>
+						<BorderColor>-16777216</BorderColor>
+						<GridColor>-12566464</GridColor>
+					</ChartArea>
+					<Legend>
+						<Place>SOUTH</Place>
+						<TextColor>-16777216</TextColor>
+						<Size>30</Size>
+					</Legend>
+					<Labels>
+						<HorLabelsPosition>DEFAULT</HorLabelsPosition>
+						<VerLabelsPosition>DEFAULT</VerLabelsPosition>
+						<TextColor>-12566464</TextColor>
+					</Labels>
+					<ShowLegend>true</ShowLegend>
+					<TimeWindowsMovementType>MOVEMENT_WITH_TIME</TimeWindowsMovementType>		
+					<TimeWindowUnits>MODEL_TIME_UNIT</TimeWindowUnits>
+					<VerScaleFromExpression><![CDATA[0			]]></VerScaleFromExpression>
+					<VerScaleToExpression><![CDATA[100]]></VerScaleToExpression>
+					<VerScaleType>FIXED</VerScaleType>
+					<DrawLine>true</DrawLine>
+					<Interpolation>LINEAR</Interpolation>
+					<DatasetExpression>  
+						<Title><![CDATA[Gemiddelde SoC alle auto's]]></Title>
+					<Id>1644311151553</Id>
+					<Expression><![CDATA[my_dataset]]></Expression>
+					<Color>-60269</Color>
+					<Expression2><![CDATA[gemiddeldeSoC_pct*100]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>
+						<PointStyle>NONE</PointStyle>
+						<LineWidth>1.0</LineWidth>
+					</DatasetExpression>
+					<SamplesToKeep>180</SamplesToKeep>
+					<TimeWindowExpression><![CDATA[96]]></TimeWindowExpression>
+					<FillAreaUnderLine>false</FillAreaUnderLine>
+					<LabelFormat>HH_mm</LabelFormat>
+    			</TimePlot>
 			</Presentation>
 
 				</Level>
@@ -9591,8 +9820,44 @@ for( Bewoner b : bewoners ) {
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1643302841761</Id>
-					<Name><![CDATA[pvSalderen]]></Name>
+					<Name><![CDATA[teruglevering_kW]]></Name>
 					<X>40</X><Y>750</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1644308300639</Id>
+					<Name><![CDATA[totaalVerbruik_kW]]></Name>
+					<X>40</X><Y>780</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1644308376152</Id>
+					<Name><![CDATA[netVermogen_kW]]></Name>
+					<X>40</X><Y>820</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1644309847813</Id>
+					<Name><![CDATA[pvOverschot_kW]]></Name>
+					<X>40</X><Y>860</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -12077,20 +12342,40 @@ for( Bewoner b : bewoners ) {
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1643302685969</Id>
-					<Name><![CDATA[eigenConsumptieFunctie]]></Name>
+					<Name><![CDATA[netVermogenFunctie]]></Name>
 					<X>40</X><Y>690</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[if (pvOpwek < basislastElektriciteitsverbruik + warmtepompEVerbruik){
+					<Body><![CDATA[/* if (pvOpwek < basislastElektriciteitsverbruik + warmtepompEVerbruik){
 	eigenConsumptie = pvOpwek;
-	pvSalderen = 0;
+	teruglevering_kW = 0;
 }
 else {
 	eigenConsumptie = basislastElektriciteitsverbruik + warmtepompEVerbruik;
-	pvSalderen = pvOpwek - eigenConsumptie;
-}]]></Body>
+	teruglevering_kW = pvOpwek - eigenConsumptie;
+}
+*/
+
+totaalVerbruik_kW = basislastElektriciteitsverbruik + warmtepompEVerbruik; 
+//traceln("Aantal auto's in huishouden" + nbVehicles);
+pvOverschot_kW = pvOpwek - totaalVerbruik_kW;
+if (nbVehicles > 0) {
+	if (auto1.isLaden) {
+		totaalVerbruik_kW += auto1.laadsnelheid_kW;
+	}
+	if (nbVehicles > 1) {
+		if (nbVehicles > 1 & auto2.isLaden) {
+		totaalVerbruik_kW += auto2.laadsnelheid_kW;
+		}
+	}
+}
+
+eigenConsumptie = min(pvOpwek,totaalVerbruik_kW);
+teruglevering_kW = pvOpwek - eigenConsumptie;
+netVermogen_kW = totaalVerbruik_kW - pvOpwek;
+]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -12147,7 +12432,9 @@ if ( nbAdults > 1 ) {
 	adult2.setLocation( adult2.thuisLocatie );
 	g_adult2.setVisible(true);
 	bewoners.add( adult2 );
-}]]></Body>
+}
+if ( randomTrue(0.8) )
+add_zonnepanelen();]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -19655,7 +19942,8 @@ activities.get (currentActivityEpisode + 12 ).modality.toString()
 						</RecurrenceCode>
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
-					<Action><![CDATA[pvOpwekKW = zonnestraling(time(HOUR)) / 1000 * efficientie * oppervlaktePerPaneelM2 * capaciteitsFactor * aantalPanelen;
+					<Action><![CDATA[pvOpwekKW = zonnestraling(time(HOUR) + 2856) / 1000 * efficientie * oppervlaktePerPaneelM2 * capaciteitsFactor * aantalPanelen;
+//traceln( time(HOUR) ); // Debug
 //capaciteitsfactor kan afhankelijk door temperatuur, hellingshoek, orientatie, schaduw, e.d. meer detail nodig
 huishouden.pvOpwek = pvOpwekKW;
 
@@ -20050,7 +20338,7 @@ if (aantalPanelen < 1){
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[double]]></Type>        
 						<InitialValue Class="CodeValue">
-							<Code><![CDATA[uniform( 0.4, 1 ) * maxBatterijCap]]></Code>
+							<Code><![CDATA[uniform( 0.75, 1 ) * maxBatterijCap_kWh]]></Code>
 						</InitialValue>
 					</Properties>
 				</Variable>
@@ -20080,7 +20368,7 @@ if (aantalPanelen < 1){
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1643558125239</Id>
-					<Name><![CDATA[laadsnelheid]]></Name>
+					<Name><![CDATA[laadsnelheid_kW]]></Name>
 					<X>260</X><Y>100</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -20246,7 +20534,7 @@ if (aantalPanelen < 1){
 				</Variable>
 				<Variable Class="Parameter">
 					<Id>1643564194785</Id>
-					<Name><![CDATA[maxBatterijCap]]></Name>
+					<Name><![CDATA[maxBatterijCap_kWh]]></Name>
 					<X>50</X><Y>130</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -20261,6 +20549,30 @@ if (aantalPanelen < 1){
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1643564194783</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1644310703851</Id>
+					<Name><![CDATA[maxLaadsnelheid_kW]]></Name>
+					<X>50</X><Y>190</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[int]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[11]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1644310703849</Id>
 							<EditorContolType>TEXT_BOX</EditorContolType>
 							<MinSliderValue><![CDATA[0]]></MinSliderValue>
 							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
@@ -20375,7 +20687,7 @@ currentTripDistance = 0;]]></EntryAction>
 					</Points>
 					<IconOffset>20.0</IconOffset>
 					<Properties Source="1643556868348" Target="1643556868361" Trigger="message">
-						<Action><![CDATA[bepaalFlexibiliteit();]]></Action>
+						<Action><![CDATA[bepaalFlexibiliteit(); ]]></Action>
 						<Timeout Class="CodeUnitValue">
 							<Code><![CDATA[1]]></Code>
 							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
@@ -20516,7 +20828,7 @@ currentTripDistance = 0;]]></EntryAction>
 			<Events>
 				<Event>
 					<Id>1643555911499</Id>
-					<Name><![CDATA[event]]></Name>
+					<Name><![CDATA[UpdateSoC]]></Name>
 					<X>700</X><Y>70</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -20543,9 +20855,10 @@ currentTripDistance = 0;]]></EntryAction>
 						</RecurrenceCode>
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
-					<Action><![CDATA[if( inState( laden ) ) {
-	huidigBatterijCap = huidigBatterijCap + laadsnelheid / 360.0;
-	if ( huidigBatterijCap >= maxBatterijCap ) {
+					<Action><![CDATA[bepaalLaadbehoefte();
+if( inState( laden ) ) {
+	huidigBatterijCap = huidigBatterijCap + laadsnelheid_kW / 360.0;
+	if ( huidigBatterijCap >= maxBatterijCap_kWh ) {
 		send("stop laden", this);
 	}
 }]]></Action>
@@ -20563,25 +20876,34 @@ currentTripDistance = 0;]]></EntryAction>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[// Bepaal SOC en huidig bereik
-huidigBatterijCap = max( 0, huidigBatterijCap - currentTripDistance * energieverbruik );
 huidigBereik = huidigBatterijCap / energieverbruik;
 
 // De auto gaat direct laden als de laadbehoefte hoog is, kans opladen in andere gevallen
-if (  huidigBereik < 100 ) { //huidigBereik < nextActivity.getDistance()  ) {
-	laadbehoefte = Laadbehoefte.Hoog;
-	send( "laden", this );
+if ( huishouden.pvOverschot_kW > 0 & huidigBatterijCap < maxBatterijCap_kWh ) {
+	laadsnelheid_kW = min(huishouden.pvOverschot_kW,maxLaadsnelheid_kW);
+	send("laden", this );
 }
-else if ( huidigBatterijCap / maxBatterijCap < 0.8 ) {
+else if (  huidigBereik < 50 ) { //huidigBereik < nextActivity.getDistance()  ) {
+	laadbehoefte = Laadbehoefte.Hoog;
+	laadsnelheid_kW = 5;
+	send( "laden", this );	
+}
+else if ( huidigBatterijCap / maxBatterijCap_kWh < 0.6 ) {
 	laadbehoefte = Laadbehoefte.Middel;
-	if ( randomTrue( 0.75 ) ) {
+/*	if ( randomTrue( 0.75 ) ) {
 		send( "laden", this );
-	}
+	} */
+	laadsnelheid_kW = 1;
+	send( "laden", this );
 }
 else {
 	laadbehoefte = Laadbehoefte.Laag;
-	if ( randomTrue( 0.2 ) ) {
+/*	if ( randomTrue( 0.2 ) ) {
 		send( "laden", this );
-	}
+		
+	} */
+	laadsnelheid_kW = 0;
+	send( "stop laden", this );
 }
 
 ]]></Body>
@@ -20597,7 +20919,7 @@ else {
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[//Deze functie berekent het aantal minuten tot het volgende vertrekmoment van deze auto. Wordt aangeroepen als de auto aankomt.
-
+SoCnaTrip();
 // Als dit de tweede auto is, kijk dan alleen naar adult 2
 if (autoID == 2) {
 	nextActivity = huishouden.adult2.berekenVolgendeCarTrip();
@@ -20646,6 +20968,24 @@ main.flexPlot.update();
 
 //traceln ( getName() + ", min to next departure: " + laadflexibiliteitTotVolgendVertrek);
 //getEngine().pause();]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1644252464522</Id>
+					<Name><![CDATA[SoCnaTrip]]></Name>
+					<X>50</X><Y>230</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[// Bepaal SOC en huidig bereik
+huidigBatterijCap = max( 0, huidigBatterijCap - currentTripDistance * energieverbruik );
+if (huidigBatterijCap == 0) {
+	traceln("Batterij leeg bij thuiskomst!");
+}
+huidigBereik = huidigBatterijCap / energieverbruik;
+]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -21719,10 +22059,10 @@ else {
 			</PresentationProperties>
 			<ModelTimeProperties>
 				<StopOption><![CDATA[Stop at specified time]]></StopOption>
-				<InitialDate><![CDATA[1609459200000]]></InitialDate>	
+				<InitialDate><![CDATA[1619827200000]]></InitialDate>	
 				<InitialTime><![CDATA[0.0]]></InitialTime>	
-				<FinalDate><![CDATA[1610150400000]]></FinalDate>	
-				<FinalTime><![CDATA[192.0]]></FinalTime>	
+				<FinalDate><![CDATA[1621555200000]]></FinalDate>	
+				<FinalTime><![CDATA[480.0]]></FinalTime>	
 			</ModelTimeProperties>
 			<BypassInitialScreen>true</BypassInitialScreen>
 		</SimulationExperiment>	
