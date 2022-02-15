@@ -4,7 +4,7 @@
 	         AnyLogic Project File 
 *************************************************	         
 -->
-<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.10.202202091651" AlpVersion="8.7.3">
+<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.9.202112171527" AlpVersion="8.7.3">
 <Model>
 	<Id>1641891178629</Id>
 	<Name><![CDATA[Ebuurt]]></Name>
@@ -12980,7 +12980,7 @@ zonnepanelen.forEach(z -> z.pvPowerFunction());
 
 totaalVerbruik_kW = basislastElektriciteitsverbruik_kW + warmtepompEVerbruik_kW;
 pvOverschot_kW = pvOpwek_kW - ( basislastElektriciteitsverbruik_kW + warmtepompEVerbruik_kW );
-energyManager();
+energyManager.manage();
 if (nbVehicles > 0) {
 	if (auto1.isLaden) {
 		totaalVerbruik_kW += auto1.laadsnelheid_kW;
@@ -12996,57 +12996,6 @@ eigenConsumptie_kW = min(pvOpwek_kW,totaalVerbruik_kW);
 teruglevering_kW = pvOpwek_kW - eigenConsumptie_kW;
 netVermogen_kW = totaalVerbruik_kW - pvOpwek_kW;
 ]]></Body>
-				</Function>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1644826187420</Id>
-					<Name><![CDATA[energyManager]]></Name>
-					<X>40</X><Y>650</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[// Loop over all vehicles (can become; loop over all smart devices later)
-for (int i = 0 ; i<nbVehicles; i++) {
-	// Bepaal SOC en huidig bereik
-	autos.get(i).huidigBereik = autos.get(i).huidigBatterijCap / autos.get(i).energieverbruik;
-	
-	if (main.slimLadenCheckbox.isSelected()){
-		if ( pvOverschot_kW > 0 & autos.get(i).huidigBatterijCap < autos.get(i).maxBatterijCap_kWh ) {
-			autos.get(i).laadsnelheid_kW = min(pvOverschot_kW,autos.get(i).maxLaadsnelheid_kW);
-			//send("laden", this );
-		}
-		else if (  autos.get(i).huidigBereik < 100 ) { //huidigBereik < nextActivity.getDistance()  ) {
-			autos.get(i).laadbehoefte = Laadbehoefte.Hoog;
-			autos.get(i).laadsnelheid_kW = 5;
-			//send( "laden", this );	
-		}
-		else if ( autos.get(i).huidigBatterijCap / autos.get(i).maxBatterijCap_kWh < 0.6 ) {
-			autos.get(i).laadbehoefte = Laadbehoefte.Middel;
-		/*	if ( randomTrue( 0.75 ) ) {
-				send( "laden", this );
-			} */
-			autos.get(i).laadsnelheid_kW = 1;
-			//send( "laden", this );
-		}
-		else {
-			autos.get(i).laadbehoefte = Laadbehoefte.Laag;
-		/*	if ( randomTrue( 0.2 ) ) {
-				send( "laden", this );
-				
-			} */
-			autos.get(i).laadsnelheid_kW = 0;
-			//send( "stop laden", this );
-		}
-	}
-	else{ 
-	// Geen slim laden, de auto gaat direct laden als de laadbehoefte hoog is, kans opladen in andere gevallen
-		autos.get(i).laadsnelheid_kW = 5;
-		//send( "laden", this );	
-	}
-
-}]]></Body>
 				</Function>
 			</Functions>
 			<TableFunctions>
@@ -13236,6 +13185,67 @@ for (int i = 0 ; i<nbVehicles; i++) {
 						<Code><![CDATA[""]]></Code>
 					</LocationNameCode>
 					<InitializationType>EMPTY</InitializationType>
+					<InitializationDatabaseTableQuery>
+						<TableReference>
+						</TableReference>
+					</InitializationDatabaseTableQuery>
+					<InitializationDatabaseType>ONE_AGENT_PER_DATABASE_RECORD</InitializationDatabaseType>
+					<QuantityColumn>
+					</QuantityColumn>
+				</EmbeddedObject>
+				<EmbeddedObject>
+					<Id>1644921634574</Id>
+					<Name><![CDATA[energyManager]]></Name>
+					<X>40</X><Y>670</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<ActiveObjectClass>
+						<PackageName><![CDATA[ebuurt]]></PackageName>
+						<ClassName><![CDATA[EnergyManager]]></ClassName>
+					</ActiveObjectClass>
+					<GenericParameterSubstitute>
+						<GenericParameterSubstituteReference>
+							<PackageName><![CDATA[ebuurt]]></PackageName>
+							<ClassName><![CDATA[EnergyManager]]></ClassName>
+							<ItemName><![CDATA[1644921539575]]></ItemName>
+						</GenericParameterSubstituteReference>
+					</GenericParameterSubstitute>
+					<Parameters>
+					</Parameters>
+					<ReplicationFlag>false</ReplicationFlag>
+					<Replication Class="CodeValue">
+						<Code><![CDATA[100]]></Code>
+					</Replication>
+					<CollectionType>ARRAY_LIST_BASED</CollectionType>
+					<InEnvironment>true</InEnvironment>	
+					<InitialLocationType>AT_ANIMATION_POSITION</InitialLocationType>
+					<XCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</XCode>
+					<YCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</YCode>
+					<ZCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ZCode>
+					<ColumnCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ColumnCode>
+					<RowCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</RowCode>
+					<LatitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LatitudeCode>
+					<LongitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LongitudeCode>
+					<LocationNameCode Class="CodeValue">
+						<Code><![CDATA[""]]></Code>
+					</LocationNameCode>
+					<InitializationType>SPECIFIED_NUMBER</InitializationType>
 					<InitializationDatabaseTableQuery>
 						<TableReference>
 						</TableReference>
@@ -22654,6 +22664,228 @@ else {
 					<Alignment>LEFT</Alignment>
 				</Text>
 			</Presentation>
+
+				</Level>
+			</Presentation>
+
+		</ActiveObjectClass>
+		<!--   =========   Active Object Class   ========  -->
+		<ActiveObjectClass>
+			<Id>1644921539577</Id>
+			<Name><![CDATA[EnergyManager]]></Name>
+			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
+			<Generic>false</Generic>
+			<GenericParameter>
+				<Id>1644921539575</Id>
+				<Name><![CDATA[1644921539575]]></Name>
+				<GenericParameterValue Class="CodeValue">
+					<Code><![CDATA[T extends Agent]]></Code>
+				</GenericParameterValue>
+				<GenericParameterLabel><![CDATA[Generic parameter:]]></GenericParameterLabel>
+			</GenericParameter>
+			<FlowChartsUsage>ENTITY</FlowChartsUsage>
+			<SamplesToKeep>100</SamplesToKeep>
+			<LimitNumberOfArrayElements>false</LimitNumberOfArrayElements>
+			<ElementsLimitValue>100</ElementsLimitValue>
+			<MakeDefaultViewArea>true</MakeDefaultViewArea>
+			<SceneGridColor/>
+			<SceneBackgroundColor/>
+			<SceneSkybox>null</SceneSkybox>
+			<AgentProperties>
+	 			<SpaceType>CONTINUOUS</SpaceType>			
+				<EnvironmentDefinesInitialLocation>true</EnvironmentDefinesInitialLocation>
+				<RotateAnimationTowardsMovement>true</RotateAnimationTowardsMovement>
+				<RotateAnimationVertically>false</RotateAnimationVertically>
+				<VelocityCode Class="CodeUnitValue">
+					<Code><![CDATA[10]]></Code>
+					<Unit Class="SpeedUnits"><![CDATA[MPS]]></Unit>
+				</VelocityCode>
+				<PhysicalLength Class="CodeUnitValue">
+					<Code><![CDATA[1]]></Code>
+					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
+				</PhysicalLength>
+				<PhysicalWidth Class="CodeUnitValue">
+					<Code><![CDATA[1]]></Code>
+					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
+				</PhysicalWidth>
+				<PhysicalHeight Class="CodeUnitValue">
+					<Code><![CDATA[1]]></Code>
+					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
+				</PhysicalHeight>
+			</AgentProperties>
+			<EnvironmentProperties>
+					<EnableSteps>false</EnableSteps>
+					<StepDurationCode Class="CodeUnitValue">
+						<Code><![CDATA[1.0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[SECOND]]></Unit>
+					</StepDurationCode>
+					<SpaceType>CONTINUOUS</SpaceType>
+					<WidthCode><![CDATA[500]]></WidthCode>
+					<HeightCode><![CDATA[500]]></HeightCode>
+					<ZHeightCode><![CDATA[0]]></ZHeightCode>
+					<ColumnsCountCode><![CDATA[100]]></ColumnsCountCode>
+					<RowsCountCode><![CDATA[100]]></RowsCountCode>
+					<NeigborhoodType>MOORE</NeigborhoodType>
+					<LayoutType>USER_DEF</LayoutType>
+					<LayoutTypeApplyOnStartup>true</LayoutTypeApplyOnStartup>
+					<NetworkType>USER_DEF</NetworkType>
+					<NetworkTypeApplyOnStartup>true</NetworkTypeApplyOnStartup>
+					<ConnectionsPerAgentCode><![CDATA[2]]></ConnectionsPerAgentCode>
+					<ConnectionsRangeCode><![CDATA[50]]></ConnectionsRangeCode>
+					<NeighborLinkFractionCode><![CDATA[0.95]]></NeighborLinkFractionCode>
+					<MCode><![CDATA[10]]></MCode>
+			</EnvironmentProperties>
+			<DatasetsCreationProperties>
+				<AutoCreate>true</AutoCreate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1644998400000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</RecurrenceCode>
+			</DatasetsCreationProperties>
+			<ScaleRuler>
+				<Id>1644921539573</Id>
+				<Name><![CDATA[scale]]></Name>
+				<X>0</X><Y>-150</Y>
+				<PublicFlag>false</PublicFlag>
+				<PresentationFlag>false</PresentationFlag>
+				<ShowLabel>false</ShowLabel>
+				<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+				<Length>100</Length>
+				<Rotation>0</Rotation>
+				<ScaleType>BASED_ON_LENGTH</ScaleType>
+				<ModelLength>10</ModelLength>
+				<LengthUnits>METER</LengthUnits>
+				<Scale>10</Scale>
+				<InheritedFromParentAgentType>true</InheritedFromParentAgentType>
+			</ScaleRuler>
+			<CurrentLevel>1644921539576</CurrentLevel>
+			<ConnectionsId>1644921539572</ConnectionsId>
+			<Functions>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1644921587870</Id>
+					<Name><![CDATA[manage]]></Name>
+					<X>50</X><Y>60</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[// Loop over all vehicles (can become; loop over all smart devices later)
+
+ArrayList<Auto> autos = huishouden.autos;
+
+for (int i = 0 ; i< huishouden.nbVehicles; i++) {
+	// Bepaal SOC en huidig bereik
+	autos.get(i).huidigBereik = autos.get(i).huidigBatterijCap / autos.get(i).energieverbruik;
+	
+	if (main.slimLadenCheckbox.isSelected()){
+		if ( huishouden.pvOverschot_kW > 0 & autos.get(i).huidigBatterijCap < autos.get(i).maxBatterijCap_kWh ) {
+			autos.get(i).laadsnelheid_kW = min(huishouden.pvOverschot_kW,autos.get(i).maxLaadsnelheid_kW);
+			//send("laden", this );
+		}
+		else if (  autos.get(i).huidigBereik < 100 ) { //huidigBereik < nextActivity.getDistance()  ) {
+			autos.get(i).laadbehoefte = Laadbehoefte.Hoog;
+			autos.get(i).laadsnelheid_kW = 5;
+			//send( "laden", this );	
+		}
+		else if ( autos.get(i).huidigBatterijCap / autos.get(i).maxBatterijCap_kWh < 0.6 ) {
+			autos.get(i).laadbehoefte = Laadbehoefte.Middel;
+		/*	if ( randomTrue( 0.75 ) ) {
+				send( "laden", this );
+			} */
+			autos.get(i).laadsnelheid_kW = 1;
+			//send( "laden", this );
+		}
+		else {
+			autos.get(i).laadbehoefte = Laadbehoefte.Laag;
+		/*	if ( randomTrue( 0.2 ) ) {
+				send( "laden", this );
+				
+			} */
+			autos.get(i).laadsnelheid_kW = 0;
+			//send( "stop laden", this );
+		}
+	}
+	else{ 
+	// Geen slim laden, de auto gaat direct laden als de laadbehoefte hoog is, kans opladen in andere gevallen
+		autos.get(i).laadsnelheid_kW = 5;
+		//send( "laden", this );	
+	}
+
+}]]></Body>
+				</Function>
+			</Functions>
+			<AgentLinks>
+				<AgentLink>
+					<Id>1644921539572</Id>
+					<Name><![CDATA[connections]]></Name>
+					<X>50</X><Y>-50</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<HandleReceiveInConnections>false</HandleReceiveInConnections>
+					<AgentLinkType>COLLECTION_OF_LINKS</AgentLinkType>
+					<AgentLinkBidirectional>true</AgentLinkBidirectional>
+					<MessageType><![CDATA[Object]]></MessageType>
+					<LineStyle>SOLID</LineStyle>
+					<LineWidth>1</LineWidth>
+					<LineColor>-16777216</LineColor>
+					<LineZOrder>UNDER_AGENTS</LineZOrder>
+					<LineArrow>NONE</LineArrow>
+					<LineArrowPosition>END</LineArrowPosition>
+				</AgentLink>
+			</AgentLinks>
+
+			<ContainerLinks>
+				<ContainerLink>
+					<Id>1644921635922</Id>
+					<Name><![CDATA[huishouden]]></Name>
+					<X>50</X><Y>-100</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<ActiveObjectClass>
+						<PackageName><![CDATA[ebuurt]]></PackageName>
+						<ClassName><![CDATA[Huishouden]]></ClassName>
+					</ActiveObjectClass>
+				</ContainerLink>
+				<ContainerLink>
+					<Id>1644921635925</Id>
+					<Name><![CDATA[main]]></Name>
+					<X>150</X><Y>-100</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<ActiveObjectClass>
+						<PackageName><![CDATA[ebuurt]]></PackageName>
+						<ClassName><![CDATA[Main]]></ClassName>
+					</ActiveObjectClass>
+				</ContainerLink>
+			</ContainerLinks>
+
+			<Presentation>
+				<Level>
+					<Id>1644921539576</Id>
+					<Name><![CDATA[level]]></Name>
+					<X>0</X><Y>0</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<Z>0</Z>
+					<LevelVisibility>DIM_NON_CURRENT</LevelVisibility>
+
 
 				</Level>
 			</Presentation>
