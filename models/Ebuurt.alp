@@ -21898,18 +21898,6 @@ else{
 }
 ]]></Body>
 				</Function>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1645008114944</Id>
-					<Name><![CDATA[updateCurrentRange]]></Name>
-					<X>50</X><Y>450</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[huidigBereik_km = huidigBatterijCap_kWh / energieverbruik_kWhpkm;]]></Body>
-				</Function>
 			</Functions>
 			<AgentLinks>
 				<AgentLink>
@@ -22917,9 +22905,6 @@ else {
 
 ArrayList<Auto> carArray = huishouden.autos;
 
-
-
-
 if (p_energyManagerMode == 0) {
 	chargingTracksSolarProduction(carArray);
 }
@@ -22944,42 +22929,39 @@ else if (p_energyManagerMode == 1) {
 					<Body><![CDATA[// Loop over all vehicles (can become; loop over all smart devices later)
 for (int i = 0 ; i< huishouden.nbVehicles; i++) {
 		// Bepaal SOC en huidig bereik
-        Auto car = carArray.get(i);
-		car.updateCurrentRange();
-		double range = car.huidigBereik_km;
+		carArray.get(i).huidigBereik_km = carArray.get(i).huidigBatterijCap_kWh / carArray.get(i).energieverbruik_kWhpkm;
 		
-		// TODO: not checkbox based but using p_energyManagerMode
 		if (main.slimLadenCheckbox.isSelected()){
-			if ( huishouden.pvOverschot_kW > 0 & car.huidigBatterijCap_kWh < car.maxBatterijCap_kWh ) {
-				car.laadsnelheid_kW = min(huishouden.pvOverschot_kW,car.maxLaadsnelheid_kW);
+			if ( huishouden.pvOverschot_kW > 0 & carArray.get(i).huidigBatterijCap_kWh < carArray.get(i).maxBatterijCap_kWh ) {
+				carArray.get(i).laadsnelheid_kW = min(huishouden.pvOverschot_kW,carArray.get(i).maxLaadsnelheid_kW);
 				//send("laden", this );
 			}
-			else if (  car.huidigBereik_km < 100 ) { //huidigBereik < nextActivity.getDistance()  ) {
-				car.laadbehoefte = Laadbehoefte.Hoog;
-				car.laadsnelheid_kW = 5;
+			else if (  carArray.get(i).huidigBereik_km < 100 ) { //huidigBereik < nextActivity.getDistance()  ) {
+				carArray.get(i).laadbehoefte = Laadbehoefte.Hoog;
+				carArray.get(i).laadsnelheid_kW = 5;
 				//send( "laden", this );	
 			}
-			else if ( car.huidigBatterijCap_kWh / car.maxBatterijCap_kWh < 0.6 ) {
-				car.laadbehoefte = Laadbehoefte.Middel;
+			else if ( carArray.get(i).huidigBatterijCap_kWh / carArray.get(i).maxBatterijCap_kWh < 0.6 ) {
+				carArray.get(i).laadbehoefte = Laadbehoefte.Middel;
 			/*	if ( randomTrue( 0.75 ) ) {
 					send( "laden", this );
 				} */
-				car.laadsnelheid_kW = 1;
+				carArray.get(i).laadsnelheid_kW = 1;
 				//send( "laden", this );
 			}
 			else {
-				car.laadbehoefte = Laadbehoefte.Laag;
+				carArray.get(i).laadbehoefte = Laadbehoefte.Laag;
 			/*	if ( randomTrue( 0.2 ) ) {
 					send( "laden", this );
 					
 				} */
-				car.laadsnelheid_kW = 0;
+				carArray.get(i).laadsnelheid_kW = 0;
 				//send( "stop laden", this );
 			}
 		}
 		else{ 
 		// Geen slim laden, de auto gaat direct laden als de laadbehoefte hoog is, kans opladen in andere gevallen
-			car.laadsnelheid_kW = 5;
+			carArray.get(i).laadsnelheid_kW = 5;
 			//send( "laden", this );	
 		}
 	
@@ -23000,18 +22982,7 @@ for (int i = 0 ; i< huishouden.nbVehicles; i++) {
 						<Name><![CDATA[carArray]]></Name>
 						<Type><![CDATA[ArrayList<Auto>]]></Type>
 					</Parameter>
-					<Body><![CDATA[
-
-for (int i = 0 ; i< carArray.size(); i++) {
-		// Bepaal SOC en huidig bereik
-		carArray.get(i).huidigBereik_km = carArray.get(i).huidigBatterijCap_kWh / carArray.get(i).energieverbruik_kWhpkm;
-		
-		// determine the minimal time (t1) for charging based on:
-		// 		charging capacity
-		//		minimal SOC for next trip
-}
-
-// Get price curve from main
+					<Body><![CDATA[// Get price curve from main
 // main.tf_inventivePowerCOsts; // Tablefunction, can 'get' kWh price at any power
 
 //TODO: Hardcoded values for now
