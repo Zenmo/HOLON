@@ -12537,7 +12537,7 @@ for( Bewoner b : bewoners ) {
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[0]]></Code>
+							<Code><![CDATA[1]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1645005747286</Id>
@@ -13574,7 +13574,7 @@ basislastVerbruiksFunctie();
 zonnepanelen.forEach(z -> z.pvPowerFunction());
 
 totaalVerbruik_kW = basislastElektriciteitsverbruik_kW + warmtepompEVerbruik_kW;
-v_gridPowerBalAfterPV_kW = pvOpwek_kW - ( basislastElektriciteitsverbruik_kW + warmtepompEVerbruik_kW );
+v_gridPowerBalAfterPV_kW = basislastElektriciteitsverbruik_kW + warmtepompEVerbruik_kW - pvOpwek_kW;
 energyManager.manage(p_energyManagerMode);
 if (nbVehicles > 0) {
 	if (auto1.isLaden) {
@@ -23407,8 +23407,8 @@ for (int i = 0 ; i< huishouden.nbVehicles; i++) {
 		carArray.get(i).huidigBereik_km = carArray.get(i).huidigBatterijCap_kWh / carArray.get(i).energieverbruik_kWhpkm;
 		
 		if (main.slimLadenCheckbox.isSelected()){
-			if ( huishouden.pvOverschot_kW > 0 & carArray.get(i).huidigBatterijCap_kWh < carArray.get(i).maxBatterijCap_kWh ) {
-				carArray.get(i).laadsnelheid_kW = min(huishouden.pvOverschot_kW,carArray.get(i).maxLaadsnelheid_kW);
+			if ( huishouden.v_gridPowerBalAfterPV_kW < 0 & carArray.get(i).huidigBatterijCap_kWh < carArray.get(i).maxBatterijCap_kWh ) {
+				carArray.get(i).laadsnelheid_kW = min(-huishouden.v_gridPowerBalAfterPV_kW,carArray.get(i).maxLaadsnelheid_kW);
 				//send("laden", this );
 			}
 			else if (  carArray.get(i).huidigBereik_km < 100 ) { //huidigBereik < nextActivity.getDistance()  ) {
@@ -23448,6 +23448,8 @@ for (int i = 0 ; i< huishouden.nbVehicles; i++) {
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1645021970429</Id>
 					<Name><![CDATA[threeStageFinancial]]></Name>
+					<Description><![CDATA[@ Author: Gillis Hommen
+@ Since: 16/02/2022]]></Description>
 					<X>70</X><Y>170</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -23461,50 +23463,53 @@ for (int i = 0 ; i< huishouden.nbVehicles; i++) {
 // main.tf_inventivePowerCOsts; // Tablefunction, can 'get' kWh price at any power
 
 //TODO: Hardcoded values for now
-double bidPriceLow_eurpkWh= 0.1; // Charge when electricity price is less than this price, this should be dynamic based on urgency of charging
-double bidPriceMedium_eur= 0.2; // Charge when electricity price is less than this price, this should be dynamic based on urgency of charging
-double bidPriceHigh_eur= 1.0; // Charge when electricity price is less than this price, this should be dynamic based on urgency of charging
-double energyMargin_pct = 20;
+double bidPriceLow_eurpkWh= 0.15; // Charge when electricity price is less than this price, this should be dynamic based on urgency of charging
+double bidPriceMedium_eurpkWh = 0.25; // Charge when electricity price is less than this price, this should be dynamic based on urgency of charging
+double bidPriceHigh_eurpkWh= 1.0; // Charge when electricity price is less than this price, this should be dynamic based on urgency of charging
+double energyMargin_pct = 10;
 double t1WindowFactor = 5;
 
-for (int i = 0 ; i< carArray.size(); i++) {
-	
-	//Prepare input for bidding
-	Auto car = carArray.get(i);
-	double energyMargin_kWh = energyMargin_pct / 100 * car.maxBatterijCap_kWh;
-	double timeToNextTrip_min = car.nextActivity.startMinute - time(MINUTE);
-	double energyRequired_kWh = car.nextActivity.getDistance() * car.energieverbruik_kWhpkm;
-	double energyTarget_kWh = max(car.maxBatterijCap_kWh , energyRequired + energyMargin_kWh);
-	double t2_min = max(0,(energyTarget_kWh - car.huidigBatterijCap_kWh)) / car.maxLaadsnelheid_kW * 60;
-	double t1_min = t2_min * t1WindowFactor;
-	double maxChargingPower_kW = min( IncentiveGenerator.p_maxHouseholdPowerKW + huishouden.v_gridPowerBalAfterPV_kW, car.maxLaadsnelheid_kW );
-	double maxAffordableChargingPower_kW = 0;
-	
-	if ( timeToNextTrip_min > t1_min ) { // Longer than t1 till charging, only charge against cheapest rate
+if ( carArray.size() > 0 ){
+	for (int i = 0 ; i < carArray.size(); i++) {
 		
-		for (int chargingPower_kW = 0 ; chargingPower_kW < (int)maxChargingPower_kW ; chargingPower_kW++) {
-			if ( IncentiveGenerator.tf_incentivePowerCost( chargingPower_kW - huishouden.v_gridPowerBalAfterPV_kW ) < bidPriceLow_eurpkWh )	{
-			    maxAffordableChargingPower_kW = (double)chargingPower_kW;
+		//Prepare input for bidding
+		Auto car = carArray.get(i);
+		double energyMargin_kWh = energyMargin_pct / 100 * car.maxBatterijCap_kWh;
+		if (car.nextActivity != null){
+			double timeToNextTrip_min = car.nextActivity.startMinute - time(MINUTE);
+			double energyRequired_kWh = car.nextActivity.travelTime * 1.2 * car.energieverbruik_kWhpkm;
+			double energyTarget_kWh = max(car.maxBatterijCap_kWh , energyRequired_kWh + energyMargin_kWh);
+			double t2_min = max(0,(energyTarget_kWh - car.huidigBatterijCap_kWh)) / car.maxLaadsnelheid_kW * 60;
+			double t1_min = t2_min * t1WindowFactor;
+			double maxChargingPower_kW = min( main.incentiveGenerator.p_maxHouseholdPowerKW + huishouden.v_gridPowerBalAfterPV_kW, car.maxLaadsnelheid_kW );
+			double maxAffordableChargingPower_kW = 0;
+			
+			if ( timeToNextTrip_min > t1_min && car.huidigBatterijCap_kWh < car.maxBatterijCap_kWh) { // Longer than t1 till charging, only charge against cheapest rate
+				
+				for (int chargingPower_kW = 0 ; chargingPower_kW < (int)maxChargingPower_kW ; chargingPower_kW++) {
+					if ( abs(main.incentiveGenerator.tf_incentivePowerCosts( chargingPower_kW - huishouden.v_gridPowerBalAfterPV_kW )) < bidPriceLow_eurpkWh )	{
+					    maxAffordableChargingPower_kW = (double)chargingPower_kW;
+					}
+				}
+				
 			}
-		}
-		
-	}
-	else if ( timeToNextTrip_min > t2_min && car.huidigBatterijCap_kWh < energyTarget_kWh ) { // Between t2 and t1 till charging, charge against medium rate
-		
-		for (int chargingPower_kW = 0 ; chargingPower_kW < maxChargingPower_kW ; chargingPower_kW++) {
-			if ( IncentiveGenerator.tf_incentivePowerCost( chargingPower_kW - huishouden.v_gridPowerBalAfterPV_kW ) < bidPriceLow_eurpkWh )	{
-			    maxAffordableChargingPower_kW = (double)chargingPower_kW;
+			else if ( timeToNextTrip_min > t2_min && car.huidigBatterijCap_kWh < energyTarget_kWh ) { // Between t2 and t1 till charging, charge against medium rate
+				
+				for (int chargingPower_kW = 0 ; chargingPower_kW < maxChargingPower_kW ; chargingPower_kW++) {
+					if ( abs(main.incentiveGenerator.tf_incentivePowerCosts( chargingPower_kW - huishouden.v_gridPowerBalAfterPV_kW )) < bidPriceMedium_eurpkWh )	{
+					    maxAffordableChargingPower_kW = (double)chargingPower_kW;
+					}
+				}
 			}
+			else if ( car.huidigBatterijCap_kWh < energyTarget_kWh ) { // Must-charge time at max charging power
+				maxAffordableChargingPower_kW = maxChargingPower_kW;
+			
+			}
+			car.laadsnelheid_kW = maxAffordableChargingPower_kW;
 		}
-	}
-	else if ( car.huidigBatterijCap_kWh < energyTarget_kWh ) { // Must-charge time at max charging power
-		maxAffordableCharingPower_kW = maxChargingPower_kW;
 	
 	}
-	car.laadsnelheid_kW = maxAffordableChargingPower_kW;
-
-}
-]]></Body>
+}]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
