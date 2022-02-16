@@ -2126,7 +2126,7 @@ Tbuiten = temperatuurFunctie(time(HOUR)+hourOfYearStart);
 							<Name><![CDATA[p_endHourAfternoonTariff]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_meteringTariff]]></Name>
+							<Name><![CDATA[p_meteringSellBackTariff]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>false</ReplicationFlag>
@@ -23962,7 +23962,7 @@ f_updateTariffs();]]></StartupCode>
 				</Variable>
 				<Variable Class="Parameter">
 					<Id>1644945926229</Id>
-					<Name><![CDATA[p_meteringTariff]]></Name>
+					<Name><![CDATA[p_meteringSellBackTariff]]></Name>
 					<X>230</X><Y>190</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -23972,6 +23972,9 @@ f_updateTariffs();]]></StartupCode>
 						<Type><![CDATA[double]]></Type>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[-0.08]]></Code>
+						</DefaultValue>
 						<ParameterEditor>
 							<Id>1644945926227</Id>
 							<EditorContolType>TEXT_BOX</EditorContolType>
@@ -24079,18 +24082,27 @@ v_incentiveEuroCapacityTariff = new double[v_incentiveLength];]]></Body>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[/*
-if( cb_offPeakTariff.isSelected()){
+					<Body><![CDATA[//Creating price schedule to be added to basic fixed tariff schedule
+
+if( cb_offPeakTariff.isSelected() ){
+
+	//during off peak hours
 	if( getHourOfDay() >= p_startHourOffPeakTariff  || getHourOfDay() <= p_endHourOffPeakTariff ) {
 		for( int i = 0; i < v_incentiveLength; i++ ) {
 			v_incentiveKWOffPeakTariff[i] = p_minHouseholdPowerKW + i;
-	
-	if (v_incentiveKWFixedTariff[i] > 0){		
 			
-			v_incentiveEuroOffPeakTariff[i] = p_offPeakTariffEuroPerKWh - p_fixedTariffEuroPerKWh;
-			v_incentiveKWOffPeakTariff[i] = p_minHouseholdPowerKW + i;
+			//buying energy	
+			if (v_incentiveKWOffPeakTariff[i] > 0){		
+				v_incentiveEuroOffPeakTariff[i] = -(p_fixedTariffEuroPerKWh - p_offPeakTariffEuroPerKWh);
+			}
+			//selling enregy
+			else {
+				v_incentiveEuroOffPeakTariff[i] = p_fixedTariffEuroPerKWh - p_offPeakTariffEuroPerKWh;				
+			}
 		}
 	}
+	
+	//during peak hours
 	else {
 		for( int i = 0; i < v_incentiveLength; i++ ) {
 			v_incentiveEuroOffPeakTariff[i] = 0;
@@ -24098,6 +24110,7 @@ if( cb_offPeakTariff.isSelected()){
 		}
 	}		
 }
+
 
 //set to 0 if off peak checkbox is unselected
 else {
@@ -24108,8 +24121,7 @@ else {
 	}
 }
 		
-
-*/]]></Body>
+]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -24123,7 +24135,14 @@ else {
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[for( int i = 0; i < v_incentiveLength; i++){
 	v_incentiveKW[i] = p_minHouseholdPowerKW + i;
-	v_incentiveEuro[i] = v_incentiveEuroFixedTariff[i] + v_incentiveEuroOffPeakTariff[i] + v_incentiveEuroAfternoonOffPeakTariff[i];
+
+	if( !cb_netMetering.isSelected() && v_incentiveKW[i] <= 0){
+		v_incentiveEuro[i] = v_incentiveEuroNetMetering[i];
+	}
+	
+	else{
+		v_incentiveEuro[i] = v_incentiveEuroFixedTariff[i] + v_incentiveEuroOffPeakTariff[i] + v_incentiveEuroAfternoonOffPeakTariff[i] + v_incentiveEuroNetMetering[i];
+	}
 }
 
 
@@ -24152,20 +24171,35 @@ pl_incentives.updateData();]]></Body>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[if( cb_afternoonOffPeakTariff.isSelected()){
-	if( getHourOfDay() >= p_startHourAfternoonTariff  || getHourOfDay() <= p_endHourAfternoonTariff ) {
+					<Body><![CDATA[//Creating price schedule to be added to basic fixed tariff schedule
+
+if( cb_afternoonOffPeakTariff.isSelected() ){
+
+	//during off peak hours
+	if( getHourOfDay() >= p_startHourAfternoonTariff  && getHourOfDay() <= p_endHourAfternoonTariff ) {
 		for( int i = 0; i < v_incentiveLength; i++ ) {
-			v_incentiveKWAfternoonOffPeakTariff[i] = p_offPeakTariffEuroPerKWh - p_fixedTariffEuroPerKWh;
-			v_incentiveEuroAfternoonOffPeakTariff[i] = p_minHouseholdPowerKW + i;
+			v_incentiveKWAfternoonOffPeakTariff[i] = p_minHouseholdPowerKW + i;
+			
+			//buying energy	
+			if (v_incentiveKWAfternoonOffPeakTariff[i] > 0){		
+				v_incentiveEuroAfternoonOffPeakTariff[i] = -(p_fixedTariffEuroPerKWh - p_offPeakTariffEuroPerKWh);
+			}
+			//selling enregy
+			else {
+				v_incentiveEuroAfternoonOffPeakTariff[i] = p_fixedTariffEuroPerKWh - p_offPeakTariffEuroPerKWh;				
+			}
 		}
 	}
+	
+	//during peak hours
 	else {
 		for( int i = 0; i < v_incentiveLength; i++ ) {
-			v_incentiveKWAfternoonOffPeakTariff[i] = 0;
-			v_incentiveEuroAfternoonOffPeakTariff[i] = p_minHouseholdPowerKW + i;
+			v_incentiveEuroAfternoonOffPeakTariff[i] = 0;
+			v_incentiveKWAfternoonOffPeakTariff[i] = p_minHouseholdPowerKW + i;
 		}
 	}		
 }
+
 
 //set to 0 if off peak checkbox is unselected
 else {
@@ -24175,7 +24209,8 @@ else {
 		}
 	}
 }
-		]]></Body>
+		
+]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -24187,20 +24222,32 @@ else {
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[//off peak tariff
-v_incentiveKWNetMetering = new double[v_incentiveLength];
-v_incentiveEuroNetMetering = new double[v_incentiveLength];
+					<Body><![CDATA[//Net metering
 
-for( int i = 0; i < v_incentiveLength; i++ ) {
-	if ( i < 0 ) {
-		v_incentiveKWAfternoonOffPeakTariff[i] = p_offPeakTariffEuroPerKWh;
-		v_incentiveEuroAfternoonOffPeakTariff[i] = p_minHouseholdPowerKW + i;
+//if selected, net metering is being used and selling prices equal buying prices
+if( cb_netMetering.isSelected() ){
+	for( int i = 0; i < v_incentiveLength; i++ ) {
+		v_incentiveKWNetMetering[i] = p_minHouseholdPowerKW + i;
+		v_incentiveEuroNetMetering[i] = 0;
 	}
-	else {
-		v_incentiveKWAfternoonOffPeakTariff[i] = p_fixedTariffEuroPerKWh;
-		v_incentiveEuroAfternoonOffPeakTariff[i] = p_minHouseholdPowerKW + i;
+}
+
+//if not selected, selling is market (sell back) price instead of bying tariff
+else {				
+	for( int i = 0; i < v_incentiveLength; i++ ) {
+		v_incentiveKWNetMetering[i] = p_minHouseholdPowerKW + i;
+		
+		//buying energy	
+		if (v_incentiveKWNetMetering[i] > 0){		
+			v_incentiveEuroNetMetering[i] = 0;
+		}
+			
+		//selling energy
+		else {
+			v_incentiveEuroNetMetering[i] = p_meteringSellBackTariff;
+		}
 	}
-}]]></Body>
+}		]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -24394,7 +24441,7 @@ f_updateTariffs();]]></ActionCode>
 					<ExtendedProperties>
 						<Font Name="Dialog" Size="11" Style="0"/>
 						<LabelText><![CDATA[salderen]]></LabelText>
-						<DefaultValueCode><![CDATA[false]]></DefaultValueCode>
+						<DefaultValueCode><![CDATA[true]]></DefaultValueCode>
 						<LinkTo>false</LinkTo>
 	 				</ExtendedProperties>
 				</Control>
@@ -24530,9 +24577,9 @@ f_updateTariffs();]]></ActionCode>
 						<TextColor>-12566464</TextColor>
 					</Labels>
 					<ShowLegend>true</ShowLegend>
-					<VerScaleFromExpression><![CDATA[0]]></VerScaleFromExpression>
-					<VerScaleToExpression><![CDATA[1]]></VerScaleToExpression>
-					<VerScaleType>AUTO</VerScaleType>
+					<VerScaleFromExpression><![CDATA[-0.25]]></VerScaleFromExpression>
+					<VerScaleToExpression><![CDATA[0.25]]></VerScaleToExpression>
+					<VerScaleType>FIXED</VerScaleType>
 					<DrawLine>true</DrawLine>
 					<Interpolation>LINEAR</Interpolation>
 					<DatasetExpression>  
