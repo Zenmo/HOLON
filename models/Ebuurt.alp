@@ -4,7 +4,7 @@
 	         AnyLogic Project File 
 *************************************************	         
 -->
-<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.10.202202091745" AlpVersion="8.7.3">
+<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.10.202202091651" AlpVersion="8.7.3">
 <Model>
 	<Id>1641891178629</Id>
 	<Name><![CDATA[Ebuurt]]></Name>
@@ -23361,101 +23361,149 @@ else {
 			</ScaleRuler>
 			<CurrentLevel>1644921539576</CurrentLevel>
 			<ConnectionsId>1644921539572</ConnectionsId>
-			<Variables>
-				<Variable Class="Parameter">
-					<Id>1644932059779</Id>
-					<Name><![CDATA[p_energyManangerMode]]></Name>
-					<X>90</X><Y>90</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[int]]></Type>
-						<UnitType><![CDATA[NONE]]></UnitType>
-						<SdArray>false</SdArray>
-						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[0]]></Code>
-						</DefaultValue>
-						<ParameterEditor>
-							<Id>1644932059777</Id>
-							<EditorContolType>TEXT_BOX</EditorContolType>
-							<MinSliderValue><![CDATA[0]]></MinSliderValue>
-							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
-							<DelimeterType>NO_DELIMETER</DelimeterType>
-						</ParameterEditor>
-					</Properties>                 
-				</Variable>
-			</Variables>
 			<Functions>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1644921587870</Id>
+					<Id>1645021970423</Id>
 					<Name><![CDATA[manage]]></Name>
-					<X>90</X><Y>140</Y>
+					<X>70</X><Y>60</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[p_energyManagerMode]]></Name>
+						<Type><![CDATA[int]]></Type>
+					</Parameter>
 					<Body><![CDATA[// Loop over all vehicles (can become; loop over all smart devices later)
 
-ArrayList<Auto> autos = huishouden.autos;
+ArrayList<Auto> carArray = huishouden.autos;
 
-if (p_energyManangerMode == 0) {
-	for (int i = 0 ; i< huishouden.nbVehicles; i++) {
+if (p_energyManagerMode == 0) {
+	chargingTracksSolarProduction(carArray);
+}
+else if (p_energyManagerMode == 1) {
+	threeStageFinancial(carArray);
+}]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1645021970427</Id>
+					<Name><![CDATA[chargingTracksSolarProduction]]></Name>
+					<X>70</X><Y>120</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[carArray]]></Name>
+						<Type><![CDATA[ArrayList<Auto>]]></Type>
+					</Parameter>
+					<Body><![CDATA[// Loop over all vehicles (can become; loop over all smart devices later)
+for (int i = 0 ; i< huishouden.nbVehicles; i++) {
 		// Bepaal SOC en huidig bereik
-		autos.get(i).huidigBereik_km = autos.get(i).huidigBatterijCap_kWh / autos.get(i).energieverbruik_kWhpkm;
+		carArray.get(i).huidigBereik_km = carArray.get(i).huidigBatterijCap_kWh / carArray.get(i).energieverbruik_kWhpkm;
 		
 		if (main.slimLadenCheckbox.isSelected()){
-			if ( huishouden.pvOverschot_kW > 0 & autos.get(i).huidigBatterijCap_kWh < autos.get(i).maxBatterijCap_kWh ) {
-				autos.get(i).laadsnelheid_kW = min(huishouden.pvOverschot_kW,autos.get(i).maxLaadsnelheid_kW);
+			if ( huishouden.pvOverschot_kW > 0 & carArray.get(i).huidigBatterijCap_kWh < carArray.get(i).maxBatterijCap_kWh ) {
+				carArray.get(i).laadsnelheid_kW = min(huishouden.pvOverschot_kW,carArray.get(i).maxLaadsnelheid_kW);
 				//send("laden", this );
 			}
-			else if (  autos.get(i).huidigBereik_km < 100 ) { //huidigBereik < nextActivity.getDistance()  ) {
-				autos.get(i).laadbehoefte = Laadbehoefte.Hoog;
-				autos.get(i).laadsnelheid_kW = 5;
+			else if (  carArray.get(i).huidigBereik_km < 100 ) { //huidigBereik < nextActivity.getDistance()  ) {
+				carArray.get(i).laadbehoefte = Laadbehoefte.Hoog;
+				carArray.get(i).laadsnelheid_kW = 5;
 				//send( "laden", this );	
 			}
-			else if ( autos.get(i).huidigBatterijCap_kWh / autos.get(i).maxBatterijCap_kWh < 0.6 ) {
-				autos.get(i).laadbehoefte = Laadbehoefte.Middel;
+			else if ( carArray.get(i).huidigBatterijCap_kWh / carArray.get(i).maxBatterijCap_kWh < 0.6 ) {
+				carArray.get(i).laadbehoefte = Laadbehoefte.Middel;
 			/*	if ( randomTrue( 0.75 ) ) {
 					send( "laden", this );
 				} */
-				autos.get(i).laadsnelheid_kW = 1;
+				carArray.get(i).laadsnelheid_kW = 1;
 				//send( "laden", this );
 			}
 			else {
-				autos.get(i).laadbehoefte = Laadbehoefte.Laag;
+				carArray.get(i).laadbehoefte = Laadbehoefte.Laag;
 			/*	if ( randomTrue( 0.2 ) ) {
 					send( "laden", this );
 					
 				} */
-				autos.get(i).laadsnelheid_kW = 0;
+				carArray.get(i).laadsnelheid_kW = 0;
 				//send( "stop laden", this );
 			}
 		}
 		else{ 
 		// Geen slim laden, de auto gaat direct laden als de laadbehoefte hoog is, kans opladen in andere gevallen
-			autos.get(i).laadsnelheid_kW = 5;
+			carArray.get(i).laadsnelheid_kW = 5;
 			//send( "laden", this );	
 		}
 	
 	}
+]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1645021970429</Id>
+					<Name><![CDATA[threeStageFinancial]]></Name>
+					<X>70</X><Y>170</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[carArray]]></Name>
+						<Type><![CDATA[ArrayList<Auto>]]></Type>
+					</Parameter>
+					<Body><![CDATA[// Get price curve from main
+// main.tf_inventivePowerCOsts; // Tablefunction, can 'get' kWh price at any power
+
+//TODO: Hardcoded values for now
+double bidPriceLow_eurpkWh= 0.1; // Charge when electricity price is less than this price, this should be dynamic based on urgency of charging
+double bidPriceMedium_eur= 0.2; // Charge when electricity price is less than this price, this should be dynamic based on urgency of charging
+double bidPriceHigh_eur= 1.0; // Charge when electricity price is less than this price, this should be dynamic based on urgency of charging
+double energyMargin_pct = 20;
+double t1WindowFactor = 5;
+
+for (int i = 0 ; i< carArray.size(); i++) {
+	
+	//Prepare input for bidding
+	Auto car = carArray.get(i);
+	double energyMargin_kWh = energyMargin_pct / 100 * car.maxBatterijCap_kWh;
+	double timeToNextTrip_min = car.nextActivity.startMinute - time(MINUTE);
+	double energyRequired_kWh = car.nextActivity.getDistance() * car.energieverbruik_kWhpkm;
+	double energyTarget_kWh = max(car.maxBatterijCap_kWh , energyRequired + energyMargin_kWh);
+	double t2_min = max(0,(energyTarget_kWh - car.huidigBatterijCap_kWh)) / car.maxLaadsnelheid_kW * 60;
+	double t1_min = t2_min * t1WindowFactor;
+	double maxChargingPower_kW = min( IncentiveGenerator.p_maxHouseholdPowerKW + huishouden.v_gridPowerBalAfterPV_kW, car.maxLaadsnelheid_kW );
+	double maxAffordableChargingPower_kW = 0;
+	
+	if ( timeToNextTrip_min > t1_min ) { // Longer than t1 till charging, only charge against cheapest rate
+		
+		for (int chargingPower_kW = 0 ; chargingPower_kW < (int)maxChargingPower_kW ; chargingPower_kW++) {
+			if ( IncentiveGenerator.tf_incentivePowerCost( chargingPower_kW - huishouden.v_gridPowerBalAfterPV_kW ) < bidPriceLow_eurpkWh )	{
+			    maxAffordableChargingPower_kW = (double)chargingPower_kW;
+			}
+		}
+		
+	}
+	else if ( timeToNextTrip_min > t2_min && car.huidigBatterijCap_kWh < energyTarget_kWh ) { // Between t2 and t1 till charging, charge against medium rate
+		
+		for (int chargingPower_kW = 0 ; chargingPower_kW < maxChargingPower_kW ; chargingPower_kW++) {
+			if ( IncentiveGenerator.tf_incentivePowerCost( chargingPower_kW - huishouden.v_gridPowerBalAfterPV_kW ) < bidPriceLow_eurpkWh )	{
+			    maxAffordableChargingPower_kW = (double)chargingPower_kW;
+			}
+		}
+	}
+	else if ( car.huidigBatterijCap_kWh < energyTarget_kWh ) { // Must-charge time at max charging power
+		maxAffordableCharingPower_kW = maxChargingPower_kW;
+	
+	}
+	car.laadsnelheid_kW = maxAffordableChargingPower_kW;
+
 }
-/*else if (p_energyManangerMode==1) {
-	// Get price curve from main
-	// main.tf_inventivePowerCOsts; // Tablefunction, can 'get' kWh price at any power
-	double[] priceCurve_x = {-17, -.01, .01, 17};
-	double[] priceCurve_y = {07, .07, .2, 0.2};
-	
-	double bidPriceLow_eur= 0.1; // Charge when electricity price is less than this price, this should be dynamic based on urgency of charging
-	double bidPriceMedium_eur= 0.2; // Charge when electricity price is less than this price, this should be dynamic based on urgency of charging
-	double bidPriceHigh_eur= 0.3; // Charge when electricity price is less than this price, this should be dynamic based on urgency of charging
-	
-	// Prijs minimalisatie
-	huishouden.pvOverschot_kW
-	}*/
 ]]></Body>
 				</Function>
 			</Functions>
@@ -25330,159 +25378,32 @@ f_updateTariffs();]]></ActionCode>
 				<Scale>10</Scale>
 				<InheritedFromParentAgentType>true</InheritedFromParentAgentType>
 			</ScaleRuler>
-			<CurrentLevel>1644921539576</CurrentLevel>
-			<ConnectionsId>1644921539572</ConnectionsId>
-			<Functions>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1644921587870</Id>
-					<Name><![CDATA[manage]]></Name>
-					<X>90</X><Y>140</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Parameter>
-						<Name><![CDATA[p_energyManagerMode]]></Name>
-						<Type><![CDATA[int]]></Type>
-					</Parameter>
-					<Body><![CDATA[// Loop over all vehicles (can become; loop over all smart devices later)
-
-ArrayList<Auto> carArray = huishouden.autos;
-
-if (p_energyManagerMode == 0) {
-	chargingTracksSolarProduction(carArray);
-}
-else if (p_energyManagerMode == 1) {
-	threeStageFinancial(carArray);
-}]]></Body>
-				</Function>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1645005928328</Id>
-					<Name><![CDATA[chargingTracksSolarProduction]]></Name>
-					<X>90</X><Y>200</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Parameter>
-						<Name><![CDATA[carArray]]></Name>
-						<Type><![CDATA[ArrayList<Auto>]]></Type>
-					</Parameter>
-					<Body><![CDATA[// Loop over all vehicles (can become; loop over all smart devices later)
-for (int i = 0 ; i< huishouden.nbVehicles; i++) {
-		// Bepaal SOC en huidig bereik
-		carArray.get(i).huidigBereik_km = carArray.get(i).huidigBatterijCap_kWh / carArray.get(i).energieverbruik_kWhpkm;
-		
-		if (main.slimLadenCheckbox.isSelected()){
-			if ( huishouden.pvOverschot_kW > 0 & carArray.get(i).huidigBatterijCap_kWh < carArray.get(i).maxBatterijCap_kWh ) {
-				carArray.get(i).laadsnelheid_kW = min(huishouden.pvOverschot_kW,carArray.get(i).maxLaadsnelheid_kW);
-				//send("laden", this );
-			}
-			else if (  carArray.get(i).huidigBereik_km < 100 ) { //huidigBereik < nextActivity.getDistance()  ) {
-				carArray.get(i).laadbehoefte = Laadbehoefte.Hoog;
-				carArray.get(i).laadsnelheid_kW = 5;
-				//send( "laden", this );	
-			}
-			else if ( carArray.get(i).huidigBatterijCap_kWh / carArray.get(i).maxBatterijCap_kWh < 0.6 ) {
-				carArray.get(i).laadbehoefte = Laadbehoefte.Middel;
-			/*	if ( randomTrue( 0.75 ) ) {
-					send( "laden", this );
-				} */
-				carArray.get(i).laadsnelheid_kW = 1;
-				//send( "laden", this );
-			}
-			else {
-				carArray.get(i).laadbehoefte = Laadbehoefte.Laag;
-			/*	if ( randomTrue( 0.2 ) ) {
-					send( "laden", this );
-					
-				} */
-				carArray.get(i).laadsnelheid_kW = 0;
-				//send( "stop laden", this );
-			}
-		}
-		else{ 
-		// Geen slim laden, de auto gaat direct laden als de laadbehoefte hoog is, kans opladen in andere gevallen
-			carArray.get(i).laadsnelheid_kW = 5;
-			//send( "laden", this );	
-		}
-	
-	}
-]]></Body>
-				</Function>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1645005931250</Id>
-					<Name><![CDATA[threeStageFinancial]]></Name>
-					<X>90</X><Y>250</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Parameter>
-						<Name><![CDATA[carArray]]></Name>
-						<Type><![CDATA[ArrayList<Auto>]]></Type>
-					</Parameter>
-					<Body><![CDATA[// Get price curve from main
-// main.tf_inventivePowerCOsts; // Tablefunction, can 'get' kWh price at any power
-
-//TODO: Hardcoded values for now
-double bidPriceLow_eurpkWh= 0.1; // Charge when electricity price is less than this price, this should be dynamic based on urgency of charging
-double bidPriceMedium_eur= 0.2; // Charge when electricity price is less than this price, this should be dynamic based on urgency of charging
-double bidPriceHigh_eur= 1.0; // Charge when electricity price is less than this price, this should be dynamic based on urgency of charging
-double energyMargin_pct = 20;
-double t1WindowFactor = 5;
-
-for (int i = 0 ; i< carArray.size(); i++) {
-	
-	//Prepare input for bidding
-	Auto car = carArray.get(i);
-	double energyMargin_kWh = energyMargin_pct / 100 * car.maxBatterijCap_kWh;
-	double timeToNextTrip_min = car.nextActivity.startMinute - time(MINUTE);
-	double energyRequired_kWh = car.nextActivity.getDistance() * car.energieverbruik_kWhpkm;
-	double energyTarget_kWh = max(car.maxBatterijCap_kWh , energyRequired + energyMargin_kWh);
-	double t2_min = max(0,(energyTarget_kWh - car.huidigBatterijCap_kWh)) / car.maxLaadsnelheid_kW * 60;
-	double t1_min = t2_min * t1WindowFactor;
-	double maxChargingPower_kW = min( IncentiveGenerator.p_maxHouseholdPowerKW + huishouden.v_gridPowerBalAfterPV_kW, car.maxLaadsnelheid_kW );
-	double maxAffordableChargingPower_kW = 0;
-	
-	if ( timeToNextTrip_min > t1_min ) { // Longer than t1 till charging, only charge against cheapest rate
-		
-		for (int chargingPower_kW = 0 ; chargingPower_kW < (int)maxChargingPower_kW ; chargingPower_kW++) {
-			if ( IncentiveGenerator.tf_incentivePowerCost( chargingPower_kW - huishouden.v_gridPowerBalAfterPV_kW ) < bidPriceLow_eurpkWh )	{
-			    maxAffordableChargingPower_kW = (double)chargingPower_kW;
-			}
-		}
-		
-	}
-	else if ( timeToNextTrip_min > t2_min && car.huidigBatterijCap_kWh < energyTarget_kWh ) { // Between t2 and t1 till charging, charge against medium rate
-		
-		for (int chargingPower_kW = 0 ; chargingPower_kW < maxChargingPower_kW ; chargingPower_kW++) {
-			if ( IncentiveGenerator.tf_incentivePowerCost( chargingPower_kW - huishouden.v_gridPowerBalAfterPV_kW ) < bidPriceLow_eurpkWh )	{
-			    maxAffordableChargingPower_kW = (double)chargingPower_kW;
-			}
-		}
-	}
-	else if ( car.huidigBatterijCap_kWh < energyTarget_kWh ) { // Must-charge time at max charging power
-		maxAffordableCharingPower_kW = maxChargingPower_kW;
-	
-	}
-	car.laadsnelheid_kW = maxAffordableChargingPower_kW;
-
-}
-]]></Body>
-				</Function>
-			</Functions>
+			<ConnectionsId>1645021865160</ConnectionsId>
 			<AgentLinks>
 				<AgentLink>
 					<Id>1645015262386</Id>
 					<Name><![CDATA[connections]]></Name>
 					<X>50</X><Y>-50</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<HandleReceiveInConnections>false</HandleReceiveInConnections>
+					<AgentLinkType>COLLECTION_OF_LINKS</AgentLinkType>
+					<AgentLinkBidirectional>true</AgentLinkBidirectional>
+					<MessageType><![CDATA[Object]]></MessageType>
+					<LineStyle>SOLID</LineStyle>
+					<LineWidth>1</LineWidth>
+					<LineColor>-16777216</LineColor>
+					<LineZOrder>UNDER_AGENTS</LineZOrder>
+					<LineArrow>NONE</LineArrow>
+					<LineArrowPosition>END</LineArrowPosition>
+				</AgentLink>
+				<AgentLink>
+					<Id>1645021865160</Id>
+					<Name><![CDATA[connections]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>50</X><Y>-150</Y>
 					<Label><X>15</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
