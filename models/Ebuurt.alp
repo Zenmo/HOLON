@@ -2128,6 +2128,15 @@ Tbuiten = temperatuurFunctie(time(HOUR)+hourOfYearStart);
 						<Parameter>
 							<Name><![CDATA[p_meteringSellBackTariff]]></Name>
 						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_capacityTariffMinCapacityKW]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_capacityTariffMaxCapacityKW]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_capacityTariffEuroPerKW]]></Name>
+						</Parameter>
 					</Parameters>
 					<ReplicationFlag>false</ReplicationFlag>
 					<Replication Class="CodeValue">
@@ -23515,6 +23524,18 @@ if (p_energyManangerMode == 0) {
 if( cb_fixedTariff.isSelected() ){
 	f_setFixedTariffIncentive();
 }
+if( cb_offPeakTariff.isSelected() ){
+	f_setOffPeakTariff();
+}
+if( cb_afternoonOffPeakTariff.isSelected() ){
+	f_setAfternoonOffPeakTariff();
+}
+if( cb_netMetering.isSelected() ){
+	f_setNetMetering();
+}
+if( cb_capacityTariff.isSelected() ){
+	f_setCapacityTariff();
+}
 
 f_updateTariffs();]]></StartupCode>
 			<Generic>false</Generic>
@@ -23973,10 +23994,82 @@ f_updateTariffs();]]></StartupCode>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[-0.08]]></Code>
+							<Code><![CDATA[0.08]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1644945926227</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1645023427470</Id>
+					<Name><![CDATA[p_capacityTariffMinCapacityKW]]></Name>
+					<X>230</X><Y>320</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[-2]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1645023427468</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1645023452648</Id>
+					<Name><![CDATA[p_capacityTariffMaxCapacityKW]]></Name>
+					<X>230</X><Y>340</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[2]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1645023452646</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1645024704951</Id>
+					<Name><![CDATA[p_capacityTariffEuroPerKW]]></Name>
+					<X>230</X><Y>360</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[0.01]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1645024704949</Id>
 							<EditorContolType>TEXT_BOX</EditorContolType>
 							<MinSliderValue><![CDATA[0]]></MinSliderValue>
 							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
@@ -24036,13 +24129,15 @@ f_updateTariffs();
 					<Body><![CDATA[//fixed Tariff
 for( int i = 0; i < v_incentiveLength; i++ ) {
 		v_incentiveKWFixedTariff[i] = p_minHouseholdPowerKW + i;
-	
+		v_incentiveEuroFixedTariff[i] = p_fixedTariffEuroPerKWh;
+	/*
 	if (v_incentiveKWFixedTariff[i] > 0){
 		v_incentiveEuroFixedTariff[i] = p_fixedTariffEuroPerKWh;
 	}
 	else {
 		v_incentiveEuroFixedTariff[i] = - p_fixedTariffEuroPerKWh;
-	}	
+	}
+	*/	
 }
 ]]></Body>
 				</Function>
@@ -24090,6 +24185,9 @@ if( cb_offPeakTariff.isSelected() ){
 	if( getHourOfDay() >= p_startHourOffPeakTariff  || getHourOfDay() <= p_endHourOffPeakTariff ) {
 		for( int i = 0; i < v_incentiveLength; i++ ) {
 			v_incentiveKWOffPeakTariff[i] = p_minHouseholdPowerKW + i;
+			v_incentiveEuroOffPeakTariff[i] = -(p_fixedTariffEuroPerKWh - p_offPeakTariffEuroPerKWh);
+			
+			/*
 			
 			//buying energy	
 			if (v_incentiveKWOffPeakTariff[i] > 0){		
@@ -24099,6 +24197,7 @@ if( cb_offPeakTariff.isSelected() ){
 			else {
 				v_incentiveEuroOffPeakTariff[i] = p_fixedTariffEuroPerKWh - p_offPeakTariffEuroPerKWh;				
 			}
+			*/
 		}
 	}
 	
@@ -24137,11 +24236,11 @@ else {
 	v_incentiveKW[i] = p_minHouseholdPowerKW + i;
 
 	if( !cb_netMetering.isSelected() && v_incentiveKW[i] <= 0){
-		v_incentiveEuro[i] = v_incentiveEuroNetMetering[i];
+		v_incentiveEuro[i] = v_incentiveEuroNetMetering[i] + v_incentiveEuroCapacityTariff[i];
 	}
 	
 	else{
-		v_incentiveEuro[i] = v_incentiveEuroFixedTariff[i] + v_incentiveEuroOffPeakTariff[i] + v_incentiveEuroAfternoonOffPeakTariff[i] + v_incentiveEuroNetMetering[i];
+		v_incentiveEuro[i] = v_incentiveEuroFixedTariff[i] + v_incentiveEuroOffPeakTariff[i] + v_incentiveEuroAfternoonOffPeakTariff[i] + v_incentiveEuroNetMetering[i] + v_incentiveEuroCapacityTariff[i];
 	}
 }
 
@@ -24179,7 +24278,9 @@ if( cb_afternoonOffPeakTariff.isSelected() ){
 	if( getHourOfDay() >= p_startHourAfternoonTariff  && getHourOfDay() <= p_endHourAfternoonTariff ) {
 		for( int i = 0; i < v_incentiveLength; i++ ) {
 			v_incentiveKWAfternoonOffPeakTariff[i] = p_minHouseholdPowerKW + i;
+			v_incentiveEuroAfternoonOffPeakTariff[i] = -(p_fixedTariffEuroPerKWh - p_offPeakTariffEuroPerKWh);
 			
+			/*
 			//buying energy	
 			if (v_incentiveKWAfternoonOffPeakTariff[i] > 0){		
 				v_incentiveEuroAfternoonOffPeakTariff[i] = -(p_fixedTariffEuroPerKWh - p_offPeakTariffEuroPerKWh);
@@ -24188,6 +24289,7 @@ if( cb_afternoonOffPeakTariff.isSelected() ){
 			else {
 				v_incentiveEuroAfternoonOffPeakTariff[i] = p_fixedTariffEuroPerKWh - p_offPeakTariffEuroPerKWh;				
 			}
+			*/
 		}
 	}
 	
@@ -24259,14 +24361,31 @@ else {
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[//create array
-v_incentiveKWCapacityTariff = new double[v_incentiveLength];
-v_incentiveEuroCapacityTariff = new double[v_incentiveLength];
+					<Body><![CDATA[//set capacity tariff
 
-//set tariff
-for( int i = 0; i < v_incentiveLength; i++ ) {
-	//To do
-}]]></Body>
+if (cb_capacityTariff.isSelected()){
+	for( int i = 0; i < v_incentiveLength; i++ ) {
+		v_incentiveKWCapacityTariff[i] = p_minHouseholdPowerKW + i;
+		
+		if (v_incentiveKWCapacityTariff[i] < p_capacityTariffMinCapacityKW){
+			v_incentiveEuroCapacityTariff[i] = p_capacityTariffEuroPerKW * (v_incentiveKWCapacityTariff[i] - p_capacityTariffMinCapacityKW);
+			
+		}
+		else if (v_incentiveKWCapacityTariff[i] > p_capacityTariffMaxCapacityKW){
+			v_incentiveEuroCapacityTariff[i] = p_capacityTariffEuroPerKW * (v_incentiveKWCapacityTariff[i] - p_capacityTariffMaxCapacityKW);
+		}
+		else {
+			v_incentiveEuroCapacityTariff[i] = 0;
+		}	
+	}
+}
+
+else{
+	for( int i = 0; i < v_incentiveLength; i++ ) {
+		v_incentiveKWCapacityTariff[i] = p_minHouseholdPowerKW + i;
+		v_incentiveEuroCapacityTariff[i] = 0;
+	}
+}	]]></Body>
 				</Function>
 			</Functions>
 			<TableFunctions>
@@ -24458,7 +24577,9 @@ f_updateTariffs();]]></ActionCode>
 					<BasicProperties Width="120" Height="30">
                         <EmbeddedIcon>false</EmbeddedIcon>	
 						<TextColor/>
-						<Enabled>false</Enabled>
+						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[f_setCapacityTariff();
+f_updateTariffs();]]></ActionCode>
 					</BasicProperties>
 					<ExtendedProperties>
 						<Font Name="Dialog" Size="11" Style="0"/>
@@ -24577,8 +24698,8 @@ f_updateTariffs();]]></ActionCode>
 						<TextColor>-12566464</TextColor>
 					</Labels>
 					<ShowLegend>true</ShowLegend>
-					<VerScaleFromExpression><![CDATA[-0.25]]></VerScaleFromExpression>
-					<VerScaleToExpression><![CDATA[0.25]]></VerScaleToExpression>
+					<VerScaleFromExpression><![CDATA[0]]></VerScaleFromExpression>
+					<VerScaleToExpression><![CDATA[0.5]]></VerScaleToExpression>
 					<VerScaleType>FIXED</VerScaleType>
 					<DrawLine>true</DrawLine>
 					<Interpolation>LINEAR</Interpolation>
