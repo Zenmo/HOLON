@@ -21630,7 +21630,7 @@ if (elektrisch) {
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[double]]></Type>        
 						<InitialValue Class="CodeValue">
-							<Code><![CDATA[uniform( 0.5, 1 ) * maxBatterijCap_kWh]]></Code>
+							<Code><![CDATA[uniform( 0.8, 0.9 ) * maxBatterijCap_kWh]]></Code>
 						</InitialValue>
 					</Properties>
 				</Variable>
@@ -21876,7 +21876,7 @@ if (elektrisch) {
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[11]]></Code>
+							<Code><![CDATA[5]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1644310703849</Id>
@@ -23579,32 +23579,30 @@ if ( carArray.size() > 0 ){
 		if (car.nextActivity != null){ // Only apply medium and high cost charging if a trip is planned
 			// After chargingDeadlineT2, charge at max power against any rate
 			if ( time(MINUTE) >= ( car.nextActivity.startMinute - minChargingDuration_min )) { // Must-charge time at max charging power
-				maxAffordableChargingPower_kW = maxChargingPower_kW;
-				
+				maxAffordableChargingPower_kW = maxChargingPower_kW;				
 			}
-				// Between chargingDeadlineT1 and chargingDeadlineT2, charge against medium rate
+			
+			// Between chargingDeadlineT1 and chargingDeadlineT2, charge against medium rate
 			else if ( time(MINUTE) >= ( car.nextActivity.startMinute - minChargingDuration_min*mediumTariffWindowFactor )  && car.huidigBatterijCap_kWh < car.v_chargingTarget_kWh ) { // Between t2 and t1 till charging, charge against medium rate
-				for (double chargingPower_kW = 0 ; chargingPower_kW < maxChargingPower_kW/mediumTariffWindowFactor ; chargingPower_kW+=0.1) {
+				for (double chargingPower_kW = 0 ; chargingPower_kW < min(maxChargingPower_kW, car.maxLaadsnelheid_kW/3) ; chargingPower_kW+=0.1) {
 					if ( main.incentiveGenerator.tf_incentivePowerCosts( (double)chargingPower_kW + huishouden.v_gridPowerBalAfterPV_kW ) < v_bidPriceMedium_eurpkWh )	{
 					    maxAffordableChargingPower_kW = chargingPower_kW;
 					}
 				}	
 			}
 		}
-		// Low cost charging regardless of next trip planned
-		if ( car.huidigBatterijCap_kWh < car.maxBatterijCap_kWh) { // Longer than t1 till charging, only charge against cheapest rate when battery is not full
+		// Low cost charging regardless of next trip planned, and if there was not already 'urgent' charging
+		if ( maxAffordableChargingPower_kW == 0 && car.huidigBatterijCap_kWh < car.maxBatterijCap_kWh) { // Longer than t1 till charging, only charge against cheapest rate when battery is not full
 			for (double chargingPower_kW = 0 ; chargingPower_kW < maxChargingPower_kW ; chargingPower_kW+=0.1) {
 				if ( main.incentiveGenerator.tf_incentivePowerCosts( chargingPower_kW + huishouden.v_gridPowerBalAfterPV_kW ) < v_bidPriceLow_eurpkWh )	{
 				    maxAffordableChargingPower_kW = chargingPower_kW;
 				}
 			}
-			if (maxAffordableChargingPower_kW > 0) {
-				traceln("Low price charging ongoing for car " + car.autoID + " in huishouden " + huishouden.id + " at " + maxAffordableChargingPower_kW + "kW at time " + getHourOfDay(date()) );
-			}
 		} 
 		car.laadsnelheid_kW = maxAffordableChargingPower_kW;
 		huishouden.v_gridPowerBalAfterPV_kW += car.laadsnelheid_kW; // To ensure the 2nd EV in the household has the correct cost-curve
 	} // cars loop
+	//TODO: Bijhouden hoeveel er betaald is per kWh!
 } // are there any cars?]]></Body>
 				</Function>
 			</Functions>
@@ -24302,7 +24300,7 @@ for( int i = 0; i < v_incentiveLength; i++ ) {
 			}
 		else if( i == ((int)p_maxHouseholdPowerKW + 1)){
 			v_incentiveKW[i] = 0.01;
-			traceln("setting 0.01kw data point");
+			//traceln("setting 0.01kw data point");
 		}
 		else {
 			v_incentiveKW[i] = p_minHouseholdPowerKW + i -1;
@@ -24315,7 +24313,7 @@ for( int i = 0; i < v_incentiveLength; i++ ) {
 		v_incentiveEuroFixedTariff[i] = p_fixedTariffEuroPerKWh;
 	}	
 }
-traceln("Check addition 0.01kW point " + v_incentiveKW[17] + " " + v_incentiveKW[18] + " " + v_incentiveKW[19] );]]></Body>
+//traceln("Check addition 0.01kW point " + v_incentiveKW[17] + " " + v_incentiveKW[18] + " " + v_incentiveKW[19] );]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
