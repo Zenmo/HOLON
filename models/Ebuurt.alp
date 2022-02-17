@@ -21630,7 +21630,7 @@ if (elektrisch) {
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[double]]></Type>        
 						<InitialValue Class="CodeValue">
-							<Code><![CDATA[uniform( 0.8, 0.9 ) * maxBatterijCap_kWh]]></Code>
+							<Code><![CDATA[uniform( 0.6, 0.9 ) * maxBatterijCap_kWh]]></Code>
 						</InitialValue>
 					</Properties>
 				</Variable>
@@ -21876,7 +21876,7 @@ if (elektrisch) {
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[5]]></Code>
+							<Code><![CDATA[11]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1644310703849</Id>
@@ -22309,12 +22309,12 @@ if ( nextActivity != null ) {
 	// Determine charging 'deadline' for next trip
 
 	//TODO: hardcoded for now
-	double energyMargin_pct = 5.0;
+	double energyMargin_pct = 15.0;
 		
 	double energyMargin_kWh = energyMargin_pct / 100 * maxBatterijCap_kWh;
 	double energyRequired_kWh = currentTripDistance_km * energieverbruik_kWhpkm;
 
-	v_chargingTarget_kWh = max(maxBatterijCap_kWh , energyRequired_kWh + energyMargin_kWh);
+	v_chargingTarget_kWh = min(maxBatterijCap_kWh , energyRequired_kWh + energyMargin_kWh);
 }
 else {
 	currentTripDistance_km = 0;
@@ -23565,6 +23565,11 @@ double mediumTariffWindowFactor = 5;
 //double bidPriceMedium_eurpkWh = 0.25; // Charge when electricity price is less than this price, this should be dynamic based on urgency of charging
 //double bidPriceHigh_eurpkWh= 1.0; // Charge when electricity price is less than this price, this should be dynamic based on urgency of charging
 
+if( huishouden.zonnepanelen.size()==0) { // for households without solar panels, accept higher price always to charge over longer period at lower power.
+  v_bidPriceMedium_eurpkWh = 0.3;
+  //traceln("huishouden zonder zonnepanelen" + huishouden.id);
+}
+  
 
 if ( carArray.size() > 0 ){
 	for (int i = 0 ; i < carArray.size(); i++) {
@@ -23584,7 +23589,7 @@ if ( carArray.size() > 0 ){
 			
 			// Between chargingDeadlineT1 and chargingDeadlineT2, charge against medium rate
 			else if ( time(MINUTE) >= ( car.nextActivity.startMinute - minChargingDuration_min*mediumTariffWindowFactor )  && car.huidigBatterijCap_kWh < car.v_chargingTarget_kWh ) { // Between t2 and t1 till charging, charge against medium rate
-				for (double chargingPower_kW = 0 ; chargingPower_kW < min(maxChargingPower_kW, car.maxLaadsnelheid_kW/3) ; chargingPower_kW+=0.1) {
+				for (double chargingPower_kW = 0 ; chargingPower_kW < min(maxChargingPower_kW, 1.1*car.maxLaadsnelheid_kW/mediumTariffWindowFactor) ; chargingPower_kW+=0.1) {
 					if ( main.incentiveGenerator.tf_incentivePowerCosts( (double)chargingPower_kW + huishouden.v_gridPowerBalAfterPV_kW ) < v_bidPriceMedium_eurpkWh )	{
 					    maxAffordableChargingPower_kW = chargingPower_kW;
 					}
@@ -24757,7 +24762,7 @@ f_updateTariffs();]]></ActionCode>
 					<ExtendedProperties>
 						<Font Name="Dialog" Size="11" Style="0"/>
 						<LabelText><![CDATA[capaciteitstarief]]></LabelText>
-						<DefaultValueCode><![CDATA[true]]></DefaultValueCode>
+						<DefaultValueCode><![CDATA[false]]></DefaultValueCode>
 						<LinkTo>false</LinkTo>
 	 				</ExtendedProperties>
 				</Control>
