@@ -21740,33 +21740,9 @@ if (elektrisch) {
 					</Properties>
 				</Variable>
 				<Variable Class="PlainVariable">
-					<Id>1645084274230</Id>
-					<Name><![CDATA[v_chargingDeadlineT2_min]]></Name>
-					<X>220</X><Y>480</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[double]]></Type>        
-					</Properties>
-				</Variable>
-				<Variable Class="PlainVariable">
 					<Id>1645084532437</Id>
 					<Name><![CDATA[v_chargingTarget_kWh]]></Name>
 					<X>220</X><Y>450</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[double]]></Type>        
-					</Properties>
-				</Variable>
-				<Variable Class="PlainVariable">
-					<Id>1645084885081</Id>
-					<Name><![CDATA[v_chargingDeadlineT1_min]]></Name>
-					<X>220</X><Y>510</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -21872,7 +21848,7 @@ if (elektrisch) {
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[int]]></Type>
+						<Type><![CDATA[double]]></Type>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
@@ -21896,7 +21872,7 @@ if (elektrisch) {
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[int]]></Type>
+						<Type><![CDATA[double]]></Type>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
@@ -22000,11 +21976,11 @@ currentTripDistance = 0;*/]]></EntryAction>
 					<ShowLabel>true</ShowLabel>
 					<Points>
 						<Point><X>0</X><Y>0</Y></Point>
-						<Point><X>0</X><Y>80</Y></Point>
+						<Point><X>140</X><Y>80</Y></Point>
 					</Points>
-					<Properties Target="1643556868361">
+					<Properties Target="1643556868350">
 						<Action><![CDATA[//bepaalFlexibiliteit();
-send("laden", this);]]></Action>
+//send("laden", this);]]></Action>
 					</Properties>	
 				</StatechartElement>
 				<StatechartElement Class="Transition" ParentState="ROOT_NODE">
@@ -22026,7 +22002,7 @@ send("laden", this);]]></Action>
 	bepaalFlexibiliteit();
 	send( "laden", this );
 }
-currentTripDistance_km = 0;
+
 
 ]]></Action>
 						<Timeout Class="CodeUnitValue">
@@ -22292,7 +22268,7 @@ else{
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[//Deze functie berekent het aantal minuten tot het volgende vertrekmoment van deze auto. Wordt aangeroepen als de auto aankomt.
 // Als dit de tweede auto is, kijk dan alleen naar adult 2
-if (autoID == 2 && huishouden.bewoners.size() == 2) {
+if (autoID == 2 && huishouden.bewoners.size() > 1 ) {
 	nextActivity = huishouden.adult2.berekenVolgendeCarTrip();
 }
 
@@ -22328,24 +22304,20 @@ else {
 }
 
 if ( nextActivity != null ) { 
+	currentTripDistance_km = nextActivity.travelTime * 1.2;
 	laadflexibiliteitTotVolgendVertrek_min = nextActivity.startMinute - time(MINUTE);
 	// Determine charging 'deadline' for next trip
 
 	//TODO: hardcoded for now
-	double energyMargin_pct = 10;
-	double t1WindowFactor = 5;
-	
+	double energyMargin_pct = 5.0;
+		
 	double energyMargin_kWh = energyMargin_pct / 100 * maxBatterijCap_kWh;
-	double energyRequired_kWh = nextActivity.travelTime * 1.2 * energieverbruik_kWhpkm;
+	double energyRequired_kWh = currentTripDistance_km * energieverbruik_kWhpkm;
 
 	v_chargingTarget_kWh = max(maxBatterijCap_kWh , energyRequired_kWh + energyMargin_kWh);
-
-	double t2_min = max(0,(v_chargingTarget_kWh - huidigBatterijCap_kWh)) / maxLaadsnelheid_kW * 60;
-	double t1_min = t2_min * t1WindowFactor;
-	v_chargingDeadlineT2_min = laadflexibiliteitTotVolgendVertrek_min - t2_min;			
-	v_chargingDeadlineT1_min = laadflexibiliteitTotVolgendVertrek_min - t1_min;
-	//double timeToNextTrip_min = car.nextActivity.startMinute - time(MINUTE);
-	traceln("Next charging deadline set");
+}
+else {
+	currentTripDistance_km = 0;
 }
 
 main.flexData.add( getHourOfDay() + getMinute() / 60.0, laadflexibiliteitTotVolgendVertrek_min / 60.0 );
@@ -23186,7 +23158,7 @@ else {
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[if ( modality.equals( "Car" ) ) {
-	double distance = duration;
+	double distance = travelTime * 1.2;
 	traceln( "acticity returns distance: " + distance);
 	return distance;
 }
@@ -23358,6 +23330,7 @@ else {
 			<Id>1644921539577</Id>
 			<Name><![CDATA[EnergyManager]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
+			<Import><![CDATA[import org.joda.time.TimeOfDay;]]></Import>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1644921539575</Id>
@@ -23462,7 +23435,7 @@ else {
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[double]]></Type>        
 						<InitialValue Class="CodeValue">
-							<Code><![CDATA[0.15]]></Code>
+							<Code><![CDATA[0.1]]></Code>
 						</InitialValue>
 					</Properties>
 				</Variable>
@@ -23587,7 +23560,7 @@ for (int i = 0 ; i< huishouden.nbVehicles; i++) {
 // main.tf_inventivePowerCOsts; // Tablefunction, can 'get' kWh price at any power
 
 //TODO: Hardcoded values for now
-double energyMargin_pct = 10;
+double mediumTariffWindowFactor = 5;
 //double bidPriceLow_eurpkWh= 0.15; // Charge when electricity price is less than this price, this should be dynamic based on urgency of charging
 //double bidPriceMedium_eurpkWh = 0.25; // Charge when electricity price is less than this price, this should be dynamic based on urgency of charging
 //double bidPriceHigh_eurpkWh= 1.0; // Charge when electricity price is less than this price, this should be dynamic based on urgency of charging
@@ -23598,42 +23571,41 @@ if ( carArray.size() > 0 ){
 		
 		//Prepare input for bidding
 		Auto car = carArray.get(i);
-		if (car.nextActivity != null){
-			//double t1_min = t2_min * t1WindowFactor;
-			double maxChargingPower_kW = min( main.incentiveGenerator.p_maxHouseholdPowerKW - huishouden.v_gridPowerBalAfterPV_kW, car.maxLaadsnelheid_kW ); // Max of highest possible charging speed, and net-power available
-			double maxAffordableChargingPower_kW = 0; // Start scanning from charging power of 0
-			
-			if ( time(MINUTE) < car.v_chargingDeadlineT1_min && car.huidigBatterijCap_kWh < car.maxBatterijCap_kWh) { // Longer than t1 till charging, only charge against cheapest rate
-				maxChargingPower_kW = car.maxLaadsnelheid_kW / 2;
-				for (int chargingPower_kW = 0 ; chargingPower_kW < (int)maxChargingPower_kW ; chargingPower_kW++) {
-					if ( main.incentiveGenerator.tf_incentivePowerCosts( (double)chargingPower_kW + huishouden.v_gridPowerBalAfterPV_kW ) < v_bidPriceLow_eurpkWh )	{
-					    maxAffordableChargingPower_kW = (double)chargingPower_kW;
-					}
-				}
-				if (maxAffordableChargingPower_kW > 0) {
-					traceln("Low price charging ongoing for car " + car.autoID + " in huishouden " + huishouden.id + " at " + maxAffordableChargingPower_kW + "kW");
-				}
-			}
-				else if ( time(MINUTE) < car.v_chargingDeadlineT2_min && car.huidigBatterijCap_kWh < car.v_chargingTarget_kWh ) { // Between t2 and t1 till charging, charge against medium rate
-				
-				for (int chargingPower_kW = 0 ; chargingPower_kW < maxChargingPower_kW/4 ; chargingPower_kW++) {
-					if ( main.incentiveGenerator.tf_incentivePowerCosts( (double)chargingPower_kW + huishouden.v_gridPowerBalAfterPV_kW ) < v_bidPriceMedium_eurpkWh )	{
-					    maxAffordableChargingPower_kW = (double)chargingPower_kW;
-					}
-				}
-			}
-			else if ( car.huidigBatterijCap_kWh < car.v_chargingTarget_kWh ) { // Must-charge time at max charging power
+		double maxChargingPower_kW = min( main.incentiveGenerator.p_maxHouseholdPowerKW - huishouden.v_gridPowerBalAfterPV_kW, car.maxLaadsnelheid_kW ); // Max of highest possible charging speed, and net-power available
+		double maxAffordableChargingPower_kW = 0; // Start scanning from charging power of 0
+		double minChargingDuration_min = ( car.v_chargingTarget_kWh - car.huidigBatterijCap_kWh ) / car.maxLaadsnelheid_kW * 60;
+
+		
+		if (car.nextActivity != null){ // Only apply medium and high cost charging if a trip is planned
+			// After chargingDeadlineT2, charge at max power against any rate
+			if ( time(MINUTE) >= ( car.nextActivity.startMinute - minChargingDuration_min )) { // Must-charge time at max charging power
 				maxAffordableChargingPower_kW = maxChargingPower_kW;
-			
+				
 			}
-			car.laadsnelheid_kW = maxAffordableChargingPower_kW;
+				// Between chargingDeadlineT1 and chargingDeadlineT2, charge against medium rate
+			else if ( time(MINUTE) >= ( car.nextActivity.startMinute - minChargingDuration_min*mediumTariffWindowFactor )  && car.huidigBatterijCap_kWh < car.v_chargingTarget_kWh ) { // Between t2 and t1 till charging, charge against medium rate
+				for (double chargingPower_kW = 0 ; chargingPower_kW < maxChargingPower_kW/mediumTariffWindowFactor ; chargingPower_kW+=0.1) {
+					if ( main.incentiveGenerator.tf_incentivePowerCosts( (double)chargingPower_kW + huishouden.v_gridPowerBalAfterPV_kW ) < v_bidPriceMedium_eurpkWh )	{
+					    maxAffordableChargingPower_kW = chargingPower_kW;
+					}
+				}	
+			}
 		}
-		else {
-			car.laadsnelheid_kW = 0;
-		}
-	
-	}
-}]]></Body>
+		// Low cost charging regardless of next trip planned
+		if ( car.huidigBatterijCap_kWh < car.maxBatterijCap_kWh) { // Longer than t1 till charging, only charge against cheapest rate when battery is not full
+			for (double chargingPower_kW = 0 ; chargingPower_kW < maxChargingPower_kW ; chargingPower_kW+=0.1) {
+				if ( main.incentiveGenerator.tf_incentivePowerCosts( chargingPower_kW + huishouden.v_gridPowerBalAfterPV_kW ) < v_bidPriceLow_eurpkWh )	{
+				    maxAffordableChargingPower_kW = chargingPower_kW;
+				}
+			}
+			if (maxAffordableChargingPower_kW > 0) {
+				traceln("Low price charging ongoing for car " + car.autoID + " in huishouden " + huishouden.id + " at " + maxAffordableChargingPower_kW + "kW at time " + getHourOfDay(date()) );
+			}
+		} 
+		car.laadsnelheid_kW = maxAffordableChargingPower_kW;
+		huishouden.v_gridPowerBalAfterPV_kW += car.laadsnelheid_kW; // To ensure the 2nd EV in the household has the correct cost-curve
+	} // cars loop
+} // are there any cars?]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -23826,6 +23798,7 @@ f_updateTariffs();]]></StartupCode>
 				<Variable Class="PlainVariable">
 					<Id>1644943240097</Id>
 					<Name><![CDATA[v_incentiveKWFixedTariff]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>480</X><Y>450</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -23850,6 +23823,7 @@ f_updateTariffs();]]></StartupCode>
 				<Variable Class="PlainVariable">
 					<Id>1644943240101</Id>
 					<Name><![CDATA[v_incentiveKWOffPeakTariff]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>480</X><Y>490</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -23874,6 +23848,7 @@ f_updateTariffs();]]></StartupCode>
 				<Variable Class="PlainVariable">
 					<Id>1644943240105</Id>
 					<Name><![CDATA[v_incentiveKWAfternoonOffPeakTariff]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>480</X><Y>530</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -23898,6 +23873,7 @@ f_updateTariffs();]]></StartupCode>
 				<Variable Class="PlainVariable">
 					<Id>1644943240109</Id>
 					<Name><![CDATA[v_incentiveKWNetMetering]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>480</X><Y>570</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -23922,6 +23898,7 @@ f_updateTariffs();]]></StartupCode>
 				<Variable Class="PlainVariable">
 					<Id>1644943240113</Id>
 					<Name><![CDATA[v_incentiveKWCapacityTariff]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>480</X><Y>610</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -24320,16 +24297,25 @@ f_updateTariffs();
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[//fixed Tariff
 for( int i = 0; i < v_incentiveLength; i++ ) {
-		v_incentiveKWFixedTariff[i] = p_minHouseholdPowerKW + i;
+		if ( i < (int)p_maxHouseholdPowerKW + 1) {
+			v_incentiveKW[i] = p_minHouseholdPowerKW + i;
+			}
+		else if( i == ((int)p_maxHouseholdPowerKW + 1)){
+			v_incentiveKW[i] = 0.01;
+			traceln("setting 0.01kw data point");
+		}
+		else {
+			v_incentiveKW[i] = p_minHouseholdPowerKW + i -1;
+		}
 	
-	if (v_incentiveKWFixedTariff[i] <= 0){
+	if (v_incentiveKW[i] <= 0){
 		v_incentiveEuroFixedTariff[i] = p_meteringSellBackTariff;
 	}
 	else {
 		v_incentiveEuroFixedTariff[i] = p_fixedTariffEuroPerKWh;
 	}	
 }
-]]></Body>
+traceln("Check addition 0.01kW point " + v_incentiveKW[17] + " " + v_incentiveKW[18] + " " + v_incentiveKW[19] );]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -24342,19 +24328,19 @@ for( int i = 0; i < v_incentiveLength; i++ ) {
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[//Incentive length based on max and min power
-v_incentiveLength = (int)floor(p_maxHouseholdPowerKW - p_minHouseholdPowerKW)  + 1 ;
+v_incentiveLength = (int)floor(p_maxHouseholdPowerKW - p_minHouseholdPowerKW)  + 2 ; // Also add datapoint at 0.1kW
 
 v_incentiveKW = new double[v_incentiveLength];
 v_incentiveEuro = new double[v_incentiveLength];
-v_incentiveKWFixedTariff = new double[v_incentiveLength];
+//v_incentiveKWFixedTariff = new double[v_incentiveLength];
 v_incentiveEuroFixedTariff = new double[v_incentiveLength];
-v_incentiveKWOffPeakTariff = new double[v_incentiveLength];
+//v_incentiveKWOffPeakTariff = new double[v_incentiveLength];
 v_incentiveEuroOffPeakTariff = new double[v_incentiveLength];
-v_incentiveKWAfternoonOffPeakTariff = new double[v_incentiveLength];
+//v_incentiveKWAfternoonOffPeakTariff = new double[v_incentiveLength];
 v_incentiveEuroAfternoonOffPeakTariff = new double[v_incentiveLength];
-v_incentiveKWNetMetering = new double[v_incentiveLength];
+//v_incentiveKWNetMetering = new double[v_incentiveLength];
 v_incentiveEuroNetMetering = new double[v_incentiveLength];
-v_incentiveKWCapacityTariff = new double[v_incentiveLength];
+//v_incentiveKWCapacityTariff = new double[v_incentiveLength];
 v_incentiveEuroCapacityTariff = new double[v_incentiveLength];]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -24374,7 +24360,7 @@ if( cb_offPeakTariff.isSelected() ){
 	//during off peak hours
 	if( getHourOfDay() >= p_startHourOffPeakTariff  || getHourOfDay() <= p_endHourOffPeakTariff ) {
 		for( int i = 0; i < v_incentiveLength; i++ ) {
-			v_incentiveKWOffPeakTariff[i] = p_minHouseholdPowerKW + i;
+			//v_incentiveKWOffPeakTariff[i] = p_minHouseholdPowerKW + i;
 			v_incentiveEuroOffPeakTariff[i] = -(p_fixedTariffEuroPerKWh - p_offPeakTariffEuroPerKWh);
 			
 			/*
@@ -24395,7 +24381,7 @@ if( cb_offPeakTariff.isSelected() ){
 	else {
 		for( int i = 0; i < v_incentiveLength; i++ ) {
 			v_incentiveEuroOffPeakTariff[i] = 0;
-			v_incentiveKWOffPeakTariff[i] = p_minHouseholdPowerKW + i;
+			//v_incentiveKWOffPeakTariff[i] = p_minHouseholdPowerKW + i;
 		}
 	}		
 }
@@ -24423,7 +24409,7 @@ else {
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[for( int i = 0; i < v_incentiveLength; i++){
-	v_incentiveKW[i] = p_minHouseholdPowerKW + i;
+	//v_incentiveKW[i] = p_minHouseholdPowerKW + i;
 
 	if( !cb_netMetering.isSelected() && v_incentiveKW[i] <= 0){
 		v_incentiveEuro[i] = v_incentiveEuroNetMetering[i] + v_incentiveEuroCapacityTariff[i];
@@ -24434,16 +24420,14 @@ else {
 	}
 }
 
-
-
 //update table function
 tf_incentivePowerCosts.setArgumentsAndValues(v_incentiveKW, v_incentiveEuro);
 
-
 //set to database from table to visualize in plot
 ds_incentives.reset();
-for( double d = p_minHouseholdPowerKW; d < p_maxHouseholdPowerKW + 1; d++ ){
-	ds_incentives.add(d, tf_incentivePowerCosts(d));
+//for( double d = p_minHouseholdPowerKW; d < p_maxHouseholdPowerKW + 1; d++ ){
+for( int i = 0; i < v_incentiveLength; i++){
+	ds_incentives.add(v_incentiveKW[i], tf_incentivePowerCosts(v_incentiveKW[i]));
 }
 
 //update plot
@@ -24467,7 +24451,7 @@ if( cb_afternoonOffPeakTariff.isSelected() ){
 	//during off peak hours
 	if( getHourOfDay() >= p_startHourAfternoonTariff  && getHourOfDay() <= p_endHourAfternoonTariff ) {
 		for( int i = 0; i < v_incentiveLength; i++ ) {
-			v_incentiveKWAfternoonOffPeakTariff[i] = p_minHouseholdPowerKW + i;
+			//v_incentiveKWAfternoonOffPeakTariff[i] = p_minHouseholdPowerKW + i;
 			v_incentiveEuroAfternoonOffPeakTariff[i] = -(p_fixedTariffEuroPerKWh - p_offPeakTariffEuroPerKWh);
 			
 			/*
@@ -24487,7 +24471,7 @@ if( cb_afternoonOffPeakTariff.isSelected() ){
 	else {
 		for( int i = 0; i < v_incentiveLength; i++ ) {
 			v_incentiveEuroAfternoonOffPeakTariff[i] = 0;
-			v_incentiveKWAfternoonOffPeakTariff[i] = p_minHouseholdPowerKW + i;
+			//v_incentiveKWAfternoonOffPeakTariff[i] = p_minHouseholdPowerKW + i;
 		}
 	}		
 }
@@ -24519,7 +24503,7 @@ else {
 //if selected, net metering is being used and selling prices equal buying prices
 if( cb_netMetering.isSelected() ){
 	for( int i = 0; i < v_incentiveLength; i++ ) {
-		v_incentiveKWNetMetering[i] = p_minHouseholdPowerKW + i;
+		//v_incentiveKWNetMetering[i] = p_minHouseholdPowerKW + i;
 		v_incentiveEuroNetMetering[i] = 0;
 	}
 }
@@ -24527,10 +24511,10 @@ if( cb_netMetering.isSelected() ){
 //if not selected, selling is market (sell back) price instead of bying tariff
 else {				
 	for( int i = 0; i < v_incentiveLength; i++ ) {
-		v_incentiveKWNetMetering[i] = p_minHouseholdPowerKW + i;
+		//v_incentiveKWNetMetering[i] = p_minHouseholdPowerKW + i;
 		
 		//buying energy	
-		if (v_incentiveKWNetMetering[i] > 0){		
+		if (v_incentiveKW[i] > 0){		
 			v_incentiveEuroNetMetering[i] = 0;
 		}
 			
@@ -24555,14 +24539,14 @@ else {
 
 if (cb_capacityTariff.isSelected()){
 	for( int i = 0; i < v_incentiveLength; i++ ) {
-		v_incentiveKWCapacityTariff[i] = p_minHouseholdPowerKW + i;
+		//v_incentiveKWCapacityTariff[i] = p_minHouseholdPowerKW + i;
 		
-		if (v_incentiveKWCapacityTariff[i] < p_capacityTariffMinCapacityKW){
-			v_incentiveEuroCapacityTariff[i] = p_capacityTariffEuroPerKW * (v_incentiveKWCapacityTariff[i] - p_capacityTariffMinCapacityKW);
+		if (v_incentiveKW[i] < p_capacityTariffMinCapacityKW){
+			v_incentiveEuroCapacityTariff[i] = p_capacityTariffEuroPerKW * (v_incentiveKW[i] - p_capacityTariffMinCapacityKW);
 			
 		}
-		else if (v_incentiveKWCapacityTariff[i] > p_capacityTariffMaxCapacityKW){
-			v_incentiveEuroCapacityTariff[i] = p_capacityTariffEuroPerKW * (v_incentiveKWCapacityTariff[i] - p_capacityTariffMaxCapacityKW);
+		else if (v_incentiveKW[i] > p_capacityTariffMaxCapacityKW){
+			v_incentiveEuroCapacityTariff[i] = p_capacityTariffEuroPerKW * (v_incentiveKW[i] - p_capacityTariffMaxCapacityKW);
 		}
 		else {
 			v_incentiveEuroCapacityTariff[i] = 0;
@@ -24572,7 +24556,7 @@ if (cb_capacityTariff.isSelected()){
 
 else{
 	for( int i = 0; i < v_incentiveLength; i++ ) {
-		v_incentiveKWCapacityTariff[i] = p_minHouseholdPowerKW + i;
+		v_incentiveKW[i] = p_minHouseholdPowerKW + i;
 		v_incentiveEuroCapacityTariff[i] = 0;
 	}
 }	]]></Body>
