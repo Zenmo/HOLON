@@ -933,6 +933,18 @@ hourOfYearStart=hourOfYearPerMonth[getMonth()] + (getDayOfMonth()-1)*24;
 						<Type><![CDATA[double]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1645175943241</Id>
+					<Name><![CDATA[v_wijkEnergyVerbruik_kWh]]></Name>
+					<X>-1030</X><Y>680</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1643465996971</Id>
 					<Name><![CDATA[wandelSnelheid]]></Name>
@@ -1454,6 +1466,8 @@ traceln( basislastElektriciteitsverbruikHuishoudensJaartotaal / huishoudens.size
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
 					<Action><![CDATA[// Allows selecting smart charging or not at start of simulation
+
+
 if (startPaused){
 	startPaused = false;
 	getEngine().pause();
@@ -1462,6 +1476,7 @@ if (startPaused){
 // Update all households, calculate power consumption
 for ( Huishouden h : huishoudens ) {
 	h.netVermogenFunctie();
+	h.f_electricityBilling();
 }
 
 pvOpwek_kW = sumWhere(huishoudens, x->x.zonnepanelen.get(0).pvOpwekKW, x->x.zonnepanelen.size() > 0);
@@ -1476,16 +1491,19 @@ pvOpwekChart.updateData();
 elektriciteitsVerbruikChart.updateData();
 Wijktrafo_vermogen_plot.updateData();
 
-
 //Totalen
-pvOpwekJaartotaal += pvOpwek_kW/60;
-warmtepompVerbruikJaartotaal += warmtepompVerbruik_kW/60;
-evVerbruikJaartotaal += autos.laadvraag()/60;
-basislastElektriciteitsverbruikHuishoudensJaartotaal += basislastElektriciteitsverbruikHuishoudens_kW/60;
-eigenConsumptieJaartotaal += eigenConsumptie/60;
+double dt=1.0/60.0; // Integration timestep
+pvOpwekJaartotaal += pvOpwek_kW * dt;
+warmtepompVerbruikJaartotaal += warmtepompVerbruik_kW * dt;
+evVerbruikJaartotaal += autos.laadvraag() * dt;
+basislastElektriciteitsverbruikHuishoudensJaartotaal += basislastElektriciteitsverbruikHuishoudens_kW * dt;
+eigenConsumptieJaartotaal += eigenConsumptie * dt;
+v_wijkEnergyVerbruik_kWh += trafoVermogen_kW * dt;
 
 //Buiten temperatuur
 Tbuiten = temperatuurFunctie(time(HOUR)+hourOfYearStart);
+
+
 ]]></Action>
 				</Event>
 				<Event>
@@ -1850,6 +1868,20 @@ Tbuiten = temperatuurFunctie(time(HOUR)+hourOfYearStart);
 						<Type>count</Type>
 						<Expression><![CDATA[]]></Expression>
 						<Condition><![CDATA[item.zonnepanelen.size() > 0]]></Condition>
+					</StatisticsItem>
+					<StatisticsItem>
+						<Id>1645173089005</Id>
+						<Name><![CDATA[avgElecCosts]]></Name>
+						<Type>average</Type>
+						<Expression><![CDATA[item.v_electricityBill_eur]]></Expression>
+						<Condition><![CDATA[true]]></Condition>
+					</StatisticsItem>
+					<StatisticsItem>
+						<Id>1645175275816</Id>
+						<Name><![CDATA[avgkWhPrice]]></Name>
+						<Type>average</Type>
+						<Expression><![CDATA[item.v_gemiddeldeStroomPrijs_eurpkWh]]></Expression>
+						<Condition><![CDATA[true]]></Condition>
 					</StatisticsItem>
 					<InEnvironment>true</InEnvironment>	
 					<InitialLocationType>AT_ANIMATION_POSITION</InitialLocationType>
@@ -6961,7 +6993,7 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 				<Text>
 					<Id>1643302547363</Id>
 					<Name><![CDATA[jaarlijksEigenConsumptieText]]></Name>
-					<X>-180</X><Y>780</Y>
+					<X>-450</X><Y>390</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -6983,7 +7015,7 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 				<Text>
 					<Id>1643304156781</Id>
 					<Name><![CDATA[jaarlijksEigenConsumptieText1]]></Name>
-					<X>-180</X><Y>800</Y>
+					<X>-450</X><Y>410</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -7005,7 +7037,7 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 				<Text>
 					<Id>1643304263893</Id>
 					<Name><![CDATA[jaarlijksEigenConsumptieText2]]></Name>
-					<X>-180</X><Y>820</Y>
+					<X>-450</X><Y>430</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -9797,8 +9829,8 @@ bezoekPT / 10]]></LineWidthCode>
 				</Text>
     			<TimePlot>
 					<Id>1644311151556</Id>
-					<Name><![CDATA[Gemiddelde_SoC_plot]]></Name>
-					<X>-460</X><Y>520</Y>
+					<Name><![CDATA[pl_avgSoC]]></Name>
+					<X>-520</X><Y>470</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -10551,6 +10583,73 @@ bezoekPT / 10]]></LineWidthCode>
 					</Font>
 					<Alignment>LEFT</Alignment>
 				</Text>
+    			<TimePlot>
+					<Id>1645173339027</Id>
+					<Name><![CDATA[pl_avgElecCosts]]></Name>
+					<X>-520</X><Y>690</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<AutoUpdate>true</AutoUpdate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1644307200000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</RecurrenceCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Width>410</Width>
+					<Height>250</Height>
+					<BackgroundColor/>
+					<BorderColor/>
+					<ChartArea>
+						<XOffset>50</XOffset>
+						<YOffset>30</YOffset>
+						<Width>330</Width>
+						<Height>160</Height>
+						<BackgroundColor>-1</BackgroundColor>
+						<BorderColor>-16777216</BorderColor>
+						<GridColor>-12566464</GridColor>
+					</ChartArea>
+					<Legend>
+						<Place>SOUTH</Place>
+						<TextColor>-16777216</TextColor>
+						<Size>30</Size>
+					</Legend>
+					<Labels>
+						<HorLabelsPosition>DEFAULT</HorLabelsPosition>
+						<VerLabelsPosition>DEFAULT</VerLabelsPosition>
+						<TextColor>-12566464</TextColor>
+					</Labels>
+					<ShowLegend>true</ShowLegend>
+					<TimeWindowsMovementType>MOVEMENT_WITH_TIME</TimeWindowsMovementType>		
+					<TimeWindowUnits>MODEL_TIME_UNIT</TimeWindowUnits>
+					<VerScaleFromExpression><![CDATA[0			]]></VerScaleFromExpression>
+					<VerScaleToExpression><![CDATA[100]]></VerScaleToExpression>
+					<VerScaleType>AUTO</VerScaleType>
+					<DrawLine>true</DrawLine>
+					<Interpolation>LINEAR</Interpolation>
+					<DatasetExpression>  
+						<Title><![CDATA[Gemiddelde cumulatieve stroomkosten per huishoudens]]></Title>
+					<Id>1645173339024</Id>
+					<Expression><![CDATA[my_dataset]]></Expression>
+					<Color>-60269</Color>
+					<Expression2><![CDATA[huishoudens.avgElecCosts()]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>
+						<PointStyle>NONE</PointStyle>
+						<LineWidth>1.0</LineWidth>
+					</DatasetExpression>
+					<SamplesToKeep>180</SamplesToKeep>
+					<TimeWindowExpression><![CDATA[96]]></TimeWindowExpression>
+					<FillAreaUnderLine>false</FillAreaUnderLine>
+					<LabelFormat>HH_mm</LabelFormat>
+    			</TimePlot>
 			</Presentation>
 
 				</Level>
@@ -10867,6 +10966,51 @@ for( Bewoner b : bewoners ) {
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1645171879160</Id>
+					<Name><![CDATA[v_electricityBill_eur]]></Name>
+					<X>350</X><Y>640</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1645175173319</Id>
+					<Name><![CDATA[v_totaalVerbruik_kWh]]></Name>
+					<X>350</X><Y>670</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1645175230478</Id>
+					<Name><![CDATA[v_gemiddeldeStroomPrijs_eurpkWh]]></Name>
+					<X>350</X><Y>700</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
 					</Properties>
 				</Variable>
 				<Variable Class="AuxVariable">
@@ -13572,7 +13716,7 @@ if( nbVehicles > 0){
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1644826187418</Id>
 					<Name><![CDATA[netVermogenFunctie]]></Name>
-					<X>40</X><Y>620</Y>
+					<X>40</X><Y>610</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -13600,6 +13744,41 @@ eigenConsumptie_kW = min(pvOpwek_kW,totaalVerbruik_kW);
 teruglevering_kW = pvOpwek_kW - eigenConsumptie_kW;
 netVermogen_kW = totaalVerbruik_kW - pvOpwek_kW;
 ]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1645171819259</Id>
+					<Name><![CDATA[f_electricityBilling]]></Name>
+					<X>350</X><Y>610</Y>
+					<Label><X>5</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[
+// Kosten huidige tijdstap 
+
+double dt = 1/60.0; // Tijdstap 1 minuut, ofwel 1/60 uur !!! 1/60 geeft dt=0! Moet 1/60.0 zijn om double te blijven!
+double dP = 0.1; // kW integration-step to calculate current electricity price
+
+double costCurrentTimestep_eur=0;
+if (netVermogen_kW >= dP) {
+	for ( double power_kW = dP; power_kW <= netVermogen_kW ; power_kW += dP) { // Integreer incrementele prijs-curve over vermogen
+		//traceln( power_kW + "   " + main.incentiveGenerator.tf_incentivePowerCosts( power_kW ) );
+		costCurrentTimestep_eur += main.incentiveGenerator.tf_incentivePowerCosts( power_kW );
+	}
+}
+else if ( netVermogen_kW <= -dP ) {
+	for ( double power_kW = -dP ; power_kW >= netVermogen_kW ; power_kW -= dP ) { // Integreer incrementele prijs-curve over vermogen
+		//traceln( power_kW + "   " + main.incentiveGenerator.tf_incentivePowerCosts( power_kW ) );
+		costCurrentTimestep_eur -= main.incentiveGenerator.tf_incentivePowerCosts( power_kW );
+	}
+}	
+//traceln(costCurrentTimestep_eur);
+v_electricityBill_eur += (costCurrentTimestep_eur * dP * dt);
+v_totaalVerbruik_kWh += netVermogen_kW * dt;
+v_gemiddeldeStroomPrijs_eurpkWh = v_electricityBill_eur/v_totaalVerbruik_kWh;
+//traceln(main.incentiveGenerator.tf_incentivePowerCosts( 0 ));]]></Body>
 				</Function>
 			</Functions>
 			<TableFunctions>
@@ -24762,7 +24941,7 @@ f_updateTariffs();]]></ActionCode>
 					<ExtendedProperties>
 						<Font Name="Dialog" Size="11" Style="0"/>
 						<LabelText><![CDATA[capaciteitstarief]]></LabelText>
-						<DefaultValueCode><![CDATA[false]]></DefaultValueCode>
+						<DefaultValueCode><![CDATA[true]]></DefaultValueCode>
 						<LinkTo>false</LinkTo>
 	 				</ExtendedProperties>
 				</Control>
