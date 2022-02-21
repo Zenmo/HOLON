@@ -1472,6 +1472,12 @@ if (startPaused){
 	startPaused = false;
 	getEngine().pause();
 }
+
+// Set congestion/energy-market incentives based on load in previous timestep
+if (incentiveGenerator.cb_congestionMarket.isSelected()){
+	incentiveGenerator.f_setCongestionTariff();
+	incentiveGenerator.f_updateTariffs();
+}
 	
 // Update all households, calculate power consumption
 for ( Huishouden h : huishoudens ) {
@@ -2171,6 +2177,12 @@ Tbuiten = temperatuurFunctie(time(HOUR)+hourOfYearStart);
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_capacityTariffEuroPerKW]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_congestieVermogen_kW]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_congestionTariff_eurpkW]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>false</ReplicationFlag>
@@ -7036,8 +7048,8 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 				</Text>
 				<Text>
 					<Id>1643304263893</Id>
-					<Name><![CDATA[jaarlijksEigenConsumptieText2]]></Name>
-					<X>-450</X><Y>430</Y>
+					<Name><![CDATA[t_congestieTarief]]></Name>
+					<X>-450</X><Y>710</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -7047,8 +7059,8 @@ balkConfiguratie.setY( 1480 ); ]]></ActionCode>
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
-					<Text><![CDATA[% eigen consumptie]]></Text>
-					<TextCode><![CDATA[roundToDecimal(100*eigenConsumptieJaartotaal / (basislastElektriciteitsverbruikHuishoudensJaartotaal + warmtepompVerbruikJaartotaal + evVerbruikJaartotaal), 2)  + "% eigen consumptie"]]></TextCode>
+					<Text><![CDATA[Congestietarief]]></Text>
+					<TextCode><![CDATA[roundToInt(incentiveGenerator.v_incentiveCongestionTariff*100.0) + " congestietarief [ct/kWh]"]]></TextCode>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>12</Size>
@@ -9830,7 +9842,7 @@ bezoekPT / 10]]></LineWidthCode>
     			<TimePlot>
 					<Id>1644311151556</Id>
 					<Name><![CDATA[pl_avgSoC]]></Name>
-					<X>-520</X><Y>470</Y>
+					<X>-520</X><Y>450</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -10564,7 +10576,7 @@ bezoekPT / 10]]></LineWidthCode>
     			<TimePlot>
 					<Id>1645173339027</Id>
 					<Name><![CDATA[pl_avgElecCosts]]></Name>
-					<X>-520</X><Y>690</Y>
+					<X>-1030</X><Y>690</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -10646,7 +10658,7 @@ bezoekPT / 10]]></LineWidthCode>
 					</BasicProperties>
 					<ExtendedProperties>
 						<Font Name="Dialog" Size="11" Style="0"/>
-						<DefaultValueCode><![CDATA["basic"]]></DefaultValueCode>
+						<DefaultValueCode><![CDATA["incentive"]]></DefaultValueCode>
 						<Editable>false</Editable>
 						<Button><![CDATA[basic]]></Button>
 						<Button><![CDATA[on solar]]></Button>
@@ -10654,6 +10666,94 @@ bezoekPT / 10]]></LineWidthCode>
 						<LinkTo>false</LinkTo>
 					</ExtendedProperties>
 				</Control>
+    			<Plot>
+					<Id>1645431901267</Id>
+					<Name><![CDATA[pl_incentives]]></Name>
+					<X>-520</X><Y>730</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<AutoUpdate>true</AutoUpdate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1644998400000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</RecurrenceCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Width>410</Width>
+					<Height>220</Height>
+					<BackgroundColor/>
+					<BorderColor/>
+					<ChartArea>
+						<XOffset>50</XOffset>
+						<YOffset>30</YOffset>
+						<Width>330</Width>
+						<Height>130</Height>
+						<BackgroundColor>-1</BackgroundColor>
+						<BorderColor>-16777216</BorderColor>
+						<GridColor>-12566464</GridColor>
+					</ChartArea>
+					<Legend>
+						<Place>SOUTH</Place>
+						<TextColor>-16777216</TextColor>
+						<Size>30</Size>
+					</Legend>
+					<Labels>
+						<HorLabelsPosition>DEFAULT</HorLabelsPosition>
+						<VerLabelsPosition>DEFAULT</VerLabelsPosition>
+						<TextColor>-12566464</TextColor>
+					</Labels>
+					<ShowLegend>true</ShowLegend>
+					<VerScaleFromExpression><![CDATA[0]]></VerScaleFromExpression>
+					<VerScaleToExpression><![CDATA[0.5]]></VerScaleToExpression>
+					<VerScaleType>FIXED</VerScaleType>
+					<DrawLine>true</DrawLine>
+					<Interpolation>LINEAR</Interpolation>
+					<DatasetExpression>  
+						<Title><![CDATA[Euro/kWh curve]]></Title>
+					<Id>1645431901264</Id>
+					<Expression><![CDATA[incentiveGenerator.ds_incentives]]></Expression>
+					<Color>-6632142</Color>
+					<Expression2><![CDATA[0]]></Expression2>
+					<Expression2Flag>false</Expression2Flag>
+						<PointStyle>CIRCLE</PointStyle>
+						<LineWidth>1.0</LineWidth>
+						<HorizontalAxisExpression><![CDATA[0]]></HorizontalAxisExpression>
+					</DatasetExpression>
+					<SamplesToKeep>100</SamplesToKeep>
+					<HorScaleFromExpression><![CDATA[0]]></HorScaleFromExpression>
+					<HorScaleToExpression><![CDATA[1]]></HorScaleToExpression>
+					<HorScaleType>AUTO</HorScaleType>
+    			</Plot>
+				<Text>
+					<Id>1645433413011</Id>
+					<Name><![CDATA[t_trafoVermogenLowPassed]]></Name>
+					<X>-450</X><Y>450</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[TrafoVermogenLowPassed]]></Text>
+					<TextCode><![CDATA[roundToInt(incentiveGenerator.v_holonLoadLowPassed_kW)  + " trafo vermogen low-passed [kW]"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>12</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
 			</Presentation>
 
 				</Level>
@@ -23666,6 +23766,7 @@ else if (mode.equals("on solar")) {
 else if (mode.equals("incentive")) {
 	threeStageFinancial(carArray);
 }
+
 for (int i = 0 ; i<carArray.size() ; i++){
 	carArray.get(i).f_updateSoC();
 }]]></Body>
@@ -23881,21 +23982,19 @@ for (int i = 0 ; i< huishouden.nbVehicles; i++) {
 			<Import><![CDATA[import java.util.function.DoubleToIntFunction;]]></Import>
 			<StartupCode><![CDATA[f_setIncentiveLength();
 
-//if( cb_fixedTariff.isSelected() ){
-	f_setFixedTariffIncentive();
-//}
-//if( cb_offPeakTariff.isSelected() ){
-	f_setOffPeakTariff();
-//}
-//if( cb_afternoonOffPeakTariff.isSelected() ){
-	f_setAfternoonOffPeakTariff();
-//}
-//if( cb_netMetering.isSelected() ){
-	f_setNetMetering();
-//}
-//if( cb_capacityTariff.isSelected() ){
-	f_setCapacityTariff();
-//}
+f_setFixedTariffIncentive();
+
+f_setOffPeakTariff();
+
+f_setAfternoonOffPeakTariff();
+
+f_setNetMetering();
+
+f_setCapacityTariff();
+
+f_setCongestionTariff();
+
+//f_setHolonEnergyMarketTariff();
 
 f_updateTariffs();]]></StartupCode>
 			<Generic>false</Generic>
@@ -23995,7 +24094,7 @@ f_updateTariffs();]]></StartupCode>
 					<Id>1644943240097</Id>
 					<Name><![CDATA[v_incentiveKWFixedTariff]]></Name>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>480</X><Y>450</Y>
+					<X>480</X><Y>490</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -24007,7 +24106,7 @@ f_updateTariffs();]]></StartupCode>
 				<Variable Class="PlainVariable">
 					<Id>1644943240099</Id>
 					<Name><![CDATA[v_incentiveEuroFixedTariff]]></Name>
-					<X>480</X><Y>470</Y>
+					<X>480</X><Y>510</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -24020,7 +24119,7 @@ f_updateTariffs();]]></StartupCode>
 					<Id>1644943240101</Id>
 					<Name><![CDATA[v_incentiveKWOffPeakTariff]]></Name>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>480</X><Y>490</Y>
+					<X>480</X><Y>530</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -24032,7 +24131,7 @@ f_updateTariffs();]]></StartupCode>
 				<Variable Class="PlainVariable">
 					<Id>1644943240103</Id>
 					<Name><![CDATA[v_incentiveEuroOffPeakTariff]]></Name>
-					<X>480</X><Y>510</Y>
+					<X>480</X><Y>550</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -24045,7 +24144,7 @@ f_updateTariffs();]]></StartupCode>
 					<Id>1644943240105</Id>
 					<Name><![CDATA[v_incentiveKWAfternoonOffPeakTariff]]></Name>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>480</X><Y>530</Y>
+					<X>480</X><Y>570</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -24057,7 +24156,7 @@ f_updateTariffs();]]></StartupCode>
 				<Variable Class="PlainVariable">
 					<Id>1644943240107</Id>
 					<Name><![CDATA[v_incentiveEuroAfternoonOffPeakTariff]]></Name>
-					<X>480</X><Y>550</Y>
+					<X>480</X><Y>590</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -24070,7 +24169,7 @@ f_updateTariffs();]]></StartupCode>
 					<Id>1644943240109</Id>
 					<Name><![CDATA[v_incentiveKWNetMetering]]></Name>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>480</X><Y>570</Y>
+					<X>480</X><Y>610</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -24082,7 +24181,7 @@ f_updateTariffs();]]></StartupCode>
 				<Variable Class="PlainVariable">
 					<Id>1644943240111</Id>
 					<Name><![CDATA[v_incentiveEuroNetMetering]]></Name>
-					<X>480</X><Y>590</Y>
+					<X>480</X><Y>630</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -24095,7 +24194,7 @@ f_updateTariffs();]]></StartupCode>
 					<Id>1644943240113</Id>
 					<Name><![CDATA[v_incentiveKWCapacityTariff]]></Name>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>480</X><Y>610</Y>
+					<X>480</X><Y>650</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -24107,7 +24206,7 @@ f_updateTariffs();]]></StartupCode>
 				<Variable Class="PlainVariable">
 					<Id>1644943240115</Id>
 					<Name><![CDATA[v_incentiveEuroCapacityTariff]]></Name>
-					<X>480</X><Y>630</Y>
+					<X>480</X><Y>670</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -24131,7 +24230,7 @@ f_updateTariffs();]]></StartupCode>
 				<Variable Class="PlainVariable">
 					<Id>1645007483602</Id>
 					<Name><![CDATA[v_incentiveKW]]></Name>
-					<X>480</X><Y>410</Y>
+					<X>480</X><Y>450</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -24143,13 +24242,43 @@ f_updateTariffs();]]></StartupCode>
 				<Variable Class="PlainVariable">
 					<Id>1645007483624</Id>
 					<Name><![CDATA[v_incentiveEuro]]></Name>
-					<X>480</X><Y>430</Y>
+					<X>480</X><Y>470</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[double []]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1645275908116</Id>
+					<Name><![CDATA[v_incentiveCongestionTariff]]></Name>
+					<X>480</X><Y>700</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0.0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1645431620726</Id>
+					<Name><![CDATA[v_holonLoadLowPassed_kW]]></Name>
+					<X>480</X><Y>730</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0.0]]></Code>
+						</InitialValue>
 					</Properties>
 				</Variable>
 				<Variable Class="Parameter">
@@ -24442,12 +24571,60 @@ f_updateTariffs();]]></StartupCode>
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1645275927281</Id>
+					<Name><![CDATA[p_congestieVermogen_kW]]></Name>
+					<X>230</X><Y>400</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[5.0]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1645275927279</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1645276000872</Id>
+					<Name><![CDATA[p_congestionTariff_eurpkW]]></Name>
+					<X>230</X><Y>430</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[0.01]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1645276000870</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 			</Variables>
 			<Events>
 				<Event>
 					<Id>1645006675223</Id>
 					<Name><![CDATA[triggerOffPeakTariffs]]></Name>
-					<X>200</X><Y>450</Y>
+					<X>230</X><Y>500</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -24538,7 +24715,9 @@ v_incentiveEuroAfternoonOffPeakTariff = new double[v_incentiveLength];
 //v_incentiveKWNetMetering = new double[v_incentiveLength];
 v_incentiveEuroNetMetering = new double[v_incentiveLength];
 //v_incentiveKWCapacityTariff = new double[v_incentiveLength];
-v_incentiveEuroCapacityTariff = new double[v_incentiveLength];]]></Body>
+v_incentiveEuroCapacityTariff = new double[v_incentiveLength];
+
+//v_incentiveCongestionTariff = new double[v_incentiveLength];]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -24600,21 +24779,13 @@ else {
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1644944721922</Id>
 					<Name><![CDATA[f_updateTariffs]]></Name>
-					<X>480</X><Y>750</Y>
+					<X>480</X><Y>780</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[for( int i = 0; i < v_incentiveLength; i++){
-	//v_incentiveKW[i] = p_minHouseholdPowerKW + i;
-
-	//if( !cb_netMetering.isSelected() && v_incentiveKW[i] <= 0){
-	//	v_incentiveEuro[i] = v_incentiveEuroNetMetering[i] + v_incentiveEuroCapacityTariff[i];
-	//}
-	
-	//else{
-		v_incentiveEuro[i] = v_incentiveEuroFixedTariff[i] + v_incentiveEuroOffPeakTariff[i] + v_incentiveEuroAfternoonOffPeakTariff[i] + v_incentiveEuroNetMetering[i] + v_incentiveEuroCapacityTariff[i];
-	//}
+					<Body><![CDATA[for( int i = 0; i < v_incentiveLength; i++){ // Collect all incentive contributions
+	v_incentiveEuro[i] = v_incentiveEuroFixedTariff[i] + v_incentiveEuroOffPeakTariff[i] + v_incentiveEuroAfternoonOffPeakTariff[i] + v_incentiveEuroNetMetering[i] + v_incentiveEuroCapacityTariff[i] + v_incentiveCongestionTariff;
 }
 
 //update table function
@@ -24628,8 +24799,8 @@ for( int i = 0; i < v_incentiveLength; i++){
 }
 
 //update plot
-pl_incentives.setFixedHorizontalScale(p_minHouseholdPowerKW, p_maxHouseholdPowerKW);
-pl_incentives.updateData();]]></Body>
+main.pl_incentives.setFixedHorizontalScale(p_minHouseholdPowerKW, p_maxHouseholdPowerKW);
+main.pl_incentives.updateData();]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -24728,6 +24899,120 @@ else {
 					<Id>1644945459739</Id>
 					<Name><![CDATA[f_setCapacityTariff]]></Name>
 					<X>480</X><Y>360</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[//set capacity tariff
+
+if (cb_capacityTariff.isSelected()){
+	for( int i = 0; i < v_incentiveLength; i++ ) {
+		//v_incentiveKWCapacityTariff[i] = p_minHouseholdPowerKW + i;
+		
+		if (v_incentiveKW[i] < p_capacityTariffMinCapacityKW){
+			v_incentiveEuroCapacityTariff[i] = p_capacityTariffEuroPerKW * (v_incentiveKW[i] - p_capacityTariffMinCapacityKW);
+			
+		}
+		else if (v_incentiveKW[i] > p_capacityTariffMaxCapacityKW){
+			v_incentiveEuroCapacityTariff[i] = p_capacityTariffEuroPerKW * (v_incentiveKW[i] - p_capacityTariffMaxCapacityKW);
+		}
+		else {
+			v_incentiveEuroCapacityTariff[i] = 0;
+		}	
+	}
+}
+
+else{
+	for( int i = 0; i < v_incentiveLength; i++ ) {
+		//v_incentiveKW[i] = p_minHouseholdPowerKW + i;
+		v_incentiveEuroCapacityTariff[i] = 0;
+	}
+}	]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1645275453042</Id>
+					<Name><![CDATA[f_setCongestionTariff]]></Name>
+					<X>480</X><Y>400</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[//set congestion tariff
+double lowPassFraction = 0.3;
+v_holonLoadLowPassed_kW = ( 1.0 - lowPassFraction ) * v_holonLoadLowPassed_kW + lowPassFraction * ( main.trafoVermogen_kW - v_holonLoadLowPassed_kW );
+
+/*if (cb_congestionMarket.isSelected()){
+	if ( v_holonLoadLowPassed_kW > p_congestieVermogen_kW ) {
+	// Maak afnemen stroom duurder, want trafo zit bijna aan max levering
+		for( int i = 0; i < v_incentiveLength; i++ ) {
+			// Maak afnemen duurder en terugleveren aantrekkelijker
+			v_incentiveCongestionTariff[i] = p_congestionTariff_eurpkW * ( v_holonLoadLowPassed_kW - p_congestieVermogen_kW );
+	
+		}
+	}
+	if ( v_holonLoadLowPassed_kW < -p_congestieVermogen_kW) {
+		for( int i = 0; i < v_incentiveLength; i++ ) {
+		// Maak terugleveren stroom duurder, want trafo zit bijna aan max teruglevering
+		v_incentiveCongestionTariff[i] = - p_congestionTariff_eurpkW * ( abs( v_holonLoadLowPassed_kW ) - p_congestieVermogen_kW );	
+		}
+	}
+}
+else{
+	for( int i = 0; i < v_incentiveLength; i++ ) {
+		//v_incentiveKW[i] = p_minHouseholdPowerKW + i;
+		v_incentiveCongestionTariff[i] = 0;
+	}
+}*/	
+
+
+if (cb_congestionMarket.isSelected()){
+	if ( v_holonLoadLowPassed_kW > p_congestieVermogen_kW ) {
+		// Maak afnemen duurder en terugleveren aantrekkelijker
+		v_incentiveCongestionTariff = p_congestionTariff_eurpkW * ( v_holonLoadLowPassed_kW - p_congestieVermogen_kW );
+	}
+	else if ( v_holonLoadLowPassed_kW < -p_congestieVermogen_kW ) {
+		// Maak terugleveren stroom duurder, want trafo zit bijna aan max teruglevering
+		v_incentiveCongestionTariff = p_congestionTariff_eurpkW * ( v_holonLoadLowPassed_kW + p_congestieVermogen_kW );	
+
+	}
+	else {
+		v_incentiveCongestionTariff = 0.0;
+	}
+}
+else{
+	//v_incentiveKW[i] = p_minHouseholdPowerKW + i;
+	v_incentiveCongestionTariff = 0.0;
+}	
+
+
+/*
+if (cb_congestionMarket.isSelected()){
+	for( int i = 0; i < v_incentiveLength; i++ ) {
+		//v_incentiveKWCapacityTariff[i] = p_minHouseholdPowerKW + i;
+		
+		if (v_incentiveKW[i] < p_capacityTariffMinCapacityKW){
+			v_incentiveEuroCapacityTariff[i] = p_capacityTariffEuroPerKW * (v_incentiveKW[i] - p_capacityTariffMinCapacityKW);
+			
+		}
+		else if (v_incentiveKW[i] > p_capacityTariffMaxCapacityKW){
+			v_incentiveEuroCapacityTariff[i] = p_capacityTariffEuroPerKW * (v_incentiveKW[i] - p_capacityTariffMaxCapacityKW);
+		}
+		else {
+			v_incentiveEuroCapacityTariff[i] = 0;
+		}	
+	}
+}*/
+
+]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1645275471637</Id>
+					<Name><![CDATA[f_setHolonEnergyMarketTariff]]></Name>
+					<X>480</X><Y>380</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -24907,7 +25192,7 @@ f_updateTariffs();]]></ActionCode>
 					<ExtendedProperties>
 						<Font Name="Dialog" Size="11" Style="0"/>
 						<LabelText><![CDATA[daltarief]]></LabelText>
-						<DefaultValueCode><![CDATA[true]]></DefaultValueCode>
+						<DefaultValueCode><![CDATA[false]]></DefaultValueCode>
 						<LinkTo>false</LinkTo>
 	 				</ExtendedProperties>
 				</Control>
@@ -24993,11 +25278,12 @@ f_updateTariffs();]]></ActionCode>
 					<BasicProperties Width="140" Height="30">
                         <EmbeddedIcon>false</EmbeddedIcon>	
 						<TextColor/>
-						<Enabled>false</Enabled>
+						<Enabled>true</Enabled>
 					</BasicProperties>
 					<ExtendedProperties>
 						<Font Name="Dialog" Size="11" Style="0"/>
 						<LabelText><![CDATA[congestiemarkt]]></LabelText>
+						<DefaultValueCode><![CDATA[true]]></DefaultValueCode>
 						<LinkTo>false</LinkTo>
 	 				</ExtendedProperties>
 				</Control>
@@ -25025,72 +25311,6 @@ f_updateTariffs();]]></ActionCode>
 						<LinkTo>false</LinkTo>
 	 				</ExtendedProperties>
 				</Control>
-    			<Plot>
-					<Id>1644943240135</Id>
-					<Name><![CDATA[pl_incentives]]></Name>
-					<X>730</X><Y>70</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<AutoUpdate>true</AutoUpdate>
-					<OccurrenceAtTime>true</OccurrenceAtTime>
-					<OccurrenceDate>1644998400000</OccurrenceDate>
-					<OccurrenceTime Class="CodeUnitValue">
-						<Code><![CDATA[0]]></Code>
-						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
-					</OccurrenceTime>
-					<RecurrenceCode Class="CodeUnitValue">
-						<Code><![CDATA[1]]></Code>
-						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
-					</RecurrenceCode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Width>260</Width>
-					<Height>210</Height>
-					<BackgroundColor/>
-					<BorderColor/>
-					<ChartArea>
-						<XOffset>50</XOffset>
-						<YOffset>30</YOffset>
-						<Width>180</Width>
-						<Height>120</Height>
-						<BackgroundColor>-1</BackgroundColor>
-						<BorderColor>-16777216</BorderColor>
-						<GridColor>-12566464</GridColor>
-					</ChartArea>
-					<Legend>
-						<Place>SOUTH</Place>
-						<TextColor>-16777216</TextColor>
-						<Size>30</Size>
-					</Legend>
-					<Labels>
-						<HorLabelsPosition>DEFAULT</HorLabelsPosition>
-						<VerLabelsPosition>DEFAULT</VerLabelsPosition>
-						<TextColor>-12566464</TextColor>
-					</Labels>
-					<ShowLegend>true</ShowLegend>
-					<VerScaleFromExpression><![CDATA[0]]></VerScaleFromExpression>
-					<VerScaleToExpression><![CDATA[0.5]]></VerScaleToExpression>
-					<VerScaleType>FIXED</VerScaleType>
-					<DrawLine>true</DrawLine>
-					<Interpolation>LINEAR</Interpolation>
-					<DatasetExpression>  
-						<Title><![CDATA[Euro/kW]]></Title>
-					<Id>1644943240132</Id>
-					<Expression><![CDATA[ds_incentives]]></Expression>
-					<Color>-6632142</Color>
-					<Expression2><![CDATA[0]]></Expression2>
-					<Expression2Flag>false</Expression2Flag>
-						<PointStyle>CIRCLE</PointStyle>
-						<LineWidth>1.0</LineWidth>
-						<HorizontalAxisExpression><![CDATA[0]]></HorizontalAxisExpression>
-					</DatasetExpression>
-					<SamplesToKeep>100</SamplesToKeep>
-					<HorScaleFromExpression><![CDATA[0]]></HorScaleFromExpression>
-					<HorScaleToExpression><![CDATA[1]]></HorScaleToExpression>
-					<HorScaleType>AUTO</HorScaleType>
-    			</Plot>
 				<Text>
 					<Id>1644943240137</Id>
 					<Name><![CDATA[text]]></Name>
