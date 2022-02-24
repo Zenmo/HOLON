@@ -62,8 +62,16 @@ huishoudensIDs.addAll( selectFrom( db_huishoudens ).list( db_huishoudens.hhid ) 
 for ( int i = 0; i < huishoudensSlider.getValue(); i++) {
 	Huishouden h = add_huishoudens();
 	h.initializeAutos( i );
+	
 	if ( randomTrue( pvSlider.getValue() / 100 ) ) {
 		h.add_zonnepanelen();
+		h.energyManager.v_bidPriceMedium_eurpkWh=uniform(0.18, 0.22);
+		h.energyManager.v_bidPriceLow_eurpkWh=uniform(0.10, 0.15);
+		h.energyManager.v_bidPriceV2G_eurpkWh=uniform(0.20, 0.25);
+	} else {
+		h.energyManager.v_bidPriceMedium_eurpkWh=0.25;
+		h.energyManager.v_bidPriceLow_eurpkWh=uniform(0.15,0.19);
+		h.energyManager.v_bidPriceV2G_eurpkWh=uniform(0.25, 0.30);
 	}
 }
 
@@ -1489,7 +1497,7 @@ pvOpwek_kW = sumWhere(huishoudens, x->x.zonnepanelen.get(0).pvOpwekKW, x->x.zonn
 warmtepompVerbruik_kW = sum(huishoudens, x->x.warmtepompEVerbruik_kW);
 basislastElektriciteitsverbruikHuishoudens_kW = sum(huishoudens, x->x.basislastElektriciteitsverbruik_kW);
 eigenConsumptie = sum(huishoudens, x->x.eigenConsumptie_kW);
-trafoVermogen_kW = basislastElektriciteitsverbruikHuishoudens_kW + autos.laadvraag() + warmtepompVerbruik_kW - pvOpwek_kW;
+trafoVermogen_kW = basislastElektriciteitsverbruikHuishoudens_kW + autos.laadvraag() + warmtepompVerbruik_kW - pvOpwek_kW - autos.V2Gvermogen();
 gemiddeldeSoC_pct = averageWhere(autos, x->x.huidigBatterijCap_kWh/x.maxBatterijCap_kWh, x->x.elektrisch);
 
 //Grafieken updaten
@@ -2070,7 +2078,7 @@ Tbuiten = temperatuurFunctie(time(HOUR)+hourOfYearStart);
 						<Id>1643558600793</Id>
 						<Name><![CDATA[laadvraag]]></Name>
 						<Type>sum</Type>
-						<Expression><![CDATA[item.laadsnelheid_kW]]></Expression>
+						<Expression><![CDATA[max(item.laadsnelheid_kW,0)]]></Expression>
 						<Condition><![CDATA[item.isLaden]]></Condition>
 					</StatisticsItem>
 					<StatisticsItem>
@@ -2086,6 +2094,13 @@ Tbuiten = temperatuurFunctie(time(HOUR)+hourOfYearStart);
 						<Type>count</Type>
 						<Expression><![CDATA[]]></Expression>
 						<Condition><![CDATA[item.isLaden && item.laadsnelheid_kW > 0]]></Condition>
+					</StatisticsItem>
+					<StatisticsItem>
+						<Id>1645694129092</Id>
+						<Name><![CDATA[V2Gvermogen]]></Name>
+						<Type>sum</Type>
+						<Expression><![CDATA[-min(item.laadsnelheid_kW,0)]]></Expression>
+						<Condition><![CDATA[item.isLaden]]></Condition>
 					</StatisticsItem>
 					<InEnvironment>true</InEnvironment>	
 					<InitialLocationType>AT_ANIMATION_POSITION</InitialLocationType>
@@ -2992,7 +3007,7 @@ viewAreaMain.navigateTo();]]></ActionCode>
 				<GISMap>
 					<Id>1642502040371</Id>
 					<Name><![CDATA[map]]></Name>
-					<X>480</X><Y>170</Y>
+					<X>460</X><Y>180</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -10302,6 +10317,14 @@ bezoekPT / 10]]></LineWidthCode>
 					<Expression2Flag>true</Expression2Flag>  
 							<Title><![CDATA[PV opwek]]></Title>
 					</DatasetExpression>
+					<DatasetExpression>
+					<Id>0</Id>
+					<Expression><![CDATA[my_dataset]]></Expression>
+					<Color>-4565549</Color>
+					<Expression2><![CDATA[autos.V2Gvermogen()]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>  
+							<Title><![CDATA[V2G vermogen]]></Title>
+					</DatasetExpression>
 					<SamplesToKeep>10800</SamplesToKeep>
 					<VerScaleToExpression><![CDATA[60]]></VerScaleToExpression>
 					<VerScaleType>FIXED</VerScaleType>
@@ -10358,26 +10381,18 @@ bezoekPT / 10]]></LineWidthCode>
 					<DatasetExpression>
 					<Id>0</Id>
 					<Expression><![CDATA[my_dataset]]></Expression>
-					<Color>-10039894</Color>
-					<Expression2><![CDATA[basislastElektriciteitsverbruikHuishoudens_kW+min(0,autos.laadvraag())]]></Expression2>
-					<Expression2Flag>true</Expression2Flag>  
-							<Title><![CDATA[Basislast]]></Title>
-					</DatasetExpression>
-					<DatasetExpression>
-					<Id>0</Id>
-					<Expression><![CDATA[my_dataset]]></Expression>
-					<Color>-65536</Color>
-					<Expression2><![CDATA[-min(0,autos.laadvraag())]]></Expression2>
-					<Expression2Flag>true</Expression2Flag>  
-							<Title><![CDATA[V2G power]]></Title>
-					</DatasetExpression>
-					<DatasetExpression>
-					<Id>0</Id>
-					<Expression><![CDATA[my_dataset]]></Expression>
 					<Color>-10496</Color>
-					<Expression2><![CDATA[max(0,autos.laadvraag())]]></Expression2>
+					<Expression2><![CDATA[autos.laadvraag()]]></Expression2>
 					<Expression2Flag>true</Expression2Flag>  
 							<Title><![CDATA[EVs die laden]]></Title>
+					</DatasetExpression>
+					<DatasetExpression>
+					<Id>0</Id>
+					<Expression><![CDATA[my_dataset]]></Expression>
+					<Color>-10039894</Color>
+					<Expression2><![CDATA[basislastElektriciteitsverbruikHuishoudens_kW]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>  
+							<Title><![CDATA[Basislast]]></Title>
 					</DatasetExpression>
 					<SamplesToKeep>10800</SamplesToKeep>
 					<VerScaleToExpression><![CDATA[60]]></VerScaleToExpression>
@@ -10419,7 +10434,7 @@ bezoekPT / 10]]></LineWidthCode>
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
-					<Text><![CDATA[Cumulatieve belasting]]></Text>
+					<Text><![CDATA[Wijktrafo belasting]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>10</Size>
@@ -10449,7 +10464,7 @@ bezoekPT / 10]]></LineWidthCode>
 					</RecurrenceCode>
 					<EmbeddedIcon>false</EmbeddedIcon>
 					<Width>410</Width>
-					<Height>240</Height>
+					<Height>200</Height>
 					<BackgroundColor/>
 					<BorderColor/>
 					<ChartArea>
@@ -10471,7 +10486,7 @@ bezoekPT / 10]]></LineWidthCode>
 						<VerLabelsPosition>DEFAULT</VerLabelsPosition>
 						<TextColor>-12566464</TextColor>
 					</Labels>
-					<ShowLegend>true</ShowLegend>
+					<ShowLegend>false</ShowLegend>
 					<TimeWindowsMovementType>MOVEMENT_WITH_TIME</TimeWindowsMovementType>		
 					<TimeWindowUnits>HOUR</TimeWindowUnits>
 					<VerScaleFromExpression><![CDATA[-90]]></VerScaleFromExpression>
@@ -10505,6 +10520,16 @@ bezoekPT / 10]]></LineWidthCode>
 					<Expression><![CDATA[my_dataset2]]></Expression>
 					<Color>-29696</Color>
 					<Expression2><![CDATA[-75]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>
+						<PointStyle>NONE</PointStyle>
+						<LineWidth>1.0</LineWidth>
+					</DatasetExpression>
+					<DatasetExpression>  
+						<Title><![CDATA[TrafoVermogenLowPass_kW]]></Title>
+					<Id>0</Id>
+					<Expression><![CDATA[my_dataset3]]></Expression>
+					<Color>-12799119</Color>
+					<Expression2><![CDATA[incentiveGenerator.v_holonLoadLowPassed_kW]]></Expression2>
 					<Expression2Flag>true</Expression2Flag>
 						<PointStyle>NONE</PointStyle>
 						<LineWidth>1.0</LineWidth>
@@ -10661,7 +10686,7 @@ bezoekPT / 10]]></LineWidthCode>
 					</BasicProperties>
 					<ExtendedProperties>
 						<Font Name="Dialog" Size="11" Style="0"/>
-						<DefaultValueCode><![CDATA["incentive"]]></DefaultValueCode>
+						<DefaultValueCode><![CDATA["incentive + V2G"]]></DefaultValueCode>
 						<Editable>false</Editable>
 						<Button><![CDATA[basic]]></Button>
 						<Button><![CDATA[on solar]]></Button>
@@ -10670,10 +10695,53 @@ bezoekPT / 10]]></LineWidthCode>
 						<LinkTo>false</LinkTo>
 					</ExtendedProperties>
 				</Control>
+				<Text>
+					<Id>1645433413011</Id>
+					<Name><![CDATA[t_trafoVermogenLowPassed]]></Name>
+					<X>-200</X><Y>730</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[TrafoVermogenLowPassed]]></Text>
+					<TextCode><![CDATA[roundToInt(incentiveGenerator.v_holonLoadLowPassed_kW)  + " [kW] trafo vermogen lowpass filtered"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>12</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1645635733550</Id>
+					<Name><![CDATA[text49]]></Name>
+					<X>-210</X><Y>910</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[kW]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>10</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
     			<Plot>
-					<Id>1645431901267</Id>
-					<Name><![CDATA[pl_incentives]]></Name>
-					<X>-420</X><Y>730</Y>
+					<Id>1645635733554</Id>
+					<Name><![CDATA[pl_incentives1]]></Name>
+					<X>-420</X><Y>720</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -10722,7 +10790,7 @@ bezoekPT / 10]]></LineWidthCode>
 					<Interpolation>LINEAR</Interpolation>
 					<DatasetExpression>  
 						<Title><![CDATA[Euro/kWh curve]]></Title>
-					<Id>1645431901264</Id>
+					<Id>1645635733551</Id>
 					<Expression><![CDATA[incentiveGenerator.ds_incentives]]></Expression>
 					<Color>-6632142</Color>
 					<Expression2><![CDATA[0]]></Expression2>
@@ -10737,9 +10805,9 @@ bezoekPT / 10]]></LineWidthCode>
 					<HorScaleType>AUTO</HorScaleType>
     			</Plot>
 				<Text>
-					<Id>1645433413011</Id>
-					<Name><![CDATA[t_trafoVermogenLowPassed]]></Name>
-					<X>-200</X><Y>730</Y>
+					<Id>1645635733556</Id>
+					<Name><![CDATA[text50]]></Name>
+					<X>-440</X><Y>810</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -10749,11 +10817,10 @@ bezoekPT / 10]]></LineWidthCode>
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
-					<Text><![CDATA[TrafoVermogenLowPassed]]></Text>
-					<TextCode><![CDATA[roundToInt(incentiveGenerator.v_holonLoadLowPassed_kW)  + " [kW] trafo vermogen lowpass filtered"]]></TextCode>
+					<Text><![CDATA[Euro/kWh]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
-						<Size>12</Size>
+						<Size>10</Size>
 						<Style>0</Style>
 					</Font>
 					<Alignment>LEFT</Alignment>
@@ -10870,6 +10937,9 @@ initializeHousehold( this, id );
 // Creer bewoners
 for( Bewoner b : bewoners ) {
 	b.generateActivities( this );
+}
+for ( Auto a : autos ) {
+	a.bepaalFlexibiliteit();
 }]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -13690,6 +13760,7 @@ if( nbVehicles > 0){
 	auto1.elektrisch = randomTrue( main.evSlider.getValue() / 100 );
 	auto1.setLocation( parkeerplaatsPoint1 );
 	ovalAuto1.setVisible( true );
+	auto1.bepaalFlexibiliteit();
 	
 	//Initialize auto 2
 	if( nbVehicles > 1) {
@@ -13700,6 +13771,7 @@ if( nbVehicles > 0){
 		auto2.elektrisch = randomTrue( main.evSlider.getValue() / 100 );
 		auto2.setLocation( parkeerplaatsPoint2 );
 		ovalAuto2.setVisible( true );
+		auto2.bepaalFlexibiliteit();
 	}
 }
 ]]></Body>
@@ -13714,7 +13786,8 @@ if( nbVehicles > 0){
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[basislastElektriciteitsverbruik_kW = elektriciteitsverbruikFractie(time(HOUR)) * p_averageElectricityConsumption * 4; // keer 4 om kwartierdata kwh om te rekenen naar MW wat gelijk staat aan MWh op uurbasis]]></Body>
+					<Body><![CDATA[//basislastElektriciteitsverbruik_kW = elektriciteitsverbruikFractie(time(HOUR) + main.hourOfYearStart) * p_averageElectricityConsumption * 4; // keer 4 om kwartierdata kwh om te rekenen naar kW
+basislastElektriciteitsverbruik_kW = uniform(0.2,1.8)*elektriciteitsverbruikFractie(time(HOUR) + main.hourOfYearStart) * p_averageElectricityConsumption * 4; // keer 4 om kwartierdata kwh om te rekenen naar kW]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -13734,20 +13807,24 @@ zonnepanelen.forEach(z -> z.pvPowerFunction());
 v_gridPowerBalAfterPV_kW = basislastElektriciteitsverbruik_kW + warmtepompEVerbruik_kW - pvOpwek_kW;
 totaalVerbruik_kW = basislastElektriciteitsverbruik_kW + warmtepompEVerbruik_kW;
 energyManager.manage(p_energyManagerMode);
+
+double V2G_kW=0;
 if (nbVehicles > 0) {
 	if (auto1.isLaden) {
-		totaalVerbruik_kW += auto1.laadsnelheid_kW;
+		totaalVerbruik_kW += max(0,auto1.laadsnelheid_kW);
+		V2G_kW += - min(0,auto1.laadsnelheid_kW);
 	}
 	if (nbVehicles > 1) {
 		if (nbVehicles > 1 & auto2.isLaden) {
-		totaalVerbruik_kW += auto2.laadsnelheid_kW;
+		totaalVerbruik_kW += max(0,auto2.laadsnelheid_kW);
+		V2G_kW += - min(0,auto2.laadsnelheid_kW);
 		}
 	}
 }
 
-eigenConsumptie_kW = min(pvOpwek_kW,totaalVerbruik_kW);
-teruglevering_kW = pvOpwek_kW - eigenConsumptie_kW;
-netVermogen_kW = totaalVerbruik_kW - pvOpwek_kW;
+eigenConsumptie_kW = min(pvOpwek_kW + V2G_kW,totaalVerbruik_kW);
+teruglevering_kW = pvOpwek_kW + V2G_kW - eigenConsumptie_kW;
+netVermogen_kW = totaalVerbruik_kW - pvOpwek_kW - V2G_kW;
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -21691,7 +21768,7 @@ jaarlijksTotaalPVOpwekKWh += pvOpwekKW;]]></Body>
 			<StartupCode><![CDATA[//if ( randomTrue ( 0.5 ) ) {
 if (elektrisch) {
 	send("laden", this);
-	bepaalFlexibiliteit();
+	//bepaalFlexibiliteit();
 	//huidigBatterijCap = maxBatterijCap_kWh;
 }]]></StartupCode>
 			<Generic>false</Generic>
@@ -21813,7 +21890,7 @@ if (elektrisch) {
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[double]]></Type>        
 						<InitialValue Class="CodeValue">
-							<Code><![CDATA[uniform( 0.5, 0.8 ) * maxBatterijCap_kWh]]></Code>
+							<Code><![CDATA[uniform( 0.6, 0.8 ) * maxBatterijCap_kWh]]></Code>
 						</InitialValue>
 					</Properties>
 				</Variable>
@@ -21932,6 +22009,21 @@ if (elektrisch) {
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1645698560455</Id>
+					<Name><![CDATA[v_minChargingTime_min]]></Name>
+					<X>220</X><Y>480</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
 					</Properties>
 				</Variable>
 				<Variable Class="Parameter">
@@ -22162,7 +22254,7 @@ currentTripDistance = 0;*/]]></EntryAction>
 						<Point><X>140</X><Y>80</Y></Point>
 					</Points>
 					<Properties Target="1643556868350">
-						<Action><![CDATA[//bepaalFlexibiliteit();
+						<Action><![CDATA[//bepaalFlexibiliteit(); // Throws null-pointer exception; not yet linked to household/person/activity?
 //send("laden", this);]]></Action>
 					</Properties>	
 				</StatechartElement>
@@ -22451,11 +22543,11 @@ else{
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[//Deze functie berekent het aantal minuten tot het volgende vertrekmoment van deze auto. Wordt aangeroepen als de auto aankomt.
 // Als dit de tweede auto is, kijk dan alleen naar adult 2
-if (autoID == 2 && huishouden.bewoners.size() > 1 ) {
-	nextActivity = huishouden.adult2.berekenVolgendeCarTrip();
-}
-
-else {
+if (autoID == 2 ) { // 2e auto kijkt alleen naar activiteiten 2e bewoner
+	if ( huishouden.bewoners.size() > 1 ) {
+		nextActivity = huishouden.adult2.berekenVolgendeCarTrip();
+	}
+} else { // 1e auto, zijn er 1 of 2 bewoners?
 	// als er maar 1 adult in het huishouden is of als er 2 voertuigen zijn, kijk dan alleen naar adult 1
 	if ( huishouden.nbAdults == 1 || huishouden.nbVehicles == 2 ) {
 		nextActivity = huishouden.adult1.berekenVolgendeCarTrip();
@@ -22463,24 +22555,26 @@ else {
 	// anders kijk naar welke adult het snelste weg gaat en of ze uberhaupt weg gaan
 	else {
 		// als niemand meer weggaat
-		if ( huishouden.adult1.berekenVolgendeCarTrip() == null && huishouden.adult2.berekenVolgendeCarTrip() == null ){
+		Activity activity1=huishouden.adult1.berekenVolgendeCarTrip();
+		Activity activity2=huishouden.adult2.berekenVolgendeCarTrip();
+		if ( activity1 == null && activity2 == null ){
 			nextActivity = null;
 		}
 		//Als adult 2 niet meer weg gaat en audlt 1 wel
-		else if ( huishouden.adult1.berekenVolgendeCarTrip() != null && huishouden.adult2.berekenVolgendeCarTrip() == null  ) {
-			nextActivity = huishouden.adult1.berekenVolgendeCarTrip();
+		else if ( activity1 != null && activity2 == null  ) {
+			nextActivity = activity1;
 		}
 		//Als adult 1 niet meer weg gaat en audlt 2 wel
-		else if ( huishouden.adult1.berekenVolgendeCarTrip() == null && huishouden.adult2.berekenVolgendeCarTrip() != null  ) {
-			nextActivity = huishouden.adult2.berekenVolgendeCarTrip();
+		else if ( activity1 == null && activity2 != null  ) {
+			nextActivity = activity2;
 		}
 		//Of als ze allebei nog weg gaan
 		else {
-			if( huishouden.adult1.berekenVolgendeCarTrip().startMinute < huishouden.adult2.berekenVolgendeCarTrip().startMinute ) {
-				nextActivity = huishouden.adult1.berekenVolgendeCarTrip();
+			if( activity1.startMinute < activity2.startMinute ) {
+				nextActivity = activity1;
 			}
 			else {
-				nextActivity = huishouden.adult2.berekenVolgendeCarTrip();
+				nextActivity = activity2;
 			}
 		}
 	}
@@ -22498,6 +22592,7 @@ if ( nextActivity != null ) {
 	double energyRequired_kWh = currentTripDistance_km * energieverbruik_kWhpkm;
 
 	v_chargingTarget_kWh = min(maxBatterijCap_kWh , energyRequired_kWh + energyMargin_kWh);
+	v_minChargingTime_min = max( 0 , ( v_chargingTarget_kWh - huidigBatterijCap_kWh ) / maxLaadsnelheid_kW * 60 );
 }
 else {
 	currentTripDistance_km = 0;
@@ -22596,8 +22691,9 @@ else {
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[if( inState( laden ) ) {
 	if ( huidigBatterijCap_kWh >= maxBatterijCap_kWh ) {
-		send("stop laden", this);
+		//send("stop laden", this);
 		huidigBatterijCap_kWh = maxBatterijCap_kWh;
+		laadsnelheid_kW = 0;
 	}
 	else{
 		huidigBatterijCap_kWh = huidigBatterijCap_kWh + laadsnelheid_kW / 60.0;
@@ -22709,6 +22805,73 @@ else {
 					</Font>
 					<Alignment>LEFT</Alignment>
 				</Text>
+    			<TimePlot>
+					<Id>1645702964425</Id>
+					<Name><![CDATA[plot]]></Name>
+					<X>880</X><Y>110</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<AutoUpdate>true</AutoUpdate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1645776000000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</RecurrenceCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Width>260</Width>
+					<Height>210</Height>
+					<BackgroundColor/>
+					<BorderColor/>
+					<ChartArea>
+						<XOffset>50</XOffset>
+						<YOffset>30</YOffset>
+						<Width>180</Width>
+						<Height>120</Height>
+						<BackgroundColor>-1</BackgroundColor>
+						<BorderColor>-16777216</BorderColor>
+						<GridColor>-12566464</GridColor>
+					</ChartArea>
+					<Legend>
+						<Place>SOUTH</Place>
+						<TextColor>-16777216</TextColor>
+						<Size>30</Size>
+					</Legend>
+					<Labels>
+						<HorLabelsPosition>DEFAULT</HorLabelsPosition>
+						<VerLabelsPosition>DEFAULT</VerLabelsPosition>
+						<TextColor>-12566464</TextColor>
+					</Labels>
+					<ShowLegend>true</ShowLegend>
+					<TimeWindowsMovementType>MOVEMENT_WITH_TIME</TimeWindowsMovementType>		
+					<TimeWindowUnits>MODEL_TIME_UNIT</TimeWindowUnits>
+					<VerScaleFromExpression><![CDATA[0]]></VerScaleFromExpression>
+					<VerScaleToExpression><![CDATA[1]]></VerScaleToExpression>
+					<VerScaleType>AUTO</VerScaleType>
+					<DrawLine>true</DrawLine>
+					<Interpolation>LINEAR</Interpolation>
+					<DatasetExpression>  
+						<Title><![CDATA[Dataset Title]]></Title>
+					<Id>0</Id>
+					<Expression><![CDATA[my_dataset]]></Expression>
+					<Color>-2354116</Color>
+					<Expression2><![CDATA[isLaden ? laadsnelheid_kW : 0]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>
+						<PointStyle>NONE</PointStyle>
+						<LineWidth>1.0</LineWidth>
+					</DatasetExpression>
+					<SamplesToKeep>100</SamplesToKeep>
+					<TimeWindowExpression><![CDATA[100]]></TimeWindowExpression>
+					<FillAreaUnderLine>false</FillAreaUnderLine>
+					<LabelFormat>MODEL_TIME_UNITS</LabelFormat>
+    			</TimePlot>
 			</Presentation>
 
 				</Level>
@@ -23604,24 +23767,18 @@ else {
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[double]]></Type>        
-						<InitialValue Class="CodeValue">
-							<Code><![CDATA[uniform(0.15, 0.18)]]></Code>
-						</InitialValue>
 					</Properties>
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1645085393656</Id>
 					<Name><![CDATA[v_bidPriceMedium_eurpkWh]]></Name>
-					<X>70</X><Y>320</Y>
+					<X>70</X><Y>310</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[double]]></Type>        
-						<InitialValue Class="CodeValue">
-							<Code><![CDATA[uniform(0.18, 0.22)]]></Code>
-						</InitialValue>
 					</Properties>
 				</Variable>
 				<Variable Class="PlainVariable">
@@ -23642,16 +23799,13 @@ else {
 				<Variable Class="PlainVariable">
 					<Id>1645457652088</Id>
 					<Name><![CDATA[v_bidPriceV2G_eurpkWh]]></Name>
-					<X>70</X><Y>350</Y>
+					<X>70</X><Y>343</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[double]]></Type>        
-						<InitialValue Class="CodeValue">
-							<Code><![CDATA[uniform(0.20, 0.25)]]></Code>
-						</InitialValue>
 					</Properties>
 				</Variable>
 			</Variables>
@@ -23759,30 +23913,29 @@ for (int i = 0 ; i< huishouden.nbVehicles; i++) {
 					<Body><![CDATA[// Get price curve from main
 // main.tf_inventivePowerCOsts; // Tablefunction, can 'get' kWh price at any power
 
-if( huishouden.zonnepanelen.size()==0) { // for households without solar panels, accept higher price always to charge over longer period at lower power.
-  v_bidPriceMedium_eurpkWh = 0.3;
-  //traceln("huishouden zonder zonnepanelen" + huishouden.id);
-}
-  
-
 if ( carArray.size() > 0 ){
 	for (int i = 0 ; i < carArray.size(); i++) {
-		
-		//Prepare input for bidding
 		Auto car = carArray.get(i);
+
+		//Prepare input for bidding
+
 		double maxChargingPower_kW = min( main.incentiveGenerator.p_maxHouseholdPowerKW - huishouden.v_gridPowerBalAfterPV_kW, car.maxLaadsnelheid_kW ); // Max of highest possible charging speed, and net-power available
 		double maxAffordableChargingPower_kW = 0; // Start scanning from charging power of 0
-		double minChargingDuration_min = ( car.v_chargingTarget_kWh - car.huidigBatterijCap_kWh ) / car.maxLaadsnelheid_kW * 60;
-
+		
 		
 		if (car.nextActivity != null){ // Only apply medium and high cost charging if a trip is planned
+		
+			/*if ( car.laadsnelheid_kW == 0 ) {
+				car.v_minChargingTime_min = max( 0 , ( car.v_chargingTarget_kWh - car.huidigBatterijCap_kWh ) / car.maxLaadsnelheid_kW * 60 );
+				//traceln(car.v_minChargingTime_min);
+			}*/
 			// After chargingDeadlineT2, charge at max power against any rate
-			if ( time(MINUTE) >= ( car.nextActivity.startMinute - minChargingDuration_min )) { // Must-charge time at max charging power
+			if ( time(MINUTE) >= ( car.nextActivity.startMinute - car.v_minChargingTime_min )) { // Must-charge time at max charging power
 				maxAffordableChargingPower_kW = maxChargingPower_kW;				
 			}
 			
 			// Between chargingDeadlineT1 and chargingDeadlineT2, charge against medium rate
-			else if ( time(MINUTE) >= ( car.nextActivity.startMinute - minChargingDuration_min*v_mediumTariffWindowFactor )  && car.huidigBatterijCap_kWh < car.v_chargingTarget_kWh ) { // Between t2 and t1 till charging, charge against medium rate
+			else if ( time(MINUTE) >= ( car.nextActivity.startMinute - car.v_minChargingTime_min*v_mediumTariffWindowFactor )  && car.huidigBatterijCap_kWh < car.v_chargingTarget_kWh ) { // Between t2 and t1 till charging, charge against medium rate
 				for (double chargingPower_kW = 0 ; chargingPower_kW < min(maxChargingPower_kW, car.maxLaadsnelheid_kW) ; chargingPower_kW+=0.1) { // TODO: this reacts spiky to a flat rate (which is logical but obscure)
 					if ( main.incentiveGenerator.tf_incentivePowerCosts( (double)chargingPower_kW + huishouden.v_gridPowerBalAfterPV_kW ) < v_bidPriceMedium_eurpkWh )	{
 					    maxAffordableChargingPower_kW = chargingPower_kW;
@@ -23798,10 +23951,13 @@ if ( carArray.size() > 0 ){
 				}
 			}
 		} 
+		if ( maxAffordableChargingPower_kW == 0 && car.laadsnelheid_kW != 0 ) {
+			car.v_minChargingTime_min = max( 0 , ( car.v_chargingTarget_kWh - car.huidigBatterijCap_kWh ) / car.maxLaadsnelheid_kW * 60 );
+			//traceln("Charging time updated");
+		}
 		car.laadsnelheid_kW = maxAffordableChargingPower_kW;
 		huishouden.v_gridPowerBalAfterPV_kW += car.laadsnelheid_kW; // To ensure the 2nd EV in the household has the correct cost-curve
-	} // cars loop
-	//TODO: Bijhouden hoeveel er betaald is per kWh!
+	} // cars loop	
 } // are there any cars?]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -23844,13 +24000,6 @@ for (int i = 0 ; i< huishouden.nbVehicles; i++) {
 					<Body><![CDATA[// Get price curve from main
 // main.tf_inventivePowerCOsts; // Tablefunction, can 'get' kWh price at any power
 
-if( huishouden.zonnepanelen.size()==0) { // for households without solar panels, accept higher price always to charge over longer period at lower power.
-  v_bidPriceMedium_eurpkWh = 0.3;
-  v_bidPriceLow_eurpkWh = uniform(0.18, 0.20);
-  //traceln("huishouden zonder zonnepanelen" + huishouden.id);
-}
-  
-
 if ( carArray.size() > 0 ){
 	for (int i = 0 ; i < carArray.size(); i++) {
 		
@@ -23858,17 +24007,22 @@ if ( carArray.size() > 0 ){
 		Auto car = carArray.get(i);
 		double maxChargingPower_kW = min( main.incentiveGenerator.p_maxHouseholdPowerKW - huishouden.v_gridPowerBalAfterPV_kW, car.maxLaadsnelheid_kW ); // Max of highest possible charging speed, and net-power available
 		double maxAffordableChargingPower_kW = 0; // Start scanning from charging power of 0
-		double minChargingDuration_min = ( car.v_chargingTarget_kWh - car.huidigBatterijCap_kWh ) / car.maxLaadsnelheid_kW * 60;
+		//double minChargingDuration_min = ( car.v_chargingTarget_kWh - car.huidigBatterijCap_kWh ) / car.maxLaadsnelheid_kW * 60;
 
 		
 		if (car.nextActivity != null){ // Only apply medium and high cost charging if a trip is planned
+			/*if ( car.laadsnelheid_kW == 0 ) {
+				car.v_minChargingTime_min = max( 0 , ( car.v_chargingTarget_kWh - car.huidigBatterijCap_kWh ) / car.maxLaadsnelheid_kW * 60 );
+				//traceln(car.v_minChargingTime_min);
+			}*/
+			
 			// After chargingDeadlineT2, charge at max power against any rate
-			if ( time(MINUTE) >= ( car.nextActivity.startMinute - minChargingDuration_min )) { // Must-charge time at max charging power
+			if ( time(MINUTE) >= ( car.nextActivity.startMinute - car.v_minChargingTime_min )) { // Must-charge time at max charging power
 				maxAffordableChargingPower_kW = maxChargingPower_kW;				
 			}
 			
 			// Between chargingDeadlineT1 and chargingDeadlineT2, charge against medium rate
-			else if ( time(MINUTE) >= ( car.nextActivity.startMinute - minChargingDuration_min*v_mediumTariffWindowFactor )  && car.huidigBatterijCap_kWh < car.v_chargingTarget_kWh ) { // Between t2 and t1 till charging, charge against medium rate
+			else if ( time(MINUTE) >= ( car.nextActivity.startMinute - car.v_minChargingTime_min*v_mediumTariffWindowFactor )  && car.huidigBatterijCap_kWh < car.v_chargingTarget_kWh ) { // Between t2 and t1 till charging, charge against medium rate
 				for (double chargingPower_kW = 0 ; chargingPower_kW < min(maxChargingPower_kW, car.maxLaadsnelheid_kW) ; chargingPower_kW+=0.1) { // TODO: this reacts spiky to a flat rate (which is logical but obscure)
 					if ( main.incentiveGenerator.tf_incentivePowerCosts( (double)chargingPower_kW + huishouden.v_gridPowerBalAfterPV_kW ) < v_bidPriceMedium_eurpkWh )	{
 					    maxAffordableChargingPower_kW = chargingPower_kW;
@@ -23895,6 +24049,11 @@ if ( carArray.size() > 0 ){
 		/*if (maxAffordableChargingPower_kW < -0.1 ) {
 			traceln("Household " + huishouden.id + " is supplying " + -maxAffordableChargingPower_kW + " kW V2G power");
 		}*/
+		
+		if ( maxAffordableChargingPower_kW == 0 && car.laadsnelheid_kW != 0 ) { // When charging stops, update minChargingTime
+			car.v_minChargingTime_min = max( 0 , ( car.v_chargingTarget_kWh - car.huidigBatterijCap_kWh ) / car.maxLaadsnelheid_kW * 60 );
+			//traceln("Charging time updated");
+		}
 		car.laadsnelheid_kW = maxAffordableChargingPower_kW;
 		huishouden.v_gridPowerBalAfterPV_kW += car.laadsnelheid_kW; // To ensure the 2nd EV in the household has the correct cost-curve
 	} // cars loop
@@ -24485,7 +24644,7 @@ f_updateTariffs();]]></StartupCode>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[-0.13]]></Code>
+							<Code><![CDATA[.08]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1644945926227</Id>
@@ -24581,7 +24740,7 @@ f_updateTariffs();]]></StartupCode>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[5]]></Code>
+							<Code><![CDATA[0]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1645275927279</Id>
@@ -24595,7 +24754,7 @@ f_updateTariffs();]]></StartupCode>
 				<Variable Class="Parameter">
 					<Id>1645276000872</Id>
 					<Name><![CDATA[p_congestionTariff_eurpkW]]></Name>
-					<X>230</X><Y>430</Y>
+					<X>230</X><Y>422</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -24796,8 +24955,12 @@ for( int i = 0; i < v_incentiveLength; i++){
 }
 
 //update plot
-main.pl_incentives.setFixedHorizontalScale(p_minHouseholdPowerKW, p_maxHouseholdPowerKW);
-main.pl_incentives.updateData();]]></Body>
+main.pl_incentives1.setFixedHorizontalScale(p_minHouseholdPowerKW, p_maxHouseholdPowerKW);
+main.pl_incentives1.updateData();
+
+pl_incentives.setFixedHorizontalScale(p_minHouseholdPowerKW, p_maxHouseholdPowerKW);
+pl_incentives.updateData();
+]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -24885,7 +25048,8 @@ else {
 			
 		//selling energy
 		else {
-			v_incentiveEuroNetMetering[i] = p_meteringSellBackTariff;
+			//v_incentiveEuroNetMetering[i] = p_meteringSellBackTariff;
+			v_incentiveEuroNetMetering[i] = -(p_fixedTariffEuroPerKWh - p_meteringSellBackTariff);
 		}
 	}
 }		]]></Body>
@@ -24938,7 +25102,8 @@ else{
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[//set congestion tariff
 double lowPassFraction = 0.03;
-v_holonLoadLowPassed_kW = ( 1.0 - lowPassFraction ) * v_holonLoadLowPassed_kW + lowPassFraction * ( main.trafoVermogen_kW - v_holonLoadLowPassed_kW );
+//v_holonLoadLowPassed_kW = ( 1.0 - lowPassFraction ) * v_holonLoadLowPassed_kW + lowPassFraction * ( main.trafoVermogen_kW - v_holonLoadLowPassed_kW );
+v_holonLoadLowPassed_kW += lowPassFraction * ( main.trafoVermogen_kW - v_holonLoadLowPassed_kW );
 
 /*if (cb_congestionMarket.isSelected()){
 	if ( v_holonLoadLowPassed_kW > p_congestieVermogen_kW ) {
@@ -25245,6 +25410,7 @@ f_updateTariffs();]]></ActionCode>
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1644943240127</Id>
 					<Name><![CDATA[cb_holonEnergyMarket]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>10</X><Y>240</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -25321,7 +25487,7 @@ f_updateTariffs();]]></ActionCode>
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
-					<Text><![CDATA[Euro]]></Text>
+					<Text><![CDATA[Euro/kWh]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>10</Size>
@@ -25342,7 +25508,7 @@ f_updateTariffs();]]></ActionCode>
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
-					<Text><![CDATA[KW]]></Text>
+					<Text><![CDATA[kW]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>10</Size>
@@ -25350,6 +25516,72 @@ f_updateTariffs();]]></ActionCode>
 					</Font>
 					<Alignment>LEFT</Alignment>
 				</Text>
+    			<Plot>
+					<Id>1645634707206</Id>
+					<Name><![CDATA[pl_incentives]]></Name>
+					<X>800</X><Y>0</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<AutoUpdate>true</AutoUpdate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1644998400000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</RecurrenceCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Width>410</Width>
+					<Height>220</Height>
+					<BackgroundColor/>
+					<BorderColor/>
+					<ChartArea>
+						<XOffset>50</XOffset>
+						<YOffset>30</YOffset>
+						<Width>330</Width>
+						<Height>130</Height>
+						<BackgroundColor>-1</BackgroundColor>
+						<BorderColor>-16777216</BorderColor>
+						<GridColor>-12566464</GridColor>
+					</ChartArea>
+					<Legend>
+						<Place>SOUTH</Place>
+						<TextColor>-16777216</TextColor>
+						<Size>30</Size>
+					</Legend>
+					<Labels>
+						<HorLabelsPosition>DEFAULT</HorLabelsPosition>
+						<VerLabelsPosition>DEFAULT</VerLabelsPosition>
+						<TextColor>-12566464</TextColor>
+					</Labels>
+					<ShowLegend>true</ShowLegend>
+					<VerScaleFromExpression><![CDATA[0]]></VerScaleFromExpression>
+					<VerScaleToExpression><![CDATA[0.5]]></VerScaleToExpression>
+					<VerScaleType>FIXED</VerScaleType>
+					<DrawLine>true</DrawLine>
+					<Interpolation>LINEAR</Interpolation>
+					<DatasetExpression>  
+						<Title><![CDATA[Euro/kWh curve]]></Title>
+					<Id>1645634707203</Id>
+					<Expression><![CDATA[ds_incentives]]></Expression>
+					<Color>-6632142</Color>
+					<Expression2><![CDATA[0]]></Expression2>
+					<Expression2Flag>false</Expression2Flag>
+						<PointStyle>CIRCLE</PointStyle>
+						<LineWidth>1.0</LineWidth>
+						<HorizontalAxisExpression><![CDATA[0]]></HorizontalAxisExpression>
+					</DatasetExpression>
+					<SamplesToKeep>100</SamplesToKeep>
+					<HorScaleFromExpression><![CDATA[0]]></HorScaleFromExpression>
+					<HorScaleToExpression><![CDATA[1]]></HorScaleToExpression>
+					<HorScaleType>AUTO</HorScaleType>
+    			</Plot>
 			</Presentation>
 
 				</Level>
@@ -26589,7 +26821,7 @@ f_updateTariffs();]]></ActionCode>
 			<MaximumMemory>512</MaximumMemory>
 			<RandomNumberGenerationType>fixedSeed</RandomNumberGenerationType>
 			<CustomGeneratorCode>new Random()</CustomGeneratorCode>
-			<SeedValue>3</SeedValue>
+			<SeedValue>4</SeedValue>
 			<SelectionModeForSimultaneousEvents>LIFO</SelectionModeForSimultaneousEvents>
 			<VmArgs><![CDATA[]]></VmArgs>
 			<LoadRootFromSnapshot>false</LoadRootFromSnapshot>
@@ -26642,9 +26874,9 @@ f_updateTariffs();]]></ActionCode>
 			</PresentationProperties>
 			<ModelTimeProperties>
 				<StopOption><![CDATA[Stop at specified time]]></StopOption>
-				<InitialDate><![CDATA[1622505600000]]></InitialDate>	
+				<InitialDate><![CDATA[1617235200000]]></InitialDate>	
 				<InitialTime><![CDATA[0.0]]></InitialTime>	
-				<FinalDate><![CDATA[1623110400000]]></FinalDate>	
+				<FinalDate><![CDATA[1617840000000]]></FinalDate>	
 				<FinalTime><![CDATA[168.0]]></FinalTime>	
 			</ModelTimeProperties>
 			<BypassInitialScreen>true</BypassInitialScreen>
@@ -26661,6 +26893,10 @@ f_updateTariffs();]]></ActionCode>
 		</Resource>
 		<Resource>
 			<Path><![CDATA[../../Data/Energy Profiles 2019 NL.xlsx]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[Jama-1.0.3.jar]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
