@@ -4,7 +4,7 @@
 	         AnyLogic Project File 
 *************************************************	         
 -->
-<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.10.202202091745" AlpVersion="8.7.3">
+<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.10.202202091651" AlpVersion="8.7.3">
 <Model>
 	<Id>1641891178629</Id>
 	<Name><![CDATA[Ebuurt]]></Name>
@@ -60,7 +60,7 @@ huishoudensIDs.addAll( selectFrom( db_huishoudens ).list( db_huishoudens.hhid ) 
 for ( int i = 0; i < p_boot_woningen; i++) {
 	Huishouden h = add_huishoudens();
 	h.initializeAutos( i );
-	
+		
 	if ( randomTrue( p_boot_zonnepanelen / 100.0 ) ) {
 		h.add_zonnepanelen();
 		h.energyManager.v_bidPriceMedium_eurpkWh=uniform(0.18, 0.21);
@@ -74,6 +74,7 @@ for ( int i = 0; i < p_boot_woningen; i++) {
 }
 
 hourOfYearStart=hourOfYearPerMonth[getMonth()] + (getDayOfMonth()-1)*24;
+v_initialTotalBatteryCharge_kWh = sum(autos, x->x.huidigBatterijCap_kWh);
 
 //Set trafo power based on number of households
 f_setTrafoMaxPower(p_connectionCapacityPerHousehold);
@@ -1008,6 +1009,18 @@ f_setTrafoMinPower(p_connectionCapacityPerHousehold);
 					<Id>1646317230067</Id>
 					<Name><![CDATA[v_wijkTotaalEnergyVerbruik_kWh]]></Name>
 					<X>-1070</X><Y>740</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1646323591888</Id>
+					<Name><![CDATA[v_initialTotalBatteryCharge_kWh]]></Name>
+					<X>-1070</X><Y>890</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -9795,7 +9808,7 @@ bezoekPT / 10]]></LineWidthCode>
 					<DrawLine>true</DrawLine>
 					<Interpolation>LINEAR</Interpolation>
 					<DatasetExpression>  
-						<Title><![CDATA[Transformator limiet]]></Title>
+						<Title><![CDATA[]]></Title>
 					<Id>0</Id>
 					<Expression><![CDATA[my_dataset1]]></Expression>
 					<Color>-29696</Color>
@@ -9815,7 +9828,7 @@ bezoekPT / 10]]></LineWidthCode>
 						<LineWidth>1.0</LineWidth>
 					</DatasetExpression>
 					<DatasetExpression>  
-						<Title><![CDATA[]]></Title>
+						<Title><![CDATA[Trafo vermogen [kW]]]></Title>
 					<Id>0</Id>
 					<Expression><![CDATA[my_dataset3]]></Expression>
 					<Color>-4565549</Color>
@@ -9825,7 +9838,7 @@ bezoekPT / 10]]></LineWidthCode>
 						<LineWidth>1.0</LineWidth>
 					</DatasetExpression>
 					<DatasetExpression>  
-						<Title><![CDATA[Dataset TrafoVermogenLowPass_kW]]></Title>
+						<Title><![CDATA[TrafoVermogen_kW gefilterd]]></Title>
 					<Id>0</Id>
 					<Expression><![CDATA[my_dataset]]></Expression>
 					<Color>-2354116</Color>
@@ -25066,7 +25079,7 @@ else{
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[//set congestion tariff
-double lowPassFraction = 0.005;
+double lowPassFraction = 0.02;
 //v_holonLoadLowPassed_kW = ( 1.0 - lowPassFraction ) * v_holonLoadLowPassed_kW + lowPassFraction * ( main.trafoVermogen_kW - v_holonLoadLowPassed_kW );
 v_holonLoadLowPassed_kW += lowPassFraction * ( main.trafoVermogen_kW - v_holonLoadLowPassed_kW );
 
@@ -27004,8 +27017,8 @@ double dt=1.0/60.0; // Integration timestep
 v_totalFeedInPower_kWh += sum(main.huishoudens, x->x.teruglevering_kW) * dt;
 
 
-v_totalEnergyDemand_kWh = main.evVerbruikJaartotaal + main.basislastElektriciteitsverbruikHuishoudensJaartotaal + main.warmtepompVerbruikJaartotaal;
-v_renewableEnergy_perc = main.pvOpwekJaartotaal / v_totalEnergyDemand_kWh * 100;
+v_totalEnergyDemand_kWh = main.v_wijkTotaalEnergyVerbruik_kWh; //main.evVerbruikJaartotaal + main.basislastElektriciteitsverbruikHuishoudensJaartotaal + main.warmtepompVerbruikJaartotaal;
+v_renewableEnergy_perc = main.pvOpwekJaartotaal / (v_totalEnergyDemand_kWh - ( sum(main.autos, x->x.huidigBatterijCap_kWh) - main.v_initialTotalBatteryCharge_kWh) ) * 100;
 //TODO 
 v_selfGeneratedEnergy_perc = ( 1 - main.v_wijkEnergyAfname_kWh / main.v_wijkTotaalEnergyVerbruik_kWh ) * 100;
 v_ownUsageGeneratedEnergy_perc = v_totalFeedInPower_kWh / main.pvOpwekJaartotaal * 100;
