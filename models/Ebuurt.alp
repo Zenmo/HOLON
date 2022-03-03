@@ -1924,8 +1924,7 @@ incentiveGenerator.f_updateIncentive();]]></Body>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[
-// default is basic
+					<Body><![CDATA[// default is basic
 String mode = "basic";
 
 
@@ -1944,6 +1943,7 @@ if (condition) {
 }
 
 
+// disable the v2g if no incentive is applied
 if (!condition) {
 	cb_enableV2G.setEnabled(false);
 	cb_enableV2G.setSelected(false);
@@ -1951,12 +1951,18 @@ if (!condition) {
 	cb_enableV2G.setEnabled(true);
 }
 
-
+// push the mode to the energymanager combo
 combo_energyManagerMode.setValue(mode);
-if ( !combo_energyManagerMode.getValue().equals("basic") ) {
+
+// if incentive mode is applied then make sure all cars are "hooked up" to charge (based on the state chart)
+if ( !mode.equals("basic") ) {
 		autos.forEach(a -> send("laden",a));
-	}
-traceln(mode);]]></Body>
+} else {
+		autos.forEach(a -> send("stop laden",a)); //TODO: if flipped between incentive-basic before run messages are handled lifo; thus a charging peak directly after start. Unexpected behaviour.
+}
+
+traceln(mode); // TODO: remove this print line
+]]></Body>
 				</Function>
 			</Functions>
 			<TableFunctions>
@@ -21988,12 +21994,6 @@ jaarlijksTotaalPVOpwekKWh += pvOpwekKW;]]></Body>
 			<Id>1641981998418</Id>
 			<Name><![CDATA[Auto]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
-			<StartupCode><![CDATA[//if ( randomTrue ( 0.5 ) ) {
-if (elektrisch) {
-	send("laden", this);
-	//bepaalFlexibiliteit();
-	//huidigBatterijCap = maxBatterijCap_kWh;
-}]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1641981998416</Id>
