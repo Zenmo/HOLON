@@ -1953,6 +1953,9 @@ if (!condition) {
 
 
 combo_energyManagerMode.setValue(mode);
+if ( !combo_energyManagerMode.getValue().equals("basic") ) {
+		autos.forEach(a -> send("laden",a));
+	}
 traceln(mode);]]></Body>
 				</Function>
 			</Functions>
@@ -9633,18 +9636,18 @@ bezoekPT / 10]]></LineWidthCode>
 					<DatasetExpression>
 					<Id>0</Id>
 					<Expression><![CDATA[my_dataset]]></Expression>
-					<Color>-10496</Color>
-					<Expression2><![CDATA[autos.laadvraag()]]></Expression2>
-					<Expression2Flag>true</Expression2Flag>  
-							<Title><![CDATA[EVs die laden]]></Title>
-					</DatasetExpression>
-					<DatasetExpression>
-					<Id>0</Id>
-					<Expression><![CDATA[my_dataset]]></Expression>
 					<Color>-10039894</Color>
 					<Expression2><![CDATA[basislastElektriciteitsverbruikHuishoudens_kW]]></Expression2>
 					<Expression2Flag>true</Expression2Flag>  
 							<Title><![CDATA[Basislast]]></Title>
+					</DatasetExpression>
+					<DatasetExpression>
+					<Id>0</Id>
+					<Expression><![CDATA[my_dataset]]></Expression>
+					<Color>-10496</Color>
+					<Expression2><![CDATA[autos.laadvraag()]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>  
+							<Title><![CDATA[EVs die laden]]></Title>
 					</DatasetExpression>
 					<SamplesToKeep>10800</SamplesToKeep>
 					<VerScaleToExpression><![CDATA[60]]></VerScaleToExpression>
@@ -9925,9 +9928,6 @@ bezoekPT / 10]]></LineWidthCode>
 						<FillColor/>
 						<TextColor/>
 						<Enabled>true</Enabled>
-						<ActionCode><![CDATA[if ( !combo_energyManagerMode.getValue().equals("basic") ) {
-		autos.forEach(a -> send("laden",a));
-	}]]></ActionCode>
 					</BasicProperties>
 					<ExtendedProperties>
 						<Font Name="Dialog" Size="11" Style="0"/>
@@ -9968,7 +9968,9 @@ bezoekPT / 10]]></LineWidthCode>
                         <EmbeddedIcon>false</EmbeddedIcon>	
 						<TextColor/>
 						<Enabled>true</Enabled>
-						<ActionCode><![CDATA[// TODO: remove this auto mode for the energy manager functionality
+						<ActionCode><![CDATA[incentiveGenerator.f_setCapacityTariff();
+pl_incentives1.updateData();
+// TODO: remove this auto mode for the energy manager functionality
 f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 					</BasicProperties>
 					<ExtendedProperties>
@@ -9993,6 +9995,8 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 						<TextColor/>
 						<Enabled>true</Enabled>
 						<ActionCode><![CDATA[incentiveGenerator.f_setNetMetering();
+incentiveGenerator.f_updateIncentive();
+pl_incentives1.updateData();
 // TODO: remove this auto mode for the energy manager functionality
 f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 					</BasicProperties>
@@ -10018,6 +10022,8 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 						<TextColor/>
 						<Enabled>true</Enabled>
 						<ActionCode><![CDATA[incentiveGenerator.f_setCapacityTariff();
+incentiveGenerator.f_updateIncentive();
+pl_incentives1.updateData();
 // TODO: remove this auto mode for the energy manager functionality
 f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 					</BasicProperties>
@@ -10042,7 +10048,9 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
                         <EmbeddedIcon>false</EmbeddedIcon>	
 						<TextColor/>
 						<Enabled>true</Enabled>
-						<ActionCode><![CDATA[// TODO: remove this auto mode for the energy manager functionality
+						<ActionCode><![CDATA[incentiveGenerator.f_updateIncentive();
+pl_incentives1.updateData();
+// TODO: remove this auto mode for the energy manager functionality
 f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 					</BasicProperties>
 					<ExtendedProperties>
@@ -10424,9 +10432,9 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 						<HorizontalAxisExpression><![CDATA[0]]></HorizontalAxisExpression>
 					</DatasetExpression>
 					<SamplesToKeep>100</SamplesToKeep>
-					<HorScaleFromExpression><![CDATA[0]]></HorScaleFromExpression>
-					<HorScaleToExpression><![CDATA[1]]></HorScaleToExpression>
-					<HorScaleType>AUTO</HorScaleType>
+					<HorScaleFromExpression><![CDATA[-17]]></HorScaleFromExpression>
+					<HorScaleToExpression><![CDATA[17]]></HorScaleToExpression>
+					<HorScaleType>FIXED</HorScaleType>
     			</Plot>
 				<Text>
 					<Id>1645635733556</Id>
@@ -24168,10 +24176,7 @@ for (int i = 0 ; i< huishouden.nbVehicles; i++) {
 						<Name><![CDATA[carArray]]></Name>
 						<Type><![CDATA[ArrayList<Auto>]]></Type>
 					</Parameter>
-					<Body><![CDATA[// Get price curve from main
-// main.tf_inventivePowerCOsts; // Tablefunction, can 'get' kWh price at any power
-
-if ( carArray.size() > 0 ){
+					<Body><![CDATA[if ( carArray.size() > 0 ){
 	for (int i = 0 ; i < carArray.size(); i++) {
 		Auto car = carArray.get(i);
 
@@ -24180,18 +24185,11 @@ if ( carArray.size() > 0 ){
 		double maxChargingPower_kW = min( main.incentiveGenerator.p_maxHouseholdPowerKW - huishouden.v_gridPowerBalAfterPV_kW, car.maxLaadsnelheid_kW ); // Max of highest possible charging speed, and net-power available
 		double maxAffordableChargingPower_kW = 0; // Start scanning from charging power of 0
 		
-		
 		if (car.nextActivity != null){ // Only apply medium and high cost charging if a trip is planned
-		
-			/*if ( car.laadsnelheid_kW == 0 ) {
-				car.v_minChargingTime_min = max( 0 , ( car.v_chargingTarget_kWh - car.huidigBatterijCap_kWh ) / car.maxLaadsnelheid_kW * 60 );
-				//traceln(car.v_minChargingTime_min);
-			}*/
 			// After chargingDeadlineT2, charge at max power against any rate
 			if ( time(MINUTE) >= ( car.nextActivity.startMinute - car.v_minChargingTime_min )) { // Must-charge time at max charging power
 				maxAffordableChargingPower_kW = maxChargingPower_kW;				
 			}
-			
 			// Between chargingDeadlineT1 and chargingDeadlineT2, charge against medium rate
 			else if ( time(MINUTE) >= ( car.nextActivity.startMinute - car.v_minChargingTime_min*v_mediumTariffWindowFactor )  && car.huidigBatterijCap_kWh < car.v_chargingTarget_kWh ) { // Between t2 and t1 till charging, charge against medium rate
 				for (double chargingPower_kW = 0 ; chargingPower_kW < min(maxChargingPower_kW, car.maxLaadsnelheid_kW) ; chargingPower_kW+=0.1) { // TODO: this reacts spiky to a flat rate (which is logical but obscure)
@@ -24255,30 +24253,19 @@ for (int i = 0 ; i< huishouden.nbVehicles; i++) {
 						<Name><![CDATA[carArray]]></Name>
 						<Type><![CDATA[ArrayList<Auto>]]></Type>
 					</Parameter>
-					<Body><![CDATA[// Get price curve from main
-// main.tf_inventivePowerCOsts; // Tablefunction, can 'get' kWh price at any power
-
-if ( carArray.size() > 0 ){
+					<Body><![CDATA[if ( carArray.size() > 0 ){
 	for (int i = 0 ; i < carArray.size(); i++) {
 		
 		//Prepare input for bidding
 		Auto car = carArray.get(i);
 		double maxChargingPower_kW = min( main.incentiveGenerator.p_maxHouseholdPowerKW - huishouden.v_gridPowerBalAfterPV_kW, car.maxLaadsnelheid_kW ); // Max of highest possible charging speed, and net-power available
 		double maxAffordableChargingPower_kW = 0; // Start scanning from charging power of 0
-		//double minChargingDuration_min = ( car.v_chargingTarget_kWh - car.huidigBatterijCap_kWh ) / car.maxLaadsnelheid_kW * 60;
 
-		
 		if (car.nextActivity != null){ // Only apply medium and high cost charging if a trip is planned
-			/*if ( car.laadsnelheid_kW == 0 ) {
-				car.v_minChargingTime_min = max( 0 , ( car.v_chargingTarget_kWh - car.huidigBatterijCap_kWh ) / car.maxLaadsnelheid_kW * 60 );
-				//traceln(car.v_minChargingTime_min);
-			}*/
-			
 			// After chargingDeadlineT2, charge at max power against any rate
 			if ( time(MINUTE) >= ( car.nextActivity.startMinute - car.v_minChargingTime_min )) { // Must-charge time at max charging power
 				maxAffordableChargingPower_kW = maxChargingPower_kW;				
 			}
-			
 			// Between chargingDeadlineT1 and chargingDeadlineT2, charge against medium rate
 			else if ( time(MINUTE) >= ( car.nextActivity.startMinute - car.v_minChargingTime_min*v_mediumTariffWindowFactor )  && car.huidigBatterijCap_kWh < car.v_chargingTarget_kWh ) { // Between t2 and t1 till charging, charge against medium rate
 				for (double chargingPower_kW = 0 ; chargingPower_kW < min(maxChargingPower_kW, car.maxLaadsnelheid_kW) ; chargingPower_kW+=0.1) { // TODO: this reacts spiky to a flat rate (which is logical but obscure)
@@ -25213,10 +25200,10 @@ for( int i = 0; i < v_incentiveLength; i++){
 }
 
 //update plot
-main.pl_incentives1.setFixedHorizontalScale(p_minHouseholdPowerKW, p_maxHouseholdPowerKW);
+//main.pl_incentives1.setFixedHorizontalScale(p_minHouseholdPowerKW, p_maxHouseholdPowerKW);
 main.pl_incentives1.updateData();
 
-pl_incentives.setFixedHorizontalScale(p_minHouseholdPowerKW, p_maxHouseholdPowerKW);
+//pl_incentives.setFixedHorizontalScale(p_minHouseholdPowerKW, p_maxHouseholdPowerKW);
 pl_incentives.updateData();
 //main.t_congestietarief.setText(roundToInt(v_incentiveCongestionTariff*100.0)  + " ct/kWh congestietarief");]]></Body>
 				</Function>
