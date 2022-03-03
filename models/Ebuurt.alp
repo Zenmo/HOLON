@@ -2333,6 +2333,9 @@ incentiveGenerator.f_updateIncentive();]]></Body>
 						<Parameter>
 							<Name><![CDATA[thuisLocatie]]></Name>
 						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_avgTravelSpeed_kph]]></Name>
+						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
 					<Replication Class="CodeValue">
@@ -9881,7 +9884,7 @@ bezoekPT / 10]]></LineWidthCode>
 						<FillColor/>
 						<TextColor/>
 						<Enabled>true</Enabled>
-						<ActionCode><![CDATA[if ( combo_energyManagerMode.getValue().equals("incentive") ) {
+						<ActionCode><![CDATA[if ( !combo_energyManagerMode.getValue().equals("basic") ) {
 		autos.forEach(a -> send("laden",a));
 	}]]></ActionCode>
 					</BasicProperties>
@@ -9942,7 +9945,7 @@ bezoekPT / 10]]></LineWidthCode>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<BasicProperties Width="80" Height="30">
+					<BasicProperties Width="140" Height="30">
                         <EmbeddedIcon>false</EmbeddedIcon>	
 						<TextColor/>
 						<Enabled>true</Enabled>
@@ -10720,7 +10723,7 @@ bezoekPT / 10]]></LineWidthCode>
 				<Text>
 					<Id>1645635733556</Id>
 					<Name><![CDATA[text50]]></Name>
-					<X>188</X><Y>247</Y>
+					<X>190</X><Y>310</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -10895,7 +10898,7 @@ for( Bewoner b : bewoners ) {
 	b.generateActivities( this );
 }
 for ( Auto a : autos ) {
-	a.bepaalFlexibiliteit();
+	a.f_bepaalFlexibiliteit();
 }]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -13819,7 +13822,7 @@ if( nbVehicles > 0){
 	auto1.elektrisch = randomTrue( main.p_boot_evs / 100.0 );
 	auto1.setLocation( parkeerplaatsPoint1 );
 	ovalAuto1.setVisible( true );
-	auto1.bepaalFlexibiliteit();
+	auto1.f_bepaalFlexibiliteit();
 
 	if (main.combo_energyManagerMode.getValue().equals("basic")) {
 		send("stop laden",auto1);	
@@ -13835,7 +13838,7 @@ if( nbVehicles > 0){
 		auto2.elektrisch = randomTrue( main.p_boot_evs / 100.0 );
 		auto2.setLocation( parkeerplaatsPoint2 );
 		ovalAuto2.setVisible( true );
-		auto2.bepaalFlexibiliteit();
+		auto2.f_bepaalFlexibiliteit();
 		
 		if (main.combo_energyManagerMode.getValue().equals("basic")) {
 			send("stop laden",auto2);
@@ -15133,6 +15136,30 @@ white]]></FillColorCode>
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1646294859546</Id>
+					<Name><![CDATA[p_avgTravelSpeed_kph]]></Name>
+					<X>200</X><Y>180</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[80]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1646294859544</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1644159898438</Id>
 					<Name><![CDATA[shownActivities]]></Name>
@@ -16383,6 +16410,7 @@ for( Tuple tup : tuples ) {
 	a.locEnd = tup.get ( db_activiteiten_1313.dest_loc );
 	a.leaveTime = tup.get ( db_activiteiten_1313.leave_time );
 	a.travelTime = tup.get ( db_activiteiten_1313.travel_time );
+	a.travelDistance_km = a.travelTime * p_avgTravelSpeed_kph / 60.0; 
 	a.beginTime = tup.get ( db_activiteiten_1313.begin_time );
 	a.endTime = tup.get ( db_activiteiten_1313.end_time );
 	a.episode = tup.get ( db_activiteiten_1313.episode_id);
@@ -17047,6 +17075,9 @@ return a;
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[modalityShort]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[travelDistance_km]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -22346,7 +22377,7 @@ currentTripDistance = 0;*/]]></EntryAction>
 					<Properties Source="1643556868348" Target="1643556868361" Trigger="message">
 						<Action><![CDATA[if ( elektrisch ){
 	socNaTrip();
-	bepaalFlexibiliteit();
+	f_bepaalFlexibiliteit();
 	send( "laden", this );
 }
 
@@ -22382,7 +22413,7 @@ currentTripDistance = 0;*/]]></EntryAction>
 					</Points>
 					<IconOffset>20.0</IconOffset>
 					<Properties Source="1643556868361" Target="1643556868350" Trigger="message">
-						<Action><![CDATA[bepaalFlexibiliteit();]]></Action>
+						<Action><![CDATA[f_bepaalFlexibiliteit();]]></Action>
 						<Timeout Class="CodeUnitValue">
 							<Code><![CDATA[1]]></Code>
 							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
@@ -22607,7 +22638,7 @@ else{
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1644160208315</Id>
-					<Name><![CDATA[bepaalFlexibiliteit]]></Name>
+					<Name><![CDATA[f_bepaalFlexibiliteit]]></Name>
 					<X>220</X><Y>410</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -22640,7 +22671,7 @@ if (autoID == 2 ) { // 2e auto kijkt alleen naar activiteiten 2e bewoner
 		else if ( activity1 == null && activity2 != null  ) {
 			nextActivity = activity2;
 		}
-		//Of als ze allebei nog weg gaan
+		//Of als ze allebei nog weg gaan, pak dan de eerstvolgende trip
 		else {
 			if( activity1.startMinute < activity2.startMinute ) {
 				nextActivity = activity1;
@@ -22653,14 +22684,14 @@ if (autoID == 2 ) { // 2e auto kijkt alleen naar activiteiten 2e bewoner
 }
 
 if ( nextActivity != null ) { 
-	currentTripDistance_km = nextActivity.travelTime * 3.0;
+	currentTripDistance_km = min(nextActivity.travelDistance_km,maxBatterijCap_kWh/energieverbruik_kWhpkm); // Limit trip distance to max range of vehicle
 	laadflexibiliteitTotVolgendVertrek_min = nextActivity.startMinute - time(MINUTE);
 	// Determine charging 'deadline' for next trip
 
 	//TODO: hardcoded for now
 	double energyMargin_pct = 15.0;
 		
-	double energyMargin_kWh = energyMargin_pct / 100 * maxBatterijCap_kWh;
+	double energyMargin_kWh = energyMargin_pct / 100.0 * maxBatterijCap_kWh;
 	double energyRequired_kWh = currentTripDistance_km * energieverbruik_kWhpkm;
 
 	v_chargingTarget_kWh = min(maxBatterijCap_kWh , energyRequired_kWh + energyMargin_kWh);
@@ -23216,7 +23247,7 @@ else {
 				<Variable Class="Parameter">
 					<Id>1643369499450</Id>
 					<Name><![CDATA[adult]]></Name>
-					<X>80</X><Y>420</Y>
+					<X>80</X><Y>450</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -23237,7 +23268,7 @@ else {
 				<Variable Class="Parameter">
 					<Id>1643369499453</Id>
 					<Name><![CDATA[beginTime]]></Name>
-					<X>80</X><Y>330</Y>
+					<X>80</X><Y>360</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -23258,7 +23289,7 @@ else {
 				<Variable Class="Parameter">
 					<Id>1643369499456</Id>
 					<Name><![CDATA[endTime]]></Name>
-					<X>80</X><Y>360</Y>
+					<X>80</X><Y>390</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -23322,7 +23353,7 @@ else {
 				<Variable Class="Parameter">
 					<Id>1643369499465</Id>
 					<Name><![CDATA[household]]></Name>
-					<X>80</X><Y>450</Y>
+					<X>80</X><Y>480</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -23343,7 +23374,7 @@ else {
 				<Variable Class="Parameter">
 					<Id>1643369499468</Id>
 					<Name><![CDATA[episode]]></Name>
-					<X>80</X><Y>390</Y>
+					<X>80</X><Y>420</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -23510,6 +23541,28 @@ else {
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1646294745321</Id>
+					<Name><![CDATA[travelDistance_km]]></Name>
+					<X>80</X><Y>330</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<UnitOfValue Class="TimeUnits"><![CDATA[MINUTE]]></UnitOfValue>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1646294745319</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 			</Variables>
 			<Functions>
 				<Function AccessType="default" StaticFunction="false">
@@ -23517,7 +23570,7 @@ else {
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1643369499416</Id>
 					<Name><![CDATA[processAlbatrossInput]]></Name>
-					<X>80</X><Y>490</Y>
+					<X>80</X><Y>520</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -23557,7 +23610,7 @@ else {
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1644079389912</Id>
 					<Name><![CDATA[getDistance]]></Name>
-					<X>80</X><Y>520</Y>
+					<X>80</X><Y>550</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -24129,7 +24182,6 @@ if ( carArray.size() > 0 ){
 		car.laadsnelheid_kW = maxAffordableChargingPower_kW;
 		huishouden.v_gridPowerBalAfterPV_kW += car.laadsnelheid_kW; // To ensure the 2nd EV in the household has the correct cost-curve
 	} // cars loop
-	//TODO: Bijhouden hoeveel er betaald is per kWh!
 } // are there any cars?]]></Body>
 				</Function>
 			</Functions>
@@ -25100,7 +25152,7 @@ else {
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[//Net metering
 
-//if selected, net metering is being used and selling prices equal buying prices
+//if not selected, net metering is being used and selling prices equal buying prices
 if( main.cb_netMetering.isSelected() ){
 	for( int i = 0; i < v_incentiveLength; i++ ) {
 		//v_incentiveKWNetMetering[i] = p_minHouseholdPowerKW + i;
