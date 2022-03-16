@@ -11275,6 +11275,21 @@ cvKetel = 1 - warmtepomp;]]></StartupCode>
 						</InitialValue>
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1647352913486</Id>
+					<Name><![CDATA[v_bidPriceHeatPump_eurpkWh]]></Name>
+					<X>830</X><Y>1640</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0.25]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
 				<Variable Class="AuxVariable">
 					<Id>1643191901308</Id>
 					<Name><![CDATA[fieVerlies_kW]]></Name>
@@ -13358,6 +13373,9 @@ basislastElektriciteitsverbruik_kW = uniform(0.2,1.8)*elektriciteitsverbruikFrac
 
 basislastVerbruiksFunctie();
 zonnepanelen.forEach(z -> z.pvPowerFunction());
+
+// Smart devices, managed in 'merit order' sequence
+// Heating
 f_slimmeThermostaat();
 warmtepompEVerbruik_kW = elektriciteitsvraagWarmtepomp_kW;
 
@@ -13434,23 +13452,17 @@ v_gemiddeldeStroomPrijs_eurpkWh = v_electricityBill_eur/v_totaalVerbruik_kWh;
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[//double tempSetpoint=(getMinute(date())+60*getHourOfDay(date()) > thermostaatStarttijd & getHourOfDay(date()) < thermostaatEindtijd ) ? setpointOverdag : setpointNacht;
-if (warmtepomp == 1) { // Slimme thermostaat functionaliteit
+					<Body><![CDATA[if (warmtepomp == 1) { // Slimme thermostaat functionaliteit
 	double T_margin = 2.0; // Hoeveel mag temp afwijken van setpoint om slimmer te verwarmen?
 	v_heatingPct = 0.0;
-		if (Twoning < setpointActief + T_margin) {
-		/*for (double power = 0 ; power < vermogenWarmtepomp_kW ; power += 0.5 ) {
-			if (main.incentiveGenerator.tf_incentivePowerCosts( basislastElektriciteitsverbruik_kW - pvOpwek_kW + power) < 0.2) { // Current incremental cost of electricity
-				v_heatingPct = power / vermogenWarmtepomp_kW;
-			}
-		}*/
+	if (Twoning < setpointActief + T_margin) {
+
 		double power = 0;
-		while( main.incentiveGenerator.tf_incentivePowerCosts( basislastElektriciteitsverbruik_kW - pvOpwek_kW + power) < 0.2 && power <= vermogenWarmtepomp_kW) {
+		while( main.incentiveGenerator.tf_incentivePowerCosts( basislastElektriciteitsverbruik_kW - pvOpwek_kW + power) < v_bidPriceHeatPump_eurpkWh && power <= vermogenWarmtepomp_kW) {
 			power += 0.5;
 		}
-		v_heatingPct = power / vermogenWarmtepomp_kW;
+	v_heatingPct = power / vermogenWarmtepomp_kW;
 	}
-//	v_heatingPct = Twoning < setpointActief ? 1 : 0;
 
 } else { // Gewoon aan/uit van CV-ketel
 	v_heatingPct = Twoning < setpointActief ? 1 : 0;
@@ -26866,8 +26878,7 @@ v_totalEnergyDemand_kWh = main.v_wijkTotaalEnergyVerbruik_kWh; //main.evVerbruik
 v_renewableEnergy_perc = main.pvOpwekJaartotaal / (v_totalEnergyDemand_kWh - ( sum(main.autos, x->x.huidigBatterijCap_kWh) - main.v_initialTotalBatteryCharge_kWh) ) * 100;
 //TODO 
 v_selfGeneratedEnergy_perc = ( 1 - main.v_wijkEnergyAfname_kWh / main.v_wijkTotaalEnergyVerbruik_kWh ) * 100;
-v_ownUsageGeneratedEnergy_perc = v_totalFeedInPower_kWh / main.pvOpwekJaartotaal * 100;
-
+v_ownUsageGeneratedEnergy_perc = ( 1 - v_totalFeedInPower_kWh / main.pvOpwekJaartotaal ) * 100;
 
 v_totalCostsHOLON_eur = sum(main.huishoudens, x->x.v_electricityBill_eur) + max(v_verzwaringskostenWijktrafoLeveringEUR,v_verzwaringskostenWijktrafoTerugleveringEUR);]]></Action>
 				</Event>
@@ -30830,9 +30841,9 @@ en duurzaamheid een totaal is.]]></Text>
 			</PresentationProperties>
 			<ModelTimeProperties>
 				<StopOption><![CDATA[Stop at specified time]]></StopOption>
-				<InitialDate><![CDATA[1651363200000]]></InitialDate>	
+				<InitialDate><![CDATA[1643673600000]]></InitialDate>	
 				<InitialTime><![CDATA[0.0]]></InitialTime>	
-				<FinalDate><![CDATA[1651968000000]]></FinalDate>	
+				<FinalDate><![CDATA[1644278400000]]></FinalDate>	
 				<FinalTime><![CDATA[168.0]]></FinalTime>	
 			</ModelTimeProperties>
 			<BypassInitialScreen>true</BypassInitialScreen>
