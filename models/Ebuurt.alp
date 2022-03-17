@@ -63,6 +63,10 @@
 				<Id>1647513785367</Id>
 				<Name><![CDATA[DistrictHeating]]></Name>
 			</Option>
+			<Option>
+				<Id>1647527374624</Id>
+				<Name><![CDATA[HeatPump_w_Boiler]]></Name>
+			</Option>
 		</OptionList>
 	</OptionLists>
 	<ActiveObjectClasses>
@@ -25718,7 +25722,7 @@ v_districtHeatAbsorbed_kWh += v_districtHeatAbsorption_kW * main.dt_h ;
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1647519308904</Id>
-					<Name><![CDATA[f_electricBoiler_heating]]></Name>
+					<Name><![CDATA[f_heatPumpBoiler_heating]]></Name>
 					<Description><![CDATA[@ Author: Gillis Hommen
 @ Since: 17/03/2022]]></Description>
 					<X>860</X><Y>350</Y>
@@ -25734,11 +25738,19 @@ v_districtHeatAbsorbed_kWh += v_districtHeatAbsorption_kW * main.dt_h ;
 						<Name><![CDATA[hotWaterRequest_kW]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
-					<Body><![CDATA[v_hotWaterProduction_kW = min(hotWaterRequest_kW,p_boilerMaxPower_kW) ;
-v_heatDelivery_kW = min(heatRequest_kW,p_boilerMaxPower_kW-v_hotWaterProduction_kW) ; // Hot water gets priority
-v_boilerPower_kW = v_hotWaterProduction_kW + v_heatDelivery_kW ; 
+					<Parameter>
+						<Name><![CDATA[Toutside]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
+					<Body><![CDATA[// Space heating
+double COP = tf_heatPumpCOP(Toutside);
+v_heatDelivery_kW = min(heatRequest_kW,vermogenWarmtepomp_kW*COP) ; 
+v_heatPumpPower_kW = v_heatDelivery_kW / COP ;
+v_heatPumpEnergyConsumed_kWh += v_heatPumpPower_kW * main.dt_h ;
 
-//v_districtHeatAbsorbed_kWh += v_districtHeatAbsorption_kW * main.dt_h ;
+// Hot water
+v_hotWaterProduction_kW = min(hotWaterRequest_kW,p_boilerMaxPower_kW) ;
+v_boilerPower_kW = v_hotWaterProduction_kW + v_heatDelivery_kW ; 
 ]]></Body>
 				</Function>
 			</Functions>
