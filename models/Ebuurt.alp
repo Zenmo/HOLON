@@ -2452,9 +2452,6 @@ traceln(mode); // TODO: remove this print line
 							<Name><![CDATA[setpointNacht]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[woningType]]></Name>
-						</Parameter>
-						<Parameter>
 							<Name><![CDATA[debietVentilatie_m3ph]]></Name>
 						</Parameter>
 						<Parameter>
@@ -2534,9 +2531,6 @@ traceln(mode); // TODO: remove this print line
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_energyManagerMode]]></Name>
-						</Parameter>
-						<Parameter>
-							<Name><![CDATA[woningOppervlakte_m2]]></Name>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[warmtecapaciteitHuis_kWhpK]]></Name>
@@ -11292,9 +11286,19 @@ for ( Auto a : autos ) {
 	a.f_bepaalFlexibiliteit();
 }
 
+// lookup-tabel om woningtypen (string) te koppelen aan een getal voor gebruik in tablefunction
+c_houseTypes.put("vrijstaand", 0);
+c_houseTypes.put("twee-onder-een-kap", 1);
+c_houseTypes.put("rijwoning hoek", 2);
+c_houseTypes.put("rijwoning tussen", 3);
+c_houseTypes.put("meergezins laag en midden", 4);
+c_houseTypes.put("meergezins hoog", 5);
+
 // Thermische parameters initialiseren
 debietVentilatie_m3ph = specifiekVentilatieDebiet_mph * p_floorSurfaceArea;
-schilOppervlakte_m2 = vormfactor(woningType)*p_floorSurfaceArea;
+schilOppervlakte_m2 = vormfactor(c_houseTypes.get(p_houseTypeString))*p_floorSurfaceArea;
+
+
 ]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -11551,7 +11555,7 @@ schilOppervlakte_m2 = vormfactor(woningType)*p_floorSurfaceArea;
 				<Variable Class="PlainVariable">
 					<Id>1647352913486</Id>
 					<Name><![CDATA[v_bidPriceLowHeatPump_eurpkWh]]></Name>
-					<X>830</X><Y>1640</Y>
+					<X>830</X><Y>1660</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -11575,6 +11579,111 @@ schilOppervlakte_m2 = vormfactor(woningType)*p_floorSurfaceArea;
 						<Type><![CDATA[double]]></Type>        
 						<InitialValue Class="CodeValue">
 							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1647860137932</Id>
+					<Name><![CDATA[v_Qwoning]]></Name>
+					<X>250</X><Y>1510</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[setpointNacht * warmtecapaciteitHuis_kWhpK]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1647860216017</Id>
+					<Name><![CDATA[v_Twoning]]></Name>
+					<X>250</X><Y>1550</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[setpointNacht]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1647860284485</Id>
+					<Name><![CDATA[v_dQdtWoning]]></Name>
+					<X>100</X><Y>1590</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[(v_fieInstraling_kW + v_heatingThermalPower_kW - v_fieVerlies_kW - v_fieVentilatie_kW)]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1647860306258</Id>
+					<Name><![CDATA[v_fieVentilatie_kW]]></Name>
+					<X>100</X><Y>1490</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[debietVentilatie_m3ph * second() *cpLucht_JpkgpK*roLucht_kgpm3*(Twoning-main.Tbuiten)/1000]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1647860403164</Id>
+					<Name><![CDATA[v_fieVerlies_kW]]></Name>
+					<X>100</X><Y>1520</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[(Twoning - main.Tbuiten) * schilOppervlakte_m2 / gemiddeldeR_m2KpW / 1000]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1647860622114</Id>
+					<Name><![CDATA[v_fieInstraling_kW]]></Name>
+					<X>100</X><Y>1550</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1647861075299</Id>
+					<Name><![CDATA[v_dtQuarterHour]]></Name>
+					<X>100</X><Y>1620</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0.25 * hour()]]></Code>
 						</InitialValue>
 					</Properties>
 				</Variable>
@@ -11633,6 +11742,21 @@ schilOppervlakte_m2 = vormfactor(woningType)*p_floorSurfaceArea;
 					<ShowLabel>true</ShowLabel>
 					<Properties External="false" Constant="false" Array="false">
 						<Formula><![CDATA[(getMinute(date())+60*getHourOfDay(date()) > thermostaatStarttijd & getHourOfDay(date()) < thermostaatEindtijd ) ? setpointOverdag : setpointNacht]]></Formula>
+						<Value><![CDATA[0]]></Value>
+						<Color/>
+					</Properties>
+
+				</Variable>
+				<Variable Class="AuxVariable">
+					<Id>1647861331038</Id>
+					<Name><![CDATA[Qwoning]]></Name>
+					<X>600</X><Y>1370</Y>
+					<Label><X>0</X><Y>-20</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties External="false" Constant="false" Array="false">
+						<Formula><![CDATA[Twoning * warmtecapaciteitHuis_kWhpK]]></Formula>
 						<Value><![CDATA[0]]></Value>
 						<Color/>
 					</Properties>
@@ -11887,31 +12011,6 @@ schilOppervlakte_m2 = vormfactor(woningType)*p_floorSurfaceArea;
 					</Properties>                 
 				</Variable>
 				<Variable Class="Parameter">
-					<Id>1643191901252</Id>
-					<Name><![CDATA[woningOppervlakte_m2]]></Name>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>80</X><Y>1211.442</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[double]]></Type>
-						<UnitType><![CDATA[NONE]]></UnitType>
-						<SdArray>false</SdArray>
-						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[normal(20,120)]]></Code>
-						</DefaultValue>
-						<ParameterEditor>
-							<Id>1643191901250</Id>
-							<EditorContolType>TEXT_BOX</EditorContolType>
-							<MinSliderValue><![CDATA[0]]></MinSliderValue>
-							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
-							<DelimeterType>NO_DELIMETER</DelimeterType>
-						</ParameterEditor>
-					</Properties>                 
-				</Variable>
-				<Variable Class="Parameter">
 					<Id>1643191901255</Id>
 					<Name><![CDATA[specifiekVentilatieDebiet_mph]]></Name>
 					<Description><![CDATA[m3/m2/h]]></Description>
@@ -12035,40 +12134,10 @@ schilOppervlakte_m2 = vormfactor(woningType)*p_floorSurfaceArea;
 					</Properties>                 
 				</Variable>
 				<Variable Class="Parameter">
-					<Id>1643191901300</Id>
-					<Name><![CDATA[woningType]]></Name>
-					<Description><![CDATA[0: vrijstaand
-1: 2-onder-1-kap
-2: rijwoning hoek
-3: rijwoning tussen
-4: galerijwoning
-5: appartement]]></Description>
-					<X>70</X><Y>1630</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[double]]></Type>
-						<UnitType><![CDATA[NONE]]></UnitType>
-						<SdArray>false</SdArray>
-						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[0]]></Code>
-						</DefaultValue>
-						<ParameterEditor>
-							<Id>1643191901298</Id>
-							<EditorContolType>TEXT_BOX</EditorContolType>
-							<MinSliderValue><![CDATA[0]]></MinSliderValue>
-							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
-							<DelimeterType>NO_DELIMETER</DelimeterType>
-						</ParameterEditor>
-					</Properties>                 
-				</Variable>
-				<Variable Class="Parameter">
 					<Id>1643191901303</Id>
 					<Name><![CDATA[debietVentilatie_m3ph]]></Name>
 					<Description><![CDATA[m3/s]]></Description>
-					<X>260</X><Y>1260</Y>
+					<X>230</X><Y>1270</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -12102,7 +12171,7 @@ schilOppervlakte_m2 = vormfactor(woningType)*p_floorSurfaceArea;
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[vormfactor(woningType)*p_floorSurfaceArea]]></Code>
+							<Code><![CDATA[0]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1643191901304</Id>
@@ -12720,6 +12789,21 @@ schilOppervlakte_m2 = vormfactor(woningType)*p_floorSurfaceArea;
 					</Properties>
 
 				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1647858633806</Id>
+					<Name><![CDATA[c_houseTypes]]></Name>
+					<X>40</X><Y>390</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[LinkedHashMap]]></CollectionClass>
+						<ElementClass><![CDATA[String]]></ElementClass>
+						<ValueElementClass><![CDATA[Integer]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
 			</Variables>
 			<Dependences>
 				<Link SourceId="1643191901310" TargetId="1643191901099" Polarity="null">
@@ -12815,10 +12899,10 @@ schilOppervlakte_m2 = vormfactor(woningType)*p_floorSurfaceArea;
 				<Link SourceId="1643191901303" TargetId="1643191901312" Polarity="null">
 					<Height>8.999</Height>
 					<PolarityPosition>0.95</PolarityPosition>
-					<Direction><X>130</X><Y>89</Y></Direction>
+					<Direction><X>160</X><Y>79</Y></Direction>
 					<Id>1643191901152</Id>
 					<Name><![CDATA[debietVentilatie_m3ph - fieVentilatie_kW]]></Name>
-					<X>260</X><Y>1260</Y>
+					<X>230</X><Y>1270</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -12992,7 +13076,578 @@ schilOppervlakte_m2 = vormfactor(woningType)*p_floorSurfaceArea;
 					<LineWidth>1</LineWidth>
 					<Delay>false</Delay>
 				</Link>
+				<Link SourceId="1643191901335" TargetId="1647861331038" Polarity="null">
+					<Height>20.0</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>30</X><Y>-48</Y></Direction>
+					<Id>1647862587207</Id>
+					<Name><![CDATA[Twoning - Qwoning]]></Name>
+					<X>570</X><Y>1418</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1647253610071" TargetId="1647861331038" Polarity="null">
+					<Height>0.0</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>520</X><Y>-20</Y></Direction>
+					<Id>1647862619490</Id>
+					<Name><![CDATA[warmtecapaciteitHuis_kWhpK - Qwoning]]></Name>
+					<X>80</X><Y>1390</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
 			</Dependences>
+			<ActionChartElements>
+				<ActionChartElement Class="ActionChart">
+					<Id>1647855470416</Id>
+					<Name><![CDATA[heatingCooling]]></Name>
+					<X>500</X><Y>1550</Y>
+					<Label><X>-30</X><Y>-10</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties AccessType="default" StaticFunction="false" Width="40" Height="20" Next="1647855470431" >
+						<FillColor/>
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					</Properties>
+				</ActionChartElement>
+				<ActionChartElement Class="Decision">
+					<Id>1647855470431</Id>
+					<Name><![CDATA[decision]]></Name>
+					<X>500</X><Y>1600</Y>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Comment><![CDATA[Initialization]]></Comment>
+					<Properties Width="100" Height="40" Appearance="0" Previous="1647855470416" Next="1647855470446" TrueAction="1647855470432" FalseAction="1647855470442" >
+						<FillColor/>
+						<Condition><![CDATA[false]]></Condition>
+					</Properties>
+				</ActionChartElement>
+				<ActionChartElement Class="ForLoop">
+					<Id>1647855470432</Id>
+					<Name><![CDATA[forLoop]]></Name>
+					<X>610</X><Y>1650</Y>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties CollectionIterator="false" Width="160" Height="30" Previous="1647855470431" Next="1647855470441" BodyAction="1647855470438" >
+						<FillColor/>
+
+						<Initializer><![CDATA[int i = 0]]></Initializer>
+						<Condition><![CDATA[i < 96]]></Condition>
+						<Counting><![CDATA[i++]]></Counting>
+					</Properties>
+				</ActionChartElement>
+				<ActionChartElement Class="Code">
+					<Id>1647855470438</Id>
+					<Name><![CDATA[code3]]></Name>
+					<X>610</X><Y>1700</Y>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Comment><![CDATA[Future thermal]]></Comment>
+					<Properties Width="100" Height="34" Previous="1647855470432" Next="1647855470439" >
+						<FillColor/>
+						<Code><![CDATA[/*ventilationCooling = 0;
+coolingPowerElectric = 0;
+//Space_heating_power_electric = 0;
+hpInflow = 0;
+heatExchangeEnvironment = 0;
+predictedCurrentHeatBalance = 0;
+internalHeatGain = 0;
+heatExchangeInfiltration = 0;
+heatExchangeVentilation = 0;
+heatInflowIrradiance = 0;
+integrer = 0;
+//Perc_irradiance = 0;
+
+//set temperature
+predictedOutsideTemp = temperatureData(startHour + time() + i/24); //add +24 when finalizing initialization
+predictedOutsideTempArray.add(predictedOutsideTemp);
+//predictedInsideTemp = insideTempArray(i);
+
+
+
+//set heat outflow
+double heatExchangeGlass= uWindows * (predictedInsideTemp - predictedOutsideTemp)/1000;
+double heatExchangeWall = uWalls * (predictedInsideTemp - predictedOutsideTemp)/1000;
+double heatExchangeRoof = uRoof * (predictedInsideTemp - predictedOutsideTemp)/1000;
+double heatExchangeFloor = uFloor * (predictedInsideTemp - predictedOutsideTemp)/1000;
+
+//traceln(orchid, uWindows * (21 + 5)/1000);
+//traceln(indigo, uWalls * (21 + 5)/1000);
+//traceln(navy, uRoof * (21 + 5)/1000);
+//traceln(steelBlue, uFloor * (21 + 5)/1000);
+
+heatExchangeEnvironment= - ( heatExchangeGlass + heatExchangeWall + heatExchangeRoof + heatExchangeFloor);
+
+heatExchangeInfiltration = - 1 * 1.276 * airInfiltration * (predictedInsideTemp - predictedOutsideTemp)/1000; //kW
+heatExchangeVentilation =  - 1 * cpAir * rhoAir * flowRateVentilation * (predictedInsideTemp - predictedOutsideTemp); // kW
+
+traceln(crimson, cpAir * rhoAir * flowRateVentilation * (20 + 5));
+
+
+// Heat inflow via irradiance
+if (main.sunAltitude.get(i) > 0) {
+	horizontalCompIrradiance = irradiance2018(startHour + time() + i)/tan(toRadians(main.sunAltitude.get(i)));
+	surfaceIrradianceNorth = max(0, horizontalCompIrradiance*sin(toRadians(main.sunAzimuth.get(i)))); 
+	surfaceIrradianceEast = max(0, horizontalCompIrradiance*sin(toRadians(main.sunAzimuth.get(i)) + 0.5*PI));  
+	surfaceIrradianceSouth = max(0, horizontalCompIrradiance*sin(toRadians(main.sunAzimuth.get(i)) + PI)); 
+	surfaceIrradianceWest = max(0, horizontalCompIrradiance*sin(toRadians(main.sunAzimuth.get(i)) + 1.5*PI)); 
+
+	heatInflowIrradiance = shgc*(surfaceIrradianceNorth * glassArea/4 + surfaceIrradianceEast * glassArea/4 + surfaceIrradianceSouth * glassArea/4 + surfaceIrradianceWest * glassArea/4);
+}
+else {
+	heatInflowIrradiance = 0;
+}
+
+integrer = main.getMonth()*24 + main.getHourOfDay();
+//percIrradiance = irradiance2018(main.startHour + time() + 24)/maxMonthlyIrradiance(main.getMonth());
+//Now: only assume south, change later!!!!!!
+//heatInflowIrradiance = percIrradiance * southIrradiance(Integrer) * Reduction_factor/1000* glassArea/3;
+
+heatDemand = heatExchangeEnvironment + heatExchangeInfiltration + heatExchangeVentilation;
+
+//set tempVariation to night or day
+bottomTempVariation = i/4 < 6 && i/4 > 22 ? tempVariationNight : tempVariationDay;
+
+if (predictedInsideTemp < wantedInsideTemp - bottomTempVariation) {
+	predictedStatusHouse = "heating";
+}
+if (predictedStatusHouse == "heating" && predictedInsideTemp >= wantedInsideTemp + topTempVariation/2){
+		predictedStatusHouse = "no heating or cooling needed";
+}
+
+
+//Measures for passive cooling (Ventilation through windows and sun protection)
+if (predictedInsideTemp > predictedOutsideTemp && predictedInsideTemp > wantedInsideTemp + topTempVariation) {
+	predictedStatusHouse = "ventilation cooling";
+	ventilationCooling = heatExchangeVentilation; 
+	//Opening additional ventilation windows, figure of 4 derived from https://www.researchgate.net/publication/278820233_Free-running_temperature_and_potential_for_free_cooling_by_ventilation_a_case_study
+	//5 = Air change rate https://www.sciencedirect.com/science/article/pii/S0378778803000975?via%3Dihub#BIB3
+	//traceln("Ventilation cooling is used by " + this);
+}
+if (predictedStatusHouse == "ventilation cooling" && predictedInsideTemp < predictedOutsideTemp){
+	predictedStatusHouse = "additional cooling needed";
+}
+
+//Additional heating
+if (predictedInsideTemp > wantedInsideTemp + topTempVariation){ 
+	if (predictedOutsideTemp > tempSpaceCoolingWater) {
+		predictedStatusHouse = "cooling";
+		//traceln(this + " is cooling");
+	}
+	if (predictedOutsideTemp <= tempSpaceCoolingWater){
+		predictedStatusHouse = "additional ventilation cooling required";
+		ventilationCooling = ventilationCooling + 5 * heatExchangeVentilation;
+		//traceln(this + " additional ventilation cooling requried");	
+	}
+	if (predictedInsideTemp > wantedInsideTemp + 6 * topTempVariation/2){ //if it gets to hot, both measures are required simultaniously. Make sure COP_cooling does not get below 0
+		predictedStatusHouse = "cooling";
+	}		
+}
+
+if (predictedStatusHouse =="ventilation cooling" && predictedInsideTemp <= wantedInsideTemp){
+	predictedStatusHouse = "no heating or cooling needed";
+}
+if (predictedStatusHouse == "additional ventilation cooling required" && predictedInsideTemp <= wantedInsideTemp){
+	predictedStatusHouse = "no heating or cooling needed";
+}
+if (predictedStatusHouse == "cooling" && predictedInsideTemp <= wantedInsideTemp){
+	predictedStatusHouse = "no heating or cooling needed";
+}
+
+predictedHeatPumpLoad();
+
+
+
+// Heat balance
+heatDemandArray.add(heatDemand);
+
+predictedCurrentHeatBalance = heatDemand + hpInflow + ventilationCooling + heatInflowIrradiance; //in kW
+predictedHeatBalance = predictedHeatBalance + predictedCurrentHeatBalance/4; //in kWh
+predictedTempDifference = ((predictedCurrentHeatBalance/4) / internalHeatCapacity );
+predictedInsideTemp = predictedInsideTemp + predictedTempDifference;
+
+//Set values in arrays
+insideTempArray.add(predictedInsideTemp);
+predictedDeltaHeatBalanceArray.add(predictedCurrentHeatBalance);
+heatBalanceArray.add(predictedHeatBalance);
+predictedHeatExchangeArray.add(heatExchangeEnvironment + heatExchangeInfiltration + internalHeatGain + heatExchangeVentilation);
+predictedHeatInflowArray.add(heatInflowIrradiance);
+
+
+hpElectricity.add(hpInflow/COPSpaceHeating + coolingPowerElectric);
+
+
+/* 
+// Electricity consumption
+predictedSpaceHeatingArray.add(Space_heating_power_electric + Cooling_power_electric);
+predictedHeatPumpConsumptionArray.set(i, predictedHeatPumpConsumptionArray.get(i) + Space_heating_power_electric + Cooling_power_electric);
+totalElectricityConsumptionArray.set(i, totalElectricityConsumptionArray.get(i) + Space_heating_power_electric + Cooling_power_electric);
+*/
+]]></Code>
+					</Properties>	
+				</ActionChartElement>
+				<ActionChartElement Class="Code">
+					<Id>1647855470439</Id>
+					<Name><![CDATA[code7]]></Name>
+					<X>610</X><Y>1754</Y>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Comment><![CDATA[Future DHW]]></Comment>
+					<Properties Width="100" Height="30" Previous="1647855470438" Next="1647855470440" >
+						<FillColor/>
+						<Code><![CDATA[/*if (hpHouse) {
+	bufferTank.bufferSetup();
+
+	bufferTank.bufferSetStatus();
+
+	if (hpInflow == 0 && bufferTank.bufferStatus.equals("Charging optional")) {
+		hpInflowBuffer = bufferTank.copDHW * ratedElectricPowerHpHeating;	
+	}
+}
+ */]]></Code>
+					</Properties>	
+				</ActionChartElement>
+				<ActionChartElement Class="Code">
+					<Id>1647855470440</Id>
+					<Name><![CDATA[code5]]></Name>
+					<X>610</X><Y>1804</Y>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Comment><![CDATA[Future elect]]></Comment>
+					<Properties Width="100" Height="30" Previous="1647855470439" >
+						<FillColor/>
+						<Code><![CDATA[/*predictedIrradiancePV = irradiance2018(startHour + time() + i/24);
+
+if (!woningtype.equals("other")){
+	baseLoad = householdDemandProfile(startHour + time() + i/24)*baseloadFactor;
+
+	if (pvHouse == true){
+		calculatePvProduction();
+	}
+	else {
+		predictedPvProduction = 0;
+	}
+}
+
+predictedPvProductionArray.add(predictedPvProduction);
+
+predictedBaseLoadConsumptionArray.add(baseLoad);
+*/]]></Code>
+					</Properties>	
+				</ActionChartElement>
+				<ActionChartElement Class="Code">
+					<Id>1647855470441</Id>
+					<Name><![CDATA[code]]></Name>
+					<X>610</X><Y>1874</Y>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Comment><![CDATA[Add_time]]></Comment>
+					<Properties Width="100" Height="30" Previous="1647855470432" >
+						<FillColor/>
+						<Code><![CDATA[/*quarterOfDay = 1;
+helpCount = 1;*/]]></Code>
+					</Properties>	
+				</ActionChartElement>
+				<ActionChartElement Class="Code">
+					<Id>1647855470442</Id>
+					<Name><![CDATA[code2]]></Name>
+					<X>430</X><Y>1650</Y>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Comment><![CDATA[HeatBalance]]></Comment>
+					<Properties Width="100" Height="30" Previous="1647855470431" Next="1647855470443" >
+						<FillColor/>
+						<Code><![CDATA[v_fieVentilatie_kW = debietVentilatie_m3ph * second() *cpLucht_JpkgpK*roLucht_kgpm3*(Twoning-main.Tbuiten)/1000;
+v_fieVerlies_kW = (Twoning - main.Tbuiten) * schilOppervlakte_m2 / gemiddeldeR_m2KpW / 1000;
+v_fieInstraling_kW = 0;
+
+
+
+v_dQdtWoning = v_fieInstraling_kW + v_heatingThermalPower_kW - v_fieVerlies_kW - v_fieVentilatie_kW;
+
+v_Qwoning += v_dQdtWoning * v_dtQuarterHour;
+v_Twoning = v_Qwoning / warmtecapaciteitHuis_kWhpK;
+
+/*//Load current values and calculate energy usage
+tempInside = insideTempArray.get(0);
+tempOutside = predictedOutsideTempArray.get(0);
+
+hpElectricityUsage = hpElectricity.get(0)/4; //kWh
+currentHeatDemand = heatDemandArray.get(0)/4; //kWh
+baseLoadConsumption = predictedBaseLoadConsumptionArray.get(0)/4;
+pvProduction = predictedPvProductionArray.get(0)/4;
+
+totalHpElectricityUsage = totalHpElectricityUsage + hpElectricityUsage;
+totalBaseLoadConsumption = totalBaseLoadConsumption + baseLoadConsumption;
+totalElectricityUsage = totalElectricityUsage + hpElectricityUsage + baseLoadConsumption; 
+totalPvProduction = totalPvProduction + pvProduction;
+totalHeatDemand = totalHeatDemand + currentHeatDemand;
+
+imbalanceElectricity = pvProduction - baseLoadConsumption;
+
+//tempOutside
+*/]]></Code>
+					</Properties>	
+				</ActionChartElement>
+				<ActionChartElement Class="Code">
+					<Id>1647855470443</Id>
+					<Name><![CDATA[code1]]></Name>
+					<X>430</X><Y>1700</Y>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Comment><![CDATA[Future thermal]]></Comment>
+					<Properties Width="100" Height="30" Previous="1647855470442" Next="1647855470444" >
+						<FillColor/>
+						<Code><![CDATA[
+/*
+ventilationCooling = 0;
+coolingPowerElectric = 0;
+spaceHeatingPowerElectric = 0;
+hpInflow = 0;
+heatExchangeEnvironment = 0;
+predictedCurrentHeatBalance = 0;
+internalHeatGain = 0;
+heatExchangeInfiltration = 0;
+heatExchangeVentilation = 0;
+heatInflowIrradiance = 0;
+integrer = 0;
+//Perc_irradiance = 0;
+
+//set temperature
+predictedOutsideTemp = temperatureData(startHour + time() + 24); //add +24 when finalizing initialization
+predictedOutsideTempArray.add(predictedOutsideTemp);
+predictedOutsideTempArray.remove(0);
+
+
+//set heat outflow
+double heatExchangeGlass= uWindows * (predictedInsideTemp - predictedOutsideTemp)/1000;
+double heatExchangeWall = uWalls * (predictedInsideTemp - predictedOutsideTemp)/1000;
+double heatExchangeRoof = uRoof * (predictedInsideTemp - predictedOutsideTemp)/1000;
+double heatExchangeFloor = uFloor * (predictedInsideTemp - predictedOutsideTemp)/1000;
+
+
+heatExchangeEnvironment= -1 * ( heatExchangeGlass + heatExchangeWall + heatExchangeRoof + heatExchangeFloor);
+
+
+
+heatExchangeInfiltration = - 1 * 1.276 * airInfiltration * (predictedInsideTemp - predictedOutsideTemp)/1000; //kW
+heatExchangeVentilation =  - 1 * cpAir * rhoAir * flowRateVentilation * (predictedInsideTemp - predictedOutsideTemp); // kW
+
+// Heat inflow via irradiance
+integrer = main.getMonth()*24 + main.getHourOfDay();
+//percIrradiance = irradiance2018(main.startHour + time() + 24)/maxMonthlyIrradiance(main.getMonth());
+//Now: only assume south, change later!!!!!!
+//heatInflowIrradiance = percIrradiance * southIrradiance(Integrer) * Reduction_factor/1000* glassArea/3;
+
+heatDemand = heatExchangeEnvironment + heatExchangeInfiltration + heatExchangeVentilation;
+
+//set tempVariation to night or day
+bottomTempVariation = getHourOfDay() < 6 || getHourOfDay() > 22 ? tempVariationNight : tempVariationDay;
+
+if (predictedInsideTemp < wantedInsideTemp - bottomTempVariation) {
+	predictedStatusHouse = "heating";
+}
+if (predictedStatusHouse == "heating" && predictedInsideTemp >= wantedInsideTemp + topTempVariation/2){
+		predictedStatusHouse = "no heating or cooling needed";
+}
+
+
+//Measures for passive cooling (Ventilation through windows and sun protection)
+if (predictedInsideTemp > predictedOutsideTemp && predictedInsideTemp > wantedInsideTemp + topTempVariation) {
+	predictedStatusHouse = "ventilation cooling";
+	ventilationCooling = heatExchangeVentilation; 
+	//Opening additional ventilation windows, figure of 4 derived from https://www.researchgate.net/publication/278820233_Free-running_temperature_and_potential_for_free_cooling_by_ventilation_a_case_study
+	//5 = Air change rate https://www.sciencedirect.com/science/article/pii/S0378778803000975?via%3Dihub#BIB3
+	//traceln("Ventilation cooling is used by " + this);
+}
+if (predictedStatusHouse == "ventilation cooling" && predictedInsideTemp < predictedOutsideTemp){
+	predictedStatusHouse = "additional cooling needed";
+}
+
+//Additional heating
+if (predictedInsideTemp > wantedInsideTemp + topTempVariation){ 
+	if (predictedOutsideTemp > tempSpaceCoolingWater) {
+		predictedStatusHouse = "cooling";
+		//traceln(this + " is cooling");
+	}
+	if (predictedOutsideTemp <= tempSpaceCoolingWater){
+		predictedStatusHouse = "additional ventilation cooling required";
+		ventilationCooling = ventilationCooling + 5 * heatExchangeVentilation;
+		//traceln(this + " additional ventilation cooling requried");	
+	}
+	if (predictedInsideTemp > wantedInsideTemp + 6 * topTempVariation/2){ //if it gets to hot, both measures are required simultaniously. Make sure COP_cooling does not get below 0
+		predictedStatusHouse = "cooling";
+	}		
+}
+
+if (predictedStatusHouse =="ventilation cooling" && predictedInsideTemp <= wantedInsideTemp){
+	predictedStatusHouse = "no heating or cooling needed";
+}
+if (predictedStatusHouse == "additional ventilation cooling required" && predictedInsideTemp <= wantedInsideTemp){
+	predictedStatusHouse = "no heating or cooling needed";
+}
+if (predictedStatusHouse == "cooling" && predictedInsideTemp <= wantedInsideTemp){
+	predictedStatusHouse = "no heating or cooling needed";
+}
+
+predictedHeatPumpLoad();
+
+heatDemandArray.add(heatDemand);
+heatDemandArray.remove(0);
+
+
+predictedCurrentHeatBalance = heatDemand + hpInflow + ventilationCooling + heatInflowIrradiance;
+predictedTempDifference = ((predictedCurrentHeatBalance/4)/internalHeatCapacity);
+
+//predictedCurrentHeatBalance = predictedCurrentHeatBalance + hpInflow + ventilationCooling;
+//predictedHeatBalance = predictedHeatBalance + (predictedCurrentHeatBalance/4); //in kWh
+//predictedTempDifference = ((predictedCurrentHeatBalance/4) / internalHeatCapacity );
+
+predictedInsideTemp = predictedInsideTemp + predictedTempDifference;
+
+//Set values in arrays
+insideTempArray.add(predictedInsideTemp);
+insideTempArray.remove(0);
+predictedDeltaHeatBalanceArray.add(predictedCurrentHeatBalance);
+predictedDeltaHeatBalanceArray.remove(0);
+predictedHeatExchangeArray.add(heatExchangeEnvironment + heatExchangeInfiltration + internalHeatGain + heatExchangeVentilation); //toDo: chekc internalHeatGain
+predictedHeatExchangeArray.remove(0);
+predictedHeatInflowArray.add(heatInflowIrradiance); //toDo: add heating
+predictedHeatInflowArray.remove(0);
+
+
+hpElectricity.add(hpInflow/COPSpaceHeating + coolingPowerElectric);;
+hpElectricity.remove(0);
+// Heat balance
+heatBalanceArray.add(predictedHeatBalance);
+heatBalanceArray.remove(0);
+
+*/
+]]></Code>
+					</Properties>	
+				</ActionChartElement>
+				<ActionChartElement Class="Code">
+					<Id>1647855470444</Id>
+					<Name><![CDATA[code6]]></Name>
+					<X>430</X><Y>1750</Y>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Comment><![CDATA[Future elect]]></Comment>
+					<Properties Width="100" Height="30" Previous="1647855470443" Next="1647855470445" >
+						<FillColor/>
+						<Code><![CDATA[/*predictedIrradiancePV = irradiance2018(startHour + time() + 24);
+
+
+if (!woningtype.equals("other")){
+	baseLoad = householdDemandProfile(startHour + time() + 24)* baseloadFactor;
+	
+	if (pvHouse == true){
+		calculatePvProduction();
+	}
+	else {
+		predictedPvProduction = 0;
+	}
+}
+
+predictedPvProductionArray.add(predictedPvProduction);
+predictedPvProductionArray.remove(0);
+
+predictedBaseLoadConsumptionArray.add(baseLoad);
+predictedBaseLoadConsumptionArray.remove(0);*/]]></Code>
+					</Properties>	
+				</ActionChartElement>
+				<ActionChartElement Class="Code">
+					<Id>1647855470445</Id>
+					<Name><![CDATA[code4]]></Name>
+					<X>430</X><Y>1800</Y>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Comment><![CDATA[Time count]]></Comment>
+					<Properties Width="100" Height="30" Previous="1647855470444" >
+						<FillColor/>
+						<Code><![CDATA[/*
+quarterOfDay ++;
+helpCount ++;
+
+if (helpCount == 4 ) {
+	simulationHour ++;
+	 ++;
+	if (hourOfDay == 24){
+		hourOfDay = 0;
+	}
+	
+	helpCount = 0;
+	}
+	*/]]></Code>
+					</Properties>	
+				</ActionChartElement>
+				<ActionChartElement Class="Return">
+					<Id>1647855470446</Id>
+					<Name><![CDATA[returnStatement]]></Name>
+					<X>500</X><Y>1944</Y>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties Width="80" Height="20" Previous="1647855470431" >
+						<FillColor/>
+					</Properties>	
+				</ActionChartElement>
+			</ActionChartElements>
+			<Events>
+				<Event>
+					<Id>1647860731907</Id>
+					<Name><![CDATA[e_calcHeatingCooling]]></Name>
+					<X>510</X><Y>1510</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties TriggerType="timeout" Mode="cyclic">
+						<Timeout Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+						</Timeout>
+						<Rate Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="RateUnits"><![CDATA[PER_HOUR]]></Unit>
+						</Rate>
+						<OccurrenceAtTime>true</OccurrenceAtTime>
+						<OccurrenceDate>1647936000000</OccurrenceDate>
+						<OccurrenceTime Class="CodeUnitValue">
+							<Code><![CDATA[0]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+						</OccurrenceTime>
+						<RecurrenceCode Class="CodeUnitValue">
+							<Code><![CDATA[0.25]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+						</RecurrenceCode>
+						<Condition><![CDATA[false]]></Condition>
+					</Properties>
+					<Action><![CDATA[heatingCooling();]]></Action>
+				</Event>
+			</Events>
 			<Functions>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -13147,7 +13802,8 @@ zonnepanelen.forEach(z -> z.pvPowerFunction());
 
 // Smart devices, managed in 'merit order' sequence
 // Heating
-f_slimmeThermostaat();
+//f_slimmeThermostaat();   // gebruikt Twoning uit SD-warmtemodel
+f_slimmeThermostaatEvent(); // gebruikt v_Twoning uit eventbased warmtemodel
 
 // EV charging
 v_gridPowerBalAfterPV_kW = basislastElektriciteitsverbruik_kW + heatingSystem.v_heatPumpPower_kW - pvOpwek_kW;
@@ -13244,6 +13900,41 @@ v_gemiddeldeStroomPrijs_eurpkWh = v_electricityBill_eur/v_totaalVerbruik_kWh;
 
 heatingSystem.f_heatingFunction(v_heatRequest_kW, 0, p_heatingSystemType,main.Tbuiten);
 v_heatingThermalPower_kW = heatingSystem.v_heatDelivery_kW ;]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1647862696862</Id>
+					<Name><![CDATA[f_slimmeThermostaatEvent]]></Name>
+					<X>830</X><Y>1630</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[if (p_heatingSystemType == HeatingTypes.HeatPump) { // Slimme thermostaat functionaliteit
+	double T_margin = 2.0; // Hoeveel mag temp afwijken van setpoint om slimmer te verwarmen?
+	//v_heatingPct = 0.0;
+	if (v_Twoning < setpointActief ) { // Verwarmen als temp onder setpoint komt
+		v_heatRequest_kW = heatingSystem.vermogenWarmtepomp_kW;
+	} else if (v_Twoning < setpointActief + T_margin) { // Flexibiliteit: verder doorverwarmen als prijs laag genoeg is
+
+		double power = 0;
+		while( main.incentiveGenerator.tf_incentivePowerCosts( basislastElektriciteitsverbruik_kW - pvOpwek_kW + power) < v_bidPriceLowHeatPump_eurpkWh && power < heatingSystem.vermogenWarmtepomp_kW) {
+			power += 0.5;
+		}
+		v_heatingPct = power / heatingSystem.vermogenWarmtepomp_kW;
+		v_heatRequest_kW = power;
+		//traceln("opportunity heating!");
+	} else {
+		v_heatRequest_kW = 0;
+	}
+} else { // Gewoon aan/uit van CV-ketel
+	v_heatingPct = v_Twoning < setpointActief ? 1 : 0;
+	v_heatRequest_kW = heatingSystem.vermogenCv_kW * v_heatingPct;
+}
+
+heatingSystem.f_heatingFunction(v_heatRequest_kW, 0, p_heatingSystemType);
+v_heatingThermalPower_kW = heatingSystem.v_heatProduction_kW ;]]></Body>
 				</Function>
 			</Functions>
 			<TableFunctions>
@@ -14385,6 +15076,83 @@ white]]></FillColorCode>
 						<LineWidth>1.0</LineWidth>
 					</DatasetExpression>
 					<SamplesToKeep>500</SamplesToKeep>
+					<TimeWindowExpression><![CDATA[100]]></TimeWindowExpression>
+					<FillAreaUnderLine>false</FillAreaUnderLine>
+					<LabelFormat>MODEL_TIME_UNITS</LabelFormat>
+    			</TimePlot>
+    			<TimePlot>
+					<Id>1647861749843</Id>
+					<Name><![CDATA[plot1]]></Name>
+					<X>40</X><Y>1680</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<AutoUpdate>true</AutoUpdate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1647936000000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</RecurrenceCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Width>260</Width>
+					<Height>210</Height>
+					<BackgroundColor/>
+					<BorderColor/>
+					<ChartArea>
+						<XOffset>50</XOffset>
+						<YOffset>30</YOffset>
+						<Width>180</Width>
+						<Height>120</Height>
+						<BackgroundColor>-1</BackgroundColor>
+						<BorderColor>-16777216</BorderColor>
+						<GridColor>-12566464</GridColor>
+					</ChartArea>
+					<Legend>
+						<Place>SOUTH</Place>
+						<TextColor>-16777216</TextColor>
+						<Size>30</Size>
+					</Legend>
+					<Labels>
+						<HorLabelsPosition>DEFAULT</HorLabelsPosition>
+						<VerLabelsPosition>DEFAULT</VerLabelsPosition>
+						<TextColor>-12566464</TextColor>
+					</Labels>
+					<ShowLegend>true</ShowLegend>
+					<TimeWindowsMovementType>MOVEMENT_WITH_TIME</TimeWindowsMovementType>		
+					<TimeWindowUnits>MODEL_TIME_UNIT</TimeWindowUnits>
+					<VerScaleFromExpression><![CDATA[0]]></VerScaleFromExpression>
+					<VerScaleToExpression><![CDATA[1]]></VerScaleToExpression>
+					<VerScaleType>AUTO</VerScaleType>
+					<DrawLine>true</DrawLine>
+					<Interpolation>LINEAR</Interpolation>
+					<DatasetExpression>  
+						<Title><![CDATA[Twoning_SD]]></Title>
+					<Id>0</Id>
+					<Expression><![CDATA[my_dataset]]></Expression>
+					<Color>-3137392</Color>
+					<Expression2><![CDATA[Twoning]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>
+						<PointStyle>NONE</PointStyle>
+						<LineWidth>1.0</LineWidth>
+					</DatasetExpression>
+					<DatasetExpression>  
+						<Title><![CDATA[Twoning_event]]></Title>
+					<Id>0</Id>
+					<Expression><![CDATA[my_dataset1]]></Expression>
+					<Color>-32944</Color>
+					<Expression2><![CDATA[v_Twoning]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>
+						<PointStyle>NONE</PointStyle>
+						<LineWidth>1.0</LineWidth>
+					</DatasetExpression>
+					<SamplesToKeep>100</SamplesToKeep>
 					<TimeWindowExpression><![CDATA[100]]></TimeWindowExpression>
 					<FillAreaUnderLine>false</FillAreaUnderLine>
 					<LabelFormat>MODEL_TIME_UNITS</LabelFormat>
