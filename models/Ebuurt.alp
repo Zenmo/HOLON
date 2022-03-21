@@ -67,6 +67,10 @@
 				<Id>1647527374624</Id>
 				<Name><![CDATA[HeatPump_w_Boiler]]></Name>
 			</Option>
+			<Option>
+				<Id>1647859570758</Id>
+				<Name><![CDATA[DistrictHeating_w_Boiler]]></Name>
+			</Option>
 		</OptionList>
 	</OptionLists>
 	<ActiveObjectClasses>
@@ -1173,7 +1177,7 @@ f_setTrafoMinPower(p_connectionCapacityPerHousehold);
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[1]]></Code>
+							<Code><![CDATA[1.5]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1646150686650</Id>
@@ -2996,16 +3000,16 @@ traceln(mode); // TODO: remove this print line
 					</GenericParameterSubstitute>
 					<Parameters>
 						<Parameter>
-							<Name><![CDATA[rendementCv]]></Name>
+							<Name><![CDATA[p_efficiencyGasBurner_f]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[vermogenCv_kW]]></Name>
+							<Name><![CDATA[p_powerGasBurner_kW]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[vermogenWarmtepomp_kW]]></Name>
+							<Name><![CDATA[p_powerHeatPump_kW]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[energiewaardeGas_kWhpm3]]></Name>
+							<Name><![CDATA[p_energyDensityGas_kWhpm3]]></Name>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_parent]]></Name>
@@ -3015,6 +3019,9 @@ traceln(mode); // TODO: remove this print line
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_boilerMaxPower_kW]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_hybridCOPtreshold_f]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>false</ReplicationFlag>
@@ -13092,22 +13099,22 @@ v_gemiddeldeStroomPrijs_eurpkWh = v_electricityBill_eur/v_totaalVerbruik_kWh;
 	double T_margin = 2.0; // Hoeveel mag temp afwijken van setpoint om slimmer te verwarmen?
 	//v_heatingPct = 0.0;
 	if (Twoning < setpointActief ) { // Verwarmen als temp onder setpoint komt
-		v_heatRequest_kW = heatingSystem.vermogenWarmtepomp_kW;
+		v_heatRequest_kW = heatingSystem.p_powerHeatPump_kW;
 	} else if (main.cb_slimVerwarmen.isSelected() && p_heatingSystemType == HeatingTypes.HeatPump && Twoning < setpointActief + T_margin) { // Flexibiliteit: verder doorverwarmen als prijs laag genoeg is
 
 		double power = 0;
-		while( main.incentiveGenerator.tf_incentivePowerCosts( basislastElektriciteitsverbruik_kW - pvOpwek_kW + power) < v_bidPriceLowHeatPump_eurpkWh && power < heatingSystem.vermogenWarmtepomp_kW) {
+		while( main.incentiveGenerator.tf_incentivePowerCosts( basislastElektriciteitsverbruik_kW - pvOpwek_kW + power) < v_bidPriceLowHeatPump_eurpkWh && power < heatingSystem.p_powerHeatPump_kW) {
 			power += 0.5;
 		}
-		v_heatingPct = power / heatingSystem.vermogenWarmtepomp_kW;
-		v_heatRequest_kW = power*heatingSystem.tf_heatPumpCOP(main.Tbuiten);
+		v_heatingPct = power / heatingSystem.p_powerHeatPump_kW;
+		v_heatRequest_kW = power*heatingSystem.tf_heatPumpCOPspaceHeating(main.Tbuiten);
 		//traceln("opportunity heating!");
 	} else {
 		v_heatRequest_kW = 0;
 	}
 } else { // Gewoon aan/uit van CV-ketel
 	v_heatingPct = Twoning < setpointActief ? 1 : 0;
-	v_heatRequest_kW = heatingSystem.vermogenCv_kW * v_heatingPct;
+	v_heatRequest_kW = heatingSystem.p_powerGasBurner_kW * v_heatingPct;
 }
 
 heatingSystem.f_heatingFunction(v_heatRequest_kW, 0, p_heatingSystemType,main.Tbuiten);
@@ -13390,16 +13397,16 @@ v_heatingThermalPower_kW = heatingSystem.v_heatDelivery_kW ;]]></Body>
 					</GenericParameterSubstitute>
 					<Parameters>
 						<Parameter>
-							<Name><![CDATA[rendementCv]]></Name>
+							<Name><![CDATA[p_efficiencyGasBurner_f]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[vermogenCv_kW]]></Name>
+							<Name><![CDATA[p_powerGasBurner_kW]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[vermogenWarmtepomp_kW]]></Name>
+							<Name><![CDATA[p_powerHeatPump_kW]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[energiewaardeGas_kWhpm3]]></Name>
+							<Name><![CDATA[p_energyDensityGas_kWhpm3]]></Name>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_parent]]></Name>
@@ -13412,6 +13419,9 @@ v_heatingThermalPower_kW = heatingSystem.v_heatDelivery_kW ;]]></Body>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_boilerMaxPower_kW]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_hybridCOPtreshold_f]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>false</ReplicationFlag>
@@ -25388,7 +25398,7 @@ f_updateTariffs();]]></ActionCode>
 				</Variable>
 				<Variable Class="Parameter">
 					<Id>1647448450322</Id>
-					<Name><![CDATA[rendementCv]]></Name>
+					<Name><![CDATA[p_efficiencyGasBurner_f]]></Name>
 					<X>70</X><Y>440</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -25412,7 +25422,7 @@ f_updateTariffs();]]></ActionCode>
 				</Variable>
 				<Variable Class="Parameter">
 					<Id>1647448450325</Id>
-					<Name><![CDATA[vermogenCv_kW]]></Name>
+					<Name><![CDATA[p_powerGasBurner_kW]]></Name>
 					<X>70</X><Y>380</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -25436,7 +25446,7 @@ f_updateTariffs();]]></ActionCode>
 				</Variable>
 				<Variable Class="Parameter">
 					<Id>1647448450328</Id>
-					<Name><![CDATA[vermogenWarmtepomp_kW]]></Name>
+					<Name><![CDATA[p_powerHeatPump_kW]]></Name>
 					<X>260</X><Y>380</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -25460,7 +25470,7 @@ f_updateTariffs();]]></ActionCode>
 				</Variable>
 				<Variable Class="Parameter">
 					<Id>1647448450331</Id>
-					<Name><![CDATA[energiewaardeGas_kWhpm3]]></Name>
+					<Name><![CDATA[p_energyDensityGas_kWhpm3]]></Name>
 					<Description><![CDATA[kWh/m3]]></Description>
 					<X>70</X><Y>410</Y>
 					<Label><X>10</X><Y>0</Y></Label>
@@ -25507,7 +25517,7 @@ f_updateTariffs();]]></ActionCode>
 				<Variable Class="Parameter">
 					<Id>1647513129213</Id>
 					<Name><![CDATA[p_districtHeatingMaxPower_kW]]></Name>
-					<X>660</X><Y>380</Y>
+					<X>850</X><Y>380</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -25531,7 +25541,7 @@ f_updateTariffs();]]></ActionCode>
 				<Variable Class="Parameter">
 					<Id>1647522302842</Id>
 					<Name><![CDATA[p_boilerMaxPower_kW]]></Name>
-					<X>860</X><Y>380</Y>
+					<X>650</X><Y>380</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -25552,6 +25562,30 @@ f_updateTariffs();]]></ActionCode>
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1647858158978</Id>
+					<Name><![CDATA[p_hybridCOPtreshold_f]]></Name>
+					<X>450</X><Y>380</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[2.5]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1647858158976</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 			</Variables>
 			<Functions>
 				<Function AccessType="default" StaticFunction="false">
@@ -25560,7 +25594,8 @@ f_updateTariffs();]]></ActionCode>
 					<Id>1647448388011</Id>
 					<Name><![CDATA[f_heatingFunction]]></Name>
 					<Description><![CDATA[@ Author: Gillis Hommen
-@ Since: 17/03/2022]]></Description>
+@ Since: 17/03/2022
+Call the heating function corresponding to the heatingType input, and keep track of total heat produced for heating and hot water.]]></Description>
 					<X>70</X><Y>100</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -25583,14 +25618,19 @@ f_updateTariffs();]]></ActionCode>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
 					<Body><![CDATA[if (heatingType == HeatingTypes.CV_ketel) {
-	f_CVketel_heating(heatRequest_kW, hotWaterRequest_kW);
-}
-else if (heatingType == HeatingTypes.HeatPump) {
+	f_gasBurner_heating(heatRequest_kW, hotWaterRequest_kW);
+} else if (heatingType == HeatingTypes.HeatPump) {
 	f_heatPump_heating(heatRequest_kW, hotWaterRequest_kW, Toutside);
-}
-else if (heatingType == HeatingTypes.HeatPump_Hybrid) {
+} else if (heatingType == HeatingTypes.HeatPump_Hybrid) {
 	f_heatPumpHybrid_heating(heatRequest_kW, hotWaterRequest_kW, Toutside);
+} else if (heatingType == HeatingTypes.DistrictHeating) {
+	f_districtHeating_heating(heatRequest_kW, hotWaterRequest_kW);
+} else if (heatingType == HeatingTypes.HeatPump_w_Boiler) {
+	f_heatPumpBoiler_heating(heatRequest_kW, hotWaterRequest_kW, Toutside);
+} else if (heatingType == HeatingTypes.DistrictHeating_w_Boiler) {
+	f_districtHeatingwBoiler_heating(heatRequest_kW, hotWaterRequest_kW);
 }
+
 v_heatDelivered_kWh += v_heatDelivery_kW * main.dt_h ;
 v_hotWaterProduced_kWh += v_hotWaterProduction_kW * main.dt_h ;]]></Body>
 				</Function>
@@ -25598,7 +25638,7 @@ v_hotWaterProduced_kWh += v_hotWaterProduction_kW * main.dt_h ;]]></Body>
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1647449612590</Id>
-					<Name><![CDATA[f_CVketel_heating]]></Name>
+					<Name><![CDATA[f_gasBurner_heating]]></Name>
 					<Description><![CDATA[@ Author: Gillis Hommen
 @ Since: 17/03/2022]]></Description>
 					<X>70</X><Y>350</Y>
@@ -25614,9 +25654,9 @@ v_hotWaterProduced_kWh += v_hotWaterProduction_kW * main.dt_h ;]]></Body>
 						<Name><![CDATA[hotWaterRequest_kW]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
-					<Body><![CDATA[v_hotWaterProduction_kW = min(hotWaterRequest_kW,vermogenCv_kW) ;
-v_heatDelivery_kW = min(heatRequest_kW,vermogenCv_kW-v_hotWaterProduction_kW) ; // Hot water gets priority
-v_gasFlow_m3ph = (v_heatDelivery_kW + v_hotWaterProduction_kW) / rendementCv / energiewaardeGas_kWhpm3 ;
+					<Body><![CDATA[v_hotWaterProduction_kW = min(hotWaterRequest_kW,p_powerGasBurner_kW) ;
+v_heatDelivery_kW = min(heatRequest_kW,p_powerGasBurner_kW-v_hotWaterProduction_kW) ; // Hot water gets priority
+v_gasFlow_m3ph = (v_heatDelivery_kW + v_hotWaterProduction_kW) / p_efficiencyGasBurner_f / p_energyDensityGas_kWhpm3 ;
 v_gasConsumed_m3 += v_gasFlow_m3ph * main.dt_h;
 ]]></Body>
 				</Function>
@@ -25644,10 +25684,11 @@ v_gasConsumed_m3 += v_gasFlow_m3ph * main.dt_h;
 						<Name><![CDATA[Toutside]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
-					<Body><![CDATA[double COP = tf_heatPumpCOP(Toutside);
-v_hotWaterProduction_kW = min(hotWaterRequest_kW,vermogenWarmtepomp_kW*COP) ;
-v_heatDelivery_kW = min(heatRequest_kW,vermogenWarmtepomp_kW*COP-v_hotWaterProduction_kW) ; // Hot water gets priority
-v_heatPumpPower_kW = (v_hotWaterProduction_kW + v_heatDelivery_kW)/COP ;
+					<Body><![CDATA[double COPheating = tf_heatPumpCOPspaceHeating(Toutside);
+double COPhotwater = tf_heatPumpCOPhotWater(Toutside);
+v_hotWaterProduction_kW = min(hotWaterRequest_kW,p_powerHeatPump_kW*COPhotwater) ;
+v_heatDelivery_kW = min(heatRequest_kW,(p_powerHeatPump_kW-v_hotWaterProduction_kW/COPhotwater)*COPheating) ; // Hot water gets priority
+v_heatPumpPower_kW = v_hotWaterProduction_kW/COPhotwater + v_heatDelivery_kW/COPheating ;
 v_heatPumpEnergyConsumed_kWh += v_heatPumpPower_kW * main.dt_h ;]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -25656,8 +25697,9 @@ v_heatPumpEnergyConsumed_kWh += v_heatPumpPower_kW * main.dt_h ;]]></Body>
 					<Id>1647506565373</Id>
 					<Name><![CDATA[f_heatPumpHybrid_heating]]></Name>
 					<Description><![CDATA[@ Author: Gillis Hommen
-@ Since: 17/03/2022]]></Description>
-					<X>460</X><Y>350</Y>
+@ Since: 17/03/2022
+@ Hybrid heatpump: space heating on heatpump untill COP drops below p_hybridCOPtreshold_f]]></Description>
+					<X>450</X><Y>350</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -25674,19 +25716,19 @@ v_heatPumpEnergyConsumed_kWh += v_heatPumpPower_kW * main.dt_h ;]]></Body>
 						<Name><![CDATA[Toutside]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
-					<Body><![CDATA[double COP = tf_heatPumpCOP(Toutside);
-if ( COP < 2.5 ) { // switch to gas-fired heating and tap-water
-	v_hotWaterProduction_kW = min(hotWaterRequest_kW,vermogenCv_kW) ;
-	v_heatDelivery_kW = min(heatRequest_kW,vermogenCv_kW-v_hotWaterProduction_kW) ; // Hot water gets priority
-	v_gasFlow_m3ph = (v_heatDelivery_kW + v_hotWaterProduction_kW) / rendementCv / energiewaardeGas_kWhpm3 ;
+					<Body><![CDATA[double COP = tf_heatPumpCOPspaceHeating(Toutside);
+if ( COP < p_hybridCOPtreshold_f ) { // switch to gas-fired heating and tap-water
+	v_hotWaterProduction_kW = min(hotWaterRequest_kW,p_powerGasBurner_kW) ;
+	v_heatDelivery_kW = min(heatRequest_kW,p_powerGasBurner_kW-v_hotWaterProduction_kW) ; // Hot water gets priority
+	v_gasFlow_m3ph = (v_heatDelivery_kW + v_hotWaterProduction_kW) / p_efficiencyGasBurner_f / p_energyDensityGas_kWhpm3 ;
 	v_heatPumpPower_kW = 0;
 } else { // Heatpump for space heating, gas-fired for hot tap water
 	// Space heating from heatpump
-	v_heatDelivery_kW = min(heatRequest_kW,vermogenWarmtepomp_kW*COP) ;
+	v_heatDelivery_kW = min(heatRequest_kW,p_powerHeatPump_kW*COP) ;
 	v_heatPumpPower_kW = v_heatDelivery_kW/COP ;	
 	// Hot tap water gas-fired
-	v_hotWaterProduction_kW = min(hotWaterRequest_kW,vermogenCv_kW) ;
-	v_gasFlow_m3ph = v_hotWaterProduction_kW / rendementCv / energiewaardeGas_kWhpm3 ;
+	v_hotWaterProduction_kW = min(hotWaterRequest_kW,p_powerGasBurner_kW) ;
+	v_gasFlow_m3ph = v_hotWaterProduction_kW / p_efficiencyGasBurner_f / p_energyDensityGas_kWhpm3 ;
 }
 v_gasConsumed_m3 += v_gasFlow_m3ph * main.dt_h;
 v_heatPumpEnergyConsumed_kWh += v_heatPumpPower_kW * main.dt_h ;
@@ -25699,7 +25741,7 @@ v_heatPumpEnergyConsumed_kWh += v_heatPumpPower_kW * main.dt_h ;
 					<Name><![CDATA[f_districtHeating_heating]]></Name>
 					<Description><![CDATA[@ Author: Gillis Hommen
 @ Since: 17/03/2022]]></Description>
-					<X>660</X><Y>350</Y>
+					<X>850</X><Y>350</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -25725,7 +25767,7 @@ v_districtHeatAbsorbed_kWh += v_districtHeatAbsorption_kW * main.dt_h ;
 					<Name><![CDATA[f_heatPumpBoiler_heating]]></Name>
 					<Description><![CDATA[@ Author: Gillis Hommen
 @ Since: 17/03/2022]]></Description>
-					<X>860</X><Y>350</Y>
+					<X>650</X><Y>350</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -25742,22 +25784,52 @@ v_districtHeatAbsorbed_kWh += v_districtHeatAbsorption_kW * main.dt_h ;
 						<Name><![CDATA[Toutside]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
-					<Body><![CDATA[// Space heating
-double COP = tf_heatPumpCOP(Toutside);
-v_heatDelivery_kW = min(heatRequest_kW,vermogenWarmtepomp_kW*COP) ; 
+					<Body><![CDATA[// Space heating using heatpump
+double COP = tf_heatPumpCOPspaceHeating(Toutside);
+v_heatDelivery_kW = min(heatRequest_kW,p_powerHeatPump_kW*COP) ; 
 v_heatPumpPower_kW = v_heatDelivery_kW / COP ;
 v_heatPumpEnergyConsumed_kWh += v_heatPumpPower_kW * main.dt_h ;
 
-// Hot water
+// Hot water from boiler
 v_hotWaterProduction_kW = min(hotWaterRequest_kW,p_boilerMaxPower_kW) ;
-v_boilerPower_kW = v_hotWaterProduction_kW + v_heatDelivery_kW ; 
+v_boilerPower_kW = v_hotWaterProduction_kW ; 
+]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1647859491102</Id>
+					<Name><![CDATA[f_districtHeatingwBoiler_heating]]></Name>
+					<Description><![CDATA[@ Author: Gillis Hommen
+@ Since: 21/03/2022]]></Description>
+					<X>1050</X><Y>350</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[heatRequest_kW]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
+					<Parameter>
+						<Name><![CDATA[hotWaterRequest_kW]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
+					<Body><![CDATA[v_heatDelivery_kW = min(heatRequest_kW,p_districtHeatingMaxPower_kW) ; // Heat transferred from district heating system
+v_districtHeatAbsorption_kW = v_heatDelivery_kW ; 
+v_districtHeatAbsorbed_kWh += v_districtHeatAbsorption_kW * main.dt_h ;
+
+// Hot water from boiler
+v_hotWaterProduction_kW = min(hotWaterRequest_kW,p_boilerMaxPower_kW) ;
+v_boilerPower_kW = v_hotWaterProduction_kW ; 
+
 ]]></Body>
 				</Function>
 			</Functions>
 			<TableFunctions>
 				<TableFunction AccessType="public" StaticFunction="false">
 					<Id>1647448666555</Id>
-					<Name><![CDATA[tf_heatPumpCOP]]></Name>
+					<Name><![CDATA[tf_heatPumpCOPspaceHeating]]></Name>
 					<X>260</X><Y>410</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -25785,6 +25857,37 @@ v_boilerPower_kW = v_hotWaterProduction_kW + v_heatDelivery_kW ;
 					<Value><![CDATA[2.0]]></Value>
 					<Value><![CDATA[3.0]]></Value>
 					<Value><![CDATA[4.0]]></Value>
+				</TableFunction>
+				<TableFunction AccessType="public" StaticFunction="false">
+					<Id>1647860600326</Id>
+					<Name><![CDATA[tf_heatPumpCOPhotWater]]></Name>
+					<X>260</X><Y>440</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<InterpolationMethod>LINEAR</InterpolationMethod>
+					<OutOfRangeBehaviour>EXTRAPOLATE</OutOfRangeBehaviour>
+					<OutOfRangeCustomValue><![CDATA[0.0]]></OutOfRangeCustomValue>
+					<ApproximationOrder><![CDATA[1]]></ApproximationOrder>
+					<LoadFromDatabase><![CDATA[false]]></LoadFromDatabase>
+					<ValuesQuery>
+						<TableReference>
+						</TableReference>
+							<ArgumentColumnReference>
+							</ArgumentColumnReference>
+							<ValueColumnReference>
+							</ValueColumnReference>
+					</ValuesQuery>
+// arguments and values
+					<Argument><![CDATA[-10.0]]></Argument>
+					<Argument><![CDATA[0.0]]></Argument>
+					<Argument><![CDATA[10.0]]></Argument>
+					<Argument><![CDATA[20.0]]></Argument>
+					<Value><![CDATA[1.0]]></Value>
+					<Value><![CDATA[1.5]]></Value>
+					<Value><![CDATA[2.0]]></Value>
+					<Value><![CDATA[3.0]]></Value>
 				</TableFunction>
 			</TableFunctions>
 			<AgentLinks>
