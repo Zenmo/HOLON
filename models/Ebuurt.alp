@@ -1595,7 +1595,7 @@ f_setTrafoMinPower(p_connectionCapacityPerHousehold);
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[1.0/60.0]]></Code>
+							<Code><![CDATA[1.0/4.0]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1647592789835</Id>
@@ -2001,7 +2001,7 @@ traceln( basislastElektriciteitsverbruikHuishoudensJaartotaal / huishoudens.size
 				</Event>
 				<Event>
 					<Id>1644825763675</Id>
-					<Name><![CDATA[minuuttotalen]]></Name>
+					<Name><![CDATA[totalen]]></Name>
 					<X>-752</X><Y>78</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -2023,7 +2023,7 @@ traceln( basislastElektriciteitsverbruikHuishoudensJaartotaal / huishoudens.size
 							<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
 						</OccurrenceTime>
 						<RecurrenceCode Class="CodeUnitValue">
-							<Code><![CDATA[1]]></Code>
+							<Code><![CDATA[15]]></Code>
 							<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
 						</RecurrenceCode>
 						<Condition><![CDATA[false]]></Condition>
@@ -9481,7 +9481,7 @@ bezoekPT / 10]]></LineWidthCode>
     			<TimePlot>
 					<Id>1645173339027</Id>
 					<Name><![CDATA[pl_avgElecCosts]]></Name>
-					<X>-740</X><Y>880</Y>
+					<X>-530</X><Y>940</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -13111,7 +13111,7 @@ f_slimmeThermostaat();
 
 // EV charging
 v_gridPowerBalAfterPV_kW = basislastElektriciteitsverbruik_kW + heatingSystem.v_heatPumpPower_kW - pvOpwek_kW;
-totaalVerbruik_kW = basislastElektriciteitsverbruik_kW + heatingSystem.v_heatPumpPower_kW ;
+totaalVerbruik_kW = basislastElektriciteitsverbruik_kW + heatingSystem.v_heatPumpPower_kW + heatingSystem.v_boilerPower_kW;
 energyManager.manage(p_energyManagerMode);
 
 double V2G_kW=0;
@@ -13146,8 +13146,6 @@ netVermogen_kW = totaalVerbruik_kW - pvOpwek_kW - V2G_kW;
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[
 // Kosten huidige tijdstap 
-
-double dt = 1/60.0; // Tijdstap 1 minuut, ofwel 1/60 uur !!! 1/60 geeft dt=0! Moet 1/60.0 zijn om double te blijven!
 double dP = 0.1; // kW integration-step to calculate current electricity price
 
 double costCurrentTimestep_eur=0;
@@ -13167,8 +13165,8 @@ else if ( netVermogen_kW < 0 ) {
 	costCurrentTimestep_eur -= main.incentiveGenerator.tf_incentivePowerCosts( netVermogen_kW ) * (netVermogen_kW + dP * floor(-netVermogen_kW / dP)) ;
 }	
 //traceln(costCurrentTimestep_eur);
-v_electricityBill_eur += (costCurrentTimestep_eur * dt);
-v_totaalVerbruik_kWh += netVermogen_kW * dt;
+v_electricityBill_eur += (costCurrentTimestep_eur * main.dt_h);
+v_totaalVerbruik_kWh += netVermogen_kW * main.dt_h;
 v_gemiddeldeStroomPrijs_eurpkWh = v_electricityBill_eur/v_totaalVerbruik_kWh;
 //traceln(main.incentiveGenerator.tf_incentivePowerCosts( 0 ));]]></Body>
 				</Function>
@@ -22324,8 +22322,8 @@ else {
 	currentTripDistance_km = 0;
 }
 
-main.flexData.add( getHourOfDay() + getMinute() / 60.0, laadflexibiliteitTotVolgendVertrek_min / 60.0 );
-main.flexDataHistogram.add( laadflexibiliteitTotVolgendVertrek_min / 60.0 );
+main.flexData.add( getHourOfDay() + getMinute() / 60.0, laadflexibiliteitTotVolgendVertrek_min / 60 );
+main.flexDataHistogram.add( laadflexibiliteitTotVolgendVertrek_min * main.dt_h );
 main.flexPlot.update();
 
 
@@ -22426,7 +22424,7 @@ else {
 		laadsnelheid_kW = 0;
 	}
 	else{
-		huidigBatterijCap_kWh = huidigBatterijCap_kWh + laadsnelheid_kW / 60.0;
+		huidigBatterijCap_kWh += laadsnelheid_kW * main.dt_h;
 	}
 }]]></Body>
 				</Function>
@@ -24828,7 +24826,7 @@ else{
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[//set congestion tariff
-double lowPassFraction = 0.02;
+double lowPassFraction = min(1,main.dt_h);
 //v_holonLoadLowPassed_kW = ( 1.0 - lowPassFraction ) * v_holonLoadLowPassed_kW + lowPassFraction * ( main.trafoVermogen_kW - v_holonLoadLowPassed_kW );
 v_holonLoadLowPassed_kW += lowPassFraction * ( main.trafoVermogen_kW - v_holonLoadLowPassed_kW );
 
@@ -25946,7 +25944,7 @@ v_heatPumpEnergyConsumed_kWh += v_heatPumpPower_kW * main.dt_h ;
 // Hot water from boiler
 v_hotWaterProduction_kW = min(hotWaterRequest_kW,p_boilerMaxPower_kW) ;
 v_boilerPower_kW = v_hotWaterProduction_kW ; 
-]]></Body>
+v_boilerEnergyConsumed_kWh += v_boilerPower_kW * main.dt_h ;]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -25975,7 +25973,7 @@ v_districtHeatAbsorbed_kWh += v_districtHeatAbsorption_kW * main.dt_h ;
 // Hot water from boiler
 v_hotWaterProduction_kW = min(hotWaterRequest_kW,p_boilerMaxPower_kW) ;
 v_boilerPower_kW = v_hotWaterProduction_kW ; 
-
+v_boilerEnergyConsumed_kWh += v_boilerPower_kW * main.dt_h ;
 ]]></Body>
 				</Function>
 			</Functions>
@@ -30668,9 +30666,9 @@ en duurzaamheid een totaal is.]]></Text>
 			</PresentationProperties>
 			<ModelTimeProperties>
 				<StopOption><![CDATA[Stop at specified time]]></StopOption>
-				<InitialDate><![CDATA[1643673600000]]></InitialDate>	
+				<InitialDate><![CDATA[1651363200000]]></InitialDate>	
 				<InitialTime><![CDATA[0.0]]></InitialTime>	
-				<FinalDate><![CDATA[1644278400000]]></FinalDate>	
+				<FinalDate><![CDATA[1651968000000]]></FinalDate>	
 				<FinalTime><![CDATA[168.0]]></FinalTime>	
 			</ModelTimeProperties>
 			<BypassInitialScreen>true</BypassInitialScreen>
