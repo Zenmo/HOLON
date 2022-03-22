@@ -2532,15 +2532,12 @@ traceln(mode); // TODO: remove this print line
 						<Parameter>
 							<Name><![CDATA[p_heatCapacityHouse_kWhpK]]></Name>
 						</Parameter>
-<<<<<<< HEAD
-=======
-						<Parameter>
-							<Name><![CDATA[p_heatPumpIsHybrid]]></Name>
-						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_buildingYear]]></Name>
 						</Parameter>
->>>>>>> f565286 (feature inlezen woningdata toegevoegd)
+						<Parameter>
+							<Name><![CDATA[woningOppervlakte_m2]]></Name>
+						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
 					<Replication Class="CodeValue">
@@ -11302,20 +11299,10 @@ c_energyLabels.put("G",6);
 c_energyLabels.put("null",7);
 
 // Thermische parameters initialiseren
-<<<<<<< HEAD
-debietVentilatie_m3ph = specifiekVentilatieDebiet_mph * p_floorSurfaceArea;
-<<<<<<< HEAD
-schilOppervlakte_m2 = vormfactor(c_houseTypes.get(p_houseTypeString))*p_floorSurfaceArea;
-gemiddeldeR_m2KpW = t_rcByEnergyLabel(c_energyLabels.get(p_energyLabel));
-=======
 p_ventilationFlowrate_m3ph = p_specificVentilationFlowrate_mph * p_floorSurfaceArea;
 p_buildingEnvelopeArea_m2 = t_formfactorByHousetype(c_houseTypes.get(p_houseTypeString))*p_floorSurfaceArea;
 p_rcValueAverage_m2KpW = t_rcByEnergyLabel(c_energyLabels.get(p_energyLabel));
->>>>>>> 4b0f66e (Verbeteringen warmtebalans-model,)
 
-=======
-schilOppervlakte_m2 = vormfactor(woningType)*p_floorSurfaceArea;
->>>>>>> f773b44 (Woningdata uitlezen uit BAG-dataset)
 ]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -11913,8 +11900,6 @@ schilOppervlakte_m2 = vormfactor(woningType)*p_floorSurfaceArea;
 					</Properties>                 
 				</Variable>
 				<Variable Class="Parameter">
-<<<<<<< HEAD
-=======
 					<Id>1643191901252</Id>
 					<Name><![CDATA[woningOppervlakte_m2]]></Name>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
@@ -11940,7 +11925,6 @@ schilOppervlakte_m2 = vormfactor(woningType)*p_floorSurfaceArea;
 					</Properties>                 
 				</Variable>
 				<Variable Class="Parameter">
->>>>>>> f773b44 (Woningdata uitlezen uit BAG-dataset)
 					<Id>1643191901255</Id>
 					<Name><![CDATA[p_specificVentilationFlowrate_mph]]></Name>
 					<Description><![CDATA[Specific ventilation flow rate per floor area for residential buildings, in m3/m2/h.]]></Description>
@@ -12102,11 +12086,7 @@ schilOppervlakte_m2 = vormfactor(woningType)*p_floorSurfaceArea;
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-<<<<<<< HEAD
 							<Code><![CDATA[0]]></Code>
-=======
-							<Code><![CDATA[vormfactor(woningType)*p_floorSurfaceArea]]></Code>
->>>>>>> f773b44 (Woningdata uitlezen uit BAG-dataset)
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1643191901304</Id>
@@ -13116,30 +13096,30 @@ v_heatingThermalPower_kW = heatingSystem.v_heatDelivery_kW ;]]></Body>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[if (p_heatingSystemType == HeatingTypes.HeatPump) { // Slimme thermostaat functionaliteit
+					<Body><![CDATA[if (p_heatingSystemType == HeatingTypes.HeatPump || p_heatingSystemType == HeatingTypes.HeatPump_Hybrid) { // Slimme thermostaat functionaliteit
 	double T_margin = 2.0; // Hoeveel mag temp afwijken van setpoint om slimmer te verwarmen?
 	//v_heatingPct = 0.0;
 	if (v_Thouse < setpointActief ) { // Verwarmen als temp onder setpoint komt
-		v_heatRequest_kW = heatingSystem.vermogenWarmtepomp_kW;
-	} else if (v_Thouse < setpointActief + T_margin) { // Flexibiliteit: verder doorverwarmen als prijs laag genoeg is
+		v_heatRequest_kW = heatingSystem.p_powerHeatPump_kW;
+	} else if (main.cb_slimVerwarmen.isSelected() && p_heatingSystemType == HeatingTypes.HeatPump && v_Thouse < setpointActief + T_margin) { // Flexibiliteit: verder doorverwarmen als prijs laag genoeg is
 
 		double power = 0;
-		while( main.incentiveGenerator.tf_incentivePowerCosts( basislastElektriciteitsverbruik_kW - pvOpwek_kW + power) < v_bidPriceLowHeatPump_eurpkWh && power < heatingSystem.vermogenWarmtepomp_kW) {
+		while( main.incentiveGenerator.tf_incentivePowerCosts( basislastElektriciteitsverbruik_kW - pvOpwek_kW + power) < v_bidPriceLowHeatPump_eurpkWh && power < heatingSystem.p_powerHeatPump_kW) {
 			power += 0.5;
 		}
-		v_heatingPct = power / heatingSystem.vermogenWarmtepomp_kW;
-		v_heatRequest_kW = power;
+		v_heatingPct = power / heatingSystem.p_powerHeatPump_kW;
+		v_heatRequest_kW = power*heatingSystem.tf_heatPumpCOPspaceHeating(main.Tbuiten);
 		//traceln("opportunity heating!");
 	} else {
 		v_heatRequest_kW = 0;
 	}
 } else { // Gewoon aan/uit van CV-ketel
 	v_heatingPct = v_Thouse < setpointActief ? 1 : 0;
-	v_heatRequest_kW = heatingSystem.vermogenCv_kW * v_heatingPct;
+	v_heatRequest_kW = heatingSystem.p_powerGasBurner_kW * v_heatingPct;
 }
 
-heatingSystem.f_heatingFunction(v_heatRequest_kW, 0, p_heatingSystemType);
-v_heatingThermalPower_kW = heatingSystem.v_heatProduction_kW ;]]></Body>
+heatingSystem.f_heatingFunction(v_heatRequest_kW, 0, p_heatingSystemType,main.Tbuiten);
+v_heatingThermalPower_kW = heatingSystem.v_heatDelivery_kW ;]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -30707,23 +30687,11 @@ en duurzaamheid een totaal is.]]></Text>
 				<RealTimeScale>5.0</RealTimeScale>
 			</PresentationProperties>
 			<ModelTimeProperties>
-<<<<<<< HEAD
-				<StopOption><![CDATA[Stop at specified time]]></StopOption>
-				<InitialDate><![CDATA[1651363200000]]></InitialDate>	
-=======
 				<StopOption><![CDATA[Stop at specified date]]></StopOption>
-<<<<<<< HEAD
-				<InitialDate><![CDATA[1643673600000]]></InitialDate>	
->>>>>>> c613452 (Fixes event-based warmtebalansmodel, rc-waarde naar energielabel)
-				<InitialTime><![CDATA[0.0]]></InitialTime>	
-				<FinalDate><![CDATA[1651968000000]]></FinalDate>	
-				<FinalTime><![CDATA[168.0]]></FinalTime>	
-=======
 				<InitialDate><![CDATA[1609459200000]]></InitialDate>	
 				<InitialTime><![CDATA[0.0]]></InitialTime>	
 				<FinalDate><![CDATA[1640995200000]]></FinalDate>	
 				<FinalTime><![CDATA[8760.0]]></FinalTime>	
->>>>>>> 4b0f66e (Verbeteringen warmtebalans-model,)
 			</ModelTimeProperties>
 			<BypassInitialScreen>true</BypassInitialScreen>
 		</SimulationExperiment>	
