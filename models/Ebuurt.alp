@@ -1108,6 +1108,36 @@ f_setTrafoMinPower(p_connectionCapacityPerHousehold);
 						<Type><![CDATA[int]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1648055859798</Id>
+					<Name><![CDATA[v_thermostatReduction_degC]]></Name>
+					<X>520</X><Y>1140</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1648055886991</Id>
+					<Name><![CDATA[v_thermostatReductionParticipation_pct]]></Name>
+					<X>520</X><Y>1160</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1643465996971</Id>
 					<Name><![CDATA[wandelSnelheid]]></Name>
@@ -2293,11 +2323,24 @@ traceln(mode); // TODO: remove this print line
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1648049450962</Id>
 					<Name><![CDATA[f_setHeatingBehavior]]></Name>
-					<X>520</X><Y>1160</Y>
+					<X>520</X><Y>1180</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[double tempSetpointReduction = sl_setThermostatLower_degC.getValue();
+double participationFraction = sl_thermostatReductionParcicipation.getValue()/100;
+
+for ( Huishouden h : huishoudens ) {
+	if ( randomTrue(participationFraction) ) {
+		h.v_tempSetpointReduction_degC = tempSetpointReduction;
+	} else {
+		h.v_tempSetpointReduction_degC = 0;
+	}
+}
+
+v_thermostatReduction_degC = tempSetpointReduction;
+v_thermostatReductionParticipation_pct = participationFraction*100;]]></Body>
 				</Function>
 			</Functions>
 			<TableFunctions>
@@ -11359,7 +11402,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 				<Control Type="Slider">
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1648049132340</Id>
-					<Name><![CDATA[sl_thermostaatLager_degC]]></Name>
+					<Name><![CDATA[sl_setThermostatLower_degC]]></Name>
 					<X>510</X><Y>999</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
@@ -11369,6 +11412,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 					<BasicProperties Width="100" Height="30">
                         <EmbeddedIcon>false</EmbeddedIcon>	
 						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[f_setHeatingBehavior()]]></ActionCode>
 					</BasicProperties>
 					<ExtendedProperties>
 						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
@@ -11382,7 +11426,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 				<Control Type="Slider">
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1648049137431</Id>
-					<Name><![CDATA[sl_verwarmingEerderUit_h]]></Name>
+					<Name><![CDATA[sl_thermostatReductionParcicipation]]></Name>
 					<X>510</X><Y>1030</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
@@ -11392,16 +11436,61 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 					<BasicProperties Width="100" Height="30">
                         <EmbeddedIcon>false</EmbeddedIcon>	
 						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[f_setHeatingBehavior()]]></ActionCode>
 					</BasicProperties>
 					<ExtendedProperties>
 						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
 						<Orientation>HORIZONTAL</Orientation>
 						<MinValue><![CDATA[0]]></MinValue>
-						<MaxValue><![CDATA[3]]></MaxValue>
-						<Step><![CDATA[0.25]]></Step>
+						<MaxValue><![CDATA[100]]></MaxValue>
+						<Step><![CDATA[1]]></Step>
 						<LinkTo>false</LinkTo>
 					</ExtendedProperties>
 				</Control>
+				<Text>
+					<Id>1648055794741</Id>
+					<Name><![CDATA[text10]]></Name>
+					<X>640</X><Y>1000</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Thermostaat lager]]></Text>
+					<TextCode><![CDATA[roundToInt( v_thermostatReduction_degC ) + " graden thermostaat lager"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>18</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1648055826456</Id>
+					<Name><![CDATA[text11]]></Name>
+					<X>640</X><Y>1030</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[thermostaat lager participatiegraad]]></Text>
+					<TextCode><![CDATA[roundToInt(v_thermostatReductionParticipation_pct) + "  % participatiegraad"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>18</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
 			</Presentation>
 
 				</Level>
@@ -11959,6 +12048,21 @@ p_rcValueAverage_m2KpW = t_rcByEnergyLabel(c_energyLabels.get(p_energyLabel));
 						</InitialValue>
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1648056683009</Id>
+					<Name><![CDATA[v_tempSetpointReduction_degC]]></Name>
+					<X>860</X><Y>1420</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
 				<Variable Class="AuxVariable">
 					<Id>1643191901326</Id>
 					<Name><![CDATA[setpointActief]]></Name>
@@ -11968,7 +12072,7 @@ p_rcValueAverage_m2KpW = t_rcByEnergyLabel(c_energyLabels.get(p_energyLabel));
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties External="false" Constant="false" Array="false">
-						<Formula><![CDATA[(getMinute(date())+60*getHourOfDay(date()) > thermostaatStarttijd & getHourOfDay(date()) < thermostaatEindtijd ) ? setpointOverdag : setpointNacht]]></Formula>
+						<Formula><![CDATA[(getMinute(date())+60*getHourOfDay(date()) > thermostaatStarttijd & getHourOfDay(date()) < thermostaatEindtijd ) ? setpointOverdag - v_tempSetpointReduction_degC: setpointNacht - v_tempSetpointReduction_degC]]></Formula>
 						<Value><![CDATA[0]]></Value>
 						<Color/>
 					</Properties>
@@ -13029,6 +13133,21 @@ p_rcValueAverage_m2KpW = t_rcByEnergyLabel(c_energyLabels.get(p_energyLabel));
 					<Id>1643191901212</Id>
 					<Name><![CDATA[setpointNacht - setpointActief]]></Name>
 					<X>810</X><Y>1520</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1648056683009" TargetId="1643191901326" Polarity="null">
+					<Height>20.0</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>40</X><Y>60</Y></Direction>
+					<Id>1648056764516</Id>
+					<Name><![CDATA[v_tempSetpointReduction_degC - setpointActief]]></Name>
+					<X>860</X><Y>1420</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
