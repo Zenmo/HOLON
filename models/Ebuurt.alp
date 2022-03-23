@@ -45,30 +45,6 @@
 			</Option>
 		</OptionList>
 		<OptionList>
-			<Id>1647447928835</Id>
-			<Name><![CDATA[HeatingTypes]]></Name>
-			<Option>
-				<Id>1647447928836</Id>
-				<Name><![CDATA[CV_ketel]]></Name>
-			</Option>
-			<Option>
-				<Id>1647447928837</Id>
-				<Name><![CDATA[HeatPump]]></Name>
-			</Option>
-			<Option>
-				<Id>1647447928838</Id>
-				<Name><![CDATA[HeatPump_Hybrid]]></Name>
-			</Option>
-			<Option>
-				<Id>1647513785367</Id>
-				<Name><![CDATA[DistrictHeating]]></Name>
-			</Option>
-			<Option>
-				<Id>1647527374624</Id>
-				<Name><![CDATA[HeatPump_w_Boiler]]></Name>
-			</Option>
-		</OptionList>
-		<OptionList>
 			<Id>1647593878070</Id>
 			<Name><![CDATA[fuelType]]></Name>
 			<Option>
@@ -1230,7 +1206,7 @@ f_setTrafoMinPower(p_connectionCapacityPerHousehold);
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[1]]></Code>
+							<Code><![CDATA[2.0]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1646150686650</Id>
@@ -1591,10 +1567,11 @@ f_setTrafoMinPower(p_connectionCapacityPerHousehold);
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[1.0/60.0]]></Code>
+							<Code><![CDATA[1.0/4.0]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1647592789835</Id>
+							<Label><![CDATA[dt_h]]></Label>
 							<EditorContolType>TEXT_BOX</EditorContolType>
 							<MinSliderValue><![CDATA[0]]></MinSliderValue>
 							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
@@ -1997,11 +1974,11 @@ traceln( basislastElektriciteitsverbruikHuishoudensJaartotaal / huishoudens.size
 				</Event>
 				<Event>
 					<Id>1644825763675</Id>
-					<Name><![CDATA[minuuttotalen]]></Name>
+					<Name><![CDATA[totalen]]></Name>
 					<X>-752</X><Y>78</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>false</PresentationFlag>
+					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties TriggerType="timeout" Mode="cyclic">
 						<Timeout Class="CodeUnitValue">
@@ -2016,11 +1993,11 @@ traceln( basislastElektriciteitsverbruikHuishoudensJaartotaal / huishoudens.size
 						<OccurrenceDate>1642579200000</OccurrenceDate>
 						<OccurrenceTime Class="CodeUnitValue">
 							<Code><![CDATA[0]]></Code>
-							<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
+							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
 						</OccurrenceTime>
 						<RecurrenceCode Class="CodeUnitValue">
-							<Code><![CDATA[1]]></Code>
-							<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
+							<Code><![CDATA[dt_h]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
 						</RecurrenceCode>
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
@@ -9474,7 +9451,7 @@ bezoekPT / 10]]></LineWidthCode>
     			<TimePlot>
 					<Id>1645173339027</Id>
 					<Name><![CDATA[pl_avgElecCosts]]></Name>
-					<X>-740</X><Y>880</Y>
+					<X>-530</X><Y>930</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -13140,7 +13117,7 @@ netVermogen_kW = totaalVerbruik_kW - pvOpwek_kW - V2G_kW;
 					<Body><![CDATA[
 // Kosten huidige tijdstap 
 
-double dt = 1/60.0; // Tijdstap 1 minuut, ofwel 1/60 uur !!! 1/60 geeft dt=0! Moet 1/60.0 zijn om double te blijven!
+//double dt = 1/60.0; // Tijdstap 1 minuut, ofwel 1/60 uur !!! 1/60 geeft dt=0! Moet 1/60.0 zijn om double te blijven!
 double dP = 0.1; // kW integration-step to calculate current electricity price
 
 double costCurrentTimestep_eur=0;
@@ -13160,8 +13137,8 @@ else if ( netVermogen_kW < 0 ) {
 	costCurrentTimestep_eur -= main.incentiveGenerator.tf_incentivePowerCosts( netVermogen_kW ) * (netVermogen_kW + dP * floor(-netVermogen_kW / dP)) ;
 }	
 //traceln(costCurrentTimestep_eur);
-v_electricityBill_eur += (costCurrentTimestep_eur * dt);
-v_totaalVerbruik_kWh += netVermogen_kW * dt;
+v_electricityBill_eur += (costCurrentTimestep_eur * main.dt_h);
+v_totaalVerbruik_kWh += netVermogen_kW * main.dt_h;
 v_gemiddeldeStroomPrijs_eurpkWh = v_electricityBill_eur/v_totaalVerbruik_kWh;
 //traceln(main.incentiveGenerator.tf_incentivePowerCosts( 0 ));]]></Body>
 				</Function>
@@ -13179,25 +13156,25 @@ v_gemiddeldeStroomPrijs_eurpkWh = v_electricityBill_eur/v_totaalVerbruik_kWh;
 	double T_margin = 2.0; // Hoeveel mag temp afwijken van setpoint om slimmer te verwarmen?
 	//v_heatingPct = 0.0;
 	if (Twoning < setpointActief ) { // Verwarmen als temp onder setpoint komt
-		v_heatRequest_kW = heatingSystem.vermogenWarmtepomp_kW;
+		v_heatRequest_kW = heatingSystem.p_powerHeatPump_kW;
 	} else if (main.cb_slimVerwarmen.isSelected() && p_heatingSystemType == HeatingTypes.HeatPump && Twoning < setpointActief + T_margin) { // Flexibiliteit: verder doorverwarmen als prijs laag genoeg is
 
 		double power = 0;
-		while( main.incentiveGenerator.tf_incentivePowerCosts( basislastElektriciteitsverbruik_kW - pvOpwek_kW + power) < v_bidPriceLowHeatPump_eurpkWh && power < heatingSystem.vermogenWarmtepomp_kW) {
+		while( main.incentiveGenerator.tf_incentivePowerCosts( basislastElektriciteitsverbruik_kW - pvOpwek_kW + power) < v_bidPriceLowHeatPump_eurpkWh && power < heatingSystem.p_powerHeatPump_kW) {
 			power += 0.5;
 		}
-		v_heatingPct = power / heatingSystem.vermogenWarmtepomp_kW;
-		v_heatRequest_kW = power*heatingSystem.tf_heatPumpCOP(main.Tbuiten);
+		v_heatingPct = power / heatingSystem.p_powerHeatPump_kW;
+		v_heatRequest_kW = power*heatingSystem.tf_heatPumpCOPspaceHeating(main.Tbuiten);
 		//traceln("opportunity heating!");
 	} else {
 		v_heatRequest_kW = 0;
 	}
 } else { // Gewoon aan/uit van CV-ketel
 	v_heatingPct = Twoning < setpointActief ? 1 : 0;
-	v_heatRequest_kW = heatingSystem.vermogenCv_kW * v_heatingPct;
+	v_heatRequest_kW = heatingSystem.p_powerGasBurner_kW * v_heatingPct;
 }
 
-heatingSystem.f_heatingFunction(v_heatRequest_kW, 0, p_heatingSystemType,main.Tbuiten);
+heatingSystem.f_heatingFunction(v_heatRequest_kW, 0.0, p_heatingSystemType,main.Tbuiten,main.dt_h);
 v_heatingThermalPower_kW = heatingSystem.v_heatDelivery_kW ;]]></Body>
 				</Function>
 			</Functions>
@@ -13457,36 +13434,36 @@ v_heatingThermalPower_kW = heatingSystem.v_heatDelivery_kW ;]]></Body>
 					</QuantityColumn>
 				</EmbeddedObject>
 				<EmbeddedObject>
-					<Id>1647447524085</Id>
+					<Id>1648029787709</Id>
 					<Name><![CDATA[heatingSystem]]></Name>
-					<X>900</X><Y>1130</Y>
-					<Label><X>10</X><Y>0</Y></Label>
+					<X>900</X><Y>1140</Y>
+					<Label><X>15</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<ActiveObjectClass>
-						<PackageName><![CDATA[ebuurt]]></PackageName>
+						<PackageName><![CDATA[heatingsystems]]></PackageName>
 						<ClassName><![CDATA[HeatingSystem]]></ClassName>
 					</ActiveObjectClass>
 					<GenericParameterSubstitute>
 						<GenericParameterSubstituteReference>
-							<PackageName><![CDATA[ebuurt]]></PackageName>
+							<PackageName><![CDATA[heatingsystems]]></PackageName>
 							<ClassName><![CDATA[HeatingSystem]]></ClassName>
-							<ItemName><![CDATA[1645015262389]]></ItemName>
+							<ItemName><![CDATA[1648027127020]]></ItemName>
 						</GenericParameterSubstituteReference>
 					</GenericParameterSubstitute>
 					<Parameters>
 						<Parameter>
-							<Name><![CDATA[rendementCv]]></Name>
+							<Name><![CDATA[p_efficiencyGasBurner_f]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[vermogenCv_kW]]></Name>
+							<Name><![CDATA[p_powerGasBurner_kW]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[vermogenWarmtepomp_kW]]></Name>
+							<Name><![CDATA[p_powerHeatPump_kW]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[energiewaardeGas_kWhpm3]]></Name>
+							<Name><![CDATA[p_energyDensityGas_kWhpm3]]></Name>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_parent]]></Name>
@@ -13499,6 +13476,9 @@ v_heatingThermalPower_kW = heatingSystem.v_heatDelivery_kW ;]]></Body>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_boilerMaxPower_kW]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_hybridCOPtreshold_f]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>false</ReplicationFlag>
@@ -22416,7 +22396,7 @@ else {
 		laadsnelheid_kW = 0;
 	}
 	else{
-		huidigBatterijCap_kWh = huidigBatterijCap_kWh + laadsnelheid_kW / 60.0;
+		huidigBatterijCap_kWh = huidigBatterijCap_kWh + laadsnelheid_kW * main.dt_h;
 	}
 }]]></Body>
 				</Function>
@@ -24818,10 +24798,8 @@ else{
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[//set congestion tariff
-double lowPassFraction = 0.02;
-//v_holonLoadLowPassed_kW = ( 1.0 - lowPassFraction ) * v_holonLoadLowPassed_kW + lowPassFraction * ( main.trafoVermogen_kW - v_holonLoadLowPassed_kW );
+double lowPassFraction = min(1,1.2*main.dt_h);
 v_holonLoadLowPassed_kW += lowPassFraction * ( main.trafoVermogen_kW - v_holonLoadLowPassed_kW );
-
 
 if (main.cb_congestionMarket.isSelected()){
 	if ( v_holonLoadLowPassed_kW > p_congestieVermogen_kW ) {
@@ -25263,767 +25241,6 @@ f_updateTariffs();]]></ActionCode>
 					<HorScaleType>AUTO</HorScaleType>
     			</Plot>
 			</Presentation>
-
-				</Level>
-			</Presentation>
-
-		</ActiveObjectClass>
-		<!--   =========   Active Object Class   ========  -->
-		<ActiveObjectClass>
-			<Id>1645015262391</Id>
-			<Name><![CDATA[HeatingSystem]]></Name>
-			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
-			<Generic>false</Generic>
-			<GenericParameter>
-				<Id>1645015262389</Id>
-				<Name><![CDATA[1645015262389]]></Name>
-				<GenericParameterValue Class="CodeValue">
-					<Code><![CDATA[T extends Agent]]></Code>
-				</GenericParameterValue>
-				<GenericParameterLabel><![CDATA[Generic parameter:]]></GenericParameterLabel>
-			</GenericParameter>
-			<FlowChartsUsage>ENTITY</FlowChartsUsage>
-			<SamplesToKeep>100</SamplesToKeep>
-			<LimitNumberOfArrayElements>false</LimitNumberOfArrayElements>
-			<ElementsLimitValue>100</ElementsLimitValue>
-			<MakeDefaultViewArea>true</MakeDefaultViewArea>
-			<SceneGridColor/>
-			<SceneBackgroundColor/>
-			<SceneSkybox>null</SceneSkybox>
-			<AgentProperties>
-	 			<SpaceType>CONTINUOUS</SpaceType>			
-				<EnvironmentDefinesInitialLocation>true</EnvironmentDefinesInitialLocation>
-				<RotateAnimationTowardsMovement>true</RotateAnimationTowardsMovement>
-				<RotateAnimationVertically>false</RotateAnimationVertically>
-				<VelocityCode Class="CodeUnitValue">
-					<Code><![CDATA[10]]></Code>
-					<Unit Class="SpeedUnits"><![CDATA[MPS]]></Unit>
-				</VelocityCode>
-				<PhysicalLength Class="CodeUnitValue">
-					<Code><![CDATA[1]]></Code>
-					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
-				</PhysicalLength>
-				<PhysicalWidth Class="CodeUnitValue">
-					<Code><![CDATA[1]]></Code>
-					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
-				</PhysicalWidth>
-				<PhysicalHeight Class="CodeUnitValue">
-					<Code><![CDATA[1]]></Code>
-					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
-				</PhysicalHeight>
-			</AgentProperties>
-			<EnvironmentProperties>
-					<EnableSteps>false</EnableSteps>
-					<StepDurationCode Class="CodeUnitValue">
-						<Code><![CDATA[1.0]]></Code>
-						<Unit Class="TimeUnits"><![CDATA[SECOND]]></Unit>
-					</StepDurationCode>
-					<SpaceType>CONTINUOUS</SpaceType>
-					<WidthCode><![CDATA[500]]></WidthCode>
-					<HeightCode><![CDATA[500]]></HeightCode>
-					<ZHeightCode><![CDATA[0]]></ZHeightCode>
-					<ColumnsCountCode><![CDATA[100]]></ColumnsCountCode>
-					<RowsCountCode><![CDATA[100]]></RowsCountCode>
-					<NeigborhoodType>MOORE</NeigborhoodType>
-					<LayoutType>USER_DEF</LayoutType>
-					<LayoutTypeApplyOnStartup>true</LayoutTypeApplyOnStartup>
-					<NetworkType>USER_DEF</NetworkType>
-					<NetworkTypeApplyOnStartup>true</NetworkTypeApplyOnStartup>
-					<ConnectionsPerAgentCode><![CDATA[2]]></ConnectionsPerAgentCode>
-					<ConnectionsRangeCode><![CDATA[50]]></ConnectionsRangeCode>
-					<NeighborLinkFractionCode><![CDATA[0.95]]></NeighborLinkFractionCode>
-					<MCode><![CDATA[10]]></MCode>
-			</EnvironmentProperties>
-			<DatasetsCreationProperties>
-				<AutoCreate>true</AutoCreate>
-					<OccurrenceAtTime>true</OccurrenceAtTime>
-					<OccurrenceDate>1645084800000</OccurrenceDate>
-					<OccurrenceTime Class="CodeUnitValue">
-						<Code><![CDATA[0]]></Code>
-						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
-					</OccurrenceTime>
-					<RecurrenceCode Class="CodeUnitValue">
-						<Code><![CDATA[1]]></Code>
-						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
-					</RecurrenceCode>
-			</DatasetsCreationProperties>
-			<ScaleRuler>
-				<Id>1645015262387</Id>
-				<Name><![CDATA[scale]]></Name>
-				<X>0</X><Y>-150</Y>
-				<PublicFlag>false</PublicFlag>
-				<PresentationFlag>false</PresentationFlag>
-				<ShowLabel>false</ShowLabel>
-				<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-				<Length>100</Length>
-				<Rotation>0</Rotation>
-				<ScaleType>BASED_ON_LENGTH</ScaleType>
-				<ModelLength>10</ModelLength>
-				<LengthUnits>METER</LengthUnits>
-				<Scale>10</Scale>
-				<InheritedFromParentAgentType>true</InheritedFromParentAgentType>
-			</ScaleRuler>
-			<ConnectionsId>1645021865160</ConnectionsId>
-			<Variables>
-				<Variable Class="PlainVariable">
-					<Id>1647448486362</Id>
-					<Name><![CDATA[v_gasFlow_m3ph]]></Name>
-					<X>70</X><Y>160</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[double]]></Type>        
-						<InitialValue Class="CodeValue">
-							<Code><![CDATA[0]]></Code>
-						</InitialValue>
-					</Properties>
-				</Variable>
-				<Variable Class="PlainVariable">
-					<Id>1647448501837</Id>
-					<Name><![CDATA[v_heatPumpPower_kW]]></Name>
-					<X>70</X><Y>190</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[double]]></Type>        
-						<InitialValue Class="CodeValue">
-							<Code><![CDATA[0]]></Code>
-						</InitialValue>
-					</Properties>
-				</Variable>
-				<Variable Class="PlainVariable">
-					<Id>1647448577313</Id>
-					<Name><![CDATA[v_heatDelivery_kW]]></Name>
-					<X>70</X><Y>220</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[double]]></Type>        
-					</Properties>
-				</Variable>
-				<Variable Class="PlainVariable">
-					<Id>1647448595553</Id>
-					<Name><![CDATA[v_gasConsumed_m3]]></Name>
-					<X>260</X><Y>160</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[double]]></Type>        
-						<InitialValue Class="CodeValue">
-							<Code><![CDATA[0]]></Code>
-						</InitialValue>
-					</Properties>
-				</Variable>
-				<Variable Class="PlainVariable">
-					<Id>1647448608561</Id>
-					<Name><![CDATA[v_heatPumpEnergyConsumed_kWh]]></Name>
-					<X>260</X><Y>190</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[double]]></Type>        
-						<InitialValue Class="CodeValue">
-							<Code><![CDATA[0]]></Code>
-						</InitialValue>
-					</Properties>
-				</Variable>
-				<Variable Class="PlainVariable">
-					<Id>1647448626279</Id>
-					<Name><![CDATA[v_heatDelivered_kWh]]></Name>
-					<X>260</X><Y>220</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[double]]></Type>        
-						<InitialValue Class="CodeValue">
-							<Code><![CDATA[0]]></Code>
-						</InitialValue>
-					</Properties>
-				</Variable>
-				<Variable Class="PlainVariable">
-					<Id>1647508023972</Id>
-					<Name><![CDATA[v_hotWaterProduction_kW]]></Name>
-					<X>70</X><Y>250</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[double]]></Type>        
-					</Properties>
-				</Variable>
-				<Variable Class="PlainVariable">
-					<Id>1647508046399</Id>
-					<Name><![CDATA[v_hotWaterProduced_kWh]]></Name>
-					<X>260</X><Y>250</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[double]]></Type>        
-						<InitialValue Class="CodeValue">
-							<Code><![CDATA[0]]></Code>
-						</InitialValue>
-					</Properties>
-				</Variable>
-				<Variable Class="PlainVariable">
-					<Id>1647513284729</Id>
-					<Name><![CDATA[v_districtHeatAbsorbed_kWh]]></Name>
-					<X>260</X><Y>280</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[double]]></Type>        
-						<InitialValue Class="CodeValue">
-							<Code><![CDATA[0]]></Code>
-						</InitialValue>
-					</Properties>
-				</Variable>
-				<Variable Class="PlainVariable">
-					<Id>1647513358366</Id>
-					<Name><![CDATA[v_districtHeatAbsorption_kW]]></Name>
-					<X>70</X><Y>280</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[double]]></Type>        
-						<InitialValue Class="CodeValue">
-							<Code><![CDATA[0]]></Code>
-						</InitialValue>
-					</Properties>
-				</Variable>
-				<Variable Class="PlainVariable">
-					<Id>1647519422610</Id>
-					<Name><![CDATA[v_boilerPower_kW]]></Name>
-					<X>70</X><Y>310</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[double]]></Type>        
-						<InitialValue Class="CodeValue">
-							<Code><![CDATA[0]]></Code>
-						</InitialValue>
-					</Properties>
-				</Variable>
-				<Variable Class="PlainVariable">
-					<Id>1647519422613</Id>
-					<Name><![CDATA[v_boilerEnergyConsumed_kWh]]></Name>
-					<X>260</X><Y>310</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[double]]></Type>        
-						<InitialValue Class="CodeValue">
-							<Code><![CDATA[0]]></Code>
-						</InitialValue>
-					</Properties>
-				</Variable>
-				<Variable Class="Parameter">
-					<Id>1647448450322</Id>
-					<Name><![CDATA[rendementCv]]></Name>
-					<X>70</X><Y>440</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[double]]></Type>
-						<UnitType><![CDATA[NONE]]></UnitType>
-						<SdArray>false</SdArray>
-						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[0.95]]></Code>
-						</DefaultValue>
-						<ParameterEditor>
-							<Id>1647448450320</Id>
-							<EditorContolType>TEXT_BOX</EditorContolType>
-							<MinSliderValue><![CDATA[0]]></MinSliderValue>
-							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
-							<DelimeterType>NO_DELIMETER</DelimeterType>
-						</ParameterEditor>
-					</Properties>                 
-				</Variable>
-				<Variable Class="Parameter">
-					<Id>1647448450325</Id>
-					<Name><![CDATA[vermogenCv_kW]]></Name>
-					<X>70</X><Y>380</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[double]]></Type>
-						<UnitType><![CDATA[NONE]]></UnitType>
-						<SdArray>false</SdArray>
-						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[20]]></Code>
-						</DefaultValue>
-						<ParameterEditor>
-							<Id>1647448450323</Id>
-							<EditorContolType>TEXT_BOX</EditorContolType>
-							<MinSliderValue><![CDATA[0]]></MinSliderValue>
-							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
-							<DelimeterType>NO_DELIMETER</DelimeterType>
-						</ParameterEditor>
-					</Properties>                 
-				</Variable>
-				<Variable Class="Parameter">
-					<Id>1647448450328</Id>
-					<Name><![CDATA[vermogenWarmtepomp_kW]]></Name>
-					<X>260</X><Y>380</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[double]]></Type>
-						<UnitType><![CDATA[NONE]]></UnitType>
-						<SdArray>false</SdArray>
-						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[3]]></Code>
-						</DefaultValue>
-						<ParameterEditor>
-							<Id>1647448450326</Id>
-							<EditorContolType>TEXT_BOX</EditorContolType>
-							<MinSliderValue><![CDATA[0]]></MinSliderValue>
-							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
-							<DelimeterType>NO_DELIMETER</DelimeterType>
-						</ParameterEditor>
-					</Properties>                 
-				</Variable>
-				<Variable Class="Parameter">
-					<Id>1647448450331</Id>
-					<Name><![CDATA[energiewaardeGas_kWhpm3]]></Name>
-					<Description><![CDATA[kWh/m3]]></Description>
-					<X>70</X><Y>410</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[double]]></Type>
-						<UnitType><![CDATA[NONE]]></UnitType>
-						<SdArray>false</SdArray>
-						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[9.769]]></Code>
-						</DefaultValue>
-						<ParameterEditor>
-							<Id>1647448450329</Id>
-							<EditorContolType>TEXT_BOX</EditorContolType>
-							<MinSliderValue><![CDATA[0]]></MinSliderValue>
-							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
-							<DelimeterType>NO_DELIMETER</DelimeterType>
-						</ParameterEditor>
-					</Properties>                 
-				</Variable>
-				<Variable Class="Parameter">
-					<Id>1647448771259</Id>
-					<Name><![CDATA[p_parent]]></Name>
-					<X>70</X><Y>50</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[Agent]]></Type>
-						<UnitType><![CDATA[NONE]]></UnitType>
-						<SdArray>false</SdArray>
-						<ParameterEditor>
-							<Id>1647448771257</Id>
-							<EditorContolType>TEXT_BOX</EditorContolType>
-							<MinSliderValue><![CDATA[0]]></MinSliderValue>
-							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
-							<DelimeterType>NO_DELIMETER</DelimeterType>
-						</ParameterEditor>
-					</Properties>                 
-				</Variable>
-				<Variable Class="Parameter">
-					<Id>1647513129213</Id>
-					<Name><![CDATA[p_districtHeatingMaxPower_kW]]></Name>
-					<X>660</X><Y>380</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[double]]></Type>
-						<UnitType><![CDATA[NONE]]></UnitType>
-						<SdArray>false</SdArray>
-						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[10]]></Code>
-						</DefaultValue>
-						<ParameterEditor>
-							<Id>1647513129211</Id>
-							<EditorContolType>TEXT_BOX</EditorContolType>
-							<MinSliderValue><![CDATA[0]]></MinSliderValue>
-							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
-							<DelimeterType>NO_DELIMETER</DelimeterType>
-						</ParameterEditor>
-					</Properties>                 
-				</Variable>
-				<Variable Class="Parameter">
-					<Id>1647522302842</Id>
-					<Name><![CDATA[p_boilerMaxPower_kW]]></Name>
-					<X>860</X><Y>380</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[double]]></Type>
-						<UnitType><![CDATA[NONE]]></UnitType>
-						<SdArray>false</SdArray>
-						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[10]]></Code>
-						</DefaultValue>
-						<ParameterEditor>
-							<Id>1647522302840</Id>
-							<EditorContolType>TEXT_BOX</EditorContolType>
-							<MinSliderValue><![CDATA[0]]></MinSliderValue>
-							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
-							<DelimeterType>NO_DELIMETER</DelimeterType>
-						</ParameterEditor>
-					</Properties>                 
-				</Variable>
-			</Variables>
-			<Functions>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1647448388011</Id>
-					<Name><![CDATA[f_heatingFunction]]></Name>
-					<Description><![CDATA[@ Author: Gillis Hommen
-@ Since: 17/03/2022]]></Description>
-					<X>70</X><Y>100</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Parameter>
-						<Name><![CDATA[heatRequest_kW]]></Name>
-						<Type><![CDATA[double]]></Type>
-					</Parameter>
-					<Parameter>
-						<Name><![CDATA[hotWaterRequest_kW]]></Name>
-						<Type><![CDATA[double]]></Type>
-					</Parameter>
-					<Parameter>
-						<Name><![CDATA[heatingType]]></Name>
-						<Type><![CDATA[HeatingTypes]]></Type>
-					</Parameter>
-					<Parameter>
-						<Name><![CDATA[Toutside]]></Name>
-						<Type><![CDATA[double]]></Type>
-					</Parameter>
-					<Body><![CDATA[if (heatingType == HeatingTypes.CV_ketel) {
-	f_CVketel_heating(heatRequest_kW, hotWaterRequest_kW);
-}
-else if (heatingType == HeatingTypes.HeatPump) {
-	f_heatPump_heating(heatRequest_kW, hotWaterRequest_kW, Toutside);
-}
-else if (heatingType == HeatingTypes.HeatPump_Hybrid) {
-	f_heatPumpHybrid_heating(heatRequest_kW, hotWaterRequest_kW, Toutside);
-}
-v_heatDelivered_kWh += v_heatDelivery_kW * main.dt_h ;
-v_hotWaterProduced_kWh += v_hotWaterProduction_kW * main.dt_h ;]]></Body>
-				</Function>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1647449612590</Id>
-					<Name><![CDATA[f_CVketel_heating]]></Name>
-					<Description><![CDATA[@ Author: Gillis Hommen
-@ Since: 17/03/2022]]></Description>
-					<X>70</X><Y>350</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Parameter>
-						<Name><![CDATA[heatRequest_kW]]></Name>
-						<Type><![CDATA[double]]></Type>
-					</Parameter>
-					<Parameter>
-						<Name><![CDATA[hotWaterRequest_kW]]></Name>
-						<Type><![CDATA[double]]></Type>
-					</Parameter>
-					<Body><![CDATA[v_hotWaterProduction_kW = min(hotWaterRequest_kW,vermogenCv_kW) ;
-v_heatDelivery_kW = min(heatRequest_kW,vermogenCv_kW-v_hotWaterProduction_kW) ; // Hot water gets priority
-v_gasFlow_m3ph = (v_heatDelivery_kW + v_hotWaterProduction_kW) / rendementCv / energiewaardeGas_kWhpm3 ;
-v_gasConsumed_m3 += v_gasFlow_m3ph * main.dt_h;
-]]></Body>
-				</Function>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1647450050887</Id>
-					<Name><![CDATA[f_heatPump_heating]]></Name>
-					<Description><![CDATA[@ Author: Gillis Hommen
-@ Since: 17/03/2022]]></Description>
-					<X>260</X><Y>350</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Parameter>
-						<Name><![CDATA[heatRequest_kW]]></Name>
-						<Type><![CDATA[double]]></Type>
-					</Parameter>
-					<Parameter>
-						<Name><![CDATA[hotWaterRequest_kW]]></Name>
-						<Type><![CDATA[double]]></Type>
-					</Parameter>
-					<Parameter>
-						<Name><![CDATA[Toutside]]></Name>
-						<Type><![CDATA[double]]></Type>
-					</Parameter>
-					<Body><![CDATA[double COP = tf_heatPumpCOP(Toutside);
-v_hotWaterProduction_kW = min(hotWaterRequest_kW,vermogenWarmtepomp_kW*COP) ;
-v_heatDelivery_kW = min(heatRequest_kW,vermogenWarmtepomp_kW*COP-v_hotWaterProduction_kW) ; // Hot water gets priority
-v_heatPumpPower_kW = (v_hotWaterProduction_kW + v_heatDelivery_kW)/COP ;
-v_heatPumpEnergyConsumed_kWh += v_heatPumpPower_kW * main.dt_h ;]]></Body>
-				</Function>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1647506565373</Id>
-					<Name><![CDATA[f_heatPumpHybrid_heating]]></Name>
-					<Description><![CDATA[@ Author: Gillis Hommen
-@ Since: 17/03/2022]]></Description>
-					<X>460</X><Y>350</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Parameter>
-						<Name><![CDATA[heatRequest_kW]]></Name>
-						<Type><![CDATA[double]]></Type>
-					</Parameter>
-					<Parameter>
-						<Name><![CDATA[hotWaterRequest_kW]]></Name>
-						<Type><![CDATA[double]]></Type>
-					</Parameter>
-					<Parameter>
-						<Name><![CDATA[Toutside]]></Name>
-						<Type><![CDATA[double]]></Type>
-					</Parameter>
-					<Body><![CDATA[double COP = tf_heatPumpCOP(Toutside);
-if ( COP < 2.5 ) { // switch to gas-fired heating and tap-water
-	v_hotWaterProduction_kW = min(hotWaterRequest_kW,vermogenCv_kW) ;
-	v_heatDelivery_kW = min(heatRequest_kW,vermogenCv_kW-v_hotWaterProduction_kW) ; // Hot water gets priority
-	v_gasFlow_m3ph = (v_heatDelivery_kW + v_hotWaterProduction_kW) / rendementCv / energiewaardeGas_kWhpm3 ;
-	v_heatPumpPower_kW = 0;
-} else { // Heatpump for space heating, gas-fired for hot tap water
-	// Space heating from heatpump
-	v_heatDelivery_kW = min(heatRequest_kW,vermogenWarmtepomp_kW*COP) ;
-	v_heatPumpPower_kW = v_heatDelivery_kW/COP ;	
-	// Hot tap water gas-fired
-	v_hotWaterProduction_kW = min(hotWaterRequest_kW,vermogenCv_kW) ;
-	v_gasFlow_m3ph = v_hotWaterProduction_kW / rendementCv / energiewaardeGas_kWhpm3 ;
-}
-v_gasConsumed_m3 += v_gasFlow_m3ph * main.dt_h;
-v_heatPumpEnergyConsumed_kWh += v_heatPumpPower_kW * main.dt_h ;
-]]></Body>
-				</Function>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1647513095994</Id>
-					<Name><![CDATA[f_districtHeating_heating]]></Name>
-					<Description><![CDATA[@ Author: Gillis Hommen
-@ Since: 17/03/2022]]></Description>
-					<X>660</X><Y>350</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Parameter>
-						<Name><![CDATA[heatRequest_kW]]></Name>
-						<Type><![CDATA[double]]></Type>
-					</Parameter>
-					<Parameter>
-						<Name><![CDATA[hotWaterRequest_kW]]></Name>
-						<Type><![CDATA[double]]></Type>
-					</Parameter>
-					<Body><![CDATA[v_hotWaterProduction_kW = min(hotWaterRequest_kW,p_districtHeatingMaxPower_kW) ;
-v_heatDelivery_kW = min(heatRequest_kW,p_districtHeatingMaxPower_kW-v_hotWaterProduction_kW) ; // Hot water gets priority
-v_districtHeatAbsorption_kW = v_hotWaterProduction_kW + v_heatDelivery_kW ; 
-v_districtHeatAbsorbed_kWh += v_districtHeatAbsorption_kW * main.dt_h ;
-]]></Body>
-				</Function>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1647519308904</Id>
-					<Name><![CDATA[f_heatPumpBoiler_heating]]></Name>
-					<Description><![CDATA[@ Author: Gillis Hommen
-@ Since: 17/03/2022]]></Description>
-					<X>860</X><Y>350</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Parameter>
-						<Name><![CDATA[heatRequest_kW]]></Name>
-						<Type><![CDATA[double]]></Type>
-					</Parameter>
-					<Parameter>
-						<Name><![CDATA[hotWaterRequest_kW]]></Name>
-						<Type><![CDATA[double]]></Type>
-					</Parameter>
-					<Parameter>
-						<Name><![CDATA[Toutside]]></Name>
-						<Type><![CDATA[double]]></Type>
-					</Parameter>
-					<Body><![CDATA[// Space heating
-double COP = tf_heatPumpCOP(Toutside);
-v_heatDelivery_kW = min(heatRequest_kW,vermogenWarmtepomp_kW*COP) ; 
-v_heatPumpPower_kW = v_heatDelivery_kW / COP ;
-v_heatPumpEnergyConsumed_kWh += v_heatPumpPower_kW * main.dt_h ;
-
-// Hot water
-v_hotWaterProduction_kW = min(hotWaterRequest_kW,p_boilerMaxPower_kW) ;
-v_boilerPower_kW = v_hotWaterProduction_kW + v_heatDelivery_kW ; 
-]]></Body>
-				</Function>
-			</Functions>
-			<TableFunctions>
-				<TableFunction AccessType="public" StaticFunction="false">
-					<Id>1647448666555</Id>
-					<Name><![CDATA[tf_heatPumpCOP]]></Name>
-					<X>260</X><Y>410</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<InterpolationMethod>LINEAR</InterpolationMethod>
-					<OutOfRangeBehaviour>EXTRAPOLATE</OutOfRangeBehaviour>
-					<OutOfRangeCustomValue><![CDATA[0.0]]></OutOfRangeCustomValue>
-					<ApproximationOrder><![CDATA[1]]></ApproximationOrder>
-					<LoadFromDatabase><![CDATA[false]]></LoadFromDatabase>
-					<ValuesQuery>
-						<TableReference>
-						</TableReference>
-							<ArgumentColumnReference>
-							</ArgumentColumnReference>
-							<ValueColumnReference>
-							</ValueColumnReference>
-					</ValuesQuery>
-// arguments and values
-					<Argument><![CDATA[-10.0]]></Argument>
-					<Argument><![CDATA[0.0]]></Argument>
-					<Argument><![CDATA[10.0]]></Argument>
-					<Argument><![CDATA[20.0]]></Argument>
-					<Value><![CDATA[1.5]]></Value>
-					<Value><![CDATA[2.0]]></Value>
-					<Value><![CDATA[3.0]]></Value>
-					<Value><![CDATA[4.0]]></Value>
-				</TableFunction>
-			</TableFunctions>
-			<AgentLinks>
-				<AgentLink>
-					<Id>1645015262386</Id>
-					<Name><![CDATA[connections]]></Name>
-					<X>50</X><Y>-50</Y>
-					<Label><X>15</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<HandleReceiveInConnections>false</HandleReceiveInConnections>
-					<AgentLinkType>COLLECTION_OF_LINKS</AgentLinkType>
-					<AgentLinkBidirectional>true</AgentLinkBidirectional>
-					<MessageType><![CDATA[Object]]></MessageType>
-					<LineStyle>SOLID</LineStyle>
-					<LineWidth>1</LineWidth>
-					<LineColor>-16777216</LineColor>
-					<LineZOrder>UNDER_AGENTS</LineZOrder>
-					<LineArrow>NONE</LineArrow>
-					<LineArrowPosition>END</LineArrowPosition>
-				</AgentLink>
-				<AgentLink>
-					<Id>1645021865160</Id>
-					<Name><![CDATA[connections]]></Name>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>50</X><Y>-150</Y>
-					<Label><X>15</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<HandleReceiveInConnections>false</HandleReceiveInConnections>
-					<AgentLinkType>COLLECTION_OF_LINKS</AgentLinkType>
-					<AgentLinkBidirectional>true</AgentLinkBidirectional>
-					<MessageType><![CDATA[Object]]></MessageType>
-					<LineStyle>SOLID</LineStyle>
-					<LineWidth>1</LineWidth>
-					<LineColor>-16777216</LineColor>
-					<LineZOrder>UNDER_AGENTS</LineZOrder>
-					<LineArrow>NONE</LineArrow>
-					<LineArrowPosition>END</LineArrowPosition>
-				</AgentLink>
-			</AgentLinks>
-
-			<ContainerLinks>
-				<ContainerLink>
-					<Id>1645015345951</Id>
-					<Name><![CDATA[main]]></Name>
-					<X>50</X><Y>-100</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<ActiveObjectClass>
-						<PackageName><![CDATA[ebuurt]]></PackageName>
-						<ClassName><![CDATA[Main]]></ClassName>
-					</ActiveObjectClass>
-				</ContainerLink>
-				<ContainerLink>
-					<Id>1647447526473</Id>
-					<Name><![CDATA[huishouden]]></Name>
-					<X>150</X><Y>-100</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<ActiveObjectClass>
-						<PackageName><![CDATA[ebuurt]]></PackageName>
-						<ClassName><![CDATA[Huishouden]]></ClassName>
-					</ActiveObjectClass>
-				</ContainerLink>
-			</ContainerLinks>
-
-			<Presentation>
-				<Level>
-					<Id>1645015262390</Id>
-					<Name><![CDATA[level]]></Name>
-					<X>0</X><Y>0</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<Z>0</Z>
-					<LevelVisibility>DIM_NON_CURRENT</LevelVisibility>
-
 
 				</Level>
 			</Presentation>
@@ -26575,9 +25792,9 @@ v_WijktrafoOverschrijdingTijdfractie = v_WijktrafoOverschrijdingUren / time();]]
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
 					<Action><![CDATA[//Totalen
-double dt=1.0/60.0; // Integration timestep
+//double dt=1.0/60.0; // Integration timestep
 
-v_totalFeedInPower_kWh += sum(main.huishoudens, x->x.teruglevering_kW) * dt;
+v_totalFeedInPower_kWh += sum(main.huishoudens, x->x.teruglevering_kW) * main.dt_h;
 
 
 v_totalEnergyDemand_kWh = main.v_wijkTotaalEnergyVerbruik_kWh; //main.evVerbruikJaartotaal + main.basislastElektriciteitsverbruikHuishoudensJaartotaal + main.warmtepompVerbruikJaartotaal;
@@ -30612,6 +29829,12 @@ en duurzaamheid een totaal is.]]></Text>
 		<VersionMajor>8</VersionMajor>
 		<VersionMinor>0</VersionMinor>
 		<VersionBuild>5</VersionBuild>
+    </RequiredLibraryReference>
+    <RequiredLibraryReference>
+		<LibraryName><![CDATA[heatingsystems]]></LibraryName>
+		<VersionMajor>0</VersionMajor>
+		<VersionMinor>0</VersionMinor>
+		<VersionBuild>0</VersionBuild>
     </RequiredLibraryReference>
 </Model>
 </AnyLogicWorkspace>
