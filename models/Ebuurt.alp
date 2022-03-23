@@ -4,7 +4,7 @@
 	         AnyLogic Project File 
 *************************************************	         
 -->
-<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.9.202112171712" AlpVersion="8.7.3">
+<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.10.202202091718" AlpVersion="8.7.3">
 <Model>
 	<Id>1641891178629</Id>
 	<Name><![CDATA[Ebuurt]]></Name>
@@ -1557,7 +1557,7 @@ f_setTrafoMinPower(p_connectionCapacityPerHousehold);
 					<Description><![CDATA[Timestep for numerical integration
 @author Gillis Hommen
 @since 18/03/2022]]></Description>
-					<X>-750</X><Y>250</Y>
+					<X>-750</X><Y>100</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -1567,7 +1567,7 @@ f_setTrafoMinPower(p_connectionCapacityPerHousehold);
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[1.0/4.0]]></Code>
+							<Code><![CDATA[15/60.0]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1647592789835</Id>
@@ -2010,7 +2010,7 @@ incentiveGenerator.f_updateIncentive();
 	
 // Update all households, calculate power consumption
 for ( Huishouden h : huishoudens ) {
-	h.netVermogenFunctie();
+	h.f_netVermogenFunctie();
 	h.f_electricityBilling();
 }
 // District heating?
@@ -2019,9 +2019,9 @@ v_districtHeatDemand_kW = sum(huishoudens, x->x.heatingSystem.v_districtHeatAbso
 // Wijkvermogens
 pvOpwek_kW = sumWhere(huishoudens, x->x.zonnepanelen.get(0).pvOpwekKW, x->x.zonnepanelen.size() > 0);
 warmtepompVerbruik_kW = sum(huishoudens, x->x.heatingSystem.v_heatPumpPower_kW);
-basislastElektriciteitsverbruikHuishoudens_kW = sum(huishoudens, x->x.basislastElektriciteitsverbruik_kW);
-eigenConsumptie = sum(huishoudens, x->x.eigenConsumptie_kW);
-trafoVermogen_kW = sum(huishoudens, x->x.netVermogen_kW); //basislastElektriciteitsverbruikHuishoudens_kW + autos.laadvraag() + warmtepompVerbruik_kW - pvOpwek_kW - autos.V2Gvermogen();
+basislastElektriciteitsverbruikHuishoudens_kW = sum(huishoudens, x->x.v_basislastElektriciteitsverbruik_kW);
+eigenConsumptie = sum(huishoudens, x->x.v_eigenConsumptie_kW);
+trafoVermogen_kW = sum(huishoudens, x->x.v_netVermogen_kW); //basislastElektriciteitsverbruikHuishoudens_kW + autos.laadvraag() + warmtepompVerbruik_kW - pvOpwek_kW - autos.V2Gvermogen();
 wijkVerbruik_kW = basislastElektriciteitsverbruikHuishoudens_kW + autos.laadvraag() + warmtepompVerbruik_kW - autos.V2Gvermogen(); // Alle 'final' energieverbuik in de wijk
 gemiddeldeSoC_pct = averageWhere(autos, x->x.huidigBatterijCap_kWh/x.maxBatterijCap_kWh, x->x.elektrisch);
 
@@ -11381,7 +11381,7 @@ p_rcValueAverage_m2KpW = t_rcByEnergyLabel(c_energyLabels.get(p_energyLabel));
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1644826187428</Id>
-					<Name><![CDATA[basislastElektriciteitsverbruik_kW]]></Name>
+					<Name><![CDATA[v_basislastElektriciteitsverbruik_kW]]></Name>
 					<X>40</X><Y>580</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -11393,7 +11393,7 @@ p_rcValueAverage_m2KpW = t_rcByEnergyLabel(c_energyLabels.get(p_energyLabel));
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1644826187430</Id>
-					<Name><![CDATA[eigenConsumptie_kW]]></Name>
+					<Name><![CDATA[v_eigenConsumptie_kW]]></Name>
 					<X>40</X><Y>700</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -11405,7 +11405,7 @@ p_rcValueAverage_m2KpW = t_rcByEnergyLabel(c_energyLabels.get(p_energyLabel));
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1644826187432</Id>
-					<Name><![CDATA[teruglevering_kW]]></Name>
+					<Name><![CDATA[v_teruglevering_kW]]></Name>
 					<X>40</X><Y>730</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -11417,7 +11417,7 @@ p_rcValueAverage_m2KpW = t_rcByEnergyLabel(c_energyLabels.get(p_energyLabel));
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1644826187434</Id>
-					<Name><![CDATA[totaalVerbruik_kW]]></Name>
+					<Name><![CDATA[v_totaalVerbruik_kW]]></Name>
 					<X>40</X><Y>760</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -11429,7 +11429,7 @@ p_rcValueAverage_m2KpW = t_rcByEnergyLabel(c_energyLabels.get(p_energyLabel));
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1644826187436</Id>
-					<Name><![CDATA[netVermogen_kW]]></Name>
+					<Name><![CDATA[v_netVermogen_kW]]></Name>
 					<X>40</X><Y>800</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -11453,7 +11453,7 @@ p_rcValueAverage_m2KpW = t_rcByEnergyLabel(c_energyLabels.get(p_energyLabel));
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1644826187440</Id>
-					<Name><![CDATA[pvOpwek_kW]]></Name>
+					<Name><![CDATA[v_pvOpwek_kW]]></Name>
 					<X>40</X><Y>870</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -11603,7 +11603,7 @@ p_rcValueAverage_m2KpW = t_rcByEnergyLabel(c_energyLabels.get(p_energyLabel));
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1648038320914</Id>
-					<Name><![CDATA[v_dQdtHouse]]></Name>
+					<Name><![CDATA[v_dQdtHouse_kW]]></Name>
 					<Description><![CDATA[Net heat flow out into the building]]></Description>
 					<X>80</X><Y>1590</Y>
 					<Label><X>10</X><Y>0</Y></Label>
@@ -11618,24 +11618,8 @@ p_rcValueAverage_m2KpW = t_rcByEnergyLabel(c_energyLabels.get(p_energyLabel));
 					</Properties>
 				</Variable>
 				<Variable Class="PlainVariable">
-					<Id>1648038328514</Id>
-					<Name><![CDATA[v_dtQuarterHour]]></Name>
-					<Description><![CDATA[Timestep for ]]></Description>
-					<X>80</X><Y>1610</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[double]]></Type>        
-						<InitialValue Class="CodeValue">
-							<Code><![CDATA[0.25 * hour()]]></Code>
-						</InitialValue>
-					</Properties>
-				</Variable>
-				<Variable Class="PlainVariable">
 					<Id>1648038337347</Id>
-					<Name><![CDATA[v_Qhouse]]></Name>
+					<Name><![CDATA[v_Qhouse_kWh]]></Name>
 					<X>330</X><Y>1500</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -12742,41 +12726,6 @@ p_rcValueAverage_m2KpW = t_rcByEnergyLabel(c_energyLabels.get(p_energyLabel));
 					<Delay>false</Delay>
 				</Link>
 			</Dependences>
-			<Events>
-				<Event>
-					<Id>1648038353203</Id>
-					<Name><![CDATA[e_calcHeatingCooling]]></Name>
-					<Description><![CDATA[This event is used to trigger the house thermal equations resulting in heating demand. 
--Default interval is 15 minutes, may be changed if you then also change v_dtQuarterHour.]]></Description>
-					<X>480</X><Y>1500</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties TriggerType="timeout" Mode="cyclic">
-						<Timeout Class="CodeUnitValue">
-							<Code><![CDATA[1]]></Code>
-							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
-						</Timeout>
-						<Rate Class="CodeUnitValue">
-							<Code><![CDATA[1]]></Code>
-							<Unit Class="RateUnits"><![CDATA[PER_HOUR]]></Unit>
-						</Rate>
-						<OccurrenceAtTime>true</OccurrenceAtTime>
-						<OccurrenceDate>1647936000000</OccurrenceDate>
-						<OccurrenceTime Class="CodeUnitValue">
-							<Code><![CDATA[0]]></Code>
-							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
-						</OccurrenceTime>
-						<RecurrenceCode Class="CodeUnitValue">
-							<Code><![CDATA[15]]></Code>
-							<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
-						</RecurrenceCode>
-						<Condition><![CDATA[false]]></Condition>
-					</Properties>
-					<Action><![CDATA[f_heatingCooling();]]></Action>
-				</Event>
-			</Events>
 			<Functions>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -12905,20 +12854,20 @@ if( nbVehicles > 0){
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1644826187416</Id>
-					<Name><![CDATA[basislastVerbruiksFunctie]]></Name>
+					<Name><![CDATA[f_basislastVerbruiksFunctie]]></Name>
 					<X>40</X><Y>550</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[//basislastElektriciteitsverbruik_kW = elektriciteitsverbruikFractie(time(HOUR) + main.hourOfYearStart) * p_averageElectricityConsumption * 4; // keer 4 om kwartierdata kwh om te rekenen naar kW
-basislastElektriciteitsverbruik_kW = uniform(0.2,1.8)*elektriciteitsverbruikFractie(time(HOUR) + main.hourOfYearStart) * p_averageElectricityConsumption * 4; // keer 4 om kwartierdata kwh om te rekenen naar kW]]></Body>
+v_basislastElektriciteitsverbruik_kW = uniform(0.2,1.8)*elektriciteitsverbruikFractie(time(HOUR) + main.hourOfYearStart) * p_averageElectricityConsumption * 4; // keer 4 om kwartierdata kwh om te rekenen naar kW]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1644826187418</Id>
-					<Name><![CDATA[netVermogenFunctie]]></Name>
+					<Name><![CDATA[f_netVermogenFunctie]]></Name>
 					<X>40</X><Y>610</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -12926,36 +12875,37 @@ basislastElektriciteitsverbruik_kW = uniform(0.2,1.8)*elektriciteitsverbruikFrac
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[//traceln("Aantal auto's in huishouden" + nbVehicles);
 
-basislastVerbruiksFunctie();
+f_basislastVerbruiksFunctie();
 zonnepanelen.forEach(z -> z.pvPowerFunction());
+f_heatingCooling();
 
 // Smart devices, managed in 'merit order' sequence
 // Heating
 f_slimmeThermostaatEvent();
 
 // EV charging
-v_gridPowerBalAfterPV_kW = basislastElektriciteitsverbruik_kW + heatingSystem.v_heatPumpPower_kW - pvOpwek_kW;
-totaalVerbruik_kW = basislastElektriciteitsverbruik_kW + heatingSystem.v_heatPumpPower_kW ;
+v_totaalVerbruik_kW = v_basislastElektriciteitsverbruik_kW + heatingSystem.v_heatPumpPower_kW + heatingSystem.v_boilerPower_kW;
+v_gridPowerBalAfterPV_kW = v_totaalVerbruik_kW - v_pvOpwek_kW;
 energyManager.manage(p_energyManagerMode);
 
 double V2G_kW=0;
 if (nbVehicles > 0) {
 	if (auto1.isLaden) {
-		totaalVerbruik_kW += max(0,auto1.laadsnelheid_kW);
+		v_totaalVerbruik_kW += max(0,auto1.laadsnelheid_kW);
 		V2G_kW += - min(0,auto1.laadsnelheid_kW);
 	}
 	if (nbVehicles > 1) {
 		if (nbVehicles > 1 & auto2.isLaden) {
-		totaalVerbruik_kW += max(0,auto2.laadsnelheid_kW);
+		v_totaalVerbruik_kW += max(0,auto2.laadsnelheid_kW);
 		V2G_kW += - min(0,auto2.laadsnelheid_kW);
 		}
 	}
 }
 
 // Totals
-eigenConsumptie_kW = min(pvOpwek_kW + V2G_kW,totaalVerbruik_kW);
-teruglevering_kW = pvOpwek_kW + V2G_kW - eigenConsumptie_kW;
-netVermogen_kW = totaalVerbruik_kW - pvOpwek_kW - V2G_kW;
+v_eigenConsumptie_kW = min(v_pvOpwek_kW + V2G_kW,v_totaalVerbruik_kW);
+v_teruglevering_kW = v_pvOpwek_kW + V2G_kW - v_eigenConsumptie_kW;
+v_netVermogen_kW = v_totaalVerbruik_kW - v_pvOpwek_kW - V2G_kW;
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -12975,24 +12925,24 @@ netVermogen_kW = totaalVerbruik_kW - pvOpwek_kW - V2G_kW;
 double dP = 0.1; // kW integration-step to calculate current electricity price
 
 double costCurrentTimestep_eur=0;
-if (netVermogen_kW >= 0) {
-	for ( double power_kW = dP; power_kW <= netVermogen_kW ; power_kW += dP) { // Integreer incrementele prijs-curve over vermogen
+if (v_netVermogen_kW >= 0) {
+	for ( double power_kW = dP; power_kW <= v_netVermogen_kW ; power_kW += dP) { // Integreer incrementele prijs-curve over vermogen
 		//traceln( power_kW + "   " + main.incentiveGenerator.tf_incentivePowerCosts( power_kW ) );
 		costCurrentTimestep_eur += main.incentiveGenerator.tf_incentivePowerCosts( power_kW ) * dP ;
 	}
-	costCurrentTimestep_eur += main.incentiveGenerator.tf_incentivePowerCosts( netVermogen_kW ) * (netVermogen_kW - dP * floor(netVermogen_kW / dP)) ;
+	costCurrentTimestep_eur += main.incentiveGenerator.tf_incentivePowerCosts( v_netVermogen_kW ) * (v_netVermogen_kW - dP * floor(v_netVermogen_kW / dP)) ;
 	
 }
-else if ( netVermogen_kW < 0 ) {
-	for ( double power_kW = -dP ; power_kW >= netVermogen_kW ; power_kW -= dP ) { // Integreer incrementele prijs-curve over vermogen
+else if ( v_netVermogen_kW < 0 ) {
+	for ( double power_kW = -dP ; power_kW >= v_netVermogen_kW ; power_kW -= dP ) { // Integreer incrementele prijs-curve over vermogen
 		//traceln( power_kW + "   " + main.incentiveGenerator.tf_incentivePowerCosts( power_kW ) );
 		costCurrentTimestep_eur -= main.incentiveGenerator.tf_incentivePowerCosts( power_kW ) * dP ;
 	}
-	costCurrentTimestep_eur -= main.incentiveGenerator.tf_incentivePowerCosts( netVermogen_kW ) * (netVermogen_kW + dP * floor(-netVermogen_kW / dP)) ;
+	costCurrentTimestep_eur -= main.incentiveGenerator.tf_incentivePowerCosts( v_netVermogen_kW ) * (v_netVermogen_kW + dP * floor(-v_netVermogen_kW / dP)) ;
 }	
 //traceln(costCurrentTimestep_eur);
 v_electricityBill_eur += (costCurrentTimestep_eur * main.dt_h);
-v_totaalVerbruik_kWh += netVermogen_kW * main.dt_h;
+v_totaalVerbruik_kWh += v_netVermogen_kW * main.dt_h;
 v_gemiddeldeStroomPrijs_eurpkWh = v_electricityBill_eur/v_totaalVerbruik_kWh;
 //traceln(main.incentiveGenerator.tf_incentivePowerCosts( 0 ));]]></Body>
 				</Function>
@@ -13050,11 +13000,11 @@ v_fieTransmissionLoss_kW = (v_Thouse - main.Tbuiten) * p_buildingEnvelopeArea_m2
 v_fieIrradiation_kW = 0;
 
 // Warmtebalans woning
-v_dQdtHouse = v_fieIrradiation_kW + v_heatingThermalPower_kW - v_fieTransmissionLoss_kW - v_fieVentilation_kW;
+v_dQdtHouse_kW = v_fieIrradiation_kW + v_heatingThermalPower_kW - v_fieTransmissionLoss_kW - v_fieVentilation_kW;
 
 // Update temperatuur woning
-v_Qhouse += v_dQdtHouse * v_dtQuarterHour;
-v_Thouse = v_Qhouse / p_heatCapacityHouse_kWhpK;]]></Body>
+v_Qhouse_kWh += v_dQdtHouse_kW * main.dt_h;
+v_Thouse = v_Qhouse_kWh / p_heatCapacityHouse_kWhpK;]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -13074,7 +13024,7 @@ v_Thouse = v_Qhouse / p_heatCapacityHouse_kWhpK;]]></Body>
 	} else if (main.cb_slimVerwarmen.isSelected() && p_heatingSystemType == HeatingTypes.HeatPump && v_Thouse < setpointActief + T_margin) { // Flexibiliteit: verder doorverwarmen als prijs laag genoeg is
 
 		double power = 0;
-		while( main.incentiveGenerator.tf_incentivePowerCosts( basislastElektriciteitsverbruik_kW - pvOpwek_kW + power) < v_bidPriceLowHeatPump_eurpkWh && power < heatingSystem.p_powerHeatPump_kW) {
+		while( main.incentiveGenerator.tf_incentivePowerCosts( v_basislastElektriciteitsverbruik_kW - v_pvOpwek_kW + power) < v_bidPriceLowHeatPump_eurpkWh && power < heatingSystem.p_powerHeatPump_kW) {
 			power += 0.5;
 		}
 		v_heatingPct = power / heatingSystem.p_powerHeatPump_kW;
@@ -21152,7 +21102,7 @@ if (aantalPanelen < 1){
 					<Body><![CDATA[pvOpwekKW = zonnestraling(time(HOUR) + main.hourOfYearStart) / 1000 * efficientie * oppervlaktePerPaneelM2 * capaciteitsFactor * aantalPanelen;
 //traceln( time(HOUR) ); // Debug
 //capaciteitsfactor kan afhankelijk door temperatuur, hellingshoek, orientatie, schaduw, e.d. meer detail nodig
-huishouden.pvOpwek_kW = pvOpwekKW;
+huishouden.v_pvOpwek_kW = pvOpwekKW;
 
 plot_PVOpwek.updateData();
 jaarlijksTotaalPVOpwekKWh += pvOpwekKW;]]></Body>
@@ -25758,7 +25708,7 @@ v_WijktrafoOverschrijdingTijdfractie = v_WijktrafoOverschrijdingUren / time();]]
 					<Action><![CDATA[//Totalen
 //double dt=1.0/60.0; // Integration timestep
 
-v_totalFeedInPower_kWh += sum(main.huishoudens, x->x.teruglevering_kW) * main.dt_h;
+v_totalFeedInPower_kWh += sum(main.huishoudens, x->x.v_teruglevering_kW) * main.dt_h;
 
 
 v_totalEnergyDemand_kWh = main.v_wijkTotaalEnergyVerbruik_kWh; //main.evVerbruikJaartotaal + main.basislastElektriciteitsverbruikHuishoudensJaartotaal + main.warmtepompVerbruikJaartotaal;
