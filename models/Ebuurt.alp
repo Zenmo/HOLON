@@ -2317,6 +2317,61 @@ traceln(mode); // TODO: remove this print line
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[sliderIndex]]></Name>
+						<Type><![CDATA[int]]></Type>
+					</Parameter>
+					<Body><![CDATA[double pct_gasBurner = sl_gasBurner_pct.getValue();
+double pct_heatPump = sl_heatPump_pct.getValue();
+double pct_hybridHeatPump = sl_hybridHeatPump_pct.getValue();
+double pct_districtHeating = sl_districtHeating_pct.getValue();
+
+double pctArray[]={pct_gasBurner, pct_heatPump, pct_hybridHeatPump, pct_districtHeating};
+//pctFixed = pctArray[sliderIndex];
+//double pctRest = 100 - pctArray[sliderIndex];
+double pctExcess = Arrays.stream(pctArray).sum() - 100;
+for (int i = 0; i<4; i++){
+	if (!(i==sliderIndex)) {
+		pctArray[i] = max(0,pctArray[i] - pctExcess);
+		pctExcess = Arrays.stream(pctArray).sum() - 100;
+	}
+}
+if (pctExcess != 0) {
+	traceln("Sliders don't add up to 100%!");
+}
+
+sl_gasBurner_pct.setValue(pctArray[0]);
+sl_heatPump_pct.setValue(pctArray[1]);
+sl_hybridHeatPump_pct.setValue(pctArray[2]);
+sl_districtHeating_pct.setValue(pctArray[3]);
+
+//int nbHuishoudens = huishoudens.size();
+//traceln(nbHuishoudens);
+
+// Set heating type for all households
+int nbGasBurner = 0;
+int nbHeatpump = 0;
+int nbHybridHeatpump = 0;
+int nbDistrictheating = 0;
+for (Huishouden h : huishoudens) {
+	double rand = uniform(0,100);
+	//traceln(rand);
+	if (rand < pctArray[0]) {
+		h.p_heatingSystemType=HeatingTypes.CV_ketel;	
+		nbGasBurner++;
+	} else if ( rand >= pctArray[0] && rand < pctArray[1]+pctArray[0]) {
+		h.p_heatingSystemType=HeatingTypes.HeatPump;	
+		nbHeatpump++;
+	} else if ( rand >= pctArray[0] + pctArray[1] && rand < pctArray[1]+pctArray[0]+pctArray[2]) {
+		h.p_heatingSystemType=HeatingTypes.HeatPump_Hybrid;	
+		nbHybridHeatpump++;
+	} else if ( rand >= pctArray[0] + pctArray[1] + pctArray[2]) {
+		h.p_heatingSystemType=HeatingTypes.DistrictHeating;	
+		nbDistrictheating++;
+	}
+}
+traceln(nbGasBurner + " CV ketels, " + nbHeatpump + " warmtepompen, " + nbHybridHeatpump + " hybride warmtepompen, " + nbDistrictheating + " stadsverwarming");
+]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -11215,7 +11270,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 					<LineColor/>
 					<LineMaterial>null</LineMaterial>
 					<LineStyle>SOLID</LineStyle>
-					<Width>820</Width>
+					<Width>940</Width>
 					<Height>170</Height>
 					<Rotation>0.0</Rotation>
 					<FillColor>-918279</FillColor>
@@ -11272,7 +11327,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 				<Text>
 					<Id>1648049008273</Id>
 					<Name><![CDATA[text8]]></Name>
-					<X>270</X><Y>971</Y>
+					<X>250</X><Y>971</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -11294,7 +11349,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1648049043461</Id>
 					<Name><![CDATA[sl_gasBurner_pct]]></Name>
-					<X>270</X><Y>1000</Y>
+					<X>250</X><Y>1000</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -11303,6 +11358,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 					<BasicProperties Width="100" Height="30">
                         <EmbeddedIcon>false</EmbeddedIcon>	
 						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[f_setHeatingTypes(0)]]></ActionCode>
 					</BasicProperties>
 					<ExtendedProperties>
 						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
@@ -11316,7 +11372,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1648049048421</Id>
 					<Name><![CDATA[sl_heatPump_pct]]></Name>
-					<X>270</X><Y>1030</Y>
+					<X>250</X><Y>1030</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -11325,6 +11381,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 					<BasicProperties Width="100" Height="30">
                         <EmbeddedIcon>false</EmbeddedIcon>	
 						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[f_setHeatingTypes(1)]]></ActionCode>
 					</BasicProperties>
 					<ExtendedProperties>
 						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
@@ -11338,7 +11395,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1648049055671</Id>
 					<Name><![CDATA[sl_hybridHeatPump_pct]]></Name>
-					<X>270</X><Y>1060</Y>
+					<X>250</X><Y>1060</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -11347,6 +11404,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 					<BasicProperties Width="100" Height="30">
                         <EmbeddedIcon>false</EmbeddedIcon>	
 						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[f_setHeatingTypes(2)]]></ActionCode>
 					</BasicProperties>
 					<ExtendedProperties>
 						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
@@ -11360,7 +11418,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1648049082763</Id>
 					<Name><![CDATA[sl_districtHeating_pct]]></Name>
-					<X>270</X><Y>1090</Y>
+					<X>250</X><Y>1090</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -11369,6 +11427,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 					<BasicProperties Width="100" Height="30">
                         <EmbeddedIcon>false</EmbeddedIcon>	
 						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[f_setHeatingTypes(3)]]></ActionCode>
 					</BasicProperties>
 					<ExtendedProperties>
 						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
@@ -11484,6 +11543,90 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 					<Color>-16777216</Color>
 					<Text><![CDATA[thermostaat lager participatiegraad]]></Text>
 					<TextCode><![CDATA[roundToInt(v_thermostatReductionParticipation_pct) + "  % participatiegraad"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>18</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1648109023572</Id>
+					<Name><![CDATA[text12]]></Name>
+					<X>370</X><Y>1000</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[CV ketel]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>18</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1648109039850</Id>
+					<Name><![CDATA[text13]]></Name>
+					<X>370</X><Y>1030</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Warmtepomp]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>18</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1648109053512</Id>
+					<Name><![CDATA[text14]]></Name>
+					<X>370</X><Y>1060</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Hybride warmtepomp]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>18</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1648109064496</Id>
+					<Name><![CDATA[text15]]></Name>
+					<X>370</X><Y>1090</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Stadsverwarming]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>18</Size>
