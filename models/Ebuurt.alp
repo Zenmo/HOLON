@@ -91,6 +91,7 @@ for ( int i = 0; i < p_boot_woningen; i++) {
 		h.energyManager.v_bidPriceV2G_eurpkWh=uniform(0.25, 0.30);
 	}
 }
+f_setHeatingTypes(0);
 
 hourOfYearStart=hourOfYearPerMonth[getMonth()] + (getDayOfMonth()-1)*24;
 v_initialTotalBatteryCharge_kWh = sum(autos, x->x.huidigBatterijCap_kWh);
@@ -2017,7 +2018,7 @@ traceln( basislastElektriciteitsverbruikHuishoudensJaartotaal / huishoudens.size
 				</Event>
 				<Event>
 					<Id>1644825763675</Id>
-					<Name><![CDATA[totalen]]></Name>
+					<Name><![CDATA[tijdstapTotalen]]></Name>
 					<X>-752</X><Y>78</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -2057,11 +2058,26 @@ for ( Huishouden h : huishoudens ) {
 	h.f_electricityBilling();
 }
 // District heating?
-v_districtHeatDemand_kW = sum(huishoudens, x->x.heatingSystem.v_districtHeatAbsorption_kW);
+v_districtHeatDemand_kW = 0.0;
+warmtepompVerbruik_kW = 0.0;
+for (Huishouden h : huishoudens) {
+//	if ( h.p_heatingSystem.getClass().equals(HS_DistrictHeating) ) {
+	if ( h.p_heatingSystem instanceof HS_DistrictHeating ) {
+		HS_DistrictHeating x = (HS_DistrictHeating)h.p_heatingSystem;
+		v_districtHeatDemand_kW += x.v_districtHeatAbsorption_kW;
+		traceln("District heating demand " + v_districtHeatDemand_kW);
+	}
+//	if ( h.p_heatingSystem.getClass().isInstance(HS_Heatpump) ) {
+	if ( h.p_heatingSystem instanceof HS_Heatpump ) {
+		HS_Heatpump x = (HS_Heatpump)h.p_heatingSystem;
+		warmtepompVerbruik_kW += x.v_heatPumpPower_kW;
+		traceln("Heatpump demand " + warmtepompVerbruik_kW);
+	}
+}
 
 // Wijkvermogens
 pvOpwek_kW = sumWhere(huishoudens, x->x.zonnepanelen.get(0).pvOpwekKW, x->x.zonnepanelen.size() > 0);
-warmtepompVerbruik_kW = sum(huishoudens, x->x.heatingSystem.v_heatPumpPower_kW);
+
 basislastElektriciteitsverbruikHuishoudens_kW = sum(huishoudens, x->x.v_basislastElektriciteitsverbruik_kW);
 eigenConsumptie = sum(huishoudens, x->x.v_eigenConsumptie_kW);
 trafoVermogen_kW = sum(huishoudens, x->x.v_netVermogen_kW); //basislastElektriciteitsverbruikHuishoudens_kW + autos.laadvraag() + warmtepompVerbruik_kW - pvOpwek_kW - autos.V2Gvermogen();
@@ -2082,9 +2098,23 @@ eigenConsumptieJaartotaal += eigenConsumptie * dt_h;
 v_wijkNettoEnergyVerbruik_kWh += trafoVermogen_kW * dt_h;
 v_wijkEnergyAfname_kWh += max(0,trafoVermogen_kW * dt_h);
 v_wijkTotaalEnergyVerbruik_kWh += wijkVerbruik_kW * dt_h;
-v_wijkTotaalGasVerbruik_m3 = sum(huishoudens, x->x.heatingSystem.v_gasConsumed_m3);
 v_wijkTotaalBenzineVerbruik_l = sumWhere(autos, x->x.v_fuelConsumed_l, x->x.p_fuelType==fuelType.petrol && !x.elektrisch);
 v_wijkTotaalDieselVerbruik_l = sumWhere(autos, x->x.v_fuelConsumed_l, x->x.p_fuelType==fuelType.diesel && !x.elektrisch);
+
+v_wijkTotaalGasVerbruik_m3 = 0.0;
+// sumWhere(huishoudens, x->x.p_heatingSystem.v_gasConsumed_m3, x->x.p_heatingSystem instanceof HS_Gasburner);
+for (Huishouden h : huishoudens) {
+	if ( h.p_heatingSystem instanceof HS_Gasburner ) {
+		HS_Gasburner x = (HS_Gasburner)h.p_heatingSystem;
+		//v_wijkTotaalGasVerbruik_m3 += x.v_gasConsumed_m3;
+		v_wijkTotaalGasVerbruik_m3 += x.v_gasFlow_m3ph * dt_h;
+		traceln("Gasverbruik " + x.v_gasFlow_m3ph);
+	}
+	if ( h.p_heatingSystem instanceof HS_HeatpumpHybrid ) {
+		HS_HeatpumpHybrid x = (HS_HeatpumpHybrid)h.p_heatingSystem;
+		v_wijkTotaalGasVerbruik_m3 += x.v_gasConsumed_m3;
+	}
+}
 // CO2 totaal wijk
 v_WijkTotaalCO2_kg = (p_GasCO2_gpm3 * v_wijkTotaalGasVerbruik_m3 + p_GridPowerCO2_gpkWh * v_wijkNettoEnergyVerbruik_kWh + p_petrolWTWCO2_gpl * v_wijkTotaalBenzineVerbruik_l + p_dieselWTWCO2_gpl * v_wijkTotaalDieselVerbruik_l)/1000;
 
@@ -2354,19 +2384,24 @@ int nbHeatpump = 0;
 int nbHybridHeatpump = 0;
 int nbDistrictheating = 0;
 for (Huishouden h : huishoudens) {
+	h.p_heatingSystem = null;
 	double rand = uniform(0,100);
 	//traceln(rand);
-	if (rand < pctArray[0]) {
-		h.p_heatingSystemType=HeatingTypes.CV_ketel;	
+	if (rand < pctArray[0]) {		
+		h.p_heatingSystemType=HeatingTypes.CV_ketel;
+		h.p_heatingSystem = new HS_Gasburner();	
 		nbGasBurner++;
 	} else if ( rand >= pctArray[0] && rand < pctArray[1]+pctArray[0]) {
 		h.p_heatingSystemType=HeatingTypes.HeatPump;	
+		h.p_heatingSystem = new HS_Heatpump();
 		nbHeatpump++;
 	} else if ( rand >= pctArray[0] + pctArray[1] && rand < pctArray[1]+pctArray[0]+pctArray[2]) {
 		h.p_heatingSystemType=HeatingTypes.HeatPump_Hybrid;	
+		h.p_heatingSystem = new HS_HeatpumpHybrid();
 		nbHybridHeatpump++;
 	} else if ( rand >= pctArray[0] + pctArray[1] + pctArray[2]) {
 		h.p_heatingSystemType=HeatingTypes.DistrictHeating;	
+		h.p_heatingSystem = new HS_DistrictHeating();
 		nbDistrictheating++;
 	}
 }
@@ -2671,6 +2706,9 @@ v_thermostatReductionParticipation_pct = participationFraction*100;]]></Body>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_rcValueAverage_m2KpW]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_heatingSystem]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -9292,9 +9330,10 @@ bezoekPT / 10]]></LineWidthCode>
     			<TimePlot>
 					<Id>1644311151556</Id>
 					<Name><![CDATA[pl_avgSoC]]></Name>
-					<X>-530</X><Y>710</Y>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>-540</X><Y>710</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
+					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
@@ -11110,6 +11149,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
     			<TimePlot>
 					<Id>1647514680527</Id>
 					<Name><![CDATA[pl_avgSoC1]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>-530</X><Y>470</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
@@ -11210,6 +11250,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1647524117133</Id>
 					<Name><![CDATA[cb_slimVerwarmen]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>-340</X><Y>450</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -11361,7 +11402,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 						<ActionCode><![CDATA[f_setHeatingTypes(0)]]></ActionCode>
 					</BasicProperties>
 					<ExtendedProperties>
-						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
+						<DefaultValueCode><![CDATA[50]]></DefaultValueCode>
 						<Orientation>HORIZONTAL</Orientation>
 						<MinValue><![CDATA[0]]></MinValue>
 						<MaxValue><![CDATA[100]]></MaxValue>
@@ -11813,7 +11854,6 @@ c_energyLabels.put("null",7);
 p_ventilationFlowrate_m3ph = p_specificVentilationFlowrate_mph * p_floorSurfaceArea;
 p_buildingEnvelopeArea_m2 = t_formfactorByHousetype(c_houseTypes.get(p_houseTypeString))*p_floorSurfaceArea;
 p_rcValueAverage_m2KpW = t_rcByEnergyLabel(c_energyLabels.get(p_energyLabel));
-
 ]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -12224,7 +12264,7 @@ p_rcValueAverage_m2KpW = t_rcByEnergyLabel(c_energyLabels.get(p_energyLabel));
 				<Variable Class="Parameter">
 					<Id>1641891987662</Id>
 					<Name><![CDATA[p_heatingSystemType]]></Name>
-					<X>900</X><Y>1100</Y>
+					<X>900</X><Y>1080</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -13162,6 +13202,27 @@ p_rcValueAverage_m2KpW = t_rcByEnergyLabel(c_energyLabels.get(p_energyLabel));
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1648113930688</Id>
+					<Name><![CDATA[p_heatingSystem]]></Name>
+					<X>900</X><Y>1100</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[HeatingSystem]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1648113930686</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1643455674954</Id>
 					<Name><![CDATA[bewoners]]></Name>
@@ -13460,8 +13521,26 @@ f_heatingCooling();
 // Heating
 f_slimmeThermostaatEvent();
 
+double heatingElectricPower_kW = 0;
+if ( p_heatingSystem instanceof HS_Heatpump ) {
+		HS_Heatpump x = (HS_Heatpump)p_heatingSystem;
+		heatingElectricPower_kW += x.v_heatPumpPower_kW;
+}
+if ( p_heatingSystem instanceof HS_HeatpumpHybrid ) {
+		HS_HeatpumpHybrid x = (HS_HeatpumpHybrid)p_heatingSystem;
+		heatingElectricPower_kW += x.v_heatPumpPower_kW;
+}
+if ( p_heatingSystem instanceof HS_HeatpumpBoiler ) {
+		HS_HeatpumpBoiler x = (HS_HeatpumpBoiler)p_heatingSystem;
+		heatingElectricPower_kW += x.v_heatPumpPower_kW + x.v_boilerPower_kW;
+}
+if ( p_heatingSystem instanceof HS_DistrictHeatingWBoiler ) {
+		HS_DistrictHeatingWBoiler x = (HS_DistrictHeatingWBoiler)p_heatingSystem;
+		heatingElectricPower_kW += x.v_boilerPower_kW;
+}
+
 // EV charging
-v_totaalVerbruik_kW = v_basislastElektriciteitsverbruik_kW + heatingSystem.v_heatPumpPower_kW + heatingSystem.v_boilerPower_kW;
+v_totaalVerbruik_kW = v_basislastElektriciteitsverbruik_kW + heatingElectricPower_kW;
 v_gridPowerBalAfterPV_kW = v_totaalVerbruik_kW - v_pvOpwek_kW;
 energyManager.manage(p_energyManagerMode);
 
@@ -13593,7 +13672,7 @@ v_Thouse = v_Qhouse_kWh / p_heatCapacityHouse_kWhpK;]]></Body>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[if (p_heatingSystemType == HeatingTypes.HeatPump || p_heatingSystemType == HeatingTypes.HeatPump_Hybrid) { // Slimme thermostaat functionaliteit
+					<Body><![CDATA[/*if (p_heatingSystemType == HeatingTypes.HeatPump || p_heatingSystemType == HeatingTypes.HeatPump_Hybrid) { // Slimme thermostaat functionaliteit
 	double T_margin = 2.0; // Hoeveel mag temp afwijken van setpoint om slimmer te verwarmen?
 	//v_heatingPct = 0.0;
 	if (v_Thouse < setpointActief ) { // Verwarmen als temp onder setpoint komt
@@ -13613,10 +13692,13 @@ v_Thouse = v_Qhouse_kWh / p_heatCapacityHouse_kWhpK;]]></Body>
 } else { // Gewoon aan/uit van CV-ketel
 	v_heatingPct = v_Thouse < setpointActief ? 1 : 0;
 	v_heatRequest_kW = heatingSystem.p_powerGasBurner_kW * v_heatingPct;
-}
+}*/
 
-heatingSystem.f_heatingFunction(v_heatRequest_kW, v_DHWEnergyDemand_kW, p_heatingSystemType,main.Tbuiten,main.dt_h);
-v_heatingThermalPower_kW = heatingSystem.v_heatDelivery_kW ;]]></Body>
+v_heatingPct = v_Thouse < setpointActief ? 1 : 0;
+v_heatRequest_kW = 100 * v_heatingPct;
+
+p_heatingSystem.f_heatingFunction(v_heatRequest_kW, 0.0, main.Tbuiten,main.dt_h);
+v_heatingThermalPower_kW = p_heatingSystem.v_heatDelivery_kW ;]]></Body>
 				</Function>
 			</Functions>
 			<TableFunctions>
@@ -13883,94 +13965,6 @@ TODO: data afleiden en corrigeren.
 						</GenericParameterSubstituteReference>
 					</GenericParameterSubstitute>
 					<Parameters>
-					</Parameters>
-					<ReplicationFlag>false</ReplicationFlag>
-					<Replication Class="CodeValue">
-						<Code><![CDATA[100]]></Code>
-					</Replication>
-					<CollectionType>ARRAY_LIST_BASED</CollectionType>
-					<InEnvironment>true</InEnvironment>	
-					<InitialLocationType>AT_ANIMATION_POSITION</InitialLocationType>
-					<XCode Class="CodeValue">
-						<Code><![CDATA[0]]></Code>
-					</XCode>
-					<YCode Class="CodeValue">
-						<Code><![CDATA[0]]></Code>
-					</YCode>
-					<ZCode Class="CodeValue">
-						<Code><![CDATA[0]]></Code>
-					</ZCode>
-					<ColumnCode Class="CodeValue">
-						<Code><![CDATA[0]]></Code>
-					</ColumnCode>
-					<RowCode Class="CodeValue">
-						<Code><![CDATA[0]]></Code>
-					</RowCode>
-					<LatitudeCode Class="CodeValue">
-						<Code><![CDATA[0]]></Code>
-					</LatitudeCode>
-					<LongitudeCode Class="CodeValue">
-						<Code><![CDATA[0]]></Code>
-					</LongitudeCode>
-					<LocationNameCode Class="CodeValue">
-						<Code><![CDATA[""]]></Code>
-					</LocationNameCode>
-					<InitializationType>SPECIFIED_NUMBER</InitializationType>
-					<InitializationDatabaseTableQuery>
-						<TableReference>
-						</TableReference>
-					</InitializationDatabaseTableQuery>
-					<InitializationDatabaseType>ONE_AGENT_PER_DATABASE_RECORD</InitializationDatabaseType>
-					<QuantityColumn>
-					</QuantityColumn>
-				</EmbeddedObject>
-				<EmbeddedObject>
-					<Id>1648029787709</Id>
-					<Name><![CDATA[heatingSystem]]></Name>
-					<X>900</X><Y>1140</Y>
-					<Label><X>15</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<ActiveObjectClass>
-						<PackageName><![CDATA[heatingsystems]]></PackageName>
-						<ClassName><![CDATA[HeatingSystem]]></ClassName>
-					</ActiveObjectClass>
-					<GenericParameterSubstitute>
-						<GenericParameterSubstituteReference>
-							<PackageName><![CDATA[heatingsystems]]></PackageName>
-							<ClassName><![CDATA[HeatingSystem]]></ClassName>
-							<ItemName><![CDATA[1648027127020]]></ItemName>
-						</GenericParameterSubstituteReference>
-					</GenericParameterSubstitute>
-					<Parameters>
-						<Parameter>
-							<Name><![CDATA[p_efficiencyGasBurner_f]]></Name>
-						</Parameter>
-						<Parameter>
-							<Name><![CDATA[p_powerGasBurner_kW]]></Name>
-						</Parameter>
-						<Parameter>
-							<Name><![CDATA[p_powerHeatPump_kW]]></Name>
-						</Parameter>
-						<Parameter>
-							<Name><![CDATA[p_energyDensityGas_kWhpm3]]></Name>
-						</Parameter>
-						<Parameter>
-							<Name><![CDATA[p_parent]]></Name>
-							<Value Class="CodeValue">
-								<Code><![CDATA[this]]></Code>
-							</Value>
-						</Parameter>
-						<Parameter>
-							<Name><![CDATA[p_districtHeatingMaxPower_kW]]></Name>
-						</Parameter>
-						<Parameter>
-							<Name><![CDATA[p_boilerMaxPower_kW]]></Name>
-						</Parameter>
-						<Parameter>
-							<Name><![CDATA[p_hybridCOPtreshold_f]]></Name>
-						</Parameter>
 					</Parameters>
 					<ReplicationFlag>false</ReplicationFlag>
 					<Replication Class="CodeValue">
