@@ -372,7 +372,7 @@
 				<Variable Class="PlainVariable">
 					<Id>1648027127045</Id>
 					<Name><![CDATA[v_heatDelivery_kW]]></Name>
-					<X>80</X><Y>140</Y>
+					<X>80</X><Y>160</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -384,7 +384,7 @@
 				<Variable Class="PlainVariable">
 					<Id>1648027127051</Id>
 					<Name><![CDATA[v_heatDelivered_kWh]]></Name>
-					<X>80</X><Y>170</Y>
+					<X>80</X><Y>190</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -399,7 +399,7 @@
 				<Variable Class="PlainVariable">
 					<Id>1648049849703</Id>
 					<Name><![CDATA[v_hotWaterProduction_kW]]></Name>
-					<X>80</X><Y>200</Y>
+					<X>80</X><Y>220</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -411,7 +411,7 @@
 				<Variable Class="PlainVariable">
 					<Id>1648049849707</Id>
 					<Name><![CDATA[v_hotWaterProduced_kWh]]></Name>
-					<X>80</X><Y>230</Y>
+					<X>80</X><Y>250</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -425,7 +425,7 @@
 				</Variable>
 			</Variables>
 			<Functions>
-				<Function AccessType="default" StaticFunction="false">
+				<Function AccessType="public" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1648051511331</Id>
@@ -451,6 +451,18 @@
 						<Name><![CDATA[dt_h]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
+					<Body><![CDATA[//This function is overwritten by the sub-classes]]></Body>
+				</Function>
+				<Function AccessType="public" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1648124043976</Id>
+					<Name><![CDATA[f_startup]]></Name>
+					<X>80</X><Y>120</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[//This function is overwritten by the sub-classes]]></Body>
 				</Function>
 			</Functions>
@@ -548,6 +560,13 @@ public void f_heatingFunction(double heatRequest_kW, double hotWaterRequest_kW, 
 	v_gasConsumed_m3 += v_gasFlow_m3ph * dt_h;
 	v_heatDelivered_kWh += v_heatDelivery_kW * dt_h ;
 	v_hotWaterProduced_kWh += v_hotWaterProduction_kW * dt_h ;
+}
+
+@Override
+public void f_startup(){
+	p_powerGasBurner_kW = 20;
+	p_energyDensityGas_kWhpm3 = 9.769;
+	p_efficiencyGasBurner_f = 0.95;
 }]]></AdditionalClassCode>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
 			<ExtendsReference>
@@ -813,21 +832,30 @@ public void f_heatingFunction(double heatRequest_kW, double hotWaterRequest_kW, 
 			<Name><![CDATA[HS_Heatpump]]></Name>
 			<AdditionalClassCode><![CDATA[@Override
 public void f_heatingFunction(double heatRequest_kW, double hotWaterRequest_kW, double Toutside, double dt_h ){
+	
 	double COPheating = tf_heatPumpCOPspaceHeating(Toutside);
 	double COPhotwater = tf_heatPumpCOPhotWater(Toutside);
-	v_hotWaterProduction_kW = min(hotWaterRequest_kW,p_powerHeatPump_kW*COPhotwater) ;
-	v_heatDelivery_kW = min(heatRequest_kW,(p_powerHeatPump_kW-v_hotWaterProduction_kW/COPhotwater)*COPheating) ; // Hot water gets priority
-	v_heatPumpPower_kW = v_hotWaterProduction_kW/COPhotwater + v_heatDelivery_kW/COPheating ;
+	
+	v_hotWaterProduction_kW = min( hotWaterRequest_kW, p_powerHeatPump_kW*COPhotwater ) ;
+	v_heatDelivery_kW = min( heatRequest_kW, (p_powerHeatPump_kW - v_hotWaterProduction_kW / COPhotwater ) * COPheating) ; // Hot water gets priority
+	
+	v_heatPumpPower_kW = v_hotWaterProduction_kW / COPhotwater + v_heatDelivery_kW / COPheating ;
 	v_heatPumpEnergyConsumed_kWh += v_heatPumpPower_kW * dt_h ;
-
 	v_heatDelivered_kWh += v_heatDelivery_kW * dt_h ;
 	v_hotWaterProduced_kWh += v_hotWaterProduction_kW * dt_h ;
+
+}
+
+@Override
+public void f_startup(){
+	p_powerHeatPump_kW = 3;
 }]]></AdditionalClassCode>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
 			<ExtendsReference>
 				<PackageName><![CDATA[heatingsystems]]></PackageName>
 				<ClassName><![CDATA[HeatingSystem]]></ClassName>
 			</ExtendsReference>
+			<StartupCode><![CDATA[traceln("power bij startup " + p_powerHeatPump_kW);]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1648048801828</Id>
@@ -931,9 +959,6 @@ public void f_heatingFunction(double heatRequest_kW, double hotWaterRequest_kW, 
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[double]]></Type>        
-						<InitialValue Class="CodeValue">
-							<Code><![CDATA[0]]></Code>
-						</InitialValue>
 					</Properties>
 				</Variable>
 				<Variable Class="PlainVariable">
@@ -1094,6 +1119,11 @@ public void f_heatingFunction(double heatRequest_kW, double hotWaterRequest_kW, 
 
 	v_heatDelivered_kWh += v_heatDelivery_kW * dt_h ;
 	v_hotWaterProduced_kWh += v_hotWaterProduction_kW * dt_h ;
+}
+
+@Override
+public void f_startup(){
+	p_districtHeatingMaxPower_kW = 10;
 }]]></AdditionalClassCode>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
 			<ExtendsReference>
@@ -1314,6 +1344,15 @@ public void f_heatingFunction(double heatRequest_kW, double hotWaterRequest_kW, 
 
 	v_heatDelivered_kWh += v_heatDelivery_kW * dt_h ;
 	v_hotWaterProduced_kWh += v_hotWaterProduction_kW * dt_h ;
+}
+
+@Override
+public void f_startup(){
+	p_powerHeatPump_kW = 3;
+	p_powerGasBurner_kW = 20;
+	p_energyDensityGas_kWhpm3 = 9.769;
+	p_efficiencyGasBurner_f = 0.95;
+	p_hybridCOPtreshold_f = 2.5;
 }]]></AdditionalClassCode>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
 			<ExtendsReference>
@@ -1719,6 +1758,12 @@ public void f_heatingFunction(double heatRequest_kW, double hotWaterRequest_kW, 
 
 	v_heatDelivered_kWh += v_heatDelivery_kW * dt_h ;
 	v_hotWaterProduced_kWh += v_hotWaterProduction_kW * dt_h ;
+}
+
+@Override
+public void f_startup(){
+	p_boilerMaxPower_kW = 10;
+	p_powerHeatPump_kW = 3;
 }]]></AdditionalClassCode>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
 			<ExtendsReference>
@@ -2018,6 +2063,12 @@ public void f_heatingFunction(double heatRequest_kW, double hotWaterRequest_kW, 
 
 	v_heatDelivered_kWh += v_heatDelivery_kW * dt_h ;
 	v_hotWaterProduced_kWh += v_hotWaterProduction_kW * dt_h ;
+}
+
+@Override
+public void f_startup(){
+	p_boilerMaxPower_kW = 10;
+	p_districtHeatingMaxPower_kW = 10;
 }]]></AdditionalClassCode>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
 			<ExtendsReference>

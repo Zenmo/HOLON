@@ -4,7 +4,7 @@
 	         AnyLogic Project File 
 *************************************************	         
 -->
-<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.10.202202091745" AlpVersion="8.7.3">
+<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.10.202202091718" AlpVersion="8.7.3">
 <Model>
 	<Id>1641891178629</Id>
 	<Name><![CDATA[Ebuurt]]></Name>
@@ -69,7 +69,8 @@
 			<Description><![CDATA[@author Naud Loomans
 @since 16-02-2022]]></Description>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
-			<Import><![CDATA[import java.text.SimpleDateFormat;]]></Import>
+			<Import><![CDATA[import java.text.SimpleDateFormat;
+import javax.measure.quantity.RadioactiveActivity;]]></Import>
 			<StartupCode><![CDATA[f_ConfigureInitialSettings();
 
 viewAreaMain.navigateTo();
@@ -90,6 +91,7 @@ for ( int i = 0; i < p_boot_woningen; i++) {
 		h.energyManager.v_bidPriceV2G_eurpkWh=uniform(0.25, 0.30);
 	}
 }
+f_setHeatingTypes(0);
 
 hourOfYearStart=hourOfYearPerMonth[getMonth()] + (getDayOfMonth()-1)*24;
 v_initialTotalBatteryCharge_kWh = sum(autos, x->x.huidigBatterijCap_kWh);
@@ -1095,6 +1097,48 @@ f_setTrafoMinPower(p_connectionCapacityPerHousehold);
 						</InitialValue>
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1648050675787</Id>
+					<Name><![CDATA[v_isolatieGraad]]></Name>
+					<X>40</X><Y>1140</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[int]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1648055859798</Id>
+					<Name><![CDATA[v_thermostatReduction_degC]]></Name>
+					<X>520</X><Y>1140</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1648055886991</Id>
+					<Name><![CDATA[v_thermostatReductionParticipation_pct]]></Name>
+					<X>520</X><Y>1160</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1643465996971</Id>
 					<Name><![CDATA[wandelSnelheid]]></Name>
@@ -1974,7 +2018,7 @@ traceln( basislastElektriciteitsverbruikHuishoudensJaartotaal / huishoudens.size
 				</Event>
 				<Event>
 					<Id>1644825763675</Id>
-					<Name><![CDATA[totalen]]></Name>
+					<Name><![CDATA[tijdstapTotalen]]></Name>
 					<X>-752</X><Y>78</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -2014,11 +2058,22 @@ for ( Huishouden h : huishoudens ) {
 	h.f_electricityBilling();
 }
 // District heating?
-v_districtHeatDemand_kW = sum(huishoudens, x->x.heatingSystem.v_districtHeatAbsorption_kW);
+v_districtHeatDemand_kW = 0.0;
+warmtepompVerbruik_kW = 0.0;
+for (Huishouden h : huishoudens) {
+	if ( h.p_heatingSystem instanceof HS_DistrictHeating ) {
+		HS_DistrictHeating x = (HS_DistrictHeating)h.p_heatingSystem;
+		v_districtHeatDemand_kW += x.v_districtHeatAbsorption_kW;
+	}
+	if ( h.p_heatingSystem instanceof HS_Heatpump ) {
+		HS_Heatpump x = (HS_Heatpump)h.p_heatingSystem;
+		warmtepompVerbruik_kW += x.v_heatPumpPower_kW;
+	}
+}
 
 // Wijkvermogens
 pvOpwek_kW = sumWhere(huishoudens, x->x.zonnepanelen.get(0).pvOpwekKW, x->x.zonnepanelen.size() > 0);
-warmtepompVerbruik_kW = sum(huishoudens, x->x.heatingSystem.v_heatPumpPower_kW);
+
 basislastElektriciteitsverbruikHuishoudens_kW = sum(huishoudens, x->x.v_basislastElektriciteitsverbruik_kW);
 eigenConsumptie = sum(huishoudens, x->x.v_eigenConsumptie_kW);
 trafoVermogen_kW = sum(huishoudens, x->x.v_netVermogen_kW); //basislastElektriciteitsverbruikHuishoudens_kW + autos.laadvraag() + warmtepompVerbruik_kW - pvOpwek_kW - autos.V2Gvermogen();
@@ -2039,9 +2094,21 @@ eigenConsumptieJaartotaal += eigenConsumptie * dt_h;
 v_wijkNettoEnergyVerbruik_kWh += trafoVermogen_kW * dt_h;
 v_wijkEnergyAfname_kWh += max(0,trafoVermogen_kW * dt_h);
 v_wijkTotaalEnergyVerbruik_kWh += wijkVerbruik_kW * dt_h;
-v_wijkTotaalGasVerbruik_m3 = sum(huishoudens, x->x.heatingSystem.v_gasConsumed_m3);
 v_wijkTotaalBenzineVerbruik_l = sumWhere(autos, x->x.v_fuelConsumed_l, x->x.p_fuelType==fuelType.petrol && !x.elektrisch);
 v_wijkTotaalDieselVerbruik_l = sumWhere(autos, x->x.v_fuelConsumed_l, x->x.p_fuelType==fuelType.diesel && !x.elektrisch);
+
+v_wijkTotaalGasVerbruik_m3 = 0.0;
+
+for (Huishouden h : huishoudens) {
+	if ( h.p_heatingSystem instanceof HS_Gasburner ) {
+		HS_Gasburner x = (HS_Gasburner)h.p_heatingSystem;
+		v_wijkTotaalGasVerbruik_m3 += x.v_gasConsumed_m3;
+	}
+	if ( h.p_heatingSystem instanceof HS_HeatpumpHybrid ) {
+		HS_HeatpumpHybrid x = (HS_HeatpumpHybrid)h.p_heatingSystem;
+		v_wijkTotaalGasVerbruik_m3 += x.v_gasConsumed_m3;
+	}
+}
 // CO2 totaal wijk
 v_WijkTotaalCO2_kg = (p_GasCO2_gpm3 * v_wijkTotaalGasVerbruik_m3 + p_GridPowerCO2_gpkWh * v_wijkNettoEnergyVerbruik_kWh + p_petrolWTWCO2_gpl * v_wijkTotaalBenzineVerbruik_l + p_dieselWTWCO2_gpl * v_wijkTotaalDieselVerbruik_l)/1000;
 
@@ -2232,6 +2299,134 @@ if ( !mode.equals("basic") ) {
 
 traceln(mode); // TODO: remove this print line
 ]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1648049421678</Id>
+					<Name><![CDATA[f_setIsolationLevels]]></Name>
+					<X>40</X><Y>1160</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[if ( v_isolatieGraad == 0 ){ // Oorspronkelijke isolatiegraad
+	for (Huishouden h : huishoudens){
+		h.p_rcValueAverage_m2KpW = h.t_rcByEnergyLabel(h.c_energyLabels.get(h.p_energyLabel));				
+	}
+} else if ( v_isolatieGraad == 1 ){ // Minstens energielabel B
+	for (Huishouden h : huishoudens){
+		if (!h.p_energyLabel.equals("A") && !h.p_energyLabel.equals("B") ){
+			h.p_rcValueAverage_m2KpW = h.t_rcByEnergyLabel(1);				
+		}
+	}
+} else if ( v_isolatieGraad == 2 ){ // Minstens energielabel A
+	for (Huishouden h : huishoudens){
+		if (!h.p_energyLabel.equals("A") ){
+			h.p_rcValueAverage_m2KpW = h.t_rcByEnergyLabel(0);				
+		}
+	}
+
+}
+
+]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1648049440059</Id>
+					<Name><![CDATA[f_setHeatingTypes]]></Name>
+					<X>260</X><Y>1160</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[sliderIndex]]></Name>
+						<Type><![CDATA[int]]></Type>
+					</Parameter>
+					<Body><![CDATA[double pct_gasBurner = sl_gasBurner_pct.getValue();
+double pct_heatPump = sl_heatPump_pct.getValue();
+double pct_hybridHeatPump = sl_hybridHeatPump_pct.getValue();
+double pct_districtHeating = sl_districtHeating_pct.getValue();
+
+double pctArray[]={pct_gasBurner, pct_heatPump, pct_hybridHeatPump, pct_districtHeating};
+//pctFixed = pctArray[sliderIndex];
+//double pctRest = 100 - pctArray[sliderIndex];
+double pctExcess = Arrays.stream(pctArray).sum() - 100;
+for (int i = 0; i<4; i++){
+	if (!(i==(int)sliderIndex)) {
+		pctArray[i] = max(0,pctArray[i] - pctExcess);
+		//traceln(pctArray[i]);
+		pctExcess = Arrays.stream(pctArray).sum() - 100;
+	}
+}
+if (pctExcess != 0) {
+	traceln("Sliders don't add up to 100%!");
+}
+
+sl_gasBurner_pct.setValue(pctArray[0]);
+sl_heatPump_pct.setValue(pctArray[1]);
+sl_hybridHeatPump_pct.setValue(pctArray[2]);
+sl_districtHeating_pct.setValue(pctArray[3]);
+
+//int nbHuishoudens = huishoudens.size();
+//traceln(nbHuishoudens);
+
+// Set heating type for all households
+int nbGasBurner = 0;
+int nbHeatpump = 0;
+int nbHybridHeatpump = 0;
+int nbDistrictheating = 0;
+for (Huishouden h : huishoudens) {
+	h.p_heatingSystem = null;
+	double rand = uniform(0,100);
+	//traceln(rand);
+	if (rand < pctArray[0]) {		
+		h.p_heatingSystemType=HeatingTypes.CV_ketel;
+		h.p_heatingSystem = new HS_Gasburner();	
+		nbGasBurner++;
+	} else if ( rand >= pctArray[0] && rand < pctArray[1]+pctArray[0]) {
+		h.p_heatingSystemType=HeatingTypes.HeatPump;	
+		h.p_heatingSystem = new HS_Heatpump();
+		nbHeatpump++;
+	} else if ( rand >= pctArray[0] + pctArray[1] && rand < pctArray[1]+pctArray[0]+pctArray[2]) {
+		h.p_heatingSystemType=HeatingTypes.HeatPump_Hybrid;	
+		h.p_heatingSystem = new HS_HeatpumpHybrid();
+		nbHybridHeatpump++;
+	} else if ( rand >= pctArray[0] + pctArray[1] + pctArray[2]) {
+		h.p_heatingSystemType=HeatingTypes.DistrictHeating;	
+		h.p_heatingSystem = new HS_DistrictHeating();
+		nbDistrictheating++;
+	}
+	h.p_heatingSystem.f_startup();
+}
+traceln(nbGasBurner + " CV ketels, " + nbHeatpump + " warmtepompen, " + nbHybridHeatpump + " hybride warmtepompen, " + nbDistrictheating + " stadsverwarming");
+]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1648049450962</Id>
+					<Name><![CDATA[f_setHeatingBehavior]]></Name>
+					<X>520</X><Y>1180</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[double tempSetpointReduction = sl_setThermostatLower_degC.getValue();
+double participationFraction = sl_thermostatReductionParcicipation.getValue()/100;
+
+for ( Huishouden h : huishoudens ) {
+	if ( randomTrue(participationFraction) ) {
+		h.v_tempSetpointReduction_degC = tempSetpointReduction;
+	} else {
+		h.v_tempSetpointReduction_degC = 0;
+	}
+}
+
+v_thermostatReduction_degC = tempSetpointReduction;
+v_thermostatReductionParticipation_pct = participationFraction*100;]]></Body>
 				</Function>
 			</Functions>
 			<TableFunctions>
@@ -2507,6 +2702,9 @@ traceln(mode); // TODO: remove this print line
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_rcValueAverage_m2KpW]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_heatingSystem]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -9128,9 +9326,9 @@ bezoekPT / 10]]></LineWidthCode>
     			<TimePlot>
 					<Id>1644311151556</Id>
 					<Name><![CDATA[pl_avgSoC]]></Name>
-					<X>-530</X><Y>710</Y>
+					<X>-540</X><Y>710</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
+					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
@@ -11046,6 +11244,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1647524117133</Id>
 					<Name><![CDATA[cb_slimVerwarmen]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>-340</X><Y>450</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -11086,6 +11285,386 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>12</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Rectangle>
+					<Id>1648048812296</Id>
+					<Name><![CDATA[rectangle11]]></Name>
+					<X>0</X><Y>960</Y>
+					<Label><X>10</X><Y>10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>3</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<Width>940</Width>
+					<Height>170</Height>
+					<Rotation>0.0</Rotation>
+					<FillColor>-918279</FillColor>
+					<FillMaterial>null</FillMaterial>
+				</Rectangle>
+				<Control Type="RadioButtons">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1648048849271</Id>
+					<Name><![CDATA[radio_isolatiegraad]]></Name>
+					<X>20</X><Y>1000</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="210" Height="80">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<TextColor/>
+						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[f_setIsolationLevels()]]></ActionCode>
+					</BasicProperties>
+					<ExtendedProperties>
+						<Font Name="Dialog" Size="11" Style="0"/>
+						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
+						<Orientation>VERTICAL</Orientation>
+						<Button><![CDATA[Huidige isolatiegraad]]></Button>
+						<Button><![CDATA[Alle woningen energielabel B of beter]]></Button>
+						<Button><![CDATA[Alle woningen energielabel A of beter]]></Button>
+						<LinkTo>true</LinkTo>
+						<Link>v_isolatieGraad</Link>
+					</ExtendedProperties>
+				</Control>
+				<Text>
+					<Id>1648048965832</Id>
+					<Name><![CDATA[text4]]></Name>
+					<X>30</X><Y>970</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Isolatie verbeteringen]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>18</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1648049008273</Id>
+					<Name><![CDATA[text8]]></Name>
+					<X>250</X><Y>971</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Verwarmingstypes]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>18</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Control Type="Slider">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1648049043461</Id>
+					<Name><![CDATA[sl_gasBurner_pct]]></Name>
+					<X>250</X><Y>1000</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="100" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[f_setHeatingTypes(0)]]></ActionCode>
+					</BasicProperties>
+					<ExtendedProperties>
+						<DefaultValueCode><![CDATA[50]]></DefaultValueCode>
+						<Orientation>HORIZONTAL</Orientation>
+						<MinValue><![CDATA[0]]></MinValue>
+						<MaxValue><![CDATA[100]]></MaxValue>
+						<LinkTo>false</LinkTo>
+					</ExtendedProperties>
+				</Control>
+				<Control Type="Slider">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1648049048421</Id>
+					<Name><![CDATA[sl_heatPump_pct]]></Name>
+					<X>250</X><Y>1030</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="100" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[f_setHeatingTypes(1)]]></ActionCode>
+					</BasicProperties>
+					<ExtendedProperties>
+						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
+						<Orientation>HORIZONTAL</Orientation>
+						<MinValue><![CDATA[0]]></MinValue>
+						<MaxValue><![CDATA[100]]></MaxValue>
+						<LinkTo>false</LinkTo>
+					</ExtendedProperties>
+				</Control>
+				<Control Type="Slider">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1648049055671</Id>
+					<Name><![CDATA[sl_hybridHeatPump_pct]]></Name>
+					<X>250</X><Y>1060</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="100" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[f_setHeatingTypes(2)]]></ActionCode>
+					</BasicProperties>
+					<ExtendedProperties>
+						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
+						<Orientation>HORIZONTAL</Orientation>
+						<MinValue><![CDATA[0]]></MinValue>
+						<MaxValue><![CDATA[100]]></MaxValue>
+						<LinkTo>false</LinkTo>
+					</ExtendedProperties>
+				</Control>
+				<Control Type="Slider">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1648049082763</Id>
+					<Name><![CDATA[sl_districtHeating_pct]]></Name>
+					<X>250</X><Y>1090</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="100" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[f_setHeatingTypes(3)]]></ActionCode>
+					</BasicProperties>
+					<ExtendedProperties>
+						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
+						<Orientation>HORIZONTAL</Orientation>
+						<MinValue><![CDATA[0]]></MinValue>
+						<MaxValue><![CDATA[100]]></MaxValue>
+						<LinkTo>false</LinkTo>
+					</ExtendedProperties>
+				</Control>
+				<Text>
+					<Id>1648049115855</Id>
+					<Name><![CDATA[text9]]></Name>
+					<X>510</X><Y>970</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Verwarmingsgedrag]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>18</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Control Type="Slider">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1648049132340</Id>
+					<Name><![CDATA[sl_setThermostatLower_degC]]></Name>
+					<X>510</X><Y>999</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="100" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[f_setHeatingBehavior()]]></ActionCode>
+					</BasicProperties>
+					<ExtendedProperties>
+						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
+						<Orientation>HORIZONTAL</Orientation>
+						<MinValue><![CDATA[0]]></MinValue>
+						<MaxValue><![CDATA[5]]></MaxValue>
+						<Step><![CDATA[1]]></Step>
+						<LinkTo>false</LinkTo>
+					</ExtendedProperties>
+				</Control>
+				<Control Type="Slider">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1648049137431</Id>
+					<Name><![CDATA[sl_thermostatReductionParcicipation]]></Name>
+					<X>510</X><Y>1030</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="100" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[f_setHeatingBehavior()]]></ActionCode>
+					</BasicProperties>
+					<ExtendedProperties>
+						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
+						<Orientation>HORIZONTAL</Orientation>
+						<MinValue><![CDATA[0]]></MinValue>
+						<MaxValue><![CDATA[100]]></MaxValue>
+						<Step><![CDATA[1]]></Step>
+						<LinkTo>false</LinkTo>
+					</ExtendedProperties>
+				</Control>
+				<Text>
+					<Id>1648055794741</Id>
+					<Name><![CDATA[text10]]></Name>
+					<X>640</X><Y>1000</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Thermostaat lager]]></Text>
+					<TextCode><![CDATA[roundToInt( v_thermostatReduction_degC ) + " graden thermostaat lager"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>18</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1648055826456</Id>
+					<Name><![CDATA[text11]]></Name>
+					<X>640</X><Y>1030</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[thermostaat lager participatiegraad]]></Text>
+					<TextCode><![CDATA[roundToInt(v_thermostatReductionParticipation_pct) + "  % participatiegraad"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>18</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1648109023572</Id>
+					<Name><![CDATA[text12]]></Name>
+					<X>370</X><Y>1000</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[CV ketel]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>18</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1648109039850</Id>
+					<Name><![CDATA[text13]]></Name>
+					<X>370</X><Y>1030</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Warmtepomp]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>18</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1648109053512</Id>
+					<Name><![CDATA[text14]]></Name>
+					<X>370</X><Y>1060</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Hybride warmtepomp]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>18</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1648109064496</Id>
+					<Name><![CDATA[text15]]></Name>
+					<X>370</X><Y>1090</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Stadsverwarming]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>18</Size>
 						<Style>0</Style>
 					</Font>
 					<Alignment>LEFT</Alignment>
@@ -11269,7 +11848,6 @@ c_energyLabels.put("null",7);
 p_ventilationFlowrate_m3ph = p_specificVentilationFlowrate_mph * p_floorSurfaceArea;
 p_buildingEnvelopeArea_m2 = t_formfactorByHousetype(c_houseTypes.get(p_houseTypeString))*p_floorSurfaceArea;
 p_rcValueAverage_m2KpW = t_rcByEnergyLabel(c_energyLabels.get(p_energyLabel));
-
 ]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -11647,6 +12225,21 @@ p_rcValueAverage_m2KpW = t_rcByEnergyLabel(c_energyLabels.get(p_energyLabel));
 						</InitialValue>
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1648056683009</Id>
+					<Name><![CDATA[v_tempSetpointReduction_degC]]></Name>
+					<X>860</X><Y>1420</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
 				<Variable Class="AuxVariable">
 					<Id>1643191901326</Id>
 					<Name><![CDATA[setpointActief]]></Name>
@@ -11656,7 +12249,7 @@ p_rcValueAverage_m2KpW = t_rcByEnergyLabel(c_energyLabels.get(p_energyLabel));
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties External="false" Constant="false" Array="false">
-						<Formula><![CDATA[(getMinute(date())+60*getHourOfDay(date()) > thermostaatStarttijd & getHourOfDay(date()) < thermostaatEindtijd ) ? setpointOverdag : setpointNacht]]></Formula>
+						<Formula><![CDATA[(getMinute(date())+60*getHourOfDay(date()) > thermostaatStarttijd & getHourOfDay(date()) < thermostaatEindtijd ) ? setpointOverdag - v_tempSetpointReduction_degC: setpointNacht - v_tempSetpointReduction_degC]]></Formula>
 						<Value><![CDATA[0]]></Value>
 						<Color/>
 					</Properties>
@@ -11665,7 +12258,7 @@ p_rcValueAverage_m2KpW = t_rcByEnergyLabel(c_energyLabels.get(p_energyLabel));
 				<Variable Class="Parameter">
 					<Id>1641891987662</Id>
 					<Name><![CDATA[p_heatingSystemType]]></Name>
-					<X>900</X><Y>1100</Y>
+					<X>900</X><Y>1080</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -12603,6 +13196,27 @@ p_rcValueAverage_m2KpW = t_rcByEnergyLabel(c_energyLabels.get(p_energyLabel));
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1648113930688</Id>
+					<Name><![CDATA[p_heatingSystem]]></Name>
+					<X>900</X><Y>1100</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[HeatingSystem]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1648113930686</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1643455674954</Id>
 					<Name><![CDATA[bewoners]]></Name>
@@ -12717,6 +13331,21 @@ p_rcValueAverage_m2KpW = t_rcByEnergyLabel(c_energyLabels.get(p_energyLabel));
 					<Id>1643191901212</Id>
 					<Name><![CDATA[setpointNacht - setpointActief]]></Name>
 					<X>810</X><Y>1520</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1648056683009" TargetId="1643191901326" Polarity="null">
+					<Height>20.0</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>40</X><Y>60</Y></Direction>
+					<Id>1648056764516</Id>
+					<Name><![CDATA[v_tempSetpointReduction_degC - setpointActief]]></Name>
+					<X>860</X><Y>1420</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -12886,8 +13515,26 @@ f_heatingCooling();
 // Heating
 f_slimmeThermostaatEvent();
 
+double heatingElectricPower_kW = 0;
+if ( p_heatingSystem instanceof HS_Heatpump ) {
+		HS_Heatpump x = (HS_Heatpump)p_heatingSystem;
+		heatingElectricPower_kW += x.v_heatPumpPower_kW;
+}
+if ( p_heatingSystem instanceof HS_HeatpumpHybrid ) {
+		HS_HeatpumpHybrid x = (HS_HeatpumpHybrid)p_heatingSystem;
+		heatingElectricPower_kW += x.v_heatPumpPower_kW;
+}
+if ( p_heatingSystem instanceof HS_HeatpumpBoiler ) {
+		HS_HeatpumpBoiler x = (HS_HeatpumpBoiler)p_heatingSystem;
+		heatingElectricPower_kW += x.v_heatPumpPower_kW + x.v_boilerPower_kW;
+}
+if ( p_heatingSystem instanceof HS_DistrictHeatingWBoiler ) {
+		HS_DistrictHeatingWBoiler x = (HS_DistrictHeatingWBoiler)p_heatingSystem;
+		heatingElectricPower_kW += x.v_boilerPower_kW;
+}
+
 // EV charging
-v_totaalVerbruik_kW = v_basislastElektriciteitsverbruik_kW + heatingSystem.v_heatPumpPower_kW + heatingSystem.v_boilerPower_kW;
+v_totaalVerbruik_kW = v_basislastElektriciteitsverbruik_kW + heatingElectricPower_kW;
 v_gridPowerBalAfterPV_kW = v_totaalVerbruik_kW - v_pvOpwek_kW;
 energyManager.manage(p_energyManagerMode);
 
@@ -13019,7 +13666,7 @@ v_Thouse = v_Qhouse_kWh / p_heatCapacityHouse_kWhpK;]]></Body>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[if (p_heatingSystemType == HeatingTypes.HeatPump || p_heatingSystemType == HeatingTypes.HeatPump_Hybrid) { // Slimme thermostaat functionaliteit
+					<Body><![CDATA[/*if (p_heatingSystemType == HeatingTypes.HeatPump || p_heatingSystemType == HeatingTypes.HeatPump_Hybrid) { // Slimme thermostaat functionaliteit
 	double T_margin = 2.0; // Hoeveel mag temp afwijken van setpoint om slimmer te verwarmen?
 	//v_heatingPct = 0.0;
 	if (v_Thouse < setpointActief ) { // Verwarmen als temp onder setpoint komt
@@ -13039,10 +13686,14 @@ v_Thouse = v_Qhouse_kWh / p_heatCapacityHouse_kWhpK;]]></Body>
 } else { // Gewoon aan/uit van CV-ketel
 	v_heatingPct = v_Thouse < setpointActief ? 1 : 0;
 	v_heatRequest_kW = heatingSystem.p_powerGasBurner_kW * v_heatingPct;
-}
+}*/
 
-heatingSystem.f_heatingFunction(v_heatRequest_kW, v_DHWEnergyDemand_kW, p_heatingSystemType,main.Tbuiten,main.dt_h);
-v_heatingThermalPower_kW = heatingSystem.v_heatDelivery_kW ;]]></Body>
+v_heatingPct = v_Thouse < setpointActief ? 1 : 0;
+v_heatRequest_kW = 100 * v_heatingPct;
+double v_DHWEnergyDemand_kW=pop_dHWDemand.get(0).f_updateDHWEnergyDemand();
+//traceln(v_DHWEnergyDemand_kW);
+p_heatingSystem.f_heatingFunction(v_heatRequest_kW, v_DHWEnergyDemand_kW, main.Tbuiten, main.dt_h);
+v_heatingThermalPower_kW = p_heatingSystem.v_heatDelivery_kW ;]]></Body>
 				</Function>
 			</Functions>
 			<TableFunctions>
@@ -13309,94 +13960,6 @@ TODO: data afleiden en corrigeren.
 						</GenericParameterSubstituteReference>
 					</GenericParameterSubstitute>
 					<Parameters>
-					</Parameters>
-					<ReplicationFlag>false</ReplicationFlag>
-					<Replication Class="CodeValue">
-						<Code><![CDATA[100]]></Code>
-					</Replication>
-					<CollectionType>ARRAY_LIST_BASED</CollectionType>
-					<InEnvironment>true</InEnvironment>	
-					<InitialLocationType>AT_ANIMATION_POSITION</InitialLocationType>
-					<XCode Class="CodeValue">
-						<Code><![CDATA[0]]></Code>
-					</XCode>
-					<YCode Class="CodeValue">
-						<Code><![CDATA[0]]></Code>
-					</YCode>
-					<ZCode Class="CodeValue">
-						<Code><![CDATA[0]]></Code>
-					</ZCode>
-					<ColumnCode Class="CodeValue">
-						<Code><![CDATA[0]]></Code>
-					</ColumnCode>
-					<RowCode Class="CodeValue">
-						<Code><![CDATA[0]]></Code>
-					</RowCode>
-					<LatitudeCode Class="CodeValue">
-						<Code><![CDATA[0]]></Code>
-					</LatitudeCode>
-					<LongitudeCode Class="CodeValue">
-						<Code><![CDATA[0]]></Code>
-					</LongitudeCode>
-					<LocationNameCode Class="CodeValue">
-						<Code><![CDATA[""]]></Code>
-					</LocationNameCode>
-					<InitializationType>SPECIFIED_NUMBER</InitializationType>
-					<InitializationDatabaseTableQuery>
-						<TableReference>
-						</TableReference>
-					</InitializationDatabaseTableQuery>
-					<InitializationDatabaseType>ONE_AGENT_PER_DATABASE_RECORD</InitializationDatabaseType>
-					<QuantityColumn>
-					</QuantityColumn>
-				</EmbeddedObject>
-				<EmbeddedObject>
-					<Id>1648029787709</Id>
-					<Name><![CDATA[heatingSystem]]></Name>
-					<X>900</X><Y>1140</Y>
-					<Label><X>15</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<ActiveObjectClass>
-						<PackageName><![CDATA[heatingsystems]]></PackageName>
-						<ClassName><![CDATA[HeatingSystem]]></ClassName>
-					</ActiveObjectClass>
-					<GenericParameterSubstitute>
-						<GenericParameterSubstituteReference>
-							<PackageName><![CDATA[heatingsystems]]></PackageName>
-							<ClassName><![CDATA[HeatingSystem]]></ClassName>
-							<ItemName><![CDATA[1648027127020]]></ItemName>
-						</GenericParameterSubstituteReference>
-					</GenericParameterSubstitute>
-					<Parameters>
-						<Parameter>
-							<Name><![CDATA[p_efficiencyGasBurner_f]]></Name>
-						</Parameter>
-						<Parameter>
-							<Name><![CDATA[p_powerGasBurner_kW]]></Name>
-						</Parameter>
-						<Parameter>
-							<Name><![CDATA[p_powerHeatPump_kW]]></Name>
-						</Parameter>
-						<Parameter>
-							<Name><![CDATA[p_energyDensityGas_kWhpm3]]></Name>
-						</Parameter>
-						<Parameter>
-							<Name><![CDATA[p_parent]]></Name>
-							<Value Class="CodeValue">
-								<Code><![CDATA[this]]></Code>
-							</Value>
-						</Parameter>
-						<Parameter>
-							<Name><![CDATA[p_districtHeatingMaxPower_kW]]></Name>
-						</Parameter>
-						<Parameter>
-							<Name><![CDATA[p_boilerMaxPower_kW]]></Name>
-						</Parameter>
-						<Parameter>
-							<Name><![CDATA[p_hybridCOPtreshold_f]]></Name>
-						</Parameter>
 					</Parameters>
 					<ReplicationFlag>false</ReplicationFlag>
 					<Replication Class="CodeValue">
@@ -14375,6 +14938,30 @@ white]]></FillColorCode>
 					<Latitude>0.0</Latitude>
 					<Longitude>0.0</Longitude>
 				</EmbeddedObjectPresentation>
+				<Control Type="Button">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1648122027437</Id>
+					<Name><![CDATA[button]]></Name>
+					<X>880</X><Y>820</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="100" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<TextColor/>
+						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[if(p_heatingSystem instanceof HS_Heatpump){
+	HS_Heatpump x = (HS_Heatpump)p_heatingSystem;
+	traceln(x.v_heatPumpPower_kW);
+}]]></ActionCode>
+					</BasicProperties>
+					<ExtendedProperties>
+						<Font Name="Dialog" Size="11" Style="0"/>
+						<LabelText><![CDATA[button]]></LabelText>
+					</ExtendedProperties>
+				</Control>
 			</Presentation>
 
 				</Level>
@@ -28675,7 +29262,7 @@ for (int i=0; i < (365*24*4); i++){
 tf_DHWEnergyDemand_kW.setArgumentsAndValues( v_quartersInYear, v_DHWEnergyDemandArray_kW);]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnModificator>RETURNS_VALUE</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1648051473388</Id>
 					<Name><![CDATA[f_updateDHWEnergyDemand]]></Name>
@@ -28686,7 +29273,8 @@ tf_DHWEnergyDemand_kW.setArgumentsAndValues( v_quartersInYear, v_DHWEnergyDemand
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[double quarterOfYear = (main.hourOfYearStart + time(HOUR)) * 4;
 
-v_DHWEnergyDemand_kW = tf_DHWEnergyDemand_kW(quarterOfYear);]]></Body>
+v_DHWEnergyDemand_kW = tf_DHWEnergyDemand_kW(quarterOfYear);
+return v_DHWEnergyDemand_kW;]]></Body>
 				</Function>
 			</Functions>
 			<TableFunctions>
@@ -28913,7 +29501,7 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 					<Name><![CDATA[plot]]></Name>
 					<X>300</X><Y>350</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
+					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
@@ -29154,7 +29742,7 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 			<MaximumMemory>512</MaximumMemory>
 			<RandomNumberGenerationType>fixedSeed</RandomNumberGenerationType>
 			<CustomGeneratorCode>new Random()</CustomGeneratorCode>
-			<SeedValue>4</SeedValue>
+			<SeedValue>3</SeedValue>
 			<SelectionModeForSimultaneousEvents>LIFO</SelectionModeForSimultaneousEvents>
 			<VmArgs><![CDATA[]]></VmArgs>
 			<LoadRootFromSnapshot>false</LoadRootFromSnapshot>
