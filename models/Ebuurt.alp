@@ -4,7 +4,7 @@
 	         AnyLogic Project File 
 *************************************************	         
 -->
-<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.10.202202091718" AlpVersion="8.7.3">
+<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.10.202202091651" AlpVersion="8.7.3">
 <Model>
 	<Id>1641891178629</Id>
 	<Name><![CDATA[Ebuurt]]></Name>
@@ -2061,17 +2061,13 @@ for ( Huishouden h : huishoudens ) {
 v_districtHeatDemand_kW = 0.0;
 warmtepompVerbruik_kW = 0.0;
 for (Huishouden h : huishoudens) {
-//	if ( h.p_heatingSystem.getClass().equals(HS_DistrictHeating) ) {
 	if ( h.p_heatingSystem instanceof HS_DistrictHeating ) {
 		HS_DistrictHeating x = (HS_DistrictHeating)h.p_heatingSystem;
 		v_districtHeatDemand_kW += x.v_districtHeatAbsorption_kW;
-		traceln("District heating demand " + v_districtHeatDemand_kW);
 	}
-//	if ( h.p_heatingSystem.getClass().isInstance(HS_Heatpump) ) {
 	if ( h.p_heatingSystem instanceof HS_Heatpump ) {
 		HS_Heatpump x = (HS_Heatpump)h.p_heatingSystem;
 		warmtepompVerbruik_kW += x.v_heatPumpPower_kW;
-		traceln("Heatpump demand " + warmtepompVerbruik_kW);
 	}
 }
 
@@ -2102,13 +2098,11 @@ v_wijkTotaalBenzineVerbruik_l = sumWhere(autos, x->x.v_fuelConsumed_l, x->x.p_fu
 v_wijkTotaalDieselVerbruik_l = sumWhere(autos, x->x.v_fuelConsumed_l, x->x.p_fuelType==fuelType.diesel && !x.elektrisch);
 
 v_wijkTotaalGasVerbruik_m3 = 0.0;
-// sumWhere(huishoudens, x->x.p_heatingSystem.v_gasConsumed_m3, x->x.p_heatingSystem instanceof HS_Gasburner);
+
 for (Huishouden h : huishoudens) {
 	if ( h.p_heatingSystem instanceof HS_Gasburner ) {
 		HS_Gasburner x = (HS_Gasburner)h.p_heatingSystem;
-		//v_wijkTotaalGasVerbruik_m3 += x.v_gasConsumed_m3;
-		v_wijkTotaalGasVerbruik_m3 += x.v_gasFlow_m3ph * dt_h;
-		traceln("Gasverbruik " + x.v_gasFlow_m3ph);
+		v_wijkTotaalGasVerbruik_m3 += x.v_gasConsumed_m3;
 	}
 	if ( h.p_heatingSystem instanceof HS_HeatpumpHybrid ) {
 		HS_HeatpumpHybrid x = (HS_HeatpumpHybrid)h.p_heatingSystem;
@@ -2404,6 +2398,7 @@ for (Huishouden h : huishoudens) {
 		h.p_heatingSystem = new HS_DistrictHeating();
 		nbDistrictheating++;
 	}
+	h.p_heatingSystem.f_startup();
 }
 traceln(nbGasBurner + " CV ketels, " + nbHeatpump + " warmtepompen, " + nbHybridHeatpump + " hybride warmtepompen, " + nbDistrictheating + " stadsverwarming");
 ]]></Body>
@@ -9330,7 +9325,6 @@ bezoekPT / 10]]></LineWidthCode>
     			<TimePlot>
 					<Id>1644311151556</Id>
 					<Name><![CDATA[pl_avgSoC]]></Name>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>-540</X><Y>710</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -11149,7 +11143,6 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
     			<TimePlot>
 					<Id>1647514680527</Id>
 					<Name><![CDATA[pl_avgSoC1]]></Name>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>-530</X><Y>470</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
@@ -13697,7 +13690,7 @@ v_Thouse = v_Qhouse_kWh / p_heatCapacityHouse_kWhpK;]]></Body>
 v_heatingPct = v_Thouse < setpointActief ? 1 : 0;
 v_heatRequest_kW = 100 * v_heatingPct;
 
-p_heatingSystem.f_heatingFunction(v_heatRequest_kW, 0.0, main.Tbuiten,main.dt_h);
+p_heatingSystem.f_heatingFunction(v_heatRequest_kW, 0.0, main.Tbuiten, main.dt_h);
 v_heatingThermalPower_kW = p_heatingSystem.v_heatDelivery_kW ;]]></Body>
 				</Function>
 			</Functions>
@@ -14943,6 +14936,30 @@ white]]></FillColorCode>
 					<Latitude>0.0</Latitude>
 					<Longitude>0.0</Longitude>
 				</EmbeddedObjectPresentation>
+				<Control Type="Button">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1648122027437</Id>
+					<Name><![CDATA[button]]></Name>
+					<X>880</X><Y>820</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="100" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<TextColor/>
+						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[if(p_heatingSystem instanceof HS_Heatpump){
+	HS_Heatpump x = (HS_Heatpump)p_heatingSystem;
+	traceln(x.v_heatPumpPower_kW);
+}]]></ActionCode>
+					</BasicProperties>
+					<ExtendedProperties>
+						<Font Name="Dialog" Size="11" Style="0"/>
+						<LabelText><![CDATA[button]]></LabelText>
+					</ExtendedProperties>
+				</Control>
 			</Presentation>
 
 				</Level>
@@ -30381,7 +30398,7 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 						<Enabled>true</Enabled>
 					</BasicProperties>
 					<ExtendedProperties>
-						<DefaultValueCode><![CDATA[40]]></DefaultValueCode>
+						<DefaultValueCode><![CDATA[10]]></DefaultValueCode>
 						<Orientation>HORIZONTAL</Orientation>
 						<MinValue><![CDATA[1]]></MinValue>
 						<MaxValue><![CDATA[40]]></MaxValue>
