@@ -4,7 +4,7 @@
 	         AnyLogic Project File 
 *************************************************	         
 -->
-<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.10.202202091651" AlpVersion="8.7.3">
+<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.10.202202091718" AlpVersion="8.7.3">
 <Model>
 	<Id>1641891178629</Id>
 	<Name><![CDATA[Ebuurt]]></Name>
@@ -2355,7 +2355,7 @@ double pctArray[]={pct_gasBurner, pct_heatPump, pct_hybridHeatPump, pct_district
 //double pctRest = 100 - pctArray[sliderIndex];
 double pctExcess = Arrays.stream(pctArray).sum() - 100;
 for (int i = 0; i<4; i++){
-	if (!(i==sliderIndex)) {
+	if (!(i==(int)sliderIndex)) {
 		pctArray[i] = max(0,pctArray[i] - pctExcess);
 		pctExcess = Arrays.stream(pctArray).sum() - 100;
 	}
@@ -11395,7 +11395,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 						<ActionCode><![CDATA[f_setHeatingTypes(0)]]></ActionCode>
 					</BasicProperties>
 					<ExtendedProperties>
-						<DefaultValueCode><![CDATA[50]]></DefaultValueCode>
+						<DefaultValueCode><![CDATA[100]]></DefaultValueCode>
 						<Orientation>HORIZONTAL</Orientation>
 						<MinValue><![CDATA[0]]></MinValue>
 						<MaxValue><![CDATA[100]]></MaxValue>
@@ -13689,8 +13689,9 @@ v_Thouse = v_Qhouse_kWh / p_heatCapacityHouse_kWhpK;]]></Body>
 
 v_heatingPct = v_Thouse < setpointActief ? 1 : 0;
 v_heatRequest_kW = 100 * v_heatingPct;
-
-p_heatingSystem.f_heatingFunction(v_heatRequest_kW, 0.0, main.Tbuiten, main.dt_h);
+double v_DHWEnergyDemand_kW=pop_dHWDemand.get(0).f_updateDHWEnergyDemand();
+//traceln(v_DHWEnergyDemand_kW);
+p_heatingSystem.f_heatingFunction(v_heatRequest_kW, v_DHWEnergyDemand_kW, main.Tbuiten, main.dt_h);
 v_heatingThermalPower_kW = p_heatingSystem.v_heatDelivery_kW ;]]></Body>
 				</Function>
 			</Functions>
@@ -29260,7 +29261,7 @@ for (int i=0; i < (365*24*4); i++){
 tf_DHWEnergyDemand_kW.setArgumentsAndValues( v_quartersInYear, v_DHWEnergyDemandArray_kW);]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnModificator>RETURNS_VALUE</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1648051473388</Id>
 					<Name><![CDATA[f_updateDHWEnergyDemand]]></Name>
@@ -29271,7 +29272,8 @@ tf_DHWEnergyDemand_kW.setArgumentsAndValues( v_quartersInYear, v_DHWEnergyDemand
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[double quarterOfYear = (main.hourOfYearStart + time(HOUR)) * 4;
 
-v_DHWEnergyDemand_kW = tf_DHWEnergyDemand_kW(quarterOfYear);]]></Body>
+v_DHWEnergyDemand_kW = tf_DHWEnergyDemand_kW(quarterOfYear);
+return v_DHWEnergyDemand_kW;]]></Body>
 				</Function>
 			</Functions>
 			<TableFunctions>
@@ -29498,7 +29500,7 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 					<Name><![CDATA[plot]]></Name>
 					<X>300</X><Y>350</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
+					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
@@ -30398,7 +30400,7 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 						<Enabled>true</Enabled>
 					</BasicProperties>
 					<ExtendedProperties>
-						<DefaultValueCode><![CDATA[10]]></DefaultValueCode>
+						<DefaultValueCode><![CDATA[40]]></DefaultValueCode>
 						<Orientation>HORIZONTAL</Orientation>
 						<MinValue><![CDATA[1]]></MinValue>
 						<MaxValue><![CDATA[40]]></MaxValue>
