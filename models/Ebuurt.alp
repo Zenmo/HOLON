@@ -4,7 +4,7 @@
 	         AnyLogic Project File 
 *************************************************	         
 -->
-<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.10.202202091718" AlpVersion="8.7.3">
+<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.9.202112171712" AlpVersion="8.7.3">
 <Model>
 	<Id>1641891178629</Id>
 	<Name><![CDATA[Ebuurt]]></Name>
@@ -1139,6 +1139,40 @@ f_setTrafoMinPower(p_connectionCapacityPerHousehold);
 						</InitialValue>
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1648469812141</Id>
+					<Name><![CDATA[v_thermostatLabelDependent]]></Name>
+					<Description><![CDATA[Boolean die gebruikt wordt om setpoints label-afhankelijk te kunnen maken als deze functie aangevinkt is.
+
+@author: JorritvandenHouten
+@since: 28/03/2022.]]></Description>
+					<X>100</X><Y>1550</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[boolean]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[false]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1648469898603</Id>
+					<Name><![CDATA[v_gasPrice_eurpm3]]></Name>
+					<X>-1070</X><Y>980</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[2.5]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1643465996971</Id>
 					<Name><![CDATA[wandelSnelheid]]></Name>
@@ -1945,6 +1979,36 @@ f_setTrafoMinPower(p_connectionCapacityPerHousehold);
 					</Properties>
 
 				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1648467633860</Id>
+					<Name><![CDATA[c_houseTypes]]></Name>
+					<X>-1360</X><Y>470</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[LinkedHashMap]]></CollectionClass>
+						<ElementClass><![CDATA[String]]></ElementClass>
+						<ValueElementClass><![CDATA[Integer]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1648467645653</Id>
+					<Name><![CDATA[c_energyLabels]]></Name>
+					<X>-1360</X><Y>500</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[LinkedHashMap]]></CollectionClass>
+						<ElementClass><![CDATA[String]]></ElementClass>
+						<ValueElementClass><![CDATA[Integer]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
 			</Variables>
 			<Events>
 				<Event>
@@ -2056,6 +2120,7 @@ incentiveGenerator.f_updateIncentive();
 for ( Huishouden h : huishoudens ) {
 	h.f_netVermogenFunctie();
 	h.f_electricityBilling();
+	h.f_gasBilling();
 }
 // District heating?
 v_districtHeatDemand_kW = 0.0;
@@ -2084,6 +2149,8 @@ gemiddeldeSoC_pct = averageWhere(autos, x->x.huidigBatterijCap_kWh/x.maxBatterij
 pvOpwekChart.updateData();
 elektriciteitsVerbruikChart.updateData();
 Wijktrafo_vermogen_plot.updateData();
+heatingDemand_kWhpm2.updateData();
+
 
 // WijkTotalen
 pvOpwekJaartotaal += pvOpwek_kW * dt_h;
@@ -2249,7 +2316,26 @@ return v_trafoMinPower;]]></Body>
 //cb_netMetering.setSelected(p_boot_Salderen, true);
 //cb_capacityTariff.setSelected(p_boot_capaciteitstarief, true);
 //cb_congestionMarket.setSelected(p_boot_CongestieMarkt, true);
-incentiveGenerator.f_updateIncentive();]]></Body>
+incentiveGenerator.f_updateIncentive();
+
+// lookup-tabel om woningtypen (string) te koppelen aan een getal voor gebruik in tablefunction in Huishoudens
+c_houseTypes.put("vrijstaand", 0);
+c_houseTypes.put("twee-onder-een-kap", 1);
+c_houseTypes.put("rijwoning hoek", 2);
+c_houseTypes.put("rijwoning tussen", 3);
+c_houseTypes.put("meergezins laag en midden", 4);
+c_houseTypes.put("meergezins hoog", 5);
+
+//lookup-tabel om energielabels (string) te koppelen aan een getal voor gebruik in tablefunction in Huishoudens
+c_energyLabels.put("A of beter",0);
+c_energyLabels.put("B",1);
+c_energyLabels.put("C",2);
+c_energyLabels.put("D",3);
+c_energyLabels.put("E",4);
+c_energyLabels.put("F",5);
+c_energyLabels.put("G",6);
+c_energyLabels.put("null",7);
+]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -2312,24 +2398,28 @@ traceln(mode); // TODO: remove this print line
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[if ( v_isolatieGraad == 0 ){ // Oorspronkelijke isolatiegraad
 	for (Huishouden h : huishoudens){
-		h.p_rcValueAverage_m2KpW = h.t_rcByEnergyLabel(h.c_energyLabels.get(h.p_energyLabel));				
+		h.p_energyLabel = h.p_energyLabelOriginal;
+		h.p_rcValueAverage_m2KpW = h.t_rcByEnergyLabel(c_energyLabels.get(h.p_energyLabel));				
 	}
 } else if ( v_isolatieGraad == 1 ){ // Minstens energielabel B
 	for (Huishouden h : huishoudens){
-		if (!h.p_energyLabel.equals("A") && !h.p_energyLabel.equals("B") ){
-			h.p_rcValueAverage_m2KpW = h.t_rcByEnergyLabel(1);				
+		if (!h.p_energyLabelOriginal.equals("A of beter") && !h.p_energyLabelOriginal.equals("B") ){
+			h.p_energyLabel = "B";
+			h.p_rcValueAverage_m2KpW = h.t_rcByEnergyLabel(c_energyLabels.get(h.p_energyLabel));				
 		}
 	}
 } else if ( v_isolatieGraad == 2 ){ // Minstens energielabel A
 	for (Huishouden h : huishoudens){
-		if (!h.p_energyLabel.equals("A") ){
-			h.p_rcValueAverage_m2KpW = h.t_rcByEnergyLabel(0);				
+		if (!h.p_energyLabelOriginal.equals("A of beter") ){
+			h.p_energyLabel = "A of beter";
+			h.p_rcValueAverage_m2KpW = h.t_rcByEnergyLabel(c_energyLabels.get(h.p_energyLabel));				
 		}
 	}
 
 }
 
-]]></Body>
+// Update bewonersgedrag setpoints afhankelijk van energielabel
+f_setSetpoints();]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -2429,6 +2519,53 @@ for ( Huishouden h : huishoudens ) {
 
 v_thermostatReduction_degC = tempSetpointReduction;
 v_thermostatReductionParticipation_pct = participationFraction*100;]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1648469802739</Id>
+					<Name><![CDATA[f_setSetpoints]]></Name>
+					<Description><![CDATA[Functie toegevoegd om realistisch bewonersgedrag na te kunnen bootsen t.a.v. setpoints bij slecht geisoleerde woningen. 
+
+Bronnen: 
+*Ecofys (2015), De systeemkosten van warmte voor woningen, p. 11; 
+*ECN (2013), Energiebesparing: Een samenspel van woning en bewoner - Analyse van de module Energie WoON 2012)
+*Majcen et al. 2013, Theoretical vs. actual energy consumption of labelled dwellings in the Netherlands: Discrepancies and policy implications. Energy policy, 54, 125-136.
+
+@author: JorritvandenHouten
+@since: 28/03/2022]]></Description>
+					<X>420</X><Y>1550</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[// Setpointtemperaturen afhankelijk van isolatiegraad (Hoog, Midden, Laag) om bewonergedrag na te bootsen
+if ( v_thermostatLabelDependent ) {
+	for ( Huishouden h : huishoudens ) {
+		if ( h.p_energyLabel.equals("A of beter") ) {
+			h.p_setpointNight = 21;  // Todo: waarden niet hard-coden!
+			h.p_setpointDay = 21;
+			h.p_setpointEvening = 21;
+			}
+		else if ( h.p_energyLabel.equals("B") || h.p_energyLabel.equals("C") || h.p_energyLabel.equals("D") || h.p_energyLabel.equals("null")) {
+			h.p_setpointNight = 18; 
+			h.p_setpointDay = 19;
+			h.p_setpointEvening = 20.5;
+			}
+		else if ( h.p_energyLabel.equals("E") || h.p_energyLabel.equals("F") || h.p_energyLabel.equals("G") ) {
+			h.p_setpointNight = 15.8; 
+			h.p_setpointDay = 18.5;
+			h.p_setpointEvening = 19.5;		// bron: Ecofys (2015), De Systeemkosten van warmte voor woningen
+			}
+	}
+}
+else {   // dezelfde gemiddelde setpointinstellingen voor alle woningen.
+	for ( Huishouden h : huishoudens ) {
+		h.p_setpointNight = 18;
+		h.p_setpointDay = 19;
+		h.p_setpointEvening = 20.5;
+		}
+}]]></Body>
 				</Function>
 			</Functions>
 			<TableFunctions>
@@ -2546,18 +2683,6 @@ v_thermostatReductionParticipation_pct = participationFraction*100;]]></Body>
 							<Name><![CDATA[p_cpAir_JpkgpK]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[thermostaatStarttijd]]></Name>
-						</Parameter>
-						<Parameter>
-							<Name><![CDATA[thermostaatEindtijd]]></Name>
-						</Parameter>
-						<Parameter>
-							<Name><![CDATA[setpointOverdag]]></Name>
-						</Parameter>
-						<Parameter>
-							<Name><![CDATA[setpointNacht]]></Name>
-						</Parameter>
-						<Parameter>
 							<Name><![CDATA[p_averageElectricityConsumption]]></Name>
 						</Parameter>
 						<Parameter>
@@ -2653,6 +2778,27 @@ v_thermostatReductionParticipation_pct = participationFraction*100;]]></Body>
 						<Parameter>
 							<Name><![CDATA[p_heatingSystem]]></Name>
 						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_setpointNight]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_setpointDay]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_setpointEvening]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_thermostatTimeNight]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_thermostatTimeDay]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_thermostatTimeEvening]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_energyLabelOriginal]]></Name>
+						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
 					<Replication Class="CodeValue">
@@ -2679,6 +2825,118 @@ v_thermostatReductionParticipation_pct = participationFraction*100;]]></Body>
 						<Type>average</Type>
 						<Expression><![CDATA[item.v_gemiddeldeStroomPrijs_eurpkWh]]></Expression>
 						<Condition><![CDATA[true]]></Condition>
+					</StatisticsItem>
+					<StatisticsItem>
+						<Id>1648468944810</Id>
+						<Name><![CDATA[avgHeatingDemand_AofBeter]]></Name>
+						<Type>average</Type>
+						<Expression><![CDATA[item.v_totalHeatDemand_kWh]]></Expression>
+						<Condition><![CDATA[item.p_energyLabel.equals("A of beter")]]></Condition>
+					</StatisticsItem>
+					<StatisticsItem>
+						<Id>1648469014745</Id>
+						<Name><![CDATA[avgHeatingDemand_B]]></Name>
+						<Type>average</Type>
+						<Expression><![CDATA[item.v_totalHeatDemand_kWh]]></Expression>
+						<Condition><![CDATA[item.p_energyLabel.equals("B")]]></Condition>
+					</StatisticsItem>
+					<StatisticsItem>
+						<Id>1648469050666</Id>
+						<Name><![CDATA[avgHeatingDemand_C]]></Name>
+						<Type>average</Type>
+						<Expression><![CDATA[item.v_totalHeatDemand_kWh]]></Expression>
+						<Condition><![CDATA[item.p_energyLabel.equals("C")]]></Condition>
+					</StatisticsItem>
+					<StatisticsItem>
+						<Id>1648469080770</Id>
+						<Name><![CDATA[avgHeatingDemand_D]]></Name>
+						<Type>average</Type>
+						<Expression><![CDATA[item.v_totalHeatDemand_kWh]]></Expression>
+						<Condition><![CDATA[item.p_energyLabel.equals("D")]]></Condition>
+					</StatisticsItem>
+					<StatisticsItem>
+						<Id>1648469101590</Id>
+						<Name><![CDATA[avgHeatingDemand_E]]></Name>
+						<Type>average</Type>
+						<Expression><![CDATA[item.v_totalHeatDemand_kWh]]></Expression>
+						<Condition><![CDATA[item.p_energyLabel.equals("E")]]></Condition>
+					</StatisticsItem>
+					<StatisticsItem>
+						<Id>1648469132225</Id>
+						<Name><![CDATA[avgHeatingDemand_F]]></Name>
+						<Type>average</Type>
+						<Expression><![CDATA[item.v_totalHeatDemand_kWh]]></Expression>
+						<Condition><![CDATA[item.p_energyLabel.equals("F")]]></Condition>
+					</StatisticsItem>
+					<StatisticsItem>
+						<Id>1648469155304</Id>
+						<Name><![CDATA[avgHeatingDemand_G]]></Name>
+						<Type>average</Type>
+						<Expression><![CDATA[item.v_totalHeatDemand_kWh]]></Expression>
+						<Condition><![CDATA[item.p_energyLabel.equals("G")]]></Condition>
+					</StatisticsItem>
+					<StatisticsItem>
+						<Id>1648469180094</Id>
+						<Name><![CDATA[avgHeatingDemand_null]]></Name>
+						<Type>average</Type>
+						<Expression><![CDATA[item.v_totalHeatDemand_kWh]]></Expression>
+						<Condition><![CDATA[item.p_energyLabel.equals("null")]]></Condition>
+					</StatisticsItem>
+					<StatisticsItem>
+						<Id>1648469307525</Id>
+						<Name><![CDATA[avgFloorArea_A]]></Name>
+						<Type>average</Type>
+						<Expression><![CDATA[item.p_floorSurfaceArea]]></Expression>
+						<Condition><![CDATA[item.p_energyLabel.equals("A of beter")]]></Condition>
+					</StatisticsItem>
+					<StatisticsItem>
+						<Id>1648469377511</Id>
+						<Name><![CDATA[avgFloorArea_B]]></Name>
+						<Type>average</Type>
+						<Expression><![CDATA[item.p_floorSurfaceArea]]></Expression>
+						<Condition><![CDATA[item.p_energyLabel.equals("B")]]></Condition>
+					</StatisticsItem>
+					<StatisticsItem>
+						<Id>1648469390475</Id>
+						<Name><![CDATA[avgFloorArea_C]]></Name>
+						<Type>average</Type>
+						<Expression><![CDATA[item.p_floorSurfaceArea]]></Expression>
+						<Condition><![CDATA[item.p_energyLabel.equals("C")]]></Condition>
+					</StatisticsItem>
+					<StatisticsItem>
+						<Id>1648469398341</Id>
+						<Name><![CDATA[avgFloorArea_D]]></Name>
+						<Type>average</Type>
+						<Expression><![CDATA[item.p_floorSurfaceArea]]></Expression>
+						<Condition><![CDATA[item.p_energyLabel.equals("D")]]></Condition>
+					</StatisticsItem>
+					<StatisticsItem>
+						<Id>1648469405939</Id>
+						<Name><![CDATA[avgFloorArea_E]]></Name>
+						<Type>average</Type>
+						<Expression><![CDATA[item.p_floorSurfaceArea]]></Expression>
+						<Condition><![CDATA[item.p_energyLabel.equals("E")]]></Condition>
+					</StatisticsItem>
+					<StatisticsItem>
+						<Id>1648469413092</Id>
+						<Name><![CDATA[avgFloorArea_F]]></Name>
+						<Type>average</Type>
+						<Expression><![CDATA[item.p_floorSurfaceArea]]></Expression>
+						<Condition><![CDATA[item.p_energyLabel.equals("F")]]></Condition>
+					</StatisticsItem>
+					<StatisticsItem>
+						<Id>1648469419430</Id>
+						<Name><![CDATA[avgFloorArea_G]]></Name>
+						<Type>average</Type>
+						<Expression><![CDATA[item.p_floorSurfaceArea]]></Expression>
+						<Condition><![CDATA[item.p_energyLabel.equals("G")]]></Condition>
+					</StatisticsItem>
+					<StatisticsItem>
+						<Id>1648469428437</Id>
+						<Name><![CDATA[avgFloorArea_null]]></Name>
+						<Type>average</Type>
+						<Expression><![CDATA[item.p_floorSurfaceArea]]></Expression>
+						<Condition><![CDATA[item.p_energyLabel.equals("null")]]></Condition>
 					</StatisticsItem>
 					<InEnvironment>true</InEnvironment>	
 					<InitialLocationType>AT_ANIMATION_POSITION</InitialLocationType>
@@ -11273,6 +11531,190 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 					</Font>
 					<Alignment>LEFT</Alignment>
 				</Text>
+    			<BarChart>
+					<Id>1648469246542</Id>
+					<Name><![CDATA[heatingDemand_kWhpm2]]></Name>
+					<X>-290</X><Y>1220</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<AutoUpdate>false</AutoUpdate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1648281600000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</RecurrenceCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Width>260</Width>
+					<Height>210</Height>
+					<BackgroundColor/>
+					<BorderColor/>
+					<ChartArea>
+						<XOffset>50</XOffset>
+						<YOffset>30</YOffset>
+						<Width>180</Width>
+						<Height>120</Height>
+						<BackgroundColor>-1</BackgroundColor>
+						<BorderColor>-16777216</BorderColor>
+						<GridColor>-12566464</GridColor>
+					</ChartArea>
+					<Legend>
+						<Place>SOUTH</Place>
+						<TextColor>-16777216</TextColor>
+						<Size>30</Size>
+					</Legend>
+					<Labels>
+						<HorLabelsPosition>DEFAULT</HorLabelsPosition>
+						<VerLabelsPosition>DEFAULT</VerLabelsPosition>
+						<TextColor>-12566464</TextColor>
+					</Labels>
+					<ShowLegend>true</ShowLegend>
+					<DataItem>
+					<Id>1648469246532</Id>
+					<Expression><![CDATA[huishoudens.avgFloorArea_A() > 0? huishoudens.avgHeatingDemand_AofBeter() / huishoudens.avgFloorArea_A() : 0]]></Expression>
+					<Color>-14513374</Color>
+					<Expression2Flag>true</Expression2Flag>
+						<Title><![CDATA[A of beter]]></Title>
+					</DataItem>
+					<DataItem>
+					<Id>1648469246533</Id>
+					<Expression><![CDATA[huishoudens.avgFloorArea_B() > 0? huishoudens.avgHeatingDemand_B() / huishoudens.avgFloorArea_B() : 0]]></Expression>
+					<Color>-12799119</Color>
+					<Expression2Flag>true</Expression2Flag>
+						<Title><![CDATA[B]]></Title>
+					</DataItem>
+					<DataItem>
+					<Id>1648469246534</Id>
+					<Expression><![CDATA[huishoudens.avgFloorArea_C() > 0? huishoudens.avgHeatingDemand_C() / huishoudens.avgFloorArea_C() : 0]]></Expression>
+					<Color>-6632142</Color>
+					<Expression2Flag>true</Expression2Flag>
+						<Title><![CDATA[C]]></Title>
+					</DataItem>
+					<DataItem>
+					<Id>1648469246535</Id>
+					<Expression><![CDATA[huishoudens.avgFloorArea_D() > 0? huishoudens.avgHeatingDemand_D() / huishoudens.avgFloorArea_D() : 0]]></Expression>
+					<Color>-70327</Color>
+					<Expression2Flag>true</Expression2Flag>
+						<Title><![CDATA[D]]></Title>
+					</DataItem>
+					<DataItem>
+					<Id>1648469246536</Id>
+					<Expression><![CDATA[huishoudens.avgFloorArea_E() > 0? huishoudens.avgHeatingDemand_E() / huishoudens.avgFloorArea_E() : 0]]></Expression>
+					<Color>-10496</Color>
+					<Expression2Flag>true</Expression2Flag>
+						<Title><![CDATA[E]]></Title>
+					</DataItem>
+					<DataItem>
+					<Id>1648469246537</Id>
+					<Expression><![CDATA[huishoudens.avgFloorArea_F() > 0? huishoudens.avgHeatingDemand_F() / huishoudens.avgFloorArea_F() : 0]]></Expression>
+					<Color>-29696</Color>
+					<Expression2Flag>true</Expression2Flag>
+						<Title><![CDATA[F]]></Title>
+					</DataItem>
+					<DataItem>
+					<Id>1648469246538</Id>
+					<Expression><![CDATA[huishoudens.avgFloorArea_G() > 0? huishoudens.avgHeatingDemand_G() / huishoudens.avgFloorArea_G() : 0]]></Expression>
+					<Color>-65536</Color>
+					<Expression2Flag>true</Expression2Flag>
+						<Title><![CDATA[G]]></Title>
+					</DataItem>
+					<DataItem>
+					<Id>1648469246539</Id>
+					<Expression><![CDATA[huishoudens.avgFloorArea_null() > 0? huishoudens.avgHeatingDemand_null() / huishoudens.avgFloorArea_null() : 0]]></Expression>
+					<Color>-4144960</Color>
+					<Expression2Flag>true</Expression2Flag>
+						<Title><![CDATA[onbekend]]></Title>
+					</DataItem>
+					<ScaleFromExpression><![CDATA[0]]></ScaleFromExpression>
+					<ScaleToExpression><![CDATA[1]]></ScaleToExpression>
+					<ScaleType>AUTO</ScaleType>
+					<Bars>
+						<Direction>UP</Direction>
+						<RelativeWidth>0.8</RelativeWidth>
+					</Bars>
+    			</BarChart>
+				<Control Type="CheckBox">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1648469791044</Id>
+					<Name><![CDATA[b_labelDependentSetpoint]]></Name>
+					<Description><![CDATA[Maatregel toegevoegd om realistisch bewonersgedrag na te kunnen bootsen t.a.v. setpoints bij slecht geisoleerde woningen. 
+
+Bronnen: 
+*Ecofys (2015), De systeemkosten van warmte voor woningen, p. 11; 
+*ECN (2013), Energiebesparing: Een samenspel van woning en bewoner - Analyse van de module Energie WoON 2012)
+*Majcen et al. 2013, Theoretical vs. actual energy consumption of labelled dwellings in the Netherlands: Discrepancies and policy implications. Energy policy, 54, 125-136.
+
+@author: JorritvandenHouten
+@since: 28/03/2022]]></Description>
+					<X>640</X><Y>1340</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="340" Height="50">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<TextColor/>
+						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[f_setSetpoints();]]></ActionCode>
+					</BasicProperties>
+					<ExtendedProperties>
+						<Font Name="Dialog" Size="16" Style="0"/>
+						<LabelText><![CDATA[Thermostaat afhankelijk van energielabel]]></LabelText>
+						<DefaultValueCode><![CDATA[false]]></DefaultValueCode>
+						<LinkTo>true</LinkTo>
+						<Link>v_thermostatLabelDependent</Link>
+	 				</ExtendedProperties>
+				</Control>
+				<Text>
+					<Id>1648470764301</Id>
+					<Name><![CDATA[text16]]></Name>
+					<X>-280</X><Y>1360</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>270.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[kWh / m2]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>10</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1648470900603</Id>
+					<Name><![CDATA[text34]]></Name>
+					<X>-280</X><Y>1230</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Specifieke warmtevraag ruimteverwarming]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>12</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
 			</Presentation>
 
 				</Level>
@@ -11406,28 +11848,10 @@ for ( Auto a : autos ) {
 	a.f_bepaalFlexibiliteit();
 }
 
-// lookup-tabel om woningtypen (string) te koppelen aan een getal voor gebruik in tablefunction in Huishoudens
-c_houseTypes.put("vrijstaand", 0);
-c_houseTypes.put("twee-onder-een-kap", 1);
-c_houseTypes.put("rijwoning hoek", 2);
-c_houseTypes.put("rijwoning tussen", 3);
-c_houseTypes.put("meergezins laag en midden", 4);
-c_houseTypes.put("meergezins hoog", 5);
-
-//lookup-tabel om energielabels (string) te koppelen aan een getal voor gebruik in tablefunction in Huishoudens
-c_energyLabels.put("A of beter",0);
-c_energyLabels.put("B",1);
-c_energyLabels.put("C",2);
-c_energyLabels.put("D",3);
-c_energyLabels.put("E",4);
-c_energyLabels.put("F",5);
-c_energyLabels.put("G",6);
-c_energyLabels.put("null",7);
-
 // Thermische parameters initialiseren
 p_ventilationFlowrate_m3ph = p_specificVentilationFlowrate_mph * p_floorSurfaceArea;
-p_buildingEnvelopeArea_m2 = t_formfactorByHousetype(c_houseTypes.get(p_houseTypeString))*p_floorSurfaceArea;
-p_rcValueAverage_m2KpW = t_rcByEnergyLabel(c_energyLabels.get(p_energyLabel));
+p_buildingEnvelopeArea_m2 = t_formfactorByHousetype(main.c_houseTypes.get(p_houseTypeString))*p_floorSurfaceArea;
+p_rcValueAverage_m2KpW = t_rcByEnergyLabel(main.c_energyLabels.get(p_energyLabel));
 ]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -11786,7 +12210,7 @@ p_rcValueAverage_m2KpW = t_rcByEnergyLabel(c_energyLabels.get(p_energyLabel));
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[double]]></Type>        
 						<InitialValue Class="CodeValue">
-							<Code><![CDATA[setpointNacht * p_heatCapacityHouse_kWhpK]]></Code>
+							<Code><![CDATA[p_setpointNight * p_heatCapacityHouse_kWhpK]]></Code>
 						</InitialValue>
 					</Properties>
 				</Variable>
@@ -11801,7 +12225,7 @@ p_rcValueAverage_m2KpW = t_rcByEnergyLabel(c_energyLabels.get(p_energyLabel));
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[double]]></Type>        
 						<InitialValue Class="CodeValue">
-							<Code><![CDATA[setpointNacht]]></Code>
+							<Code><![CDATA[p_setpointNight]]></Code>
 						</InitialValue>
 					</Properties>
 				</Variable>
@@ -11820,20 +12244,60 @@ p_rcValueAverage_m2KpW = t_rcByEnergyLabel(c_energyLabels.get(p_energyLabel));
 						</InitialValue>
 					</Properties>
 				</Variable>
-				<Variable Class="AuxVariable">
-					<Id>1643191901326</Id>
-					<Name><![CDATA[setpointActief]]></Name>
-					<X>900</X><Y>1480.721</Y>
-					<Label><X>0</X><Y>-20</Y></Label>
+				<Variable Class="PlainVariable">
+					<Id>1648467858718</Id>
+					<Name><![CDATA[v_setpointActive]]></Name>
+					<Description><![CDATA[Actieve setpointtemperatuur dat de verwarming aanstuurt]]></Description>
+					<X>910</X><Y>1470</Y>
+					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Properties External="false" Constant="false" Array="false">
-						<Formula><![CDATA[(getMinute(date())+60*getHourOfDay(date()) > thermostaatStarttijd & getHourOfDay(date()) < thermostaatEindtijd ) ? setpointOverdag - v_tempSetpointReduction_degC: setpointNacht - v_tempSetpointReduction_degC]]></Formula>
-						<Value><![CDATA[0]]></Value>
-						<Color/>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
 					</Properties>
-
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1648468902064</Id>
+					<Name><![CDATA[v_totalHeatDemand_kWh]]></Name>
+					<X>820</X><Y>630</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1648469582173</Id>
+					<Name><![CDATA[v_gasMeter_m3]]></Name>
+					<X>350</X><Y>660</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0.0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1648469589554</Id>
+					<Name><![CDATA[v_gasBill_eur]]></Name>
+					<X>350</X><Y>680</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
 				</Variable>
 				<Variable Class="Parameter">
 					<Id>1641891987662</Id>
@@ -11990,104 +12454,6 @@ p_rcValueAverage_m2KpW = t_rcByEnergyLabel(c_energyLabels.get(p_energyLabel));
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1643191901238</Id>
-							<EditorContolType>TEXT_BOX</EditorContolType>
-							<MinSliderValue><![CDATA[0]]></MinSliderValue>
-							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
-							<DelimeterType>NO_DELIMETER</DelimeterType>
-						</ParameterEditor>
-					</Properties>                 
-				</Variable>
-				<Variable Class="Parameter">
-					<Id>1643191901276</Id>
-					<Name><![CDATA[thermostaatStarttijd]]></Name>
-					<X>980</X><Y>1480.721</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[double]]></Type>
-						<UnitType><![CDATA[NONE]]></UnitType>
-						<UnitOfValue Class="TimeUnits"><![CDATA[HOUR]]></UnitOfValue>
-						<SdArray>false</SdArray>
-						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[60.0*normal(1,7)]]></Code>
-						</DefaultValue>
-						<ParameterEditor>
-							<Id>1643191901274</Id>
-							<EditorContolType>TEXT_BOX</EditorContolType>
-							<MinSliderValue><![CDATA[0]]></MinSliderValue>
-							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
-							<DelimeterType>NO_DELIMETER</DelimeterType>
-						</ParameterEditor>
-					</Properties>                 
-				</Variable>
-				<Variable Class="Parameter">
-					<Id>1643191901279</Id>
-					<Name><![CDATA[thermostaatEindtijd]]></Name>
-					<X>980</X><Y>1510.361</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[double]]></Type>
-						<UnitType><![CDATA[NONE]]></UnitType>
-						<UnitOfValue Class="TimeUnits"><![CDATA[HOUR]]></UnitOfValue>
-						<SdArray>false</SdArray>
-						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[60.0*normal(1,22)]]></Code>
-						</DefaultValue>
-						<ParameterEditor>
-							<Id>1643191901277</Id>
-							<EditorContolType>TEXT_BOX</EditorContolType>
-							<MinSliderValue><![CDATA[0]]></MinSliderValue>
-							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
-							<DelimeterType>NO_DELIMETER</DelimeterType>
-						</ParameterEditor>
-					</Properties>                 
-				</Variable>
-				<Variable Class="Parameter">
-					<Id>1643191901282</Id>
-					<Name><![CDATA[setpointOverdag]]></Name>
-					<X>890</X><Y>1540</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[double]]></Type>
-						<UnitType><![CDATA[NONE]]></UnitType>
-						<SdArray>false</SdArray>
-						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[normal(1,20)]]></Code>
-						</DefaultValue>
-						<ParameterEditor>
-							<Id>1643191901280</Id>
-							<EditorContolType>TEXT_BOX</EditorContolType>
-							<MinSliderValue><![CDATA[0]]></MinSliderValue>
-							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
-							<DelimeterType>NO_DELIMETER</DelimeterType>
-						</ParameterEditor>
-					</Properties>                 
-				</Variable>
-				<Variable Class="Parameter">
-					<Id>1643191901285</Id>
-					<Name><![CDATA[setpointNacht]]></Name>
-					<X>810</X><Y>1520</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[double]]></Type>
-						<UnitType><![CDATA[NONE]]></UnitType>
-						<SdArray>false</SdArray>
-						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[normal(0.5,18)]]></Code>
-						</DefaultValue>
-						<ParameterEditor>
-							<Id>1643191901283</Id>
 							<EditorContolType>TEXT_BOX</EditorContolType>
 							<MinSliderValue><![CDATA[0]]></MinSliderValue>
 							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
@@ -12797,6 +13163,201 @@ p_rcValueAverage_m2KpW = t_rcByEnergyLabel(c_energyLabels.get(p_energyLabel));
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1648467872045</Id>
+					<Name><![CDATA[p_setpointNight]]></Name>
+					<Description><![CDATA[Setpoint voor de nacht
+Bron: Ecofys (2015), De systeemkosten van warmte voor woningen, p. 11.
+Overruled als instelling op basis van energielabel is aangevinkt in de Main.
+
+@author: JorritvandenHouten
+@since: 28/03/2022]]></Description>
+					<X>860</X><Y>1500</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[18]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1648467872043</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1648467880433</Id>
+					<Name><![CDATA[p_setpointDay]]></Name>
+					<Description><![CDATA[Setpoint voor overdag
+Bron: Ecofys (2015), De systeemkosten van warmte voor woningen, p. 11.
+Overruled als instelling op basis van energielabel is aangevinkt in de Main.
+
+@author: JorritvandenHouten
+@since: 28/03/2022]]></Description>
+					<X>860</X><Y>1520</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[19]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1648467880431</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1648467888795</Id>
+					<Name><![CDATA[p_setpointEvening]]></Name>
+					<Description><![CDATA[Setpoint voor de avond
+Bron: Ecofys (2015), De systeemkosten van warmte voor woningen, p. 11.
+Overruled als instelling op basis van energielabel is aangevinkt in de Main.
+
+@author: JorritvandenHouten
+@since: 28/03/2022]]></Description>
+					<X>860</X><Y>1540</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[20.5]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1648467888793</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1648467899114</Id>
+					<Name><![CDATA[p_thermostatTimeNight]]></Name>
+					<Description><![CDATA[Begintijd voor nachtinstelling setpoint in uur (tijd van de dag)]]></Description>
+					<X>1020</X><Y>1500</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[normal(1,23)]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1648467899112</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1648467907663</Id>
+					<Name><![CDATA[p_thermostatTimeDay]]></Name>
+					<Description><![CDATA[Begintijd voor dagtinstelling setpoint in uur (tijd van de dag)]]></Description>
+					<X>1020</X><Y>1520</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<UnitOfValue Class="TimeUnits"><![CDATA[HOUR]]></UnitOfValue>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[normal(1,7)]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1648467907661</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1648467916004</Id>
+					<Name><![CDATA[p_thermostatTimeEvening]]></Name>
+					<Description><![CDATA[Begintijd voor avondinstelling setpoint in uur (tijd van de dag)]]></Description>
+					<X>1020</X><Y>1540</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<UnitOfValue Class="TimeUnits"><![CDATA[HOUR]]></UnitOfValue>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[normal(1,17)]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1648467916002</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1648469951724</Id>
+					<Name><![CDATA[p_energyLabelOriginal]]></Name>
+					<Description><![CDATA[Bewaart het energielabel van de woning zoals uitgelezen uit de meegeleverde BAG-database, om terug te kunnen keren naar de oorspronkelijke isolatiegraad tijdens een run (radar-buttons op de Main).
+
+@author: JorritvandenHouten
+@since: 28/03/2022]]></Description>
+					<X>40</X><Y>170</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[String]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA["A"]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1648469951722</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1643455674954</Id>
 					<Name><![CDATA[bewoners]]></Name>
@@ -12827,114 +13388,7 @@ p_rcValueAverage_m2KpW = t_rcByEnergyLabel(c_energyLabels.get(p_energyLabel));
 					</Properties>
 
 				</Variable>
-				<Variable Class="CollectionVariable">
-					<Id>1648038015352</Id>
-					<Name><![CDATA[c_houseTypes]]></Name>
-					<X>40</X><Y>380</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
-						<CollectionClass><![CDATA[LinkedHashMap]]></CollectionClass>
-						<ElementClass><![CDATA[String]]></ElementClass>
-						<ValueElementClass><![CDATA[Integer]]></ValueElementClass>
-					</Properties>
-
-				</Variable>
-				<Variable Class="CollectionVariable">
-					<Id>1648038037527</Id>
-					<Name><![CDATA[c_energyLabels]]></Name>
-					<X>40</X><Y>410</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
-						<CollectionClass><![CDATA[LinkedHashMap]]></CollectionClass>
-						<ElementClass><![CDATA[String]]></ElementClass>
-						<ValueElementClass><![CDATA[Integer]]></ValueElementClass>
-					</Properties>
-
-				</Variable>
 			</Variables>
-			<Dependences>
-				<Link SourceId="1643191901276" TargetId="1643191901326" Polarity="null">
-					<Height>6.645</Height>
-					<PolarityPosition>0.95</PolarityPosition>
-					<Direction><X>-80</X><Y>0</Y></Direction>
-					<Id>1643191901206</Id>
-					<Name><![CDATA[thermostaatStarttijd - setpointActief]]></Name>
-					<X>980</X><Y>1480.721</Y>
-					<Label><X>40</X><Y>-50</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<Color/>
-					<LineWidth>1</LineWidth>
-					<Delay>false</Delay>
-				</Link>
-				<Link SourceId="1643191901279" TargetId="1643191901326" Polarity="null">
-					<Height>20.0</Height>
-					<PolarityPosition>0.95</PolarityPosition>
-					<Direction><X>-80</X><Y>-31</Y></Direction>
-					<Id>1643191901208</Id>
-					<Name><![CDATA[thermostaatEindtijd - setpointActief]]></Name>
-					<X>980</X><Y>1510.361</Y>
-					<Label><X>40</X><Y>-50</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<Color/>
-					<LineWidth>1</LineWidth>
-					<Delay>false</Delay>
-				</Link>
-				<Link SourceId="1643191901282" TargetId="1643191901326" Polarity="null">
-					<Height>15.769</Height>
-					<PolarityPosition>0.95</PolarityPosition>
-					<Direction><X>10</X><Y>-61</Y></Direction>
-					<Id>1643191901210</Id>
-					<Name><![CDATA[setpointOverdag - setpointActief]]></Name>
-					<X>890</X><Y>1540</Y>
-					<Label><X>40</X><Y>-50</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<Color/>
-					<LineWidth>1</LineWidth>
-					<Delay>false</Delay>
-				</Link>
-				<Link SourceId="1643191901285" TargetId="1643191901326" Polarity="null">
-					<Height>20.0</Height>
-					<PolarityPosition>0.95</PolarityPosition>
-					<Direction><X>90</X><Y>-40</Y></Direction>
-					<Id>1643191901212</Id>
-					<Name><![CDATA[setpointNacht - setpointActief]]></Name>
-					<X>810</X><Y>1520</Y>
-					<Label><X>40</X><Y>-50</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<Color/>
-					<LineWidth>1</LineWidth>
-					<Delay>false</Delay>
-				</Link>
-				<Link SourceId="1648056683009" TargetId="1643191901326" Polarity="null">
-					<Height>20.0</Height>
-					<PolarityPosition>0.95</PolarityPosition>
-					<Direction><X>10</X><Y>60</Y></Direction>
-					<Id>1648056764516</Id>
-					<Name><![CDATA[v_tempSetpointReduction_degC - setpointActief]]></Name>
-					<X>890</X><Y>1420</Y>
-					<Label><X>40</X><Y>-50</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<Color/>
-					<LineWidth>1</LineWidth>
-					<Delay>false</Delay>
-				</Link>
-			</Dependences>
 			<Functions>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -12978,6 +13432,7 @@ work2 = tup.get( db_huishoudens.work2 );
 p_houseTypeString = tupWoning.get( db_housingdata_utrecht.woningtype );
 p_floorSurfaceArea = tupWoning.get( db_housingdata_utrecht.oppervlakte_m2 );
 p_energyLabel = tupWoning.get( db_housingdata_utrecht.schil_label_bekend );
+p_energyLabelOriginal = p_energyLabel;
 p_buildingYear = tupWoning.get( db_housingdata_utrecht.bouwjaar_yr );
 
 
@@ -13093,7 +13548,7 @@ f_heatingCooling();
 
 // Smart devices, managed in 'merit order' sequence
 // Heating
-f_slimmeThermostaatEvent();
+f_smartThermostatEvent();
 
 double heatingElectricPower_kW = 0;
 if ( p_heatingSystem instanceof HS_Heatpump ) {
@@ -13179,42 +13634,6 @@ v_gemiddeldeStroomPrijs_eurpkWh = v_electricityBill_eur/v_totaalVerbruik_kWh;
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1646927893789</Id>
-					<Name><![CDATA[f_slimmeThermostaat]]></Name>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>830</X><Y>1600</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[if (p_heatingSystemType == HeatingTypes.HeatPump || p_heatingSystemType == HeatingTypes.HeatPump_Hybrid) { // Slimme thermostaat functionaliteit
-	double T_margin = 2.0; // Hoeveel mag temp afwijken van setpoint om slimmer te verwarmen?
-	//v_heatingPct = 0.0;
-	if (Twoning < setpointActief ) { // Verwarmen als temp onder setpoint komt
-		v_heatRequest_kW = heatingSystem.p_powerHeatPump_kW;
-	} else if (main.cb_slimVerwarmen.isSelected() && p_heatingSystemType == HeatingTypes.HeatPump && Twoning < setpointActief + T_margin) { // Flexibiliteit: verder doorverwarmen als prijs laag genoeg is
-
-		double power = 0;
-		while( main.incentiveGenerator.tf_incentivePowerCosts( basislastElektriciteitsverbruik_kW - pvOpwek_kW + power) < v_bidPriceLowHeatPump_eurpkWh && power < heatingSystem.p_powerHeatPump_kW) {
-			power += 0.5;
-		}
-		v_heatingPct = power / heatingSystem.p_powerHeatPump_kW;
-		v_heatRequest_kW = power*heatingSystem.tf_heatPumpCOPspaceHeating(main.Tbuiten);
-		//traceln("opportunity heating!");
-	} else {
-		v_heatRequest_kW = 0;
-	}
-} else { // Gewoon aan/uit van CV-ketel
-	v_heatingPct = Twoning < setpointActief ? 1 : 0;
-	v_heatRequest_kW = heatingSystem.p_powerGasBurner_kW * v_heatingPct;
-}
-
-heatingSystem.f_heatingFunction(v_heatRequest_kW, 0.0, p_heatingSystemType,main.Tbuiten,main.dt_h);
-v_heatingThermalPower_kW = heatingSystem.v_heatDelivery_kW ;]]></Body>
-				</Function>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1648038362450</Id>
 					<Name><![CDATA[f_heatingCooling]]></Name>
 					<X>480</X><Y>1520</Y>
@@ -13234,14 +13653,23 @@ v_dQdtHouse_kW = v_fieIrradiation_kW + v_heatingThermalPower_kW - v_fieTransmiss
 
 // Update temperatuur woning
 v_Qhouse_kWh += v_dQdtHouse_kW * main.dt_h;
-v_Thouse = v_Qhouse_kWh / p_heatCapacityHouse_kWhpK;]]></Body>
+v_Thouse = v_Qhouse_kWh / p_heatCapacityHouse_kWhpK;
+
+// Update total heating demand for statistics
+v_totalHeatDemand_kWh += v_heatingThermalPower_kW * main.dt_h;]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1648038632452</Id>
-					<Name><![CDATA[f_slimmeThermostaatEvent]]></Name>
-					<X>830</X><Y>1620</Y>
+					<Id>1648467940931</Id>
+					<Name><![CDATA[f_smartThermostatEvent]]></Name>
+					<Description><![CDATA[Thermostaat update programma en stuurt warmteproductie aan. 
+Bron: Ecofys (2015), De systeemkosten van warmte voor woningen, p. 11.
+
+
+@author: Gillis, JorritvandenHouten
+@since: 28/03/2022 (setpoint-programma's)]]></Description>
+					<X>1020</X><Y>1620</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -13268,12 +13696,38 @@ v_Thouse = v_Qhouse_kWh / p_heatCapacityHouse_kWhpK;]]></Body>
 	v_heatRequest_kW = heatingSystem.p_powerGasBurner_kW * v_heatingPct;
 }*/
 
-v_heatingPct = v_Thouse < setpointActief ? 1 : 0;
+// Stel setpoint in op Overdag-, Avond- of Nacht-instelling
+double v_timeInHour = (getHour() + (getMinute() / 60.0));
+if ( v_timeInHour >= p_thermostatTimeDay && v_timeInHour < p_thermostatTimeEvening ){
+	v_setpointActive = p_setpointDay;
+}
+else if ( v_timeInHour >= p_thermostatTimeEvening && v_timeInHour < p_thermostatTimeNight ){
+	v_setpointActive = p_setpointEvening;
+}
+else if ( v_timeInHour >= p_thermostatTimeNight && v_timeInHour < p_thermostatTimeDay ){
+	v_setpointActive = p_setpointNight;
+}
+
+
+v_heatingPct = v_Thouse < v_setpointActive ? 1 : 0;
 v_heatRequest_kW = 100 * v_heatingPct;
 double v_DHWEnergyDemand_kW=pop_dHWDemand.get(0).f_updateDHWEnergyDemand();
 //traceln(v_DHWEnergyDemand_kW);
 p_heatingSystem.f_heatingFunction(v_heatRequest_kW, v_DHWEnergyDemand_kW, main.Tbuiten, main.dt_h);
 v_heatingThermalPower_kW = p_heatingSystem.v_heatDelivery_kW ;]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1648469573020</Id>
+					<Name><![CDATA[f_gasBilling]]></Name>
+					<X>350</X><Y>640</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[//
+v_gasBill_eur = v_gasMeter_m3 * main.v_gasPrice_eurpm3;]]></Body>
 				</Function>
 			</Functions>
 			<TableFunctions>
@@ -13392,8 +13846,8 @@ TODO: data afleiden en corrigeren.
 					<Value><![CDATA[2.0]]></Value>
 					<Value><![CDATA[1.0]]></Value>
 					<Value><![CDATA[0.5]]></Value>
+					<Value><![CDATA[0.3]]></Value>
 					<Value><![CDATA[0.25]]></Value>
-					<Value><![CDATA[0.2]]></Value>
 					<Value><![CDATA[1.0]]></Value>
 				</TableFunction>
 			</TableFunctions>
@@ -27071,7 +27525,7 @@ energie:]]></Text>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
 					<Text><![CDATA[x €]]></Text>
-					<TextCode><![CDATA[roundToDecimal(average(main.huishoudens, x->x.v_electricityBill_eur), 2) + " €"]]></TextCode>
+					<TextCode><![CDATA[roundToDecimal(average(main.huishoudens, x->x.v_electricityBill_eur) + average(main.huishoudens, x->x.v_gasBill_eur), 2) + " €"]]></TextCode>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>22</Size>
@@ -27392,7 +27846,7 @@ transformator:]]></Text>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
 					<Text><![CDATA[x €]]></Text>
-					<TextCode><![CDATA[roundToDecimal(average(main.huishoudens, x->x.v_electricityBill_eur), 2) + " €"]]></TextCode>
+					<TextCode><![CDATA[roundToDecimal(average(main.huishoudens, x->x.v_electricityBill_eur) + average(main.huishoudens, x->x.v_gasBill_eur), 2) + " €"]]></TextCode>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>12</Size>
