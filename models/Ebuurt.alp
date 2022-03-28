@@ -1173,6 +1173,33 @@ f_setTrafoMinPower(p_connectionCapacityPerHousehold);
 						</InitialValue>
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1648473118967</Id>
+					<Name><![CDATA[v_thermostatAdvanceTime_min]]></Name>
+					<X>100</X><Y>1580</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1648475405975</Id>
+					<Name><![CDATA[v_thermostatAdvanceTimeParticipation_pct]]></Name>
+					<X>100</X><Y>1610</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0.0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1643465996971</Id>
 					<Name><![CDATA[wandelSnelheid]]></Name>
@@ -2150,6 +2177,7 @@ pvOpwekChart.updateData();
 elektriciteitsVerbruikChart.updateData();
 Wijktrafo_vermogen_plot.updateData();
 heatingDemand_kWhpm2.updateData();
+householdByThermostatModes.updateData();
 
 
 // WijkTotalen
@@ -2509,6 +2537,9 @@ traceln(nbGasBurner + " CV ketels, " + nbHeatpump + " warmtepompen, " + nbHybrid
 					<Body><![CDATA[double tempSetpointReduction = sl_setThermostatLower_degC.getValue();
 double participationFraction = sl_thermostatReductionParcicipation.getValue()/100;
 
+double tempThermostatAdvanceTime = sl_thermostatAdvanceTime.getValue();
+double thermostatAdvanceTimeParticipation = sl_thermostatAdvanceTimeParticipation.getValue()/100;
+
 for ( Huishouden h : huishoudens ) {
 	if ( randomTrue(participationFraction) ) {
 		h.v_tempSetpointReduction_degC = tempSetpointReduction;
@@ -2517,8 +2548,13 @@ for ( Huishouden h : huishoudens ) {
 	}
 }
 
-v_thermostatReduction_degC = tempSetpointReduction;
-v_thermostatReductionParticipation_pct = participationFraction*100;]]></Body>
+for ( Huishouden h : huishoudens ) {
+	if ( randomTrue(thermostatAdvanceTimeParticipation) ) {
+		h.v_thermostatAdvanceTime_min = tempThermostatAdvanceTime;
+	} else {
+		h.v_thermostatAdvanceTime_min = 0;
+	}
+}]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -2937,6 +2973,27 @@ else {   // dezelfde gemiddelde setpointinstellingen voor alle woningen.
 						<Type>average</Type>
 						<Expression><![CDATA[item.p_floorSurfaceArea]]></Expression>
 						<Condition><![CDATA[item.p_energyLabel.equals("null")]]></Condition>
+					</StatisticsItem>
+					<StatisticsItem>
+						<Id>1648476642186</Id>
+						<Name><![CDATA[countThermostatModeNight]]></Name>
+						<Type>count</Type>
+						<Expression><![CDATA[]]></Expression>
+						<Condition><![CDATA[item.v_thermostatTimeMode.equals("Night")]]></Condition>
+					</StatisticsItem>
+					<StatisticsItem>
+						<Id>1648476830745</Id>
+						<Name><![CDATA[countThermostatModeDay]]></Name>
+						<Type>count</Type>
+						<Expression><![CDATA[]]></Expression>
+						<Condition><![CDATA[item.v_thermostatTimeMode.equals("Day")]]></Condition>
+					</StatisticsItem>
+					<StatisticsItem>
+						<Id>1648476870410</Id>
+						<Name><![CDATA[countThermostatModeEvening]]></Name>
+						<Type>count</Type>
+						<Expression><![CDATA[]]></Expression>
+						<Condition><![CDATA[item.v_thermostatTimeMode.equals("Evening")]]></Condition>
 					</StatisticsItem>
 					<InEnvironment>true</InEnvironment>	
 					<InitialLocationType>AT_ANIMATION_POSITION</InitialLocationType>
@@ -11144,7 +11201,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 					<LineColor/>
 					<LineMaterial>null</LineMaterial>
 					<LineStyle>SOLID</LineStyle>
-					<Width>940</Width>
+					<Width>990</Width>
 					<Height>170</Height>
 					<Rotation>0.0</Rotation>
 					<FillColor>-918279</FillColor>
@@ -11314,7 +11371,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 				<Text>
 					<Id>1648049115855</Id>
 					<Name><![CDATA[text9]]></Name>
-					<X>570</X><Y>1250</Y>
+					<X>610</X><Y>1250</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -11336,7 +11393,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1648049132340</Id>
 					<Name><![CDATA[sl_setThermostatLower_degC]]></Name>
-					<X>570</X><Y>1279</Y>
+					<X>610</X><Y>1279</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -11353,14 +11410,15 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 						<MinValue><![CDATA[0]]></MinValue>
 						<MaxValue><![CDATA[5]]></MaxValue>
 						<Step><![CDATA[1]]></Step>
-						<LinkTo>false</LinkTo>
+						<LinkTo>true</LinkTo>
+						<Link>v_thermostatReduction_degC</Link>
 					</ExtendedProperties>
 				</Control>
 				<Control Type="Slider">
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1648049137431</Id>
 					<Name><![CDATA[sl_thermostatReductionParcicipation]]></Name>
-					<X>570</X><Y>1310</Y>
+					<X>610</X><Y>1310</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -11377,13 +11435,14 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 						<MinValue><![CDATA[0]]></MinValue>
 						<MaxValue><![CDATA[100]]></MaxValue>
 						<Step><![CDATA[1]]></Step>
-						<LinkTo>false</LinkTo>
+						<LinkTo>true</LinkTo>
+						<Link>v_thermostatReductionParticipation_pct</Link>
 					</ExtendedProperties>
 				</Control>
 				<Text>
 					<Id>1648055794741</Id>
 					<Name><![CDATA[text10]]></Name>
-					<X>700</X><Y>1280</Y>
+					<X>740</X><Y>1280</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -11405,7 +11464,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 				<Text>
 					<Id>1648055826456</Id>
 					<Name><![CDATA[text11]]></Name>
-					<X>700</X><Y>1310</Y>
+					<X>740</X><Y>1310</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -11653,13 +11712,13 @@ Bronnen:
 
 @author: JorritvandenHouten
 @since: 28/03/2022]]></Description>
-					<X>640</X><Y>1340</Y>
+					<X>610</X><Y>1410</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<BasicProperties Width="340" Height="50">
+					<BasicProperties Width="350" Height="30">
                         <EmbeddedIcon>false</EmbeddedIcon>	
 						<TextColor/>
 						<Enabled>true</Enabled>
@@ -11715,6 +11774,181 @@ Bronnen:
 					</Font>
 					<Alignment>LEFT</Alignment>
 				</Text>
+				<Control Type="Slider">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1648472633154</Id>
+					<Name><![CDATA[sl_thermostatAdvanceTime]]></Name>
+					<Description><![CDATA[Time in minutes
+
+@author: Jorrit
+@since: 28/03/2022]]></Description>
+					<X>610</X><Y>1340</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="100" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[f_setHeatingBehavior();]]></ActionCode>
+					</BasicProperties>
+					<ExtendedProperties>
+						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
+						<Orientation>HORIZONTAL</Orientation>
+						<MinValue><![CDATA[0]]></MinValue>
+						<MaxValue><![CDATA[120]]></MaxValue>
+						<Step><![CDATA[1]]></Step>
+						<LinkTo>true</LinkTo>
+						<Link>v_thermostatAdvanceTime_min</Link>
+					</ExtendedProperties>
+				</Control>
+				<Text>
+					<Id>1648472712754</Id>
+					<Name><![CDATA[text36]]></Name>
+					<X>740</X><Y>1340</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Thermostaat eerder uit]]></Text>
+					<TextCode><![CDATA[roundToInt( v_thermostatAdvanceTime_min ) + " minuten eerder thermostaat lager"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>18</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Control Type="Slider">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1648475268637</Id>
+					<Name><![CDATA[sl_thermostatAdvanceTimeParticipation]]></Name>
+					<X>610</X><Y>1370</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="100" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[f_setHeatingBehavior();]]></ActionCode>
+					</BasicProperties>
+					<ExtendedProperties>
+						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
+						<Orientation>HORIZONTAL</Orientation>
+						<MinValue><![CDATA[0]]></MinValue>
+						<MaxValue><![CDATA[100]]></MaxValue>
+						<Step><![CDATA[1]]></Step>
+						<LinkTo>true</LinkTo>
+						<Link>v_thermostatAdvanceTimeParticipation_pct</Link>
+					</ExtendedProperties>
+				</Control>
+				<Text>
+					<Id>1648475312252</Id>
+					<Name><![CDATA[text37]]></Name>
+					<X>740</X><Y>1370</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Thermostaat eerder uit participatiegraad]]></Text>
+					<TextCode><![CDATA[roundToInt( v_thermostatAdvanceTimeParticipation_pct ) + " % participatiegraad"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>16</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+    			<TimeStackChart>
+					<Id>1648476922108</Id>
+					<Name><![CDATA[householdByThermostatModes]]></Name>
+					<X>640</X><Y>1460</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<AutoUpdate>false</AutoUpdate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1648540800000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</RecurrenceCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Width>260</Width>
+					<Height>210</Height>
+					<BackgroundColor/>
+					<BorderColor/>
+					<ChartArea>
+						<XOffset>50</XOffset>
+						<YOffset>30</YOffset>
+						<Width>180</Width>
+						<Height>120</Height>
+						<BackgroundColor>-1</BackgroundColor>
+						<BorderColor>-16777216</BorderColor>
+						<GridColor>-12566464</GridColor>
+					</ChartArea>
+					<Legend>
+						<Place>SOUTH</Place>
+						<TextColor>-16777216</TextColor>
+						<Size>30</Size>
+					</Legend>
+					<Labels>
+						<HorLabelsPosition>DEFAULT</HorLabelsPosition>
+						<VerLabelsPosition>DEFAULT</VerLabelsPosition>
+						<TextColor>-12566464</TextColor>
+					</Labels>
+					<ShowLegend>true</ShowLegend>
+					<TimeWindowsMovementType>MOVEMENT_WITH_TIME</TimeWindowsMovementType>		
+					<TimeWindowUnits>MODEL_TIME_UNIT</TimeWindowUnits>
+					<TimeWindowExpression><![CDATA[24]]></TimeWindowExpression>
+					<DatasetExpression>
+					<Id>0</Id>
+					<Expression><![CDATA[my_dataset]]></Expression>
+					<Color>-8355712</Color>
+					<Expression2><![CDATA[huishoudens.countThermostatModeNight()]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>  
+							<Title><![CDATA[Nacht]]></Title>
+					</DatasetExpression>
+					<DatasetExpression>
+					<Id>0</Id>
+					<Expression><![CDATA[my_dataset]]></Expression>
+					<Color>-16711681</Color>
+					<Expression2><![CDATA[huishoudens.countThermostatModeDay()]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>  
+							<Title><![CDATA[Overdag]]></Title>
+					</DatasetExpression>
+					<DatasetExpression>
+					<Id>0</Id>
+					<Expression><![CDATA[my_dataset]]></Expression>
+					<Color>-16776961</Color>
+					<Expression2><![CDATA[huishoudens.countThermostatModeEvening()]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>  
+							<Title><![CDATA[Avond]]></Title>
+					</DatasetExpression>
+					<SamplesToKeep>72</SamplesToKeep>
+					<VerScaleToExpression><![CDATA[1]]></VerScaleToExpression>
+					<VerScaleType>AUTO</VerScaleType>
+					<LabelFormat>MODEL_TIME_UNITS</LabelFormat>
+    			</TimeStackChart>
 			</Presentation>
 
 				</Level>
@@ -11949,7 +12183,7 @@ p_rcValueAverage_m2KpW = t_rcByEnergyLabel(main.c_energyLabels.get(p_energyLabel
 				<Variable Class="PlainVariable">
 					<Id>1644826187426</Id>
 					<Name><![CDATA[v_heatRequest_kW]]></Name>
-					<X>830</X><Y>1580</Y>
+					<X>1010</X><Y>1500</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -12091,24 +12325,9 @@ p_rcValueAverage_m2KpW = t_rcByEnergyLabel(main.c_energyLabels.get(p_energyLabel
 					</Properties>
 				</Variable>
 				<Variable Class="PlainVariable">
-					<Id>1646927784272</Id>
-					<Name><![CDATA[v_heatingPct]]></Name>
-					<X>820</X><Y>1440</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[double]]></Type>        
-						<InitialValue Class="CodeValue">
-							<Code><![CDATA[0]]></Code>
-						</InitialValue>
-					</Properties>
-				</Variable>
-				<Variable Class="PlainVariable">
 					<Id>1647352913486</Id>
 					<Name><![CDATA[v_bidPriceLowHeatPump_eurpkWh]]></Name>
-					<X>830</X><Y>1640</Y>
+					<X>1010</X><Y>1620</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -12232,7 +12451,7 @@ p_rcValueAverage_m2KpW = t_rcByEnergyLabel(main.c_energyLabels.get(p_energyLabel
 				<Variable Class="PlainVariable">
 					<Id>1648056683009</Id>
 					<Name><![CDATA[v_tempSetpointReduction_degC]]></Name>
-					<X>890</X><Y>1420</Y>
+					<X>1010</X><Y>1470</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -12248,7 +12467,7 @@ p_rcValueAverage_m2KpW = t_rcByEnergyLabel(main.c_energyLabels.get(p_energyLabel
 					<Id>1648467858718</Id>
 					<Name><![CDATA[v_setpointActive]]></Name>
 					<Description><![CDATA[Actieve setpointtemperatuur dat de verwarming aanstuurt]]></Description>
-					<X>910</X><Y>1470</Y>
+					<X>1010</X><Y>1530</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -12296,6 +12515,51 @@ p_rcValueAverage_m2KpW = t_rcByEnergyLabel(main.c_energyLabels.get(p_energyLabel
 						<Type><![CDATA[double]]></Type>        
 						<InitialValue Class="CodeValue">
 							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1648472782633</Id>
+					<Name><![CDATA[v_thermostatAdvanceTime_min]]></Name>
+					<X>1010</X><Y>1570</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0.0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1648475347389</Id>
+					<Name><![CDATA[v_thermostatAdvanceTimeParticipation_pct]]></Name>
+					<X>1010</X><Y>1590</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0.0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1648476683547</Id>
+					<Name><![CDATA[v_thermostatTimeMode]]></Name>
+					<X>1010</X><Y>1550</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[String]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[""]]></Code>
 						</InitialValue>
 					</Properties>
 				</Variable>
@@ -13172,7 +13436,7 @@ Overruled als instelling op basis van energielabel is aangevinkt in de Main.
 
 @author: JorritvandenHouten
 @since: 28/03/2022]]></Description>
-					<X>860</X><Y>1500</Y>
+					<X>830</X><Y>1490</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -13182,7 +13446,7 @@ Overruled als instelling op basis van energielabel is aangevinkt in de Main.
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[18]]></Code>
+							<Code><![CDATA[17]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1648467872043</Id>
@@ -13202,7 +13466,7 @@ Overruled als instelling op basis van energielabel is aangevinkt in de Main.
 
 @author: JorritvandenHouten
 @since: 28/03/2022]]></Description>
-					<X>860</X><Y>1520</Y>
+					<X>830</X><Y>1510</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -13232,7 +13496,7 @@ Overruled als instelling op basis van energielabel is aangevinkt in de Main.
 
 @author: JorritvandenHouten
 @since: 28/03/2022]]></Description>
-					<X>860</X><Y>1540</Y>
+					<X>830</X><Y>1530</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -13257,7 +13521,7 @@ Overruled als instelling op basis van energielabel is aangevinkt in de Main.
 					<Id>1648467899114</Id>
 					<Name><![CDATA[p_thermostatTimeNight]]></Name>
 					<Description><![CDATA[Begintijd voor nachtinstelling setpoint in uur (tijd van de dag)]]></Description>
-					<X>1020</X><Y>1500</Y>
+					<X>830</X><Y>1560</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -13267,7 +13531,7 @@ Overruled als instelling op basis van energielabel is aangevinkt in de Main.
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[normal(1,23)]]></Code>
+							<Code><![CDATA[normal(0.5,23)]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1648467899112</Id>
@@ -13282,7 +13546,7 @@ Overruled als instelling op basis van energielabel is aangevinkt in de Main.
 					<Id>1648467907663</Id>
 					<Name><![CDATA[p_thermostatTimeDay]]></Name>
 					<Description><![CDATA[Begintijd voor dagtinstelling setpoint in uur (tijd van de dag)]]></Description>
-					<X>1020</X><Y>1520</Y>
+					<X>830</X><Y>1580</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -13308,7 +13572,7 @@ Overruled als instelling op basis van energielabel is aangevinkt in de Main.
 					<Id>1648467916004</Id>
 					<Name><![CDATA[p_thermostatTimeEvening]]></Name>
 					<Description><![CDATA[Begintijd voor avondinstelling setpoint in uur (tijd van de dag)]]></Description>
-					<X>1020</X><Y>1540</Y>
+					<X>830</X><Y>1600</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -13669,7 +13933,7 @@ Bron: Ecofys (2015), De systeemkosten van warmte voor woningen, p. 11.
 
 @author: Gillis, JorritvandenHouten
 @since: 28/03/2022 (setpoint-programma's)]]></Description>
-					<X>1020</X><Y>1620</Y>
+					<X>1220</X><Y>1530</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -13697,20 +13961,31 @@ Bron: Ecofys (2015), De systeemkosten van warmte voor woningen, p. 11.
 }*/
 
 // Stel setpoint in op Overdag-, Avond- of Nacht-instelling
-double v_timeInHour = (getHour() + (getMinute() / 60.0));
+double v_timeInHour = (getHourOfDay() + (getMinute() / 60.0));
+// 
+if (v_timeInHour < 4.0) {
+	v_timeInHour += 24;
+}
+
 if ( v_timeInHour >= p_thermostatTimeDay && v_timeInHour < p_thermostatTimeEvening ){
 	v_setpointActive = p_setpointDay;
+	v_thermostatTimeMode = "Day";
+	// traceln("setpoint: Day");
 }
-else if ( v_timeInHour >= p_thermostatTimeEvening && v_timeInHour < p_thermostatTimeNight ){
+else if ( v_timeInHour >= p_thermostatTimeEvening && v_timeInHour < ( p_thermostatTimeNight - ( v_thermostatAdvanceTime_min / 60 )) ){
 	v_setpointActive = p_setpointEvening;
+	// traceln("setpoint: Evening");
+	v_thermostatTimeMode = "Evening";
 }
-else if ( v_timeInHour >= p_thermostatTimeNight && v_timeInHour < p_thermostatTimeDay ){
+else if ( v_timeInHour >= ( p_thermostatTimeNight - ( v_thermostatAdvanceTime_min / 60) ) || v_timeInHour < p_thermostatTimeDay ){
 	v_setpointActive = p_setpointNight;
+	// traceln("setpoint: Night");
+	v_thermostatTimeMode = "Night";
 }
 
+v_setpointActive -= v_tempSetpointReduction_degC;
+v_heatRequest_kW = v_Thouse < v_setpointActive ?  100 : 0; // TODO: 100 kW standaardwaarde aanpassen?
 
-v_heatingPct = v_Thouse < v_setpointActive ? 1 : 0;
-v_heatRequest_kW = 100 * v_heatingPct;
 double v_DHWEnergyDemand_kW=pop_dHWDemand.get(0).f_updateDHWEnergyDemand();
 //traceln(v_DHWEnergyDemand_kW);
 p_heatingSystem.f_heatingFunction(v_heatRequest_kW, v_DHWEnergyDemand_kW, main.Tbuiten, main.dt_h);
@@ -13727,6 +14002,16 @@ v_heatingThermalPower_kW = p_heatingSystem.v_heatDelivery_kW ;]]></Body>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[//
+
+if ( p_heatingSystem instanceof HS_Gasburner ) {
+		HS_Gasburner x = (HS_Gasburner)p_heatingSystem;
+		v_gasMeter_m3 = x.v_gasConsumed_m3;
+	}
+	if ( p_heatingSystem instanceof HS_HeatpumpHybrid ) {
+		HS_HeatpumpHybrid x = (HS_HeatpumpHybrid)p_heatingSystem;
+		v_gasMeter_m3 = x.v_gasConsumed_m3;
+	}
+
 v_gasBill_eur = v_gasMeter_m3 * main.v_gasPrice_eurpm3;]]></Body>
 				</Function>
 			</Functions>
