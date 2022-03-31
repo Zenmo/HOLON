@@ -904,7 +904,7 @@ f_setTrafoMinPower(p_connectionCapacityPerHousehold);
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1644825798201</Id>
-					<Name><![CDATA[eigenConsumptieJaartotaal]]></Name>
+					<Name><![CDATA[v_eigenConsumptieJaartotaal_kWh]]></Name>
 					<X>-1070</X><Y>504</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -940,7 +940,7 @@ f_setTrafoMinPower(p_connectionCapacityPerHousehold);
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1644825798207</Id>
-					<Name><![CDATA[evVerbruikJaartotaal]]></Name>
+					<Name><![CDATA[v_evVerbruikJaartotaal]]></Name>
 					<X>-1070</X><Y>475</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -952,7 +952,7 @@ f_setTrafoMinPower(p_connectionCapacityPerHousehold);
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1645175943241</Id>
-					<Name><![CDATA[v_wijkNettoEnergyVerbruik_kWh]]></Name>
+					<Name><![CDATA[v_wijkNettoElectriciteitsVerbruik_kWh]]></Name>
 					<X>-1070</X><Y>680</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1012,7 +1012,7 @@ f_setTrafoMinPower(p_connectionCapacityPerHousehold);
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1646317230067</Id>
-					<Name><![CDATA[v_wijkTotaalEnergyVerbruik_kWh]]></Name>
+					<Name><![CDATA[v_wijkTotaalElektriciteitsVerbruik_kWh]]></Name>
 					<X>-1070</X><Y>740</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1684,6 +1684,56 @@ f_setTrafoMinPower(p_connectionCapacityPerHousehold);
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1648723724764</Id>
+					<Name><![CDATA[p_energyDensityGas_kWhpm3]]></Name>
+					<Description><![CDATA[kWh/m3]]></Description>
+					<X>-1360</X><Y>630</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[9.769]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1648723724762</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1648723781290</Id>
+					<Name><![CDATA[p_gasstroomPEF]]></Name>
+					<Description><![CDATA[kWh/m3]]></Description>
+					<X>-1360</X><Y>660</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[2.3]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1648723781288</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1642514169739</Id>
 					<Name><![CDATA[householdPoints]]></Name>
@@ -2156,9 +2206,11 @@ for (Huishouden h : huishoudens) {
 	if ( h.p_heatingSystem instanceof HS_DistrictHeating ) {
 		HS_DistrictHeating x = (HS_DistrictHeating)h.p_heatingSystem;
 		v_districtHeatDemand_kW += x.v_districtHeatAbsorption_kW;
-	}
-	if ( h.p_heatingSystem instanceof HS_Heatpump ) {
+	} else if ( h.p_heatingSystem instanceof HS_Heatpump ) {
 		HS_Heatpump x = (HS_Heatpump)h.p_heatingSystem;
+		warmtepompVerbruik_kW += x.v_heatPumpPower_kW;
+	} else if ( h.p_heatingSystem instanceof HS_HeatpumpHybrid ) {
+		HS_HeatpumpHybrid x = (HS_HeatpumpHybrid)h.p_heatingSystem;
 		warmtepompVerbruik_kW += x.v_heatPumpPower_kW;
 	}
 }
@@ -2179,16 +2231,15 @@ Wijktrafo_vermogen_plot.updateData();
 heatingDemand_kWhpm2.updateData();
 householdByThermostatModes.updateData();
 
-
 // WijkTotalen
 pvOpwekJaartotaal += pvOpwek_kW * dt_h;
 v_wijkTotaalWPVerbruik_kWh += warmtepompVerbruik_kW * dt_h;
-evVerbruikJaartotaal += autos.laadvraag() * dt_h;
+v_evVerbruikJaartotaal += autos.laadvraag() * dt_h;
 basislastElektriciteitsverbruikHuishoudensJaartotaal += basislastElektriciteitsverbruikHuishoudens_kW * dt_h;
-eigenConsumptieJaartotaal += eigenConsumptie * dt_h;
-v_wijkNettoEnergyVerbruik_kWh += trafoVermogen_kW * dt_h;
+v_eigenConsumptieJaartotaal_kWh += eigenConsumptie * dt_h;
+v_wijkNettoElectriciteitsVerbruik_kWh += trafoVermogen_kW * dt_h;
 v_wijkEnergyAfname_kWh += max(0,trafoVermogen_kW * dt_h);
-v_wijkTotaalEnergyVerbruik_kWh += wijkVerbruik_kW * dt_h;
+v_wijkTotaalElektriciteitsVerbruik_kWh += wijkVerbruik_kW * dt_h;
 v_wijkTotaalBenzineVerbruik_l = sumWhere(autos, x->x.v_fuelConsumed_l, x->x.p_fuelType==fuelType.petrol && !x.elektrisch);
 v_wijkTotaalDieselVerbruik_l = sumWhere(autos, x->x.v_fuelConsumed_l, x->x.p_fuelType==fuelType.diesel && !x.elektrisch);
 
@@ -2205,8 +2256,8 @@ for (Huishouden h : huishoudens) {
 	}
 }
 // CO2 totaal wijk
-v_WijkTotaalCO2_kg = (p_GasCO2_gpm3 * v_wijkTotaalGasVerbruik_m3 + p_GridPowerCO2_gpkWh * v_wijkNettoEnergyVerbruik_kWh + p_petrolWTWCO2_gpl * v_wijkTotaalBenzineVerbruik_l + p_dieselWTWCO2_gpl * v_wijkTotaalDieselVerbruik_l)/1000;
-
+v_WijkTotaalCO2_kg = (p_GasCO2_gpm3 * v_wijkTotaalGasVerbruik_m3 + p_GridPowerCO2_gpkWh * v_wijkNettoElectriciteitsVerbruik_kWh + p_petrolWTWCO2_gpl * v_wijkTotaalBenzineVerbruik_l + p_dieselWTWCO2_gpl * v_wijkTotaalDieselVerbruik_l)/1000;
+//v_wijkTotaalFinaleEnergie_GJ = evVerbruikJaartotaal + basislastElektriciteitsverbruikHuishoudensJaartotaal + v_wijkTotaalWPVerbruik_kWh
 ]]></Action>
 				</Event>
 				<Event>
@@ -2868,6 +2919,13 @@ else {   // dezelfde gemiddelde setpointinstellingen voor alle woningen.
 						<Type>average</Type>
 						<Expression><![CDATA[item.v_totalHeatDemand_kWh]]></Expression>
 						<Condition><![CDATA[item.p_energyLabel.equals("A of beter")]]></Condition>
+					</StatisticsItem>
+					<StatisticsItem>
+						<Id>1648725693678</Id>
+						<Name><![CDATA[totalHeatingDemand]]></Name>
+						<Type>sum</Type>
+						<Expression><![CDATA[item.v_totalHeatDemand_kWh]]></Expression>
+						<Condition><![CDATA[true]]></Condition>
 					</StatisticsItem>
 					<StatisticsItem>
 						<Id>1648469014745</Id>
@@ -7348,7 +7406,7 @@ else {   // dezelfde gemiddelde setpointinstellingen voor alle woningen.
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
 					<Text><![CDATA[xx eigen consumptie]]></Text>
-					<TextCode><![CDATA[roundToInt(eigenConsumptieJaartotaal) + " kWh eigen consumptie zonnepanelen"]]></TextCode>
+					<TextCode><![CDATA[roundToInt(v_eigenConsumptieJaartotaal_kWh) + " kWh eigen consumptie zonnepanelen"]]></TextCode>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>12</Size>
@@ -26427,7 +26485,7 @@ Bron: Vesta MAIS 5.0.
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1646228957641</Id>
-					<Name><![CDATA[v_totalFeedInPower_kWh]]></Name>
+					<Name><![CDATA[v_totalTrafoFeedIn_kWh]]></Name>
 					<X>-1370</X><Y>910</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -26439,7 +26497,7 @@ Bron: Vesta MAIS 5.0.
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1646228975738</Id>
-					<Name><![CDATA[v_totalEnergyDemand_kWh]]></Name>
+					<Name><![CDATA[v_totalElectricityDemand_kWh]]></Name>
 					<X>-1370</X><Y>890</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -26453,6 +26511,18 @@ Bron: Vesta MAIS 5.0.
 					<Id>1646232073109</Id>
 					<Name><![CDATA[v_totalCostsHOLON_eur]]></Name>
 					<X>-1370</X><Y>990</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1648741694835</Id>
+					<Name><![CDATA[v_totalEnergyDemand_GJ]]></Name>
+					<X>-1370</X><Y>1010</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -26650,14 +26720,15 @@ v_WijktrafoOverschrijdingTijdfractie = v_WijktrafoOverschrijdingUren / time();]]
 					<Action><![CDATA[//Totalen
 //double dt=1.0/60.0; // Integration timestep
 
-v_totalFeedInPower_kWh += sum(main.huishoudens, x->x.v_teruglevering_kW) * main.dt_h;
+v_totalTrafoFeedIn_kWh = main.v_wijkEnergyAfname_kWh-main.v_wijkNettoElectriciteitsVerbruik_kWh;
 
-
-v_totalEnergyDemand_kWh = main.v_wijkTotaalEnergyVerbruik_kWh; //main.evVerbruikJaartotaal + main.basislastElektriciteitsverbruikHuishoudensJaartotaal + main.warmtepompVerbruikJaartotaal;
-v_renewableEnergy_perc = main.pvOpwekJaartotaal / (v_totalEnergyDemand_kWh - ( sum(main.autos, x->x.huidigBatterijCap_kWh) - main.v_initialTotalBatteryCharge_kWh) ) * 100;
+v_totalElectricityDemand_kWh = main.v_wijkTotaalElektriciteitsVerbruik_kWh - ( sum(main.autos, x->x.huidigBatterijCap_kWh) - main.v_initialTotalBatteryCharge_kWh); //main.evVerbruikJaartotaal + main.basislastElektriciteitsverbruikHuishoudensJaartotaal + main.warmtepompVerbruikJaartotaal;
+v_renewableEnergy_perc = main.pvOpwekJaartotaal / v_totalElectricityDemand_kWh * 100;
 //TODO 
-v_selfGeneratedEnergy_perc = ( 1 - main.v_wijkEnergyAfname_kWh / main.v_wijkTotaalEnergyVerbruik_kWh ) * 100;
-v_ownUsageGeneratedEnergy_perc = ( 1 - v_totalFeedInPower_kWh / main.pvOpwekJaartotaal ) * 100;
+v_selfGeneratedEnergy_perc = ( 1 - main.v_wijkEnergyAfname_kWh / main.v_wijkTotaalElektriciteitsVerbruik_kWh ) * 100;
+v_ownUsageGeneratedEnergy_perc = ( 1 - v_totalTrafoFeedIn_kWh / main.pvOpwekJaartotaal ) * 100;
+
+v_totalEnergyDemand_GJ = 0.0036 * (v_totalElectricityDemand_kWh + main.v_wijkTotaalGasVerbruik_m3*9.769) + main.v_wijkTotaalBenzineVerbruik_l*.044*.74 + main.v_wijkTotaalDieselVerbruik_l*0.85*.0427;
 
 v_totalCostsHOLON_eur = sum(main.huishoudens, x->x.v_electricityBill_eur) + max(v_verzwaringskostenWijktrafoLeveringEUR,v_verzwaringskostenWijktrafoTerugleveringEUR);]]></Action>
 				</Event>
@@ -27056,6 +27127,562 @@ else {
 					<FillColor>-918279</FillColor>
 					<FillMaterial>null</FillMaterial>
 				</Rectangle>
+				<Group>
+					<Id>1646317596329</Id>
+					<Name><![CDATA[g_basicKPIs]]></Name>
+					<X>440</X><Y>160</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+
+			<Presentation>
+				<Oval>
+					<Id>1646227633290</Id>
+					<Name><![CDATA[oval19]]></Name>
+					<X>110</X><Y>-58</Y>
+					<Label><X>0</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<RadiusX>45</RadiusX>
+					<RadiusY>40</RadiusY>
+					<Rotation>0.0</Rotation>
+					<FillColor>-65536</FillColor>
+					<FillColorCode><![CDATA[setSustainabilityOvalColor()]]></FillColorCode>
+					<FillMaterial>null</FillMaterial>
+				</Oval>
+				<Oval>
+					<Id>1646227633298</Id>
+					<Name><![CDATA[oval18]]></Name>
+					<X>-110</X><Y>-58</Y>
+					<Label><X>0</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<RadiusX>45</RadiusX>
+					<RadiusY>40</RadiusY>
+					<Rotation>0.0</Rotation>
+					<FillColor>-256</FillColor>
+					<FillColorCode><![CDATA[setAffordabilityOvalColor()]]></FillColorCode>
+					<FillMaterial>null</FillMaterial>
+				</Oval>
+				<Oval>
+					<Id>1646227633320</Id>
+					<Name><![CDATA[oval17]]></Name>
+					<X>330</X><Y>-58</Y>
+					<Label><X>0</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<RadiusX>45</RadiusX>
+					<RadiusY>40</RadiusY>
+					<Rotation>0.0</Rotation>
+					<FillColor>-6632142</FillColor>
+					<FillColorCode><![CDATA[setAutonomyOvalColor()]]></FillColorCode>
+					<FillMaterial>null</FillMaterial>
+				</Oval>
+				<Text>
+					<Id>1646227633283</Id>
+					<Name><![CDATA[text19]]></Name>
+					<X>110</X><Y>-75</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-1</Color>
+					<Text><![CDATA[20%]]></Text>
+					<TextCode><![CDATA[roundToInt(v_totalEnergyDemand_GJ) + "GJ"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>26</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>CENTER</Alignment>
+				</Text>
+				<Oval>
+					<Id>1646227633288</Id>
+					<Name><![CDATA[ovalReliability]]></Name>
+					<X>-330</X><Y>-58</Y>
+					<Label><X>0</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<RadiusX>45</RadiusX>
+					<RadiusY>40</RadiusY>
+					<Rotation>0.0</Rotation>
+					<FillColor>-16744448</FillColor>
+					<FillColorCode><![CDATA[setReliabilityOvalColor()]]></FillColorCode>
+					<FillMaterial>null</FillMaterial>
+				</Oval>
+				<Text>
+					<Id>1646227633292</Id>
+					<Name><![CDATA[text53]]></Name>
+					<X>-110</X><Y>-3</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[euro totaal in HOLON]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>14</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>CENTER</Alignment>
+				</Text>
+				<Text>
+					<Id>1646227633296</Id>
+					<Name><![CDATA[text38]]></Name>
+					<X>110</X><Y>-3</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Totale energieverbruik van wijk]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>14</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>CENTER</Alignment>
+				</Text>
+				<Text>
+					<Id>1646227633304</Id>
+					<Name><![CDATA[text28]]></Name>
+					<X>-330</X><Y>-3</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[binnen capaciteit (%/tijd)]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>14</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>CENTER</Alignment>
+				</Text>
+				<Text>
+					<Id>1646227633308</Id>
+					<Name><![CDATA[text37]]></Name>
+					<X>330</X><Y>-3</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[eigen opgewekte energie]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>14</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>CENTER</Alignment>
+				</Text>
+				<Text>
+					<Id>1646227633312</Id>
+					<Name><![CDATA[text29]]></Name>
+					<X>330</X><Y>-75</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-1</Color>
+					<Text><![CDATA[20%]]></Text>
+					<TextCode><![CDATA[roundToInt(v_selfGeneratedEnergy_perc) + "%"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>26</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>CENTER</Alignment>
+				</Text>
+				<Text>
+					<Id>1646227633316</Id>
+					<Name><![CDATA[text31]]></Name>
+					<X>-330</X><Y>-75</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-1</Color>
+					<Text><![CDATA[x %]]></Text>
+					<TextCode><![CDATA[roundToInt(100 - v_WijktrafoOverschrijdingTijdfractie * 100) + "%"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>26</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>CENTER</Alignment>
+				</Text>
+				<Text>
+					<Id>1646227633318</Id>
+					<Name><![CDATA[text32]]></Name>
+					<X>-110</X><Y>-75</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-1</Color>
+					<Text><![CDATA[140]]></Text>
+					<TextCode><![CDATA[roundToInt(v_totalCostsHOLON_eur) + "€"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>26</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>CENTER</Alignment>
+				</Text>
+				<Image>
+					<Id>1646310785801</Id>
+					<Name><![CDATA[image]]></Name>
+					<X>-50</X><Y>-100</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<OnClickCode><![CDATA[if (affordabilityExplanation.getY() != 120){
+	affordabilityExplanation.setY(120);
+}
+if (!affordabilityExplanation.isVisible()){
+	affordabilityExplanation.setVisible(true);
+}]]></OnClickCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Width>20</Width>
+					<Height>20</Height>
+					<Rotation>0.0</Rotation>
+					<ImageFiles>
+						<ImageResourceReference>
+							<PackageName><![CDATA[ebuurt]]></PackageName>
+							<ClassName><![CDATA[question_mark_icon.png]]></ClassName>
+						</ImageResourceReference>
+					</ImageFiles>
+					<OriginalSize>false</OriginalSize>
+				</Image>
+				<Image>
+					<Id>1646313121662</Id>
+					<Name><![CDATA[image1]]></Name>
+					<X>-270</X><Y>-100</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<OnClickCode><![CDATA[if (reliabilityExplanation.getY() != 120){
+	reliabilityExplanation.setY(120);
+}
+if (!reliabilityExplanation.isVisible()){
+	reliabilityExplanation.setVisible(true);
+}]]></OnClickCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Width>20</Width>
+					<Height>20</Height>
+					<Rotation>0.0</Rotation>
+					<ImageFiles>
+						<ImageResourceReference>
+							<PackageName><![CDATA[ebuurt]]></PackageName>
+							<ClassName><![CDATA[question_mark_icon.png]]></ClassName>
+						</ImageResourceReference>
+					</ImageFiles>
+					<OriginalSize>false</OriginalSize>
+				</Image>
+				<Image>
+					<Id>1646313170402</Id>
+					<Name><![CDATA[image2]]></Name>
+					<X>170</X><Y>-100</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<OnClickCode><![CDATA[if (sustainabilityExplanation.getY() != 120){
+	sustainabilityExplanation.setY(120);
+}
+if (!sustainabilityExplanation.isVisible()){
+	sustainabilityExplanation.setVisible(true);
+}]]></OnClickCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Width>20</Width>
+					<Height>20</Height>
+					<Rotation>0.0</Rotation>
+					<ImageFiles>
+						<ImageResourceReference>
+							<PackageName><![CDATA[ebuurt]]></PackageName>
+							<ClassName><![CDATA[question_mark_icon.png]]></ClassName>
+						</ImageResourceReference>
+					</ImageFiles>
+					<OriginalSize>false</OriginalSize>
+				</Image>
+				<Image>
+					<Id>1646313187579</Id>
+					<Name><![CDATA[image3]]></Name>
+					<X>390</X><Y>-100</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<OnClickCode><![CDATA[if (autonomyExplanation.getY() != 120){
+	autonomyExplanation.setY(120);
+}
+if (!autonomyExplanation.isVisible()){
+	autonomyExplanation.setVisible(true);
+}]]></OnClickCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Width>20</Width>
+					<Height>20</Height>
+					<Rotation>0.0</Rotation>
+					<ImageFiles>
+						<ImageResourceReference>
+							<PackageName><![CDATA[ebuurt]]></PackageName>
+							<ClassName><![CDATA[question_mark_icon.png]]></ClassName>
+						</ImageResourceReference>
+					</ImageFiles>
+					<OriginalSize>false</OriginalSize>
+				</Image>
+				<Group>
+					<Id>1646317302219</Id>
+					<Name><![CDATA[g_goToFullKPIs]]></Name>
+					<X>-290</X><Y>75</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<OnClickCode><![CDATA[g_basicKPIs.setVisible(false);
+g_fullKPIs.setVisible(true);
+
+if (g_fullKPIs.getY() != 160){
+	g_fullKPIs.setY(160);
+}]]></OnClickCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+
+			<Presentation>
+				<Text>
+					<Id>1646317237698</Id>
+					<Name><![CDATA[text54]]></Name>
+					<X>-120</X><Y>-15</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Volledig overzicht KPI's]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>20</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Image>
+					<Id>1646317276322</Id>
+					<Name><![CDATA[image8]]></Name>
+					<X>103</X><Y>-12</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<OnClickCode><![CDATA[if (reliabilityExplanation.isVisible()){
+	reliabilityExplanation.setVisible(false);
+}]]></OnClickCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Width>20</Width>
+					<Height>20</Height>
+					<Rotation>0.0</Rotation>
+					<ImageFiles>
+						<ImageResourceReference>
+							<PackageName><![CDATA[ebuurt]]></PackageName>
+							<ClassName><![CDATA[greater-than-icon-4.png]]></ClassName>
+						</ImageResourceReference>
+					</ImageFiles>
+					<OriginalSize>false</OriginalSize>
+				</Image>
+			</Presentation>
+
+				</Group>
+				<Oval>
+					<Id>1648633412678</Id>
+					<Name><![CDATA[oval20]]></Name>
+					<X>520</X><Y>-60</Y>
+					<Label><X>0</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<RadiusX>45</RadiusX>
+					<RadiusY>40</RadiusY>
+					<Rotation>0.0</Rotation>
+					<FillColor>-6632142</FillColor>
+					<FillColorCode><![CDATA[setGasOvalColor()]]></FillColorCode>
+					<FillMaterial>null</FillMaterial>
+				</Oval>
+			</Presentation>
+
+				</Group>
+				<Text>
+					<Id>1648633794174</Id>
+					<Name><![CDATA[text62]]></Name>
+					<X>962</X><Y>84</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-1</Color>
+					<Text><![CDATA[20%]]></Text>
+					<TextCode><![CDATA[roundToInt(main.v_wijkTotaalGasVerbruik_m3 + main.v_wijkNettoElectriciteitsVerbruik_kWh*main.p_gasstroomPEF/main.p_energyDensityGas_kWhpm3) + " m3"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>26</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>CENTER</Alignment>
+				</Text>
+				<Text>
+					<Id>1648634198008</Id>
+					<Name><![CDATA[text59]]></Name>
+					<X>966</X><Y>157</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Totaal gasverbruik]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>14</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>CENTER</Alignment>
+				</Text>
+				<Image>
+					<Id>1648638045079</Id>
+					<Name><![CDATA[image11]]></Name>
+					<X>1020</X><Y>60</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<OnClickCode><![CDATA[if (gasExplanation.getY() != 120){
+	gasExplanation.setY(120);
+}
+if (!gasExplanation.isVisible()){
+	gasExplanation.setVisible(true);
+}]]></OnClickCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Width>20</Width>
+					<Height>20</Height>
+					<Rotation>0.0</Rotation>
+					<ImageFiles>
+						<ImageResourceReference>
+							<PackageName><![CDATA[ebuurt]]></PackageName>
+							<ClassName><![CDATA[question_mark_icon.png]]></ClassName>
+						</ImageResourceReference>
+					</ImageFiles>
+					<OriginalSize>false</OriginalSize>
+				</Image>
 				<Rectangle>
 					<Id>1646215419909</Id>
 					<Name><![CDATA[rectangle]]></Name>
@@ -27769,7 +28396,7 @@ energie:]]></Text>
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
-					<Text><![CDATA[Finale energiebehoefte]]></Text>
+					<Text><![CDATA[Energieverbruik]]></Text>
 					<Font>
 						<Name>Calibri Light</Name>
 						<Size>24</Size>
@@ -27893,7 +28520,7 @@ per huishouden:]]></Text>
 					<LineColor/>
 					<LineMaterial>null</LineMaterial>
 					<LineStyle>SOLID</LineStyle>
-					<Width>880</Width>
+					<Width>1089.2098092643052</Width>
 					<Height>40</Height>
 					<Rotation>0.0</Rotation>
 					<FillColor>-918279</FillColor>
@@ -27915,7 +28542,7 @@ per huishouden:]]></Text>
 					<LineColor/>
 					<LineMaterial>null</LineMaterial>
 					<LineStyle>SOLID</LineStyle>
-					<Width>880</Width>
+					<Width>1089.2098092643052</Width>
 					<Height>40</Height>
 					<Rotation>0.0</Rotation>
 					<FillColor>-1</FillColor>
@@ -27937,7 +28564,7 @@ per huishouden:]]></Text>
 					<LineColor/>
 					<LineMaterial>null</LineMaterial>
 					<LineStyle>SOLID</LineStyle>
-					<Width>880</Width>
+					<Width>1089.2098092643052</Width>
 					<Height>40</Height>
 					<Rotation>0.0</Rotation>
 					<FillColor>-918279</FillColor>
@@ -28275,7 +28902,7 @@ per huishouden:]]></Text>
 				<Text>
 					<Id>1646313632693</Id>
 					<Name><![CDATA[text43]]></Name>
-					<X>20</X><Y>-100</Y>
+					<X>20</X><Y>-90</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -28285,8 +28912,7 @@ per huishouden:]]></Text>
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
-					<Text><![CDATA[Duurzaam opgewekte 
-energie]]></Text>
+					<Text><![CDATA[Energieverbruik auto's]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>12</Size>
@@ -28297,7 +28923,7 @@ energie]]></Text>
 				<Text>
 					<Id>1646313632705</Id>
 					<Name><![CDATA[text48]]></Name>
-					<X>155</X><Y>-85</Y>
+					<X>155</X><Y>-90</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -28308,7 +28934,7 @@ energie]]></Text>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
 					<Text><![CDATA[x %]]></Text>
-					<TextCode><![CDATA[roundToInt(v_renewableEnergy_perc) + " %"]]></TextCode>
+					<TextCode><![CDATA[roundToInt(main.v_evVerbruikJaartotaal) + " kWh"]]></TextCode>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>12</Size>
@@ -28341,7 +28967,7 @@ energie:]]></Text>
 				<Text>
 					<Id>1646313764493</Id>
 					<Name><![CDATA[text46]]></Name>
-					<X>375</X><Y>-47</Y>
+					<X>375</X><Y>-51</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -28479,7 +29105,7 @@ energie:]]></Text>
 				<Text>
 					<Id>1648633576647</Id>
 					<Name><![CDATA[text57]]></Name>
-					<X>20</X><Y>-60</Y>
+					<X>20</X><Y>-50</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -28489,8 +29115,7 @@ energie:]]></Text>
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
-					<Text><![CDATA[Wijktotaal CO2
-uitstoot]]></Text>
+					<Text><![CDATA[Totale Warmtevraag]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>12</Size>
@@ -28501,7 +29126,7 @@ uitstoot]]></Text>
 				<Text>
 					<Id>1648633595801</Id>
 					<Name><![CDATA[text58]]></Name>
-					<X>155</X><Y>-50</Y>
+					<X>610</X><Y>-10</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -28512,7 +29137,7 @@ uitstoot]]></Text>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
 					<Text><![CDATA[x %]]></Text>
-					<TextCode><![CDATA[roundToDecimal(.001*main.v_WijkTotaalCO2_kg,2) + " ton CO2"]]></TextCode>
+					<TextCode><![CDATA[roundToDecimal(.001*main.v_WijkTotaalCO2_kg,2) + " t CO2"]]></TextCode>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>12</Size>
@@ -28520,141 +29145,10 @@ uitstoot]]></Text>
 					</Font>
 					<Alignment>LEFT</Alignment>
 				</Text>
-			</Presentation>
-
-				</Group>
-				<Group>
-					<Id>1646317596329</Id>
-					<Name><![CDATA[g_basicKPIs]]></Name>
-					<X>440</X><Y>160</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<Rotation>0.0</Rotation>
-
-			<Presentation>
-				<Oval>
-					<Id>1646227633290</Id>
-					<Name><![CDATA[oval19]]></Name>
-					<X>110</X><Y>-58</Y>
-					<Label><X>0</X><Y>0</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<ZHeight>10</ZHeight>
-					<LineWidth>1</LineWidth>
-					<LineColor/>
-					<LineMaterial>null</LineMaterial>
-					<LineStyle>SOLID</LineStyle>
-					<RadiusX>45</RadiusX>
-					<RadiusY>40</RadiusY>
-					<Rotation>0.0</Rotation>
-					<FillColor>-65536</FillColor>
-					<FillColorCode><![CDATA[setSustainabilityOvalColor()]]></FillColorCode>
-					<FillMaterial>null</FillMaterial>
-				</Oval>
-				<Oval>
-					<Id>1646227633298</Id>
-					<Name><![CDATA[oval18]]></Name>
-					<X>-110</X><Y>-58</Y>
-					<Label><X>0</X><Y>0</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<ZHeight>10</ZHeight>
-					<LineWidth>1</LineWidth>
-					<LineColor/>
-					<LineMaterial>null</LineMaterial>
-					<LineStyle>SOLID</LineStyle>
-					<RadiusX>45</RadiusX>
-					<RadiusY>40</RadiusY>
-					<Rotation>0.0</Rotation>
-					<FillColor>-256</FillColor>
-					<FillColorCode><![CDATA[setAffordabilityOvalColor()]]></FillColorCode>
-					<FillMaterial>null</FillMaterial>
-				</Oval>
-				<Oval>
-					<Id>1646227633320</Id>
-					<Name><![CDATA[oval17]]></Name>
-					<X>330</X><Y>-58</Y>
-					<Label><X>0</X><Y>0</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<ZHeight>10</ZHeight>
-					<LineWidth>1</LineWidth>
-					<LineColor/>
-					<LineMaterial>null</LineMaterial>
-					<LineStyle>SOLID</LineStyle>
-					<RadiusX>45</RadiusX>
-					<RadiusY>40</RadiusY>
-					<Rotation>0.0</Rotation>
-					<FillColor>-6632142</FillColor>
-					<FillColorCode><![CDATA[setAutonomyOvalColor()]]></FillColorCode>
-					<FillMaterial>null</FillMaterial>
-				</Oval>
 				<Text>
-					<Id>1646227633283</Id>
-					<Name><![CDATA[text19]]></Name>
-					<X>110</X><Y>-75</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<Rotation>0.0</Rotation>
-					<Color>-1</Color>
-					<Text><![CDATA[20%]]></Text>
-					<TextCode><![CDATA[roundToInt(v_renewableEnergy_perc) + "%"]]></TextCode>
-					<Font>
-						<Name>SansSerif</Name>
-						<Size>26</Size>
-						<Style>0</Style>
-					</Font>
-					<Alignment>CENTER</Alignment>
-				</Text>
-				<Oval>
-					<Id>1646227633288</Id>
-					<Name><![CDATA[ovalReliability]]></Name>
-					<X>-330</X><Y>-58</Y>
-					<Label><X>0</X><Y>0</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<ZHeight>10</ZHeight>
-					<LineWidth>1</LineWidth>
-					<LineColor/>
-					<LineMaterial>null</LineMaterial>
-					<LineStyle>SOLID</LineStyle>
-					<RadiusX>45</RadiusX>
-					<RadiusY>40</RadiusY>
-					<Rotation>0.0</Rotation>
-					<FillColor>-16744448</FillColor>
-					<FillColorCode><![CDATA[setReliabilityOvalColor()]]></FillColorCode>
-					<FillMaterial>null</FillMaterial>
-				</Oval>
-				<Text>
-					<Id>1646227633292</Id>
-					<Name><![CDATA[text53]]></Name>
-					<X>-110</X><Y>-3</Y>
+					<Id>1648724176812</Id>
+					<Name><![CDATA[text67]]></Name>
+					<X>450</X><Y>-90</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -28664,347 +29158,231 @@ uitstoot]]></Text>
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
-					<Text><![CDATA[euro totaal in HOLON]]></Text>
+					<Text><![CDATA[Gasverbruik in de wijk]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
-						<Size>14</Size>
-						<Style>0</Style>
-					</Font>
-					<Alignment>CENTER</Alignment>
-				</Text>
-				<Text>
-					<Id>1646227633296</Id>
-					<Name><![CDATA[text38]]></Name>
-					<X>110</X><Y>-3</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<Rotation>0.0</Rotation>
-					<Color>-16777216</Color>
-					<Text><![CDATA[Netto energieverbruik van wijk]]></Text>
-					<Font>
-						<Name>SansSerif</Name>
-						<Size>14</Size>
-						<Style>0</Style>
-					</Font>
-					<Alignment>CENTER</Alignment>
-				</Text>
-				<Text>
-					<Id>1646227633304</Id>
-					<Name><![CDATA[text28]]></Name>
-					<X>-330</X><Y>-3</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<Rotation>0.0</Rotation>
-					<Color>-16777216</Color>
-					<Text><![CDATA[binnen capaciteit (%/tijd)]]></Text>
-					<Font>
-						<Name>SansSerif</Name>
-						<Size>14</Size>
-						<Style>0</Style>
-					</Font>
-					<Alignment>CENTER</Alignment>
-				</Text>
-				<Text>
-					<Id>1646227633308</Id>
-					<Name><![CDATA[text37]]></Name>
-					<X>330</X><Y>-3</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<Rotation>0.0</Rotation>
-					<Color>-16777216</Color>
-					<Text><![CDATA[eigen opgewekte energie]]></Text>
-					<Font>
-						<Name>SansSerif</Name>
-						<Size>14</Size>
-						<Style>0</Style>
-					</Font>
-					<Alignment>CENTER</Alignment>
-				</Text>
-				<Text>
-					<Id>1646227633312</Id>
-					<Name><![CDATA[text29]]></Name>
-					<X>330</X><Y>-75</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<Rotation>0.0</Rotation>
-					<Color>-1</Color>
-					<Text><![CDATA[20%]]></Text>
-					<TextCode><![CDATA[roundToInt(v_selfGeneratedEnergy_perc) + "%"]]></TextCode>
-					<Font>
-						<Name>SansSerif</Name>
-						<Size>26</Size>
-						<Style>0</Style>
-					</Font>
-					<Alignment>CENTER</Alignment>
-				</Text>
-				<Text>
-					<Id>1646227633316</Id>
-					<Name><![CDATA[text31]]></Name>
-					<X>-330</X><Y>-75</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<Rotation>0.0</Rotation>
-					<Color>-1</Color>
-					<Text><![CDATA[x %]]></Text>
-					<TextCode><![CDATA[roundToInt(100 - v_WijktrafoOverschrijdingTijdfractie * 100) + "%"]]></TextCode>
-					<Font>
-						<Name>SansSerif</Name>
-						<Size>26</Size>
-						<Style>0</Style>
-					</Font>
-					<Alignment>CENTER</Alignment>
-				</Text>
-				<Text>
-					<Id>1646227633318</Id>
-					<Name><![CDATA[text32]]></Name>
-					<X>-110</X><Y>-75</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<Rotation>0.0</Rotation>
-					<Color>-1</Color>
-					<Text><![CDATA[140]]></Text>
-					<TextCode><![CDATA[roundToInt(v_totalCostsHOLON_eur) + "€"]]></TextCode>
-					<Font>
-						<Name>SansSerif</Name>
-						<Size>26</Size>
-						<Style>0</Style>
-					</Font>
-					<Alignment>CENTER</Alignment>
-				</Text>
-				<Image>
-					<Id>1646310785801</Id>
-					<Name><![CDATA[image]]></Name>
-					<X>-50</X><Y>-100</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<OnClickCode><![CDATA[if (affordabilityExplanation.getY() != 120){
-	affordabilityExplanation.setY(120);
-}
-if (!affordabilityExplanation.isVisible()){
-	affordabilityExplanation.setVisible(true);
-}]]></OnClickCode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<Width>20</Width>
-					<Height>20</Height>
-					<Rotation>0.0</Rotation>
-					<ImageFiles>
-						<ImageResourceReference>
-							<PackageName><![CDATA[ebuurt]]></PackageName>
-							<ClassName><![CDATA[question_mark_icon.png]]></ClassName>
-						</ImageResourceReference>
-					</ImageFiles>
-					<OriginalSize>false</OriginalSize>
-				</Image>
-				<Image>
-					<Id>1646313121662</Id>
-					<Name><![CDATA[image1]]></Name>
-					<X>-270</X><Y>-100</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<OnClickCode><![CDATA[if (reliabilityExplanation.getY() != 120){
-	reliabilityExplanation.setY(120);
-}
-if (!reliabilityExplanation.isVisible()){
-	reliabilityExplanation.setVisible(true);
-}]]></OnClickCode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<Width>20</Width>
-					<Height>20</Height>
-					<Rotation>0.0</Rotation>
-					<ImageFiles>
-						<ImageResourceReference>
-							<PackageName><![CDATA[ebuurt]]></PackageName>
-							<ClassName><![CDATA[question_mark_icon.png]]></ClassName>
-						</ImageResourceReference>
-					</ImageFiles>
-					<OriginalSize>false</OriginalSize>
-				</Image>
-				<Image>
-					<Id>1646313170402</Id>
-					<Name><![CDATA[image2]]></Name>
-					<X>170</X><Y>-100</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<OnClickCode><![CDATA[if (sustainabilityExplanation.getY() != 120){
-	sustainabilityExplanation.setY(120);
-}
-if (!sustainabilityExplanation.isVisible()){
-	sustainabilityExplanation.setVisible(true);
-}]]></OnClickCode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<Width>20</Width>
-					<Height>20</Height>
-					<Rotation>0.0</Rotation>
-					<ImageFiles>
-						<ImageResourceReference>
-							<PackageName><![CDATA[ebuurt]]></PackageName>
-							<ClassName><![CDATA[question_mark_icon.png]]></ClassName>
-						</ImageResourceReference>
-					</ImageFiles>
-					<OriginalSize>false</OriginalSize>
-				</Image>
-				<Image>
-					<Id>1646313187579</Id>
-					<Name><![CDATA[image3]]></Name>
-					<X>390</X><Y>-100</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<OnClickCode><![CDATA[if (autonomyExplanation.getY() != 120){
-	autonomyExplanation.setY(120);
-}
-if (!autonomyExplanation.isVisible()){
-	autonomyExplanation.setVisible(true);
-}]]></OnClickCode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<Width>20</Width>
-					<Height>20</Height>
-					<Rotation>0.0</Rotation>
-					<ImageFiles>
-						<ImageResourceReference>
-							<PackageName><![CDATA[ebuurt]]></PackageName>
-							<ClassName><![CDATA[question_mark_icon.png]]></ClassName>
-						</ImageResourceReference>
-					</ImageFiles>
-					<OriginalSize>false</OriginalSize>
-				</Image>
-				<Group>
-					<Id>1646317302219</Id>
-					<Name><![CDATA[g_goToFullKPIs]]></Name>
-					<X>-290</X><Y>75</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<OnClickCode><![CDATA[g_basicKPIs.setVisible(false);
-g_fullKPIs.setVisible(true);
-
-if (g_fullKPIs.getY() != 160){
-	g_fullKPIs.setY(160);
-}]]></OnClickCode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<Rotation>0.0</Rotation>
-
-			<Presentation>
-				<Text>
-					<Id>1646317237698</Id>
-					<Name><![CDATA[text54]]></Name>
-					<X>-120</X><Y>-15</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<Rotation>0.0</Rotation>
-					<Color>-16777216</Color>
-					<Text><![CDATA[Volledig overzicht KPI's]]></Text>
-					<Font>
-						<Name>SansSerif</Name>
-						<Size>20</Size>
+						<Size>12</Size>
 						<Style>0</Style>
 					</Font>
 					<Alignment>LEFT</Alignment>
 				</Text>
-				<Image>
-					<Id>1646317276322</Id>
-					<Name><![CDATA[image8]]></Name>
-					<X>103</X><Y>-12</Y>
+				<Text>
+					<Id>1648724182132</Id>
+					<Name><![CDATA[text68]]></Name>
+					<X>450</X><Y>-60</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<OnClickCode><![CDATA[if (reliabilityExplanation.isVisible()){
-	reliabilityExplanation.setVisible(false);
-}]]></OnClickCode>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
 					<EmbeddedIcon>false</EmbeddedIcon>
 					<Z>0</Z>
-					<Width>20</Width>
-					<Height>20</Height>
 					<Rotation>0.0</Rotation>
-					<ImageFiles>
-						<ImageResourceReference>
-							<PackageName><![CDATA[ebuurt]]></PackageName>
-							<ClassName><![CDATA[greater-than-icon-4.png]]></ClassName>
-						</ImageResourceReference>
-					</ImageFiles>
-					<OriginalSize>false</OriginalSize>
-				</Image>
-			</Presentation>
-
-				</Group>
-				<Oval>
-					<Id>1648633412678</Id>
-					<Name><![CDATA[oval20]]></Name>
-					<X>520</X><Y>-60</Y>
-					<Label><X>0</X><Y>0</Y></Label>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Gasverbruik elders tbv
+stroomopwek in de wijk]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>12</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1648724187486</Id>
+					<Name><![CDATA[text69]]></Name>
+					<X>610</X><Y>-90</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
 					<EmbeddedIcon>false</EmbeddedIcon>
 					<Z>0</Z>
-					<ZHeight>10</ZHeight>
-					<LineWidth>1</LineWidth>
-					<LineColor/>
-					<LineMaterial>null</LineMaterial>
-					<LineStyle>SOLID</LineStyle>
-					<RadiusX>45</RadiusX>
-					<RadiusY>40</RadiusY>
 					<Rotation>0.0</Rotation>
-					<FillColor>-6632142</FillColor>
-					<FillColorCode><![CDATA[setGasOvalColor()]]></FillColorCode>
-					<FillMaterial>null</FillMaterial>
-				</Oval>
+					<Color>-16777216</Color>
+					<Text><![CDATA[x%]]></Text>
+					<TextCode><![CDATA[roundToInt(main.v_wijkTotaalGasVerbruik_m3) + " m3"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>12</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1648724197732</Id>
+					<Name><![CDATA[text70]]></Name>
+					<X>610</X><Y>-52</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[x%]]></Text>
+					<TextCode><![CDATA[roundToInt(main.v_wijkNettoElectriciteitsVerbruik_kWh*main.p_gasstroomPEF/main.p_energyDensityGas_kWhpm3) + " m3"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>12</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1648740549967</Id>
+					<Name><![CDATA[text64]]></Name>
+					<X>20</X><Y>-10</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Verbruik verwarming]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>12</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1648640944032</Id>
+					<Name><![CDATA[text65]]></Name>
+					<X>155</X><Y>-21</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[x %]]></Text>
+					<TextCode><![CDATA[roundToInt(main.v_wijkTotaalGasVerbruik_m3) + " m3"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>12</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1648640968280</Id>
+					<Name><![CDATA[text66]]></Name>
+					<X>155</X><Y>-5</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[x %]]></Text>
+					<TextCode><![CDATA[roundToInt(main.v_wijkTotaalWPVerbruik_kWh) + " kWh"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>12</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1648740695112</Id>
+					<Name><![CDATA[text74]]></Name>
+					<X>375</X><Y>-17</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[x%]]></Text>
+					<TextCode><![CDATA[roundToInt(v_renewableEnergy_perc) + "%"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>12</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1648725313764</Id>
+					<Name><![CDATA[text72]]></Name>
+					<X>450</X><Y>-10</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Wijk-totaal CO2 uitstoot]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>12</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1648724935533</Id>
+					<Name><![CDATA[text71]]></Name>
+					<X>240</X><Y>-15</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Duurzaamheid]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>12</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1648725571147</Id>
+					<Name><![CDATA[text73]]></Name>
+					<X>155</X><Y>-51</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[x %]]></Text>
+					<TextCode><![CDATA[roundToInt(main.huishoudens.totalHeatingDemand()*.0036) + " GJ"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>12</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
 			</Presentation>
 
 				</Group>
@@ -29356,14 +29734,16 @@ gewekt is met lokale zon PV.
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
-					<Text><![CDATA[Autonomie wordt
-gemeten als percentage de
-zelf opgewekte energie in 
-de wijk per minuut. Dit
-verschilt van duurzaamheid
-door het feit dat autonomie
-iedere minuut wordt bepaald
-en duurzaamheid een totaal is.]]></Text>
+					<Text><![CDATA[De autonomie van de wijk is 
+100% wanneer er nooit stroom 
+afgenomen wordt uit het net. Een 
+stroomoverschot in de wijk heeft
+geen invloed op autonomie.
+Duurzaamheid is gedefinieerd als
+het totale energieverbruik ten opzicht 
+van totale energieopwek in de wijk, 
+maar niet de onbalans daartussen in 
+de tijd.]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>12</Size>
@@ -29435,49 +29815,6 @@ en duurzaamheid een totaal is.]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>26</Size>
-						<Style>0</Style>
-					</Font>
-					<Alignment>CENTER</Alignment>
-				</Text>
-				<Text>
-					<Id>1648633794174</Id>
-					<Name><![CDATA[text62]]></Name>
-					<X>962</X><Y>84</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<Rotation>0.0</Rotation>
-					<Color>-1</Color>
-					<Text><![CDATA[20%]]></Text>
-					<TextCode><![CDATA[roundToInt(main.v_wijkTotaalGasVerbruik_m3) + " m3"]]></TextCode>
-					<Font>
-						<Name>SansSerif</Name>
-						<Size>26</Size>
-						<Style>0</Style>
-					</Font>
-					<Alignment>CENTER</Alignment>
-				</Text>
-				<Text>
-					<Id>1648634198008</Id>
-					<Name><![CDATA[text59]]></Name>
-					<X>966</X><Y>157</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<Rotation>0.0</Rotation>
-					<Color>-16777216</Color>
-					<Text><![CDATA[Totaal gasverbruik]]></Text>
-					<Font>
-						<Name>SansSerif</Name>
-						<Size>14</Size>
 						<Style>0</Style>
 					</Font>
 					<Alignment>CENTER</Alignment>
@@ -29559,9 +29896,9 @@ en duurzaamheid een totaal is.]]></Text>
 					<Text><![CDATA[Het totale gasverbruik
 in de wijk bestaat uit 
 gasconsumptie van CV 
-ketels in huishoudens, en
-eventueel gasverbruik
-van een warmtenet ketel.]]></Text>
+ketels in huishoudens, 
+en gas dat wordt verbruikt 
+voor opwek van elektriciteit.]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>12</Size>
@@ -29572,100 +29909,30 @@ van een warmtenet ketel.]]></Text>
 			</Presentation>
 
 				</Group>
-				<Image>
-					<Id>1648638045079</Id>
-					<Name><![CDATA[image11]]></Name>
-					<X>1020</X><Y>60</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
+				<Line>
+					<Id>1648724101047</Id>
+					<Name><![CDATA[line4]]></Name>
+					<X>870</X><Y>535</Y>
+					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<OnClickCode><![CDATA[if (gasExplanation.getY() != 120){
-	gasExplanation.setY(120);
-}
-if (!gasExplanation.isVisible()){
-	gasExplanation.setVisible(true);
-}]]></OnClickCode>
 					<EmbeddedIcon>false</EmbeddedIcon>
 					<Z>0</Z>
-					<Width>20</Width>
-					<Height>20</Height>
-					<Rotation>0.0</Rotation>
-					<ImageFiles>
-						<ImageResourceReference>
-							<PackageName><![CDATA[ebuurt]]></PackageName>
-							<ClassName><![CDATA[question_mark_icon.png]]></ClassName>
-						</ImageResourceReference>
-					</ImageFiles>
-					<OriginalSize>false</OriginalSize>
-				</Image>
-				<Text>
-					<Id>1648640898152</Id>
-					<Name><![CDATA[text64]]></Name>
-					<X>460</X><Y>620</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<Rotation>0.0</Rotation>
-					<Color>-16777216</Color>
-					<Text><![CDATA[Energie behoefte
-verwarming]]></Text>
-					<Font>
-						<Name>SansSerif</Name>
-						<Size>12</Size>
-						<Style>0</Style>
-					</Font>
-					<Alignment>LEFT</Alignment>
-				</Text>
-				<Text>
-					<Id>1648640944032</Id>
-					<Name><![CDATA[text65]]></Name>
-					<X>595</X><Y>619</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<Rotation>0.0</Rotation>
-					<Color>-16777216</Color>
-					<Text><![CDATA[x %]]></Text>
-					<TextCode><![CDATA[roundToInt(main.v_wijkTotaalGasVerbruik_m3) + " m3"]]></TextCode>
-					<Font>
-						<Name>SansSerif</Name>
-						<Size>12</Size>
-						<Style>0</Style>
-					</Font>
-					<Alignment>LEFT</Alignment>
-				</Text>
-				<Text>
-					<Id>1648640968280</Id>
-					<Name><![CDATA[text66]]></Name>
-					<X>595</X><Y>635</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<Rotation>0.0</Rotation>
-					<Color>-16777216</Color>
-					<Text><![CDATA[x %]]></Text>
-					<TextCode><![CDATA[roundToInt(main.v_wijkTotaalWPVerbruik_kWh) + " kWh stroom"]]></TextCode>
-					<Font>
-						<Name>SansSerif</Name>
-						<Size>12</Size>
-						<Style>0</Style>
-					</Font>
-					<Alignment>LEFT</Alignment>
-				</Text>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor>-4144960</LineColor>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<Dx>0</Dx>
+					<Dy>120</Dy>
+					<Dz>0</Dz>
+				</Line>
 			</Presentation>
 
 				</Level>
@@ -31755,6 +32022,12 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 				</Parameter>
 				<Parameter>
 					<ParameterName><![CDATA[dt_h]]></ParameterName>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_energyDensityGas_kWhpm3]]></ParameterName>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_gasstroomPEF]]></ParameterName>
 				</Parameter>
 			</Parameters>			
 			<PresentationProperties>
