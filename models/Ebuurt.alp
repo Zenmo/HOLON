@@ -104,6 +104,12 @@ for ( int i = 0; i < p_boot_woningen; i++) {
 	}
 }
 f_setHeatingTypes(0);
+f_setIsolationLevels();
+f_setHeatingBehavior();
+f_setSetpoints();
+
+// Forceer isolatiegraad uit startscherm
+//radio_isolatiegraad.setValue(p_isolationLevel);
 
 hourOfYearStart=hourOfYearPerMonth[getMonth()] + (getDayOfMonth()-1)*24;
 v_initialTotalBatteryCharge_kWh = sum(autos, x->x.huidigBatterijCap_kWh);
@@ -1112,7 +1118,8 @@ f_setTrafoMinPower(p_connectionCapacityPerHousehold);
 				<Variable Class="PlainVariable">
 					<Id>1648050675787</Id>
 					<Name><![CDATA[v_isolatieGraad]]></Name>
-					<X>100</X><Y>1460</Y>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>220</X><Y>1430</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -1124,7 +1131,8 @@ f_setTrafoMinPower(p_connectionCapacityPerHousehold);
 				<Variable Class="PlainVariable">
 					<Id>1648055859798</Id>
 					<Name><![CDATA[v_thermostatReduction_degC]]></Name>
-					<X>100</X><Y>1490</Y>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>100</X><Y>1460</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -1139,7 +1147,8 @@ f_setTrafoMinPower(p_connectionCapacityPerHousehold);
 				<Variable Class="PlainVariable">
 					<Id>1648055886991</Id>
 					<Name><![CDATA[v_thermostatReductionParticipation_pct]]></Name>
-					<X>100</X><Y>1520</Y>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>100</X><Y>1500</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -1158,7 +1167,8 @@ f_setTrafoMinPower(p_connectionCapacityPerHousehold);
 
 @author: JorritvandenHouten
 @since: 28/03/2022.]]></Description>
-					<X>100</X><Y>1550</Y>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>100</X><Y>1540</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -1173,7 +1183,11 @@ f_setTrafoMinPower(p_connectionCapacityPerHousehold);
 				<Variable Class="PlainVariable">
 					<Id>1648469898603</Id>
 					<Name><![CDATA[v_gasPrice_eurpm3]]></Name>
-					<X>-1070</X><Y>980</Y>
+					<Description><![CDATA[Gasprijs huishoudens in EUR per m3, inclusief belastingen en heffingen, excl. vermindering energiebelasting
+
+@author: JorritvandenHouten
+@since: 01/04/2022]]></Description>
+					<X>-780</X><Y>1070</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -1181,13 +1195,14 @@ f_setTrafoMinPower(p_connectionCapacityPerHousehold);
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[double]]></Type>        
 						<InitialValue Class="CodeValue">
-							<Code><![CDATA[2.5]]></Code>
+							<Code><![CDATA[p_gasPriceAfterTaxInitial_eurpm3]]></Code>
 						</InitialValue>
 					</Properties>
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1648473118967</Id>
 					<Name><![CDATA[v_thermostatAdvanceTime_min]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>100</X><Y>1580</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1200,7 +1215,8 @@ f_setTrafoMinPower(p_connectionCapacityPerHousehold);
 				<Variable Class="PlainVariable">
 					<Id>1648475405975</Id>
 					<Name><![CDATA[v_thermostatAdvanceTimeParticipation_pct]]></Name>
-					<X>100</X><Y>1610</Y>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>100</X><Y>1620</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -1322,6 +1338,37 @@ f_setTrafoMinPower(p_connectionCapacityPerHousehold);
 						<InitialValue Class="CodeValue">
 							<Code><![CDATA[0]]></Code>
 						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1648821063287</Id>
+					<Name><![CDATA[v_gasPriceChange_pct]]></Name>
+					<Description><![CDATA[Percentuele verandering kosten voor aardgas t.o.v. initiele waarde, om bewonersgedrag t.a.v. prijselasticiteit na te kunnen bootsen.
+
+@author: JorritvandenHouten
+@since: 01/04/2022]]></Description>
+					<X>-780</X><Y>1090</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0.0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1648828381016</Id>
+					<Name><![CDATA[v_expectedChangeDemandGas_pct]]></Name>
+					<X>-720</X><Y>1120</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
 					</Properties>
 				</Variable>
 				<Variable Class="Parameter">
@@ -1635,6 +1682,7 @@ f_setTrafoMinPower(p_connectionCapacityPerHousehold);
 					<Name><![CDATA[p_boot_warmtepompen]]></Name>
 					<Description><![CDATA[@author Peter Hogeveen
 @since 03-01-2022]]></Description>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>-1170</X><Y>-120</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1976,6 +2024,441 @@ f_setTrafoMinPower(p_connectionCapacityPerHousehold);
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1648653454267</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1648813136912</Id>
+					<Name><![CDATA[p_isolationLevel]]></Name>
+					<X>100</X><Y>1430</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[int]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1648813136910</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1648813361254</Id>
+					<Name><![CDATA[p_thermostatReduction_degC]]></Name>
+					<X>100</X><Y>1480</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1648813361252</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1648813460887</Id>
+					<Name><![CDATA[p_thermostatReductionParticipation_pct]]></Name>
+					<X>100</X><Y>1520</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1648813460885</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1648814142816</Id>
+					<Name><![CDATA[p_thermostatLabelDependent]]></Name>
+					<X>100</X><Y>1560</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[boolean]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[false]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1648814142814</Id>
+							<EditorContolType>CHECK_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1648814227517</Id>
+					<Name><![CDATA[p_thermostatAdvanceTime_min]]></Name>
+					<X>100</X><Y>1600</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1648814227515</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1648814317932</Id>
+					<Name><![CDATA[p_thermostatAdvanceTimeParticipation_pct]]></Name>
+					<X>100</X><Y>1640</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[0.0]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1648814317930</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1648817046095</Id>
+					<Name><![CDATA[p_pctGasBurner]]></Name>
+					<X>100</X><Y>1690</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[int]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1648817046093</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1648817106087</Id>
+					<Name><![CDATA[p_pctHeatPump]]></Name>
+					<X>100</X><Y>1710</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[int]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1648817106085</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1648817123735</Id>
+					<Name><![CDATA[p_pctHybridHeatPump]]></Name>
+					<X>100</X><Y>1730</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[int]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1648817123733</Id>
+							<Label><![CDATA[p_pctHybridHeatPump]]></Label>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1648817163224</Id>
+					<Name><![CDATA[p_pctDistrictHeating]]></Name>
+					<X>100</X><Y>1750</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[int]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1648817163222</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1648819399658</Id>
+					<Name><![CDATA[p_gasPriceAfterTaxInitial_eurpm3]]></Name>
+					<Description><![CDATA[Gasprijs inclusief, gebruikt om veranderingen in gasprijs te bepalen.
+
+EUR per m3 incl. belastingen
+]]></Description>
+					<X>-780</X><Y>920</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1648819399656</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1648821749630</Id>
+					<Name><![CDATA[p_energyTaxOnGas_eurpm3]]></Name>
+					<Description><![CDATA[Energiebelasting + ODE (Opslag Duurzame Energie)
+voor berekening van bewonersgedrag t.a.v. prijsveranderingen aardgas
+Schaal 1 (onder 170.000 m3/jaar)
+
+Bron: CE Delft, 2021 Evaluatie van de energiebelasting.
+
+@author: JorritvandenHouten
+@since: 01/04/2022]]></Description>
+					<X>-780</X><Y>1000</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[0.33307+0.075]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1648821749628</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1648821845019</Id>
+					<Name><![CDATA[p_energyTaxDiscount_eur]]></Name>
+					<Description><![CDATA[Vermindering energiebelasting in euro per jaar
+voor berekening van bewonersgedrag t.a.v. prijsveranderingen aardgas
+
+@author: JorritvandenHouten
+@since: 01/04/2022]]></Description>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>-780</X><Y>1040</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[435]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1648821845017</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1648822307700</Id>
+					<Name><![CDATA[p_VATGas_pct]]></Name>
+					<Description><![CDATA[BTW op energie]]></Description>
+					<X>-780</X><Y>1020</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[0.21]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1648822307698</Id>
+							<Label><![CDATA[p_VATOnGas_pct]]></Label>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1648822725147</Id>
+					<Name><![CDATA[p_gasPriceBeforeTax_eurpm3]]></Name>
+					<Description><![CDATA[Gasprijs voor heffingen en belastingen (waarde overgenomen uit CE Delft, 2021 Evaluatie van de energiebelasting).
+
+EUR per m3 excl. belastingen]]></Description>
+					<X>-780</X><Y>960</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[0.4]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1648822725145</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1648824299121</Id>
+					<Name><![CDATA[p_thermostatPriceDependent]]></Name>
+					<X>380</X><Y>1640</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[boolean]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[false]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1648824299119</Id>
+							<EditorContolType>CHECK_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1648825243727</Id>
+					<Name><![CDATA[p_policyLowerVATOnEnergy]]></Name>
+					<X>380</X><Y>1660</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[boolean]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[false]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1648825243725</Id>
+							<EditorContolType>CHECK_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1648832360953</Id>
+					<Name><![CDATA[p_yearChoice]]></Name>
+					<X>-1360</X><Y>1000</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[int]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1648832360951</Id>
 							<EditorContolType>TEXT_BOX</EditorContolType>
 							<MinSliderValue><![CDATA[0]]></MinSliderValue>
 							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
@@ -2535,9 +3018,21 @@ for (Huishouden h : huishoudens) {
 	}
 }
 // CO2 totaal wijk
-v_WijkTotaalCO2_kg = (p_GasCO2_gpm3 * v_wijkTotaalGasVerbruik_m3 + p_GridPowerCO2_gpkWh * v_wijkNettoElectriciteitsVerbruik_kWh + p_petrolWTWCO2_gpl * v_wijkTotaalBenzineVerbruik_l + p_dieselWTWCO2_gpl * v_wijkTotaalDieselVerbruik_l)/1000;
-//v_wijkTotaalFinaleEnergie_GJ = evVerbruikJaartotaal + basislastElektriciteitsverbruikHuishoudensJaartotaal + v_wijkTotaalWPVerbruik_kWh
-]]></Action>
+v_WijkTotaalCO2_kg = (p_GasCO2_gpm3 * v_wijkTotaalGasVerbruik_m3 + p_GridPowerCO2_gpkWh * v_wijkNettoEnergyVerbruik_kWh + p_petrolWTWCO2_gpl * v_wijkTotaalBenzineVerbruik_l + p_dieselWTWCO2_gpl * v_wijkTotaalDieselVerbruik_l)/1000;
+
+// Berekenen gasprijs incl. belastingen en verandering voor elasticteit
+v_gasPrice_eurpm3 = (p_gasPriceBeforeTax_eurpm3 + p_energyTaxOnGas_eurpm3) * (1 + p_VATGas_pct);
+v_gasPriceChange_pct = (v_gasPrice_eurpm3 - p_gasPriceAfterTaxInitial_eurpm3)/(p_gasPriceAfterTaxInitial_eurpm3);
+	
+// Interventie verlaging BTW op energie
+if ( p_policyLowerVATOnEnergy ){
+	p_VATGas_pct = 0.09;
+}
+else {
+	p_VATGas_pct = 0.21;
+}
+
+v_expectedChangeDemandGas_pct = v_gasPriceChange_pct * huishoudens.avgPriceElasticityGas();]]></Action>
 				</Event>
 				<Event>
 					<Id>1644825763678</Id>
@@ -2710,7 +3205,9 @@ for (int j = 0; j <= 5; j++){
 	c_houseTypeData.put(type, area);
 }
 
-//f_setHousingTypeFractions();]]></Body>
+//f_setHousingTypeFractions();
+p_gasPriceAfterTaxInitial_eurpm3 = (p_gasPriceBeforeTax_eurpm3 + p_energyTaxOnGas_eurpm3) * (1 + p_VATGas_pct);
+]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -2771,19 +3268,19 @@ traceln(mode); // TODO: remove this print line
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>false</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[if ( v_isolatieGraad == 0 ){ // Oorspronkelijke isolatiegraad
+					<Body><![CDATA[if ( p_isolationLevel == 0 ){ // Oorspronkelijke isolatiegraad
 	for (Huishouden h : huishoudens){
 		h.p_energyLabel = h.p_energyLabelOriginal;
 		h.p_rcValueAverage_m2KpW = h.t_rcByEnergyLabel(c_energyLabels.get(h.p_energyLabel));				
 	}
-} else if ( v_isolatieGraad == 1 ){ // Minstens energielabel B
+} else if ( p_isolationLevel == 1 ){ // Minstens energielabel B
 	for (Huishouden h : huishoudens){
 		if (!h.p_energyLabelOriginal.equals("A of beter") && !h.p_energyLabelOriginal.equals("B") ){
 			h.p_energyLabel = "B";
 			h.p_rcValueAverage_m2KpW = h.t_rcByEnergyLabel(c_energyLabels.get(h.p_energyLabel));				
 		}
 	}
-} else if ( v_isolatieGraad == 2 ){ // Minstens energielabel A
+} else if ( p_isolationLevel == 2 ){ // Minstens energielabel A
 	for (Huishouden h : huishoudens){
 		if (!h.p_energyLabelOriginal.equals("A of beter") ){
 			h.p_energyLabel = "A of beter";
@@ -2923,7 +3420,7 @@ Bronnen:
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[// Setpointtemperaturen afhankelijk van isolatiegraad (Hoog, Midden, Laag) om bewonergedrag na te bootsen
-if ( v_thermostatLabelDependent ) {
+if ( p_thermostatLabelDependent ) {
 	for ( Huishouden h : huishoudens ) {
 		if ( h.p_energyLabel.equals("A of beter") ) {
 			h.p_setpointNight = 21;  // Todo: waarden niet hard-coden!
@@ -3215,6 +3712,9 @@ else if( p_neighborhoodType == 1 ){
 						<Parameter>
 							<Name><![CDATA[p_energyLabelOriginal]]></Name>
 						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_elasticityGas]]></Name>
+						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
 					<Replication Class="CodeValue">
@@ -3381,6 +3881,13 @@ else if( p_neighborhoodType == 1 ){
 						<Type>count</Type>
 						<Expression><![CDATA[]]></Expression>
 						<Condition><![CDATA[item.v_thermostatTimeMode.equals("Evening")]]></Condition>
+					</StatisticsItem>
+					<StatisticsItem>
+						<Id>1648829330677</Id>
+						<Name><![CDATA[avgPriceElasticityGas]]></Name>
+						<Type>average</Type>
+						<Expression><![CDATA[item.p_elasticityGas]]></Expression>
+						<Condition><![CDATA[]]></Condition>
 					</StatisticsItem>
 					<InEnvironment>true</InEnvironment>	
 					<InitialLocationType>AT_ANIMATION_POSITION</InitialLocationType>
@@ -11618,7 +12125,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 						<Button><![CDATA[Alle woningen energielabel B of beter]]></Button>
 						<Button><![CDATA[Alle woningen energielabel A of beter]]></Button>
 						<LinkTo>true</LinkTo>
-						<Link>v_isolatieGraad</Link>
+						<Link>p_isolationLevel</Link>
 					</ExtendedProperties>
 				</Control>
 				<Text>
@@ -11679,7 +12186,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 						<ActionCode><![CDATA[f_setHeatingTypes(0)]]></ActionCode>
 					</BasicProperties>
 					<ExtendedProperties>
-						<DefaultValueCode><![CDATA[50]]></DefaultValueCode>
+						<DefaultValueCode><![CDATA[p_pctGasBurner]]></DefaultValueCode>
 						<Orientation>HORIZONTAL</Orientation>
 						<MinValue><![CDATA[0]]></MinValue>
 						<MaxValue><![CDATA[100]]></MaxValue>
@@ -11702,7 +12209,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 						<ActionCode><![CDATA[f_setHeatingTypes(1)]]></ActionCode>
 					</BasicProperties>
 					<ExtendedProperties>
-						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
+						<DefaultValueCode><![CDATA[p_pctHeatPump]]></DefaultValueCode>
 						<Orientation>HORIZONTAL</Orientation>
 						<MinValue><![CDATA[0]]></MinValue>
 						<MaxValue><![CDATA[100]]></MaxValue>
@@ -11725,7 +12232,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 						<ActionCode><![CDATA[f_setHeatingTypes(2)]]></ActionCode>
 					</BasicProperties>
 					<ExtendedProperties>
-						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
+						<DefaultValueCode><![CDATA[p_pctHybridHeatPump]]></DefaultValueCode>
 						<Orientation>HORIZONTAL</Orientation>
 						<MinValue><![CDATA[0]]></MinValue>
 						<MaxValue><![CDATA[100]]></MaxValue>
@@ -11748,7 +12255,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 						<ActionCode><![CDATA[f_setHeatingTypes(3)]]></ActionCode>
 					</BasicProperties>
 					<ExtendedProperties>
-						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
+						<DefaultValueCode><![CDATA[p_pctDistrictHeating]]></DefaultValueCode>
 						<Orientation>HORIZONTAL</Orientation>
 						<MinValue><![CDATA[0]]></MinValue>
 						<MaxValue><![CDATA[100]]></MaxValue>
@@ -11798,7 +12305,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 						<MaxValue><![CDATA[5]]></MaxValue>
 						<Step><![CDATA[1]]></Step>
 						<LinkTo>true</LinkTo>
-						<Link>v_thermostatReduction_degC</Link>
+						<Link>p_thermostatReduction_degC</Link>
 					</ExtendedProperties>
 				</Control>
 				<Control Type="Slider">
@@ -11823,7 +12330,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 						<MaxValue><![CDATA[100]]></MaxValue>
 						<Step><![CDATA[1]]></Step>
 						<LinkTo>true</LinkTo>
-						<Link>v_thermostatReductionParticipation_pct</Link>
+						<Link>p_thermostatReductionParticipation_pct</Link>
 					</ExtendedProperties>
 				</Control>
 				<Text>
@@ -11840,7 +12347,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
 					<Text><![CDATA[Thermostaat lager]]></Text>
-					<TextCode><![CDATA[roundToInt( v_thermostatReduction_degC ) + " graden thermostaat lager"]]></TextCode>
+					<TextCode><![CDATA[roundToInt( p_thermostatReduction_degC ) + " graden thermostaat lager"]]></TextCode>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>18</Size>
@@ -11862,7 +12369,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
 					<Text><![CDATA[thermostaat lager participatiegraad]]></Text>
-					<TextCode><![CDATA[roundToInt(v_thermostatReductionParticipation_pct) + "  % participatiegraad"]]></TextCode>
+					<TextCode><![CDATA[roundToInt(p_thermostatReductionParticipation_pct) + "  % participatiegraad"]]></TextCode>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>18</Size>
@@ -12116,7 +12623,7 @@ Bronnen:
 						<LabelText><![CDATA[Thermostaat afhankelijk van energielabel]]></LabelText>
 						<DefaultValueCode><![CDATA[false]]></DefaultValueCode>
 						<LinkTo>true</LinkTo>
-						<Link>v_thermostatLabelDependent</Link>
+						<Link>p_thermostatLabelDependent</Link>
 	 				</ExtendedProperties>
 				</Control>
 				<Text>
@@ -12187,7 +12694,7 @@ Bronnen:
 						<MaxValue><![CDATA[120]]></MaxValue>
 						<Step><![CDATA[1]]></Step>
 						<LinkTo>true</LinkTo>
-						<Link>v_thermostatAdvanceTime_min</Link>
+						<Link>p_thermostatAdvanceTime_min</Link>
 					</ExtendedProperties>
 				</Control>
 				<Text>
@@ -12204,7 +12711,7 @@ Bronnen:
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
 					<Text><![CDATA[Thermostaat eerder uit]]></Text>
-					<TextCode><![CDATA[roundToInt( v_thermostatAdvanceTime_min ) + " minuten eerder thermostaat lager"]]></TextCode>
+					<TextCode><![CDATA[roundToInt( p_thermostatAdvanceTime_min ) + " minuten eerder thermostaat lager"]]></TextCode>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>18</Size>
@@ -12234,7 +12741,7 @@ Bronnen:
 						<MaxValue><![CDATA[100]]></MaxValue>
 						<Step><![CDATA[1]]></Step>
 						<LinkTo>true</LinkTo>
-						<Link>v_thermostatAdvanceTimeParticipation_pct</Link>
+						<Link>p_thermostatAdvanceTimeParticipation_pct</Link>
 					</ExtendedProperties>
 				</Control>
 				<Text>
@@ -12251,7 +12758,7 @@ Bronnen:
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
 					<Text><![CDATA[Thermostaat eerder uit participatiegraad]]></Text>
-					<TextCode><![CDATA[roundToInt( v_thermostatAdvanceTimeParticipation_pct ) + " % participatiegraad"]]></TextCode>
+					<TextCode><![CDATA[roundToInt( p_thermostatAdvanceTimeParticipation_pct ) + " % participatiegraad"]]></TextCode>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>16</Size>
@@ -12262,7 +12769,7 @@ Bronnen:
     			<TimeStackChart>
 					<Id>1648476922108</Id>
 					<Name><![CDATA[householdByThermostatModes]]></Name>
-					<X>640</X><Y>1460</Y>
+					<X>630</X><Y>1520</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -12336,6 +12843,71 @@ Bronnen:
 					<VerScaleType>AUTO</VerScaleType>
 					<LabelFormat>MODEL_TIME_UNITS</LabelFormat>
     			</TimeStackChart>
+				<Control Type="CheckBox">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1648824335191</Id>
+					<Name><![CDATA[b_priceDependentSetpoint]]></Name>
+					<X>610</X><Y>1470</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="320" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<TextColor/>
+						<Enabled>true</Enabled>
+					</BasicProperties>
+					<ExtendedProperties>
+						<Font Name="Dialog" Size="14" Style="0"/>
+						<LabelText><![CDATA[Gasgebruik afhankelijk van aardgasprijs]]></LabelText>
+						<LinkTo>true</LinkTo>
+						<Link>p_thermostatPriceDependent</Link>
+	 				</ExtendedProperties>
+				</Control>
+				<Control Type="CheckBox">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1648825193070</Id>
+					<Name><![CDATA[b_policyLowerVATonEnergy]]></Name>
+					<X>610</X><Y>1500</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="270" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<TextColor/>
+						<Enabled>true</Enabled>
+					</BasicProperties>
+					<ExtendedProperties>
+						<Font Name="Dialog" Size="14" Style="0"/>
+						<LabelText><![CDATA[BTW-verlaging energie (naar 9%)]]></LabelText>
+						<LinkTo>true</LinkTo>
+						<Link>p_policyLowerVATOnEnergy</Link>
+	 				</ExtendedProperties>
+				</Control>
+				<Text>
+					<Id>1648833481078</Id>
+					<Name><![CDATA[text38]]></Name>
+					<X>-180</X><Y>1200</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16776961</Color>
+					<Text><![CDATA[Jorrit: instellingen toegevoegd op simulation experiment scherm, maar hier laten staan zodat je tijdens een run aanpassingen kan doen. TODO: mooi integreren in UI?]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>14</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
 			</Presentation>
 
 				</Level>
@@ -12955,6 +13527,21 @@ p_rcValueAverage_m2KpW = t_rcByEnergyLabel(main.c_energyLabels.get(p_energyLabel
 						<Type><![CDATA[String]]></Type>        
 						<InitialValue Class="CodeValue">
 							<Code><![CDATA[""]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1648824554375</Id>
+					<Name><![CDATA[v_gasUseIncentive_pct]]></Name>
+					<X>350</X><Y>740</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0.0]]></Code>
 						</InitialValue>
 					</Properties>
 				</Variable>
@@ -14017,6 +14604,35 @@ Overruled als instelling op basis van energielabel is aangevinkt in de Main.
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1648820120930</Id>
+					<Name><![CDATA[p_elasticityGas]]></Name>
+					<Description><![CDATA[Persoonlijke prijselasticiteit voor aardgas, wordt eenmalig bepaald aan de hand van een verdeling in initializeHouse().
+
+Bron getallen en verdeling: CE Delft, 2021 Evaluatie van de energiebelasting.
+@author: JorritvandenHouten
+@since: 01/04/2022]]></Description>
+					<X>350</X><Y>710</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[0.0]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1648820120928</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1643455674954</Id>
 					<Name><![CDATA[bewoners]]></Name>
@@ -14126,7 +14742,10 @@ if ( nbAdults > 1 ) {
 }
 
 //Initialize DHW consumption
-add_pop_dHWDemand();]]></Body>
+add_pop_dHWDemand();
+
+//Set personal gas price elasticity value
+p_elasticityGas = triangular(-0.76, -0.06, -0.76, -0.41, -0.06);]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -14389,9 +15008,18 @@ else if ( v_timeInHour >= ( p_thermostatTimeNight - ( v_thermostatAdvanceTime_mi
 }
 
 v_setpointActive -= v_tempSetpointReduction_degC;
-v_heatRequest_kW = v_Thouse < v_setpointActive ?  100 : 0; // TODO: 100 kW standaardwaarde aanpassen?
-
 double v_DHWEnergyDemand_kW=pop_dHWDemand.get(0).f_updateDHWEnergyDemand();
+
+// introduceer prijselasticiteit aardgas in setpoint en tapwatervraag wanneer actief
+if ( main.p_thermostatPriceDependent && p_heatingSystem instanceof HS_Gasburner ) {
+	v_setpointActive *= ( 1 + v_gasUseIncentive_pct );
+	v_DHWEnergyDemand_kW *= ( 1 + v_gasUseIncentive_pct );
+}
+else if ( main.p_thermostatPriceDependent && p_heatingSystem instanceof HS_HeatpumpHybrid ) {
+	v_DHWEnergyDemand_kW *= ( 1 + v_gasUseIncentive_pct );
+}
+
+v_heatRequest_kW = v_Thouse < v_setpointActive ?  100 : 0; // TODO: 100 kW standaardwaarde aanpassen?
 //traceln(v_DHWEnergyDemand_kW);
 p_heatingSystem.f_heatingFunction(v_heatRequest_kW, v_DHWEnergyDemand_kW, main.Tbuiten, main.dt_h);
 v_heatingThermalPower_kW = p_heatingSystem.v_heatDelivery_kW ;]]></Body>
@@ -14411,6 +15039,7 @@ v_heatingThermalPower_kW = p_heatingSystem.v_heatDelivery_kW ;]]></Body>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[//
+double old_gasMeterReading = v_gasMeter_m3;
 
 if ( p_heatingSystem instanceof HS_Gasburner ) {
 		HS_Gasburner x = (HS_Gasburner)p_heatingSystem;
@@ -14421,7 +15050,20 @@ if ( p_heatingSystem instanceof HS_Gasburner ) {
 		v_gasMeter_m3 = x.v_gasConsumed_m3;
 	}
 
-v_gasBill_eur = v_gasMeter_m3 * main.v_gasPrice_eurpm3;]]></Body>
+double gasUsed_m3 = v_gasMeter_m3 - old_gasMeterReading;
+double v_gasCost_eur = gasUsed_m3 * main.v_gasPrice_eurpm3;
+v_gasBill_eur += v_gasCost_eur;
+
+//bereken incentive afname gas a.g.v. prijselasticiteit
+if ( main.p_thermostatPriceDependent ){
+	v_gasUseIncentive_pct = p_elasticityGas * main.v_gasPriceChange_pct;
+	//traceln("elasticiteit: "+ p_elasticityGas + ", gasprijsstijging: " + main.v_gasPriceChange_pct + ", prijsincentive: " + v_gasUseIncentive_pct);
+	
+}
+else {
+	v_gasUseIncentive_pct = 0;
+}
+]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -31323,30 +31965,187 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 			<SelectionModeForSimultaneousEvents>LIFO</SelectionModeForSimultaneousEvents>
 			<VmArgs><![CDATA[]]></VmArgs>
 			<LoadRootFromSnapshot>false</LoadRootFromSnapshot>
+			<Variables>
+				<Variable Class="PlainVariable">
+					<Id>1648816217168</Id>
+					<Name><![CDATA[v_isolationLevel]]></Name>
+					<Description><![CDATA[Lokale hulpvariabele gebruikt om de waarde van de radiobutton mee te kunnen geven aan de radiobutton in Main.
+
+@author: JorritvandenHouten
+@since: 01/04/2022
+]]></Description>
+					<X>600</X><Y>920</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[int]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1648818785339</Id>
+					<Name><![CDATA[v_thermostatLabelDependent]]></Name>
+					<Description><![CDATA[Lokale hulpvariabele gebruikt om de waarde van de checkbox mee te kunnen geven aan de checkbox in Main
+
+@author: JorritvandenHouten
+@since: 01/04/2022]]></Description>
+					<X>1010</X><Y>920</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[boolean]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[false]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1648824180551</Id>
+					<Name><![CDATA[v_gasUsePriceDependent]]></Name>
+					<Description><![CDATA[Lokale hulpvariabele gebruikt om de waarde van de checkbox mee te kunnen geven aan de checkbox in Main
+
+@author: JorritvandenHouten
+@since: 01/04/2022]]></Description>
+					<X>1010</X><Y>970</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[boolean]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[false]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1648825146760</Id>
+					<Name><![CDATA[v_policyLowerVAT]]></Name>
+					<X>1010</X><Y>1020</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[boolean]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[false]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1648832421808</Id>
+					<Name><![CDATA[v_yearChoice]]></Name>
+					<X>20</X><Y>920</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[int]]></Type>        
+					</Properties>
+				</Variable>
+			</Variables>
+			<Functions>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1648812034995</Id>
+					<Name><![CDATA[f_houseTypeSlidersMatch]]></Name>
+					<Description><![CDATA[Wordt aangeroepen bij slider-wijzigingen (woningtypen) om te forceren dat de sliderinstellingen optellen tot 100%
+
+@author: JorritvandenHouten
+@since: 01/04/2022]]></Description>
+					<X>220</X><Y>920</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[sliderIndex]]></Name>
+						<Type><![CDATA[int]]></Type>
+					</Parameter>
+					<Body><![CDATA[double pct_detached = s_fractionHousesDetached.getValue();
+double pct_semidetached = s_fractionHousesSemiDetached.getValue();
+double pct_corner = s_fractionHousesCorner.getValue();
+double pct_terraced = s_fractionHousesTerraced.getValue();
+double pct_appartment = s_fractionHousesAppartment.getValue();
+double pct_highrise = s_fractionHousesHighrise.getValue();
+
+
+double pctArray[]={pct_detached, pct_semidetached, pct_corner, pct_terraced, pct_appartment, pct_highrise};
+//pctFixed = pctArray[sliderIndex];
+//double pctRest = 100 - pctArray[sliderIndex];
+double pctExcess = Arrays.stream(pctArray).sum() - 100;
+for (int i = 0; i<6; i++){
+	if (!(i==(int)sliderIndex)) {
+		pctArray[i] = max(0,pctArray[i] - pctExcess);
+		//traceln(pctArray[i]);
+		pctExcess = Arrays.stream(pctArray).sum() - 100;
+	}
+}
+if (pctExcess != 0) {
+	traceln("Sliders don't add up to 100%!");
+}
+
+s_fractionHousesDetached.setValue(pctArray[0]);
+s_fractionHousesSemiDetached.setValue(pctArray[1]);
+s_fractionHousesCorner.setValue(pctArray[2]);
+s_fractionHousesTerraced.setValue(pctArray[3]);
+s_fractionHousesAppartment.setValue(pctArray[4]);
+s_fractionHousesHighrise.setValue(pctArray[5]);
+]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1648817279464</Id>
+					<Name><![CDATA[f_heatingSystemsSlidersMatch]]></Name>
+					<Description><![CDATA[Hulpfunctie alleen gebruikt om te forceren dat sliders optellen tot 100%
+
+@author: JorritvandenHouten, Gillis
+@since: 01/04/2022]]></Description>
+					<X>730</X><Y>920</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[sliderIndex]]></Name>
+						<Type><![CDATA[int]]></Type>
+					</Parameter>
+					<Body><![CDATA[double pct_gasBurner = sl_gasBurner_pct.getValue();
+double pct_heatPump = sl_heatPump_pct.getValue();
+double pct_hybridHeatPump = sl_hybridHeatPump_pct.getValue();
+double pct_districtHeating = sl_districtHeating_pct.getValue();
+
+double pctArray[]={pct_gasBurner, pct_heatPump, pct_hybridHeatPump, pct_districtHeating};
+//pctFixed = pctArray[sliderIndex];
+//double pctRest = 100 - pctArray[sliderIndex];
+double pctExcess = Arrays.stream(pctArray).sum() - 100;
+for (int i = 0; i<4; i++){
+	if (!(i==(int)sliderIndex)) {
+		pctArray[i] = max(0,pctArray[i] - pctExcess);
+		//traceln(pctArray[i]);
+		pctExcess = Arrays.stream(pctArray).sum() - 100;
+	}
+}
+if (pctExcess != 0) {
+	traceln("Sliders don't add up to 100%!");
+}
+
+sl_gasBurner_pct.setValue(pctArray[0]);
+sl_heatPump_pct.setValue(pctArray[1]);
+sl_hybridHeatPump_pct.setValue(pctArray[2]);
+sl_districtHeating_pct.setValue(pctArray[3]);
+]]></Body>
+				</Function>
+			</Functions>
 
 			<Presentation>
-				<Rectangle>
-					<Id>1648804431067</Id>
-					<Name><![CDATA[rectangle5]]></Name>
-					<X>490</X><Y>860</Y>
-					<Label><X>10</X><Y>10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<ZHeight>10</ZHeight>
-					<LineWidth>1</LineWidth>
-					<LineColor/>
-					<LineMaterial>null</LineMaterial>
-					<LineStyle>SOLID</LineStyle>
-					<Width>30</Width>
-					<Height>30</Height>
-					<Rotation>0.0</Rotation>
-					<FillColor>-4450782</FillColor>
-					<FillMaterial>null</FillMaterial>
-				</Rectangle>
 				<Rectangle>
 					<Id>1646173849773</Id>
 					<Name><![CDATA[rectangle3]]></Name>
@@ -32121,7 +32920,7 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1646176972058</Id>
 					<Name><![CDATA[s_Ev]]></Name>
-					<X>1150</X><Y>720</Y>
+					<X>1150</X><Y>660</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -32163,29 +32962,6 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 						<LinkTo>false</LinkTo>
 					</ExtendedProperties>
 				</Control>
-				<Control Type="Slider">
-				 	<EmbeddedIcon>false</EmbeddedIcon>				
-					<Id>1646176972066</Id>
-					<Name><![CDATA[s_Warmtepomp]]></Name>
-					<X>1150</X><Y>660</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<BasicProperties Width="170" Height="30">
-                        <EmbeddedIcon>false</EmbeddedIcon>	
-						<Enabled>true</Enabled>
-					</BasicProperties>
-					<ExtendedProperties>
-						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
-						<Orientation>HORIZONTAL</Orientation>
-						<MinValue><![CDATA[0]]></MinValue>
-						<MaxValue><![CDATA[100]]></MaxValue>
-						<Step><![CDATA[1]]></Step>
-						<LinkTo>false</LinkTo>
-					</ExtendedProperties>
-				</Control>
 				<Text>
 					<Id>1646176972068</Id>
 					<Name><![CDATA[text15]]></Name>
@@ -32209,30 +32985,9 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 					<Alignment>RIGHT</Alignment>
 				</Text>
 				<Text>
-					<Id>1646176972070</Id>
-					<Name><![CDATA[text16]]></Name>
-					<X>1110</X><Y>670</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<Rotation>0.0</Rotation>
-					<Color>-16777216</Color>
-					<Text><![CDATA[% met warmtepomp]]></Text>
-					<Font>
-						<Name>SansSerif</Name>
-						<Size>12</Size>
-						<Style>0</Style>
-					</Font>
-					<Alignment>RIGHT</Alignment>
-				</Text>
-				<Text>
 					<Id>1646176972072</Id>
 					<Name><![CDATA[text17]]></Name>
-					<X>1110</X><Y>730</Y>
+					<X>1110</X><Y>670</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -32318,75 +33073,9 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 					<Alignment>CENTER</Alignment>
 				</Text>
 				<Text>
-					<Id>1646177118118</Id>
-					<Name><![CDATA[text21]]></Name>
-					<X>1150</X><Y>685</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<Rotation>0.0</Rotation>
-					<Color>-16777216</Color>
-					<Text><![CDATA[min]]></Text>
-					<TextCode><![CDATA[s_Warmtepomp.getMin()]]></TextCode>
-					<Font>
-						<Name>SansSerif</Name>
-						<Size>8</Size>
-						<Style>0</Style>
-					</Font>
-					<Alignment>LEFT</Alignment>
-				</Text>
-				<Text>
-					<Id>1646177118120</Id>
-					<Name><![CDATA[text22]]></Name>
-					<X>1320</X><Y>685</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<Rotation>0.0</Rotation>
-					<Color>-16777216</Color>
-					<Text><![CDATA[max]]></Text>
-					<TextCode><![CDATA[s_Warmtepomp.getMax()]]></TextCode>
-					<Font>
-						<Name>SansSerif</Name>
-						<Size>8</Size>
-						<Style>0</Style>
-					</Font>
-					<Alignment>RIGHT</Alignment>
-				</Text>
-				<Text>
-					<Id>1646177118122</Id>
-					<Name><![CDATA[text23]]></Name>
-					<X>1235</X><Y>690</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<Rotation>0.0</Rotation>
-					<Color>-16777216</Color>
-					<Text><![CDATA[value]]></Text>
-					<TextCode><![CDATA[s_Warmtepomp.getValue()]]></TextCode>
-					<Font>
-						<Name>SansSerif</Name>
-						<Size>12</Size>
-						<Style>1</Style>
-					</Font>
-					<Alignment>CENTER</Alignment>
-				</Text>
-				<Text>
 					<Id>1646177119752</Id>
 					<Name><![CDATA[text24]]></Name>
-					<X>1150</X><Y>745</Y>
+					<X>1150</X><Y>685</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -32408,7 +33097,7 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 				<Text>
 					<Id>1646177119754</Id>
 					<Name><![CDATA[text25]]></Name>
-					<X>1320</X><Y>745</Y>
+					<X>1320</X><Y>685</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -32430,7 +33119,7 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 				<Text>
 					<Id>1646177119756</Id>
 					<Name><![CDATA[text26]]></Name>
-					<X>1235</X><Y>750</Y>
+					<X>1235</X><Y>690</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -32457,7 +33146,7 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 
 @author: JorritvandenHouten
 @since: 30/03/2022]]></Description>
-					<X>100</X><Y>720</Y>
+					<X>220</X><Y>720</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -32466,6 +33155,7 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 					<BasicProperties Width="100" Height="30">
                         <EmbeddedIcon>false</EmbeddedIcon>	
 						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[f_houseTypeSlidersMatch(3);]]></ActionCode>
 					</BasicProperties>
 					<ExtendedProperties>
 						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
@@ -32488,13 +33178,13 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 
 @author: JorritvandenHouten
 @since: 30/03/2022]]></Description>
-					<X>325</X><Y>839.167</Y>
+					<X>250</X><Y>840</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<BasicProperties Width="180" Height="20.833">
+					<BasicProperties Width="180" Height="20">
                         <EmbeddedIcon>false</EmbeddedIcon>	
 						<Enabled>true</Enabled>
 					</BasicProperties>
@@ -32516,7 +33206,7 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 
 @author: JorritvandenHouten
 @since: 30/03/2022]]></Description>
-					<X>100</X><Y>750</Y>
+					<X>220</X><Y>750</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -32525,6 +33215,7 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 					<BasicProperties Width="100" Height="30">
                         <EmbeddedIcon>false</EmbeddedIcon>	
 						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[f_houseTypeSlidersMatch(4);]]></ActionCode>
 					</BasicProperties>
 					<ExtendedProperties>
 						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
@@ -32544,7 +33235,7 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 
 @author: JorritvandenHouten
 @since: 30/03/2022]]></Description>
-					<X>100</X><Y>820</Y>
+					<X>10</X><Y>640</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -32576,7 +33267,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 }]]></ActionCode>
 					</BasicProperties>
 					<ExtendedProperties>
-						<Font Name="Dialog" Size="14" Style="0"/>
+						<Font Name="Dialog" Size="14" Style="1"/>
 						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
 						<Orientation>VERTICAL</Orientation>
 						<Button><![CDATA[Rijtjeswoningen jaren 60]]></Button>
@@ -32593,7 +33284,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 
 @author: JorritvandenHouten
 @since: 30/03/2022]]></Description>
-					<X>100</X><Y>660</Y>
+					<X>220</X><Y>660</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -32602,6 +33293,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 					<BasicProperties Width="100" Height="30">
                         <EmbeddedIcon>false</EmbeddedIcon>	
 						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[f_houseTypeSlidersMatch(1);]]></ActionCode>
 					</BasicProperties>
 					<ExtendedProperties>
 						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
@@ -32616,7 +33308,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<Text>
 					<Id>1648652160338</Id>
 					<Name><![CDATA[text65]]></Name>
-					<X>240</X><Y>690</Y>
+					<X>360</X><Y>690</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -32643,7 +33335,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 
 @author: JorritvandenHouten
 @since: 30/03/2022]]></Description>
-					<X>100</X><Y>630</Y>
+					<X>220</X><Y>630</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -32652,6 +33344,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 					<BasicProperties Width="100" Height="30">
                         <EmbeddedIcon>false</EmbeddedIcon>	
 						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[f_houseTypeSlidersMatch(0);]]></ActionCode>
 					</BasicProperties>
 					<ExtendedProperties>
 						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
@@ -32666,7 +33359,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<Text>
 					<Id>1648652160342</Id>
 					<Name><![CDATA[text40]]></Name>
-					<X>250</X><Y>690</Y>
+					<X>370</X><Y>690</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -32687,7 +33380,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<Text>
 					<Id>1648652160344</Id>
 					<Name><![CDATA[text39]]></Name>
-					<X>250</X><Y>660</Y>
+					<X>370</X><Y>660</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -32708,7 +33401,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<Text>
 					<Id>1648652160346</Id>
 					<Name><![CDATA[text66]]></Name>
-					<X>240</X><Y>720</Y>
+					<X>360</X><Y>720</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -32730,7 +33423,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<Text>
 					<Id>1648652160348</Id>
 					<Name><![CDATA[text38]]></Name>
-					<X>250</X><Y>630</Y>
+					<X>370</X><Y>630</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -32751,7 +33444,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<Text>
 					<Id>1648652160350</Id>
 					<Name><![CDATA[text67]]></Name>
-					<X>240</X><Y>750</Y>
+					<X>360</X><Y>750</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -32773,7 +33466,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<Text>
 					<Id>1648652160352</Id>
 					<Name><![CDATA[text68]]></Name>
-					<X>240</X><Y>780</Y>
+					<X>360</X><Y>780</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -32795,7 +33488,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<Text>
 					<Id>1648652160356</Id>
 					<Name><![CDATA[text57]]></Name>
-					<X>250</X><Y>720</Y>
+					<X>370</X><Y>720</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -32816,7 +33509,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<Text>
 					<Id>1648652160358</Id>
 					<Name><![CDATA[text64]]></Name>
-					<X>240</X><Y>660</Y>
+					<X>360</X><Y>660</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -32843,7 +33536,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 
 @author: JorritvandenHouten
 @since: 30/03/2022]]></Description>
-					<X>100</X><Y>780</Y>
+					<X>220</X><Y>780</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -32852,6 +33545,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 					<BasicProperties Width="100" Height="30">
                         <EmbeddedIcon>false</EmbeddedIcon>	
 						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[f_houseTypeSlidersMatch(5);]]></ActionCode>
 					</BasicProperties>
 					<ExtendedProperties>
 						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
@@ -32866,7 +33560,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<Text>
 					<Id>1648652160362</Id>
 					<Name><![CDATA[text69]]></Name>
-					<X>310</X><Y>820</Y>
+					<X>220</X><Y>820</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -32876,7 +33570,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
-					<Text><![CDATA[Gemiddeld energielabel:]]></Text>
+					<Text><![CDATA[Gemiddeld energielabel huidig:]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>16</Size>
@@ -32887,7 +33581,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<Text>
 					<Id>1648652160364</Id>
 					<Name><![CDATA[text60]]></Name>
-					<X>250</X><Y>780</Y>
+					<X>370</X><Y>780</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -32908,7 +33602,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<Text>
 					<Id>1648652160366</Id>
 					<Name><![CDATA[text59]]></Name>
-					<X>250</X><Y>750</Y>
+					<X>370</X><Y>750</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -32934,7 +33628,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 
 @author: JorritvandenHouten
 @since: 30/03/2022]]></Description>
-					<X>100</X><Y>690</Y>
+					<X>220</X><Y>690</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -32943,6 +33637,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 					<BasicProperties Width="100" Height="30">
                         <EmbeddedIcon>false</EmbeddedIcon>	
 						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[f_houseTypeSlidersMatch(2);]]></ActionCode>
 					</BasicProperties>
 					<ExtendedProperties>
 						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
@@ -32957,7 +33652,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<Text>
 					<Id>1648652160372</Id>
 					<Name><![CDATA[text63]]></Name>
-					<X>240</X><Y>630</Y>
+					<X>360</X><Y>630</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -32976,54 +33671,690 @@ else if( r_neighborhoodType.getValue() == 1 ){
 					</Font>
 					<Alignment>RIGHT</Alignment>
 				</Text>
-				<Rectangle>
-					<Id>1648804571567</Id>
-					<Name><![CDATA[rectangle6]]></Name>
-					<X>460</X><Y>860</Y>
-					<Label><X>10</X><Y>10</Y></Label>
+				<Text>
+					<Id>1648812724559</Id>
+					<Name><![CDATA[text27]]></Name>
+					<X>220</X><Y>610</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Verhoudingen woningtypen in de wijk:]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>16</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Control Type="RadioButtons">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1648816025697</Id>
+					<Name><![CDATA[radio_IsolationLevels]]></Name>
+					<X>590</X><Y>640</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="300" Height="80">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<TextColor/>
+						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[if ( value == 0 ){
+	v_isolationLevel = 0;
+}
+else if ( value == 1 ){
+	v_isolationLevel = 1;
+}
+if ( value == 2 ){
+	v_isolationLevel = 2;
+}]]></ActionCode>
+					</BasicProperties>
+					<ExtendedProperties>
+						<Font Name="Dialog" Size="14" Style="0"/>
+						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
+						<Orientation>VERTICAL</Orientation>
+						<Button><![CDATA[Huidige isolatiegraad]]></Button>
+						<Button><![CDATA[Alle woningen energielabel B of beter]]></Button>
+						<Button><![CDATA[Alle woningen energielabel A of beter]]></Button>
+						<LinkTo>false</LinkTo>
+						<Link>p_isolationLevel</Link>
+					</ExtendedProperties>
+				</Control>
+				<Text>
+					<Id>1648816988451</Id>
+					<Name><![CDATA[text28]]></Name>
+					<X>590</X><Y>610</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
 					<EmbeddedIcon>false</EmbeddedIcon>
 					<Z>0</Z>
-					<ZHeight>10</ZHeight>
-					<LineWidth>1</LineWidth>
-					<LineColor/>
-					<LineMaterial>null</LineMaterial>
-					<LineStyle>SOLID</LineStyle>
-					<Width>30</Width>
-					<Height>30</Height>
 					<Rotation>0.0</Rotation>
-					<FillColor>-1484276</FillColor>
-					<FillMaterial>null</FillMaterial>
-				</Rectangle>
-				<Rectangle>
-					<Id>1648804654495</Id>
-					<Name><![CDATA[rectangle7]]></Name>
-					<X>430</X><Y>860</Y>
-					<Label><X>10</X><Y>10</Y></Label>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Isolatieverbeteringen:]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>16</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Control Type="Slider">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1648817200983</Id>
+					<Name><![CDATA[sl_gasBurner_pct]]></Name>
+					<X>600</X><Y>760</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="100" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[f_heatingSystemsSlidersMatch(0)]]></ActionCode>
+					</BasicProperties>
+					<ExtendedProperties>
+						<DefaultValueCode><![CDATA[100]]></DefaultValueCode>
+						<Orientation>HORIZONTAL</Orientation>
+						<MinValue><![CDATA[0]]></MinValue>
+						<MaxValue><![CDATA[100]]></MaxValue>
+						<Step><![CDATA[1]]></Step>
+						<LinkTo>false</LinkTo>
+					</ExtendedProperties>
+				</Control>
+				<Control Type="Slider">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1648817200987</Id>
+					<Name><![CDATA[sl_heatPump_pct]]></Name>
+					<X>600</X><Y>790</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="100" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[f_heatingSystemsSlidersMatch(1)]]></ActionCode>
+					</BasicProperties>
+					<ExtendedProperties>
+						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
+						<Orientation>HORIZONTAL</Orientation>
+						<MinValue><![CDATA[0]]></MinValue>
+						<MaxValue><![CDATA[100]]></MaxValue>
+						<Step><![CDATA[1]]></Step>
+						<LinkTo>false</LinkTo>
+					</ExtendedProperties>
+				</Control>
+				<Control Type="Slider">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1648817200989</Id>
+					<Name><![CDATA[sl_hybridHeatPump_pct]]></Name>
+					<X>600</X><Y>820</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="100" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[f_heatingSystemsSlidersMatch(2)]]></ActionCode>
+					</BasicProperties>
+					<ExtendedProperties>
+						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
+						<Orientation>HORIZONTAL</Orientation>
+						<MinValue><![CDATA[0]]></MinValue>
+						<MaxValue><![CDATA[100]]></MaxValue>
+						<Step><![CDATA[1]]></Step>
+						<LinkTo>false</LinkTo>
+					</ExtendedProperties>
+				</Control>
+				<Control Type="Slider">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1648817200991</Id>
+					<Name><![CDATA[sl_districtHeating_pct]]></Name>
+					<X>600</X><Y>850</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="100" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[f_heatingSystemsSlidersMatch(3)]]></ActionCode>
+					</BasicProperties>
+					<ExtendedProperties>
+						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
+						<Orientation>HORIZONTAL</Orientation>
+						<MinValue><![CDATA[0]]></MinValue>
+						<MaxValue><![CDATA[100]]></MaxValue>
+						<Step><![CDATA[1]]></Step>
+						<LinkTo>false</LinkTo>
+					</ExtendedProperties>
+				</Control>
+				<Text>
+					<Id>1648817200993</Id>
+					<Name><![CDATA[text29]]></Name>
+					<X>760</X><Y>760</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
 					<EmbeddedIcon>false</EmbeddedIcon>
 					<Z>0</Z>
-					<ZHeight>10</ZHeight>
-					<LineWidth>1</LineWidth>
-					<LineColor/>
-					<LineMaterial>null</LineMaterial>
-					<LineStyle>SOLID</LineStyle>
-					<Width>30</Width>
-					<Height>30</Height>
 					<Rotation>0.0</Rotation>
-					<FillColor>-544207</FillColor>
-					<FillMaterial>null</FillMaterial>
-				</Rectangle>
+					<Color>-16777216</Color>
+					<Text><![CDATA[CV ketel]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>16</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1648817200995</Id>
+					<Name><![CDATA[text30]]></Name>
+					<X>760</X><Y>790</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Warmtepomp]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>16</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1648817200997</Id>
+					<Name><![CDATA[text31]]></Name>
+					<X>760</X><Y>820</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Hybride warmtepomp]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>16</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1648817200999</Id>
+					<Name><![CDATA[text32]]></Name>
+					<X>760</X><Y>850</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Stadsverwarming]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>16</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1648817793352</Id>
+					<Name><![CDATA[text70]]></Name>
+					<X>750</X><Y>760</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[xx %]]></Text>
+					<TextCode><![CDATA[(int)sl_gasBurner_pct.getValue()+ " %"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>16</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>RIGHT</Alignment>
+				</Text>
+				<Text>
+					<Id>1648817848542</Id>
+					<Name><![CDATA[text71]]></Name>
+					<X>750</X><Y>790</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[xx %]]></Text>
+					<TextCode><![CDATA[(int)sl_heatPump_pct.getValue()+ " %"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>16</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>RIGHT</Alignment>
+				</Text>
+				<Text>
+					<Id>1648817881116</Id>
+					<Name><![CDATA[text72]]></Name>
+					<X>750</X><Y>820</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[xx %]]></Text>
+					<TextCode><![CDATA[(int)sl_hybridHeatPump_pct.getValue()+ " %"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>16</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>RIGHT</Alignment>
+				</Text>
+				<Text>
+					<Id>1648817898069</Id>
+					<Name><![CDATA[text73]]></Name>
+					<X>750</X><Y>850</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[xx %]]></Text>
+					<TextCode><![CDATA[(int)sl_districtHeating_pct.getValue()+ " %"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>16</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>RIGHT</Alignment>
+				</Text>
+				<Control Type="Slider">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1648818103996</Id>
+					<Name><![CDATA[sl_setThermostatLower_degC]]></Name>
+					<X>940</X><Y>740</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="100" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<Enabled>true</Enabled>
+					</BasicProperties>
+					<ExtendedProperties>
+						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
+						<Orientation>HORIZONTAL</Orientation>
+						<MinValue><![CDATA[0]]></MinValue>
+						<MaxValue><![CDATA[5]]></MaxValue>
+						<Step><![CDATA[1]]></Step>
+						<LinkTo>true</LinkTo>
+						<Link>p_thermostatReduction_degC</Link>
+					</ExtendedProperties>
+				</Control>
+				<Control Type="Slider">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1648818104001</Id>
+					<Name><![CDATA[sl_thermostatReductionParcicipation]]></Name>
+					<X>940</X><Y>771</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="100" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<Enabled>true</Enabled>
+					</BasicProperties>
+					<ExtendedProperties>
+						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
+						<Orientation>HORIZONTAL</Orientation>
+						<MinValue><![CDATA[0]]></MinValue>
+						<MaxValue><![CDATA[100]]></MaxValue>
+						<Step><![CDATA[1]]></Step>
+						<LinkTo>true</LinkTo>
+						<Link>p_thermostatReductionParticipation_pct</Link>
+					</ExtendedProperties>
+				</Control>
+				<Text>
+					<Id>1648818104003</Id>
+					<Name><![CDATA[text33]]></Name>
+					<X>1070</X><Y>740</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Thermostaat lager]]></Text>
+					<TextCode><![CDATA[roundToInt( sl_setThermostatLower_degC.getValue() ) + " graden thermostaat lager"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>16</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1648818104005</Id>
+					<Name><![CDATA[text34]]></Name>
+					<X>1070</X><Y>771</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[thermostaat lager participatiegraad]]></Text>
+					<TextCode><![CDATA[roundToInt(sl_thermostatReductionParcicipation.getValue()) + "  % participatiegraad"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>16</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Control Type="CheckBox">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1648818104007</Id>
+					<Name><![CDATA[b_labelDependentSetpoint]]></Name>
+					<Description><![CDATA[Maatregel toegevoegd om realistisch bewonersgedrag na te kunnen bootsen t.a.v. setpoints bij slecht geisoleerde woningen. 
+
+Bronnen: 
+*Ecofys (2015), De systeemkosten van warmte voor woningen, p. 11; 
+*ECN (2013), Energiebesparing: Een samenspel van woning en bewoner - Analyse van de module Energie WoON 2012)
+*Majcen et al. 2013, Theoretical vs. actual energy consumption of labelled dwellings in the Netherlands: Discrepancies and policy implications. Energy policy, 54, 125-136.
+
+@author: JorritvandenHouten
+@since: 28/03/2022]]></Description>
+					<X>980</X><Y>860</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="350" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<TextColor/>
+						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[if ( value ){
+	v_thermostatLabelDependent = true;
+	}
+else {
+	v_thermostatLabelDependent = false;
+}]]></ActionCode>
+					</BasicProperties>
+					<ExtendedProperties>
+						<Font Name="Dialog" Size="16" Style="0"/>
+						<LabelText><![CDATA[Thermostaat afhankelijk van energielabel]]></LabelText>
+						<DefaultValueCode><![CDATA[false]]></DefaultValueCode>
+						<LinkTo>true</LinkTo>
+						<Link>p_thermostatLabelDependent</Link>
+	 				</ExtendedProperties>
+				</Control>
+				<Control Type="Slider">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1648818104013</Id>
+					<Name><![CDATA[sl_thermostatAdvanceTime]]></Name>
+					<Description><![CDATA[Time in minutes
+
+@author: Jorrit
+@since: 28/03/2022]]></Description>
+					<X>940</X><Y>801</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="100" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<Enabled>true</Enabled>
+					</BasicProperties>
+					<ExtendedProperties>
+						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
+						<Orientation>HORIZONTAL</Orientation>
+						<MinValue><![CDATA[0]]></MinValue>
+						<MaxValue><![CDATA[120]]></MaxValue>
+						<Step><![CDATA[1]]></Step>
+						<LinkTo>true</LinkTo>
+						<Link>p_thermostatAdvanceTime_min</Link>
+					</ExtendedProperties>
+				</Control>
+				<Text>
+					<Id>1648818104015</Id>
+					<Name><![CDATA[text36]]></Name>
+					<X>1070</X><Y>801</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Thermostaat eerder uit]]></Text>
+					<TextCode><![CDATA[roundToInt( sl_thermostatAdvanceTime.getValue() ) + " minuten eerder thermostaat lager"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>16</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Control Type="Slider">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1648818104017</Id>
+					<Name><![CDATA[sl_thermostatAdvanceTimeParticipation]]></Name>
+					<X>940</X><Y>831</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="100" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<Enabled>true</Enabled>
+					</BasicProperties>
+					<ExtendedProperties>
+						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
+						<Orientation>HORIZONTAL</Orientation>
+						<MinValue><![CDATA[0]]></MinValue>
+						<MaxValue><![CDATA[100]]></MaxValue>
+						<Step><![CDATA[1]]></Step>
+						<LinkTo>true</LinkTo>
+						<Link>p_thermostatAdvanceTimeParticipation_pct</Link>
+					</ExtendedProperties>
+				</Control>
+				<Text>
+					<Id>1648818104019</Id>
+					<Name><![CDATA[text37]]></Name>
+					<X>1070</X><Y>831</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Thermostaat eerder uit participatiegraad]]></Text>
+					<TextCode><![CDATA[roundToInt( sl_thermostatAdvanceTimeParticipation.getValue() ) + " % participatiegraad"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>16</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Control Type="CheckBox">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1648824083049</Id>
+					<Name><![CDATA[b_priceElasticityGas]]></Name>
+					<Description><![CDATA[Keuze om prijselasticiteit voor aardgas mee te nemen. Wanneer actief geldt voor elk huishouden dat het aardgasgebruik reageert op eventuele prijsstijgingen- en dalingen van aardgas, bijvoorbeeld BTW-verlaging.
+
+Bron: bijv. CE Delft (2021). ]]></Description>
+					<X>980</X><Y>930</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="360" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<TextColor/>
+						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[if ( value ){
+	v_gasUsePriceDependent = true;
+	}
+else {
+	v_gasUsePriceDependent = false;
+}]]></ActionCode>
+					</BasicProperties>
+					<ExtendedProperties>
+						<Font Name="Dialog" Size="14" Style="0"/>
+						<LabelText><![CDATA[Gasgebruik afhankelijk van aardgasprijs]]></LabelText>
+						<DefaultValueCode><![CDATA[false]]></DefaultValueCode>
+						<LinkTo>false</LinkTo>
+	 				</ExtendedProperties>
+				</Control>
+				<Control Type="CheckBox">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1648825031758</Id>
+					<Name><![CDATA[b_policyLowerVAT]]></Name>
+					<X>980</X><Y>980</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="240" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<TextColor/>
+						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[if ( value ){
+	v_policyLowerVAT = true;
+	}
+else {
+	v_policyLowerVAT = false;
+}]]></ActionCode>
+					</BasicProperties>
+					<ExtendedProperties>
+						<Font Name="Dialog" Size="14" Style="0"/>
+						<LabelText><![CDATA[BTW-verlaging energie (naar 9%)]]></LabelText>
+						<DefaultValueCode><![CDATA[false]]></DefaultValueCode>
+						<LinkTo>false</LinkTo>
+	 				</ExtendedProperties>
+				</Control>
+				<Text>
+					<Id>1648830133805</Id>
+					<Name><![CDATA[text35]]></Name>
+					<X>10</X><Y>610</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Selecteer wijktype:]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>16</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Group>
+					<Id>1648830227066</Id>
+					<Name><![CDATA[group]]></Name>
+					<X>420</X><Y>880</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+
+
+				</Group>
+				<Group>
+					<Id>1648830330241</Id>
+					<Name><![CDATA[group1]]></Name>
+					<X>340</X><Y>875</Y>
+					<Label><X>9.431</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+
+			<Presentation>
 				<Rectangle>
 					<Id>1648804751437</Id>
 					<Name><![CDATA[rectangle8]]></Name>
-					<X>400</X><Y>860</Y>
+					<X>-14.147</X><Y>-14.032</Y>
 					<Label><X>10</X><Y>10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -33036,38 +34367,16 @@ else if( r_neighborhoodType.getValue() == 1 ){
 					<LineColor/>
 					<LineMaterial>null</LineMaterial>
 					<LineStyle>SOLID</LineStyle>
-					<Width>30</Width>
-					<Height>30</Height>
+					<Width>28.294</Width>
+					<Height>28.065</Height>
 					<Rotation>0.0</Rotation>
 					<FillColor>-5376</FillColor>
 					<FillMaterial>null</FillMaterial>
 				</Rectangle>
 				<Rectangle>
-					<Id>1648804830158</Id>
-					<Name><![CDATA[rectangle9]]></Name>
-					<X>370</X><Y>860</Y>
-					<Label><X>10</X><Y>10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<ZHeight>10</ZHeight>
-					<LineWidth>1</LineWidth>
-					<LineColor/>
-					<LineMaterial>null</LineMaterial>
-					<LineStyle>SOLID</LineStyle>
-					<Width>30</Width>
-					<Height>30</Height>
-					<Rotation>0.0</Rotation>
-					<FillColor>-7159777</FillColor>
-					<FillMaterial>null</FillMaterial>
-				</Rectangle>
-				<Rectangle>
 					<Id>1648804877870</Id>
 					<Name><![CDATA[rectangle10]]></Name>
-					<X>340</X><Y>860</Y>
+					<X>-70.735</X><Y>-14.032</Y>
 					<Label><X>10</X><Y>10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -33080,8 +34389,8 @@ else if( r_neighborhoodType.getValue() == 1 ){
 					<LineColor/>
 					<LineMaterial>null</LineMaterial>
 					<LineStyle>SOLID</LineStyle>
-					<Width>30</Width>
-					<Height>30</Height>
+					<Width>28.294</Width>
+					<Height>28.065</Height>
 					<Rotation>0.0</Rotation>
 					<FillColor>-16675529</FillColor>
 					<FillMaterial>null</FillMaterial>
@@ -33089,7 +34398,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<Rectangle>
 					<Id>1648804937727</Id>
 					<Name><![CDATA[rectangle11]]></Name>
-					<X>310</X><Y>860</Y>
+					<X>-99.028</X><Y>-14.032</Y>
 					<Label><X>10</X><Y>10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -33102,16 +34411,104 @@ else if( r_neighborhoodType.getValue() == 1 ){
 					<LineColor/>
 					<LineMaterial>null</LineMaterial>
 					<LineStyle>SOLID</LineStyle>
-					<Width>30</Width>
-					<Height>30</Height>
+					<Width>28.294</Width>
+					<Height>28.065</Height>
 					<Rotation>0.0</Rotation>
 					<FillColor>-16751052</FillColor>
+					<FillMaterial>null</FillMaterial>
+				</Rectangle>
+				<Rectangle>
+					<Id>1648804431067</Id>
+					<Name><![CDATA[rectangle5]]></Name>
+					<X>70.735</X><Y>-14.032</Y>
+					<Label><X>10</X><Y>10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<Width>28.294</Width>
+					<Height>28.065</Height>
+					<Rotation>0.0</Rotation>
+					<FillColor>-4450782</FillColor>
+					<FillMaterial>null</FillMaterial>
+				</Rectangle>
+				<Rectangle>
+					<Id>1648804571567</Id>
+					<Name><![CDATA[rectangle6]]></Name>
+					<X>42.441</X><Y>-14.032</Y>
+					<Label><X>10</X><Y>10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<Width>28.294</Width>
+					<Height>28.065</Height>
+					<Rotation>0.0</Rotation>
+					<FillColor>-1484276</FillColor>
+					<FillMaterial>null</FillMaterial>
+				</Rectangle>
+				<Rectangle>
+					<Id>1648804654495</Id>
+					<Name><![CDATA[rectangle7]]></Name>
+					<X>14.147</X><Y>-14.032</Y>
+					<Label><X>10</X><Y>10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<Width>28.294</Width>
+					<Height>28.065</Height>
+					<Rotation>0.0</Rotation>
+					<FillColor>-544207</FillColor>
+					<FillMaterial>null</FillMaterial>
+				</Rectangle>
+				<Rectangle>
+					<Id>1648804830158</Id>
+					<Name><![CDATA[rectangle9]]></Name>
+					<X>-42.441</X><Y>-14.032</Y>
+					<Label><X>10</X><Y>10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<Width>28.294</Width>
+					<Height>28.065</Height>
+					<Rotation>0.0</Rotation>
+					<FillColor>-7159777</FillColor>
 					<FillMaterial>null</FillMaterial>
 				</Rectangle>
 				<Text>
 					<Id>1648804937731</Id>
 					<Name><![CDATA[text75]]></Name>
-					<X>330</X><Y>866.4</Y>
+					<X>-80.166</X><Y>-8.045</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -33133,7 +34530,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<Text>
 					<Id>1648805105678</Id>
 					<Name><![CDATA[text76]]></Name>
-					<X>360.4</X><Y>866.4</Y>
+					<X>-51.495</X><Y>-8.045</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -33155,7 +34552,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<Text>
 					<Id>1648805158206</Id>
 					<Name><![CDATA[text77]]></Name>
-					<X>390</X><Y>866.4</Y>
+					<X>-23.578</X><Y>-8.045</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -33177,7 +34574,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<Text>
 					<Id>1648805164709</Id>
 					<Name><![CDATA[text78]]></Name>
-					<X>420</X><Y>866.4</Y>
+					<X>4.716</X><Y>-8.045</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -33199,7 +34596,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<Text>
 					<Id>1648805169957</Id>
 					<Name><![CDATA[text79]]></Name>
-					<X>450</X><Y>866.4</Y>
+					<X>33.009</X><Y>-8.045</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -33221,7 +34618,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<Text>
 					<Id>1648805174190</Id>
 					<Name><![CDATA[text80]]></Name>
-					<X>480</X><Y>866.4</Y>
+					<X>61.303</X><Y>-8.045</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -33243,7 +34640,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<Text>
 					<Id>1648805178893</Id>
 					<Name><![CDATA[text81]]></Name>
-					<X>511</X><Y>866.4</Y>
+					<X>90.54</X><Y>-8.045</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -33261,6 +34658,95 @@ else if( r_neighborhoodType.getValue() == 1 ){
 						<Style>1</Style>
 					</Font>
 					<Alignment>RIGHT</Alignment>
+				</Text>
+			</Presentation>
+
+				</Group>
+				<Text>
+					<Id>1648830471292</Id>
+					<Name><![CDATA[text41]]></Name>
+					<X>590</X><Y>730</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Verhoudingen energiesystemen in de wijk:]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>16</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Control Type="RadioButtons">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1648831339604</Id>
+					<Name><![CDATA[radio_yearChoice]]></Name>
+					<X>10</X><Y>760</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="120" Height="70">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<TextColor/>
+						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[if (value == 0){
+	radio_IsolationLevels.setValue(0);
+	s_PV.setValue(20);
+	s_Ev.setValue(7);  // ELaad Outlook Q3 2021 scenario Midden
+	sl_hybridHeatPump_pct.setValue(10);
+	f_heatingSystemsSlidersMatch(2);
+	sl_heatPump_pct.setValue(0);
+	f_heatingSystemsSlidersMatch(3);
+}
+if (value == 1){
+	radio_IsolationLevels.setValue(1);
+	s_PV.setValue(40); // ambitie RESsen Gelderland
+	s_Ev.setValue(18); // ELaad Outlook Q3 2021 scenario Midden
+	sl_hybridHeatPump_pct.setValue(20);
+	f_heatingSystemsSlidersMatch(2);
+	sl_heatPump_pct.setValue(15);
+	f_heatingSystemsSlidersMatch(3);
+}
+]]></ActionCode>
+					</BasicProperties>
+					<ExtendedProperties>
+						<Font Name="Dialog" Size="14" Style="0"/>
+						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
+						<Orientation>VERTICAL</Orientation>
+						<Button><![CDATA[2023]]></Button>
+						<Button><![CDATA[2027]]></Button>
+						<LinkTo>false</LinkTo>
+						<Link>p_yearChoice</Link>
+					</ExtendedProperties>
+				</Control>
+				<Text>
+					<Id>1648831362716</Id>
+					<Name><![CDATA[text42]]></Name>
+					<X>10</X><Y>730</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Selecteer jaar:]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>16</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
 				</Text>
 			</Presentation>
 
@@ -33394,6 +34880,99 @@ else if( r_neighborhoodType.getValue() == 1 ){
 						<Code><![CDATA[(int)s_avgLabel.getValue()]]></Code>
 					</ParameterValue>
 				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_isolationLevel]]></ParameterName>
+					<ParameterValue Class="CodeValue">
+						<Code><![CDATA[radio_IsolationLevels.getValue()]]></Code>
+					</ParameterValue>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_thermostatReduction_degC]]></ParameterName>
+					<ParameterValue Class="CodeValue">
+						<Code><![CDATA[sl_setThermostatLower_degC.getValue()]]></Code>
+					</ParameterValue>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_thermostatReductionParticipation_pct]]></ParameterName>
+					<ParameterValue Class="CodeValue">
+						<Code><![CDATA[sl_thermostatReductionParcicipation.getValue()]]></Code>
+					</ParameterValue>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_thermostatLabelDependent]]></ParameterName>
+					<ParameterValue Class="CodeValue">
+						<Code><![CDATA[v_thermostatLabelDependent]]></Code>
+					</ParameterValue>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_thermostatAdvanceTime_min]]></ParameterName>
+					<ParameterValue Class="CodeValue">
+						<Code><![CDATA[sl_thermostatAdvanceTime.getValue()]]></Code>
+					</ParameterValue>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_thermostatAdvanceTimeParticipation_pct]]></ParameterName>
+					<ParameterValue Class="CodeValue">
+						<Code><![CDATA[sl_thermostatAdvanceTimeParticipation.getValue()]]></Code>
+					</ParameterValue>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_pctGasBurner]]></ParameterName>
+					<ParameterValue Class="CodeValue">
+						<Code><![CDATA[(int)sl_gasBurner_pct.getValue()]]></Code>
+					</ParameterValue>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_pctHeatPump]]></ParameterName>
+					<ParameterValue Class="CodeValue">
+						<Code><![CDATA[(int)sl_heatPump_pct.getValue()]]></Code>
+					</ParameterValue>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_pctHybridHeatPump]]></ParameterName>
+					<ParameterValue Class="CodeValue">
+						<Code><![CDATA[(int)sl_hybridHeatPump_pct.getValue()]]></Code>
+					</ParameterValue>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_pctDistrictHeating]]></ParameterName>
+					<ParameterValue Class="CodeValue">
+						<Code><![CDATA[(int)sl_districtHeating_pct.getValue()]]></Code>
+					</ParameterValue>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_gasPriceAfterTaxInitial_eurpm3]]></ParameterName>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_energyTaxOnGas_eurpm3]]></ParameterName>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_energyTaxDiscount_eur]]></ParameterName>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_VATGas_pct]]></ParameterName>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_gasPriceBeforeTax_eurpm3]]></ParameterName>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_thermostatPriceDependent]]></ParameterName>
+					<ParameterValue Class="CodeValue">
+						<Code><![CDATA[v_gasUsePriceDependent]]></Code>
+					</ParameterValue>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_policyLowerVATOnEnergy]]></ParameterName>
+					<ParameterValue Class="CodeValue">
+						<Code><![CDATA[v_policyLowerVAT]]></Code>
+					</ParameterValue>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_yearChoice]]></ParameterName>
+					<ParameterValue Class="CodeValue">
+						<Code><![CDATA[radio_yearChoice.getValue()]]></Code>
+					</ParameterValue>
+				</Parameter>
 			</Parameters>			
 			<PresentationProperties>
 				<EnableZoomAndPanning>true</EnableZoomAndPanning>
@@ -33407,8 +34986,8 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<StopOption><![CDATA[Stop at specified time]]></StopOption>
 				<InitialDate><![CDATA[1643673600000]]></InitialDate>	
 				<InitialTime><![CDATA[0.0]]></InitialTime>	
-				<FinalDate><![CDATA[1644278400000]]></FinalDate>	
-				<FinalTime><![CDATA[168.0]]></FinalTime>	
+				<FinalDate><![CDATA[1675209600000]]></FinalDate>	
+				<FinalTime><![CDATA[8760.0]]></FinalTime>	
 			</ModelTimeProperties>
 			<BypassInitialScreen>false</BypassInitialScreen>
 		</SimulationExperiment>	
