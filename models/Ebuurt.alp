@@ -12878,6 +12878,10 @@ p_rcValueAverage_m2KpW = t_rcByEnergyLabel(main.c_energyLabels.get(p_energyLabel
 				<Variable Class="PlainVariable">
 					<Id>1648469582173</Id>
 					<Name><![CDATA[v_gasMeter_m3]]></Name>
+					<Description><![CDATA[Gasmeter, houdt het cumulatieve gasverbruik van een huishouden bij voor KPI's op HOLON-niveau en bepaling van gaskosten.
+
+@author: JorritvandenHouten
+@since: 28/03/2022]]></Description>
 					<X>350</X><Y>660</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -12893,6 +12897,10 @@ p_rcValueAverage_m2KpW = t_rcByEnergyLabel(main.c_energyLabels.get(p_energyLabel
 				<Variable Class="PlainVariable">
 					<Id>1648469589554</Id>
 					<Name><![CDATA[v_gasBill_eur]]></Name>
+					<Description><![CDATA[Cumulatieve gasrekening van het huishouden, op basis van het verbruikte gas en het (nu nog statische) gastarief op de main.
+
+@author: JorritvandenHouten
+@since: 28/03/2022]]></Description>
 					<X>350</X><Y>680</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -14061,7 +14069,6 @@ Overruled als instelling op basis van energielabel is aangevinkt in de Main.
 					</Parameter>
 					<Body><![CDATA[//Get info from db
 Tuple tup = selectFrom( db_huishoudens ).where( db_huishoudens.hhid.eq( id ) ).list().get(0);
-//Tuple tupWoning = selectFrom( db_housingdata_utrecht ).where( db_housingdata_utrecht.id.eq( id ) ).list().get(0);
 
 //Set info to houshold	
 postalCode = tup.get( db_huishoudens.home );
@@ -14079,17 +14086,24 @@ work2 = tup.get( db_huishoudens.work2 );
 //education1 = tup.get( huishoudens_deel.education1 );
 //education2 = tup.get( huishoudens_deel.education2 );
 
+//Opzet met boolean gebruikt om de eerdere code voor het ophalen van woningen uit BAG-data te parkeren.
+boolean readBAGData = false;
 
-//Haal ook woningeigenschappen op uit BAG-data
-//p_houseTypeString = tupWoning.get( db_housingdata_utrecht.woningtype );
-//p_floorSurfaceArea = tupWoning.get( db_housingdata_utrecht.oppervlakte_m2 );
-//p_energyLabel = tupWoning.get( db_housingdata_utrecht.schil_label_bekend );
-//p_energyLabelOriginal = p_energyLabel;
-//p_buildingYear = tupWoning.get( db_housingdata_utrecht.bouwjaar_yr );
-
-//Genereer woningen op basis van wijkkeuze
-f_generateHouseCharacterics();
-	
+if ( readBAGData ){
+	//Haal woningeigenschappen op uit BAG-data
+	Tuple tupWoning = selectFrom( db_housingdata_utrecht ).where( db_housingdata_utrecht.id.eq( id ) ).list().get(0);
+		
+	p_houseTypeString = tupWoning.get( db_housingdata_utrecht.woningtype );
+	p_floorSurfaceArea = tupWoning.get( db_housingdata_utrecht.oppervlakte_m2 );
+	p_energyLabel = tupWoning.get( db_housingdata_utrecht.schil_label_bekend );
+	p_energyLabelOriginal = p_energyLabel;
+	p_buildingYear = tupWoning.get( db_housingdata_utrecht.bouwjaar_yr );
+}
+else
+{	
+	//Genereer woningeneigenschappen op basis van wijkkeuze
+	f_generateHouseCharacterics();
+}
 
 //Initialize adult 1
 nbAdults = composition < 2 ? 1 : 2;
@@ -14387,6 +14401,10 @@ v_heatingThermalPower_kW = p_heatingSystem.v_heatDelivery_kW ;]]></Body>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1648469573020</Id>
 					<Name><![CDATA[f_gasBilling]]></Name>
+					<Description><![CDATA[Wordt aangeroepen in main.tijdstapTotalen() om de gaskosten per huishouden elke tijdstap te updaten t.b.v. KPI's.
+
+@author: JorritvandenHouten
+@since: 28/03/2022]]></Description>
 					<X>350</X><Y>640</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -14410,6 +14428,15 @@ v_gasBill_eur = v_gasMeter_m3 * main.v_gasPrice_eurpm3;]]></Body>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1648638253379</Id>
 					<Name><![CDATA[f_generateHouseCharacterics]]></Name>
+					<Description><![CDATA[Deze functie wordt aangeroepen in initializeHouseholds() om woningeigenschappen te genereren en toe te kennen op basis van de gekozen instellingen in het startscherm.
+O.a. ingesteld worden:
+-verhoudingen woningtypen binnen wijk,
+-woningoppervlakte afh. van woningtype (zonder noisefunctie),
+-energielabel op basis van gemiddeld label +noisefunctie.
+-bouwjaar (niet instelbaar, wordt verder nog niet gebruikt).
+
+@author: JorritvandenHouten
+@since: 30/03/2022]]></Description>
 					<X>940</X><Y>160</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -14437,15 +14464,12 @@ else {
 
 // Oppervlakte afhankelijk van woningtype
 p_floorSurfaceArea = roundToInt(main.c_houseTypeData.get(p_houseTypeString));
-//traceln("type: "+p_houseTypeString+" area : "+p_floorSurfaceArea);
 
-// Energielabel afhankelijk van slider
-p_energyLabel = main.c_energyLabelsReverse.get(main.p_avgLabel);
+// Bepaal energielabel afhankelijk van het gekozen gemiddelde energielabel en een noisefunctie voor variatie.
+int assignedEnergyLabel = min(max(main.p_avgLabel + roundToInt(normal(0.5, 0)),0),6);
+p_energyLabel = main.c_energyLabelsReverse.get(assignedEnergyLabel);
 
-//p_energyLabel = tupWoning.get( db_housingdata_utrecht.schil_label_bekend );
-//p_energyLabel = "B";
 p_energyLabelOriginal = p_energyLabel;
-//p_buildingYear = tupWoning.get( db_housingdata_utrecht.bouwjaar_yr );
 p_buildingYear = 1960;]]></Body>
 				</Function>
 			</Functions>
@@ -15371,6 +15395,14 @@ white]]></FillColorCode>
 				<Rectangle>
 					<Id>1643364641610</Id>
 					<Name><![CDATA[rectangle3]]></Name>
+					<Description><![CDATA[Functie wordt aangeroepen in initializeHouseholds() om de eigenschappen van woningen te genereren op basis van de gekozen instellingen in het startscherm.
+-woningtype op basis van gekozen verhoudingen en een randomfunctie,
+-oppervlakte op basis van woningtype,
+-energielabel op basis gekozen gemiddelde waarde en een noisefunctie.
+-bouwjaar (niet instelbaar, wordt verder niet gebruikt).
+
+@author: JorritvandenHouten
+@since: 30/03/2022]]></Description>
 					<X>450</X><Y>60</Y>
 					<Label><X>10</X><Y>10</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -31294,6 +31326,28 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 
 			<Presentation>
 				<Rectangle>
+					<Id>1648804431067</Id>
+					<Name><![CDATA[rectangle5]]></Name>
+					<X>490</X><Y>860</Y>
+					<Label><X>10</X><Y>10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<Width>30</Width>
+					<Height>30</Height>
+					<Rotation>0.0</Rotation>
+					<FillColor>-4450782</FillColor>
+					<FillMaterial>null</FillMaterial>
+				</Rectangle>
+				<Rectangle>
 					<Id>1646173849773</Id>
 					<Name><![CDATA[rectangle3]]></Name>
 					<X>20</X><Y>500</Y>
@@ -32399,6 +32453,10 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1648652160316</Id>
 					<Name><![CDATA[s_fractionHousesTerraced]]></Name>
+					<Description><![CDATA[Slider voor het percentage vrijstaande woningen in de wijk.
+
+@author: JorritvandenHouten
+@since: 30/03/2022]]></Description>
 					<X>100</X><Y>720</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
@@ -32423,13 +32481,20 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1648652160321</Id>
 					<Name><![CDATA[s_avgLabel]]></Name>
-					<X>330</X><Y>840</Y>
+					<Description><![CDATA[Slider voor het gemiddelde energielabel van woningen in de wijk. Op basis hiervan worden energielabels toegekend aan woningen in Huishouden.generateHouseCharacteristics().
+
+*De slider wordt automatisch ingesteld op basis van de wijkkeuze, maar de user kan dit desgewenst overriden.
+*Een noisefunctie varieert de toegewezen labels rond de gekozen waarde. Bij een keuze voor label A of G worden waarden gecapt op deze extremen. In dat geval is het dus strikt genomen niet meer het _gemiddelde_ label. 
+
+@author: JorritvandenHouten
+@since: 30/03/2022]]></Description>
+					<X>325</X><Y>839.167</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<BasicProperties Width="180" Height="30">
+					<BasicProperties Width="180" Height="20.833">
                         <EmbeddedIcon>false</EmbeddedIcon>	
 						<Enabled>true</Enabled>
 					</BasicProperties>
@@ -32447,6 +32512,10 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1648652160324</Id>
 					<Name><![CDATA[s_fractionHousesAppartment]]></Name>
+					<Description><![CDATA[Slider voor het percentage vrijstaande woningen in de wijk.
+
+@author: JorritvandenHouten
+@since: 30/03/2022]]></Description>
 					<X>100</X><Y>750</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
@@ -32471,13 +32540,17 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1648652160326</Id>
 					<Name><![CDATA[r_neighborhoodType]]></Name>
+					<Description><![CDATA[Stelt de gebruiker in staat een keuze te maken uit diverse archetype wijken. Sliderinstellingen updaten automatisch, wijk wordt gegenereerd op basis van de sliders.
+
+@author: JorritvandenHouten
+@since: 30/03/2022]]></Description>
 					<X>100</X><Y>820</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<BasicProperties Width="280" Height="70">
+					<BasicProperties Width="200" Height="70">
                         <EmbeddedIcon>false</EmbeddedIcon>	
 						<TextColor/>
 						<Enabled>true</Enabled>
@@ -32506,8 +32579,8 @@ else if( r_neighborhoodType.getValue() == 1 ){
 						<Font Name="Dialog" Size="14" Style="0"/>
 						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
 						<Orientation>VERTICAL</Orientation>
-						<Button><![CDATA[rijtjeswoningen jaren 60]]></Button>
-						<Button><![CDATA[VVD Villawijk]]></Button>
+						<Button><![CDATA[Rijtjeswoningen jaren 60]]></Button>
+						<Button><![CDATA[Grote vrijstaande villa's]]></Button>
 						<LinkTo>false</LinkTo>
 						<Link>p_neighborhoodType</Link>
 					</ExtendedProperties>
@@ -32516,6 +32589,10 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1648652160336</Id>
 					<Name><![CDATA[s_fractionHousesSemiDetached]]></Name>
+					<Description><![CDATA[Slider voor het percentage vrijstaande woningen in de wijk.
+
+@author: JorritvandenHouten
+@since: 30/03/2022]]></Description>
 					<X>100</X><Y>660</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
@@ -32549,7 +32626,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
-					<Text><![CDATA[value]]></Text>
+					<Text><![CDATA[xx %]]></Text>
 					<TextCode><![CDATA[(int)s_fractionHousesCorner.getValue()+ " %"]]></TextCode>
 					<Font>
 						<Name>SansSerif</Name>
@@ -32562,6 +32639,10 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1648652160340</Id>
 					<Name><![CDATA[s_fractionHousesDetached]]></Name>
+					<Description><![CDATA[Slider voor het percentage vrijstaande woningen in de wijk.
+
+@author: JorritvandenHouten
+@since: 30/03/2022]]></Description>
 					<X>100</X><Y>630</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
@@ -32637,7 +32718,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
-					<Text><![CDATA[value]]></Text>
+					<Text><![CDATA[xx %]]></Text>
 					<TextCode><![CDATA[(int)s_fractionHousesTerraced.getValue()+ " %"]]></TextCode>
 					<Font>
 						<Name>SansSerif</Name>
@@ -32680,7 +32761,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
-					<Text><![CDATA[value]]></Text>
+					<Text><![CDATA[xx %]]></Text>
 					<TextCode><![CDATA[(int)s_fractionHousesAppartment.getValue()+ " %"]]></TextCode>
 					<Font>
 						<Name>SansSerif</Name>
@@ -32702,33 +32783,11 @@ else if( r_neighborhoodType.getValue() == 1 ){
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
-					<Text><![CDATA[value]]></Text>
+					<Text><![CDATA[xx %]]></Text>
 					<TextCode><![CDATA[(int)s_fractionHousesHighrise.getValue()+ " %"]]></TextCode>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>16</Size>
-						<Style>0</Style>
-					</Font>
-					<Alignment>RIGHT</Alignment>
-				</Text>
-				<Text>
-					<Id>1648652160354</Id>
-					<Name><![CDATA[text62]]></Name>
-					<X>510</X><Y>870</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<Rotation>0.0</Rotation>
-					<Color>-16777216</Color>
-					<Text><![CDATA[G]]></Text>
-					<TextCode><![CDATA["G"]]></TextCode>
-					<Font>
-						<Name>SansSerif</Name>
-						<Size>10</Size>
 						<Style>0</Style>
 					</Font>
 					<Alignment>RIGHT</Alignment>
@@ -32767,7 +32826,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
-					<Text><![CDATA[value]]></Text>
+					<Text><![CDATA[xx %]]></Text>
 					<TextCode><![CDATA[(int)s_fractionHousesSemiDetached.getValue()+ " %"]]></TextCode>
 					<Font>
 						<Name>SansSerif</Name>
@@ -32780,6 +32839,10 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1648652160360</Id>
 					<Name><![CDATA[s_fractionHousesHighrise]]></Name>
+					<Description><![CDATA[Slider voor het percentage vrijstaande woningen in de wijk.
+
+@author: JorritvandenHouten
+@since: 30/03/2022]]></Description>
 					<X>100</X><Y>780</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
@@ -32803,7 +32866,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<Text>
 					<Id>1648652160362</Id>
 					<Name><![CDATA[text69]]></Name>
-					<X>330</X><Y>820</Y>
+					<X>310</X><Y>820</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -32863,32 +32926,14 @@ else if( r_neighborhoodType.getValue() == 1 ){
 					</Font>
 					<Alignment>LEFT</Alignment>
 				</Text>
-				<Text>
-					<Id>1648652160368</Id>
-					<Name><![CDATA[text61]]></Name>
-					<X>330</X><Y>870</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<Rotation>0.0</Rotation>
-					<Color>-16777216</Color>
-					<Text><![CDATA[A of beter]]></Text>
-					<TextCode><![CDATA["A of beter"]]></TextCode>
-					<Font>
-						<Name>SansSerif</Name>
-						<Size>10</Size>
-						<Style>0</Style>
-					</Font>
-					<Alignment>LEFT</Alignment>
-				</Text>
 				<Control Type="Slider">
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1648652160370</Id>
 					<Name><![CDATA[s_fractionHousesCorner]]></Name>
+					<Description><![CDATA[Slider voor het percentage vrijstaande woningen in de wijk.
+
+@author: JorritvandenHouten
+@since: 30/03/2022]]></Description>
 					<X>100</X><Y>690</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
@@ -32922,12 +32967,298 @@ else if( r_neighborhoodType.getValue() == 1 ){
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
-					<Text><![CDATA[value]]></Text>
+					<Text><![CDATA[xx %]]></Text>
 					<TextCode><![CDATA[(int)s_fractionHousesDetached.getValue()+ " %"]]></TextCode>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>16</Size>
 						<Style>0</Style>
+					</Font>
+					<Alignment>RIGHT</Alignment>
+				</Text>
+				<Rectangle>
+					<Id>1648804571567</Id>
+					<Name><![CDATA[rectangle6]]></Name>
+					<X>460</X><Y>860</Y>
+					<Label><X>10</X><Y>10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<Width>30</Width>
+					<Height>30</Height>
+					<Rotation>0.0</Rotation>
+					<FillColor>-1484276</FillColor>
+					<FillMaterial>null</FillMaterial>
+				</Rectangle>
+				<Rectangle>
+					<Id>1648804654495</Id>
+					<Name><![CDATA[rectangle7]]></Name>
+					<X>430</X><Y>860</Y>
+					<Label><X>10</X><Y>10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<Width>30</Width>
+					<Height>30</Height>
+					<Rotation>0.0</Rotation>
+					<FillColor>-544207</FillColor>
+					<FillMaterial>null</FillMaterial>
+				</Rectangle>
+				<Rectangle>
+					<Id>1648804751437</Id>
+					<Name><![CDATA[rectangle8]]></Name>
+					<X>400</X><Y>860</Y>
+					<Label><X>10</X><Y>10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<Width>30</Width>
+					<Height>30</Height>
+					<Rotation>0.0</Rotation>
+					<FillColor>-5376</FillColor>
+					<FillMaterial>null</FillMaterial>
+				</Rectangle>
+				<Rectangle>
+					<Id>1648804830158</Id>
+					<Name><![CDATA[rectangle9]]></Name>
+					<X>370</X><Y>860</Y>
+					<Label><X>10</X><Y>10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<Width>30</Width>
+					<Height>30</Height>
+					<Rotation>0.0</Rotation>
+					<FillColor>-7159777</FillColor>
+					<FillMaterial>null</FillMaterial>
+				</Rectangle>
+				<Rectangle>
+					<Id>1648804877870</Id>
+					<Name><![CDATA[rectangle10]]></Name>
+					<X>340</X><Y>860</Y>
+					<Label><X>10</X><Y>10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<Width>30</Width>
+					<Height>30</Height>
+					<Rotation>0.0</Rotation>
+					<FillColor>-16675529</FillColor>
+					<FillMaterial>null</FillMaterial>
+				</Rectangle>
+				<Rectangle>
+					<Id>1648804937727</Id>
+					<Name><![CDATA[rectangle11]]></Name>
+					<X>310</X><Y>860</Y>
+					<Label><X>10</X><Y>10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<Width>30</Width>
+					<Height>30</Height>
+					<Rotation>0.0</Rotation>
+					<FillColor>-16751052</FillColor>
+					<FillMaterial>null</FillMaterial>
+				</Rectangle>
+				<Text>
+					<Id>1648804937731</Id>
+					<Name><![CDATA[text75]]></Name>
+					<X>330</X><Y>866.4</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-1</Color>
+					<Text><![CDATA[A]]></Text>
+					<TextCode><![CDATA["A"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>14</Size>
+						<Style>1</Style>
+					</Font>
+					<Alignment>RIGHT</Alignment>
+				</Text>
+				<Text>
+					<Id>1648805105678</Id>
+					<Name><![CDATA[text76]]></Name>
+					<X>360.4</X><Y>866.4</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-1</Color>
+					<Text><![CDATA[B]]></Text>
+					<TextCode><![CDATA["B"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>14</Size>
+						<Style>1</Style>
+					</Font>
+					<Alignment>RIGHT</Alignment>
+				</Text>
+				<Text>
+					<Id>1648805158206</Id>
+					<Name><![CDATA[text77]]></Name>
+					<X>390</X><Y>866.4</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-1</Color>
+					<Text><![CDATA[C]]></Text>
+					<TextCode><![CDATA["C"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>14</Size>
+						<Style>1</Style>
+					</Font>
+					<Alignment>RIGHT</Alignment>
+				</Text>
+				<Text>
+					<Id>1648805164709</Id>
+					<Name><![CDATA[text78]]></Name>
+					<X>420</X><Y>866.4</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-1</Color>
+					<Text><![CDATA[D]]></Text>
+					<TextCode><![CDATA["D"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>14</Size>
+						<Style>1</Style>
+					</Font>
+					<Alignment>RIGHT</Alignment>
+				</Text>
+				<Text>
+					<Id>1648805169957</Id>
+					<Name><![CDATA[text79]]></Name>
+					<X>450</X><Y>866.4</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-1</Color>
+					<Text><![CDATA[E]]></Text>
+					<TextCode><![CDATA["E"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>14</Size>
+						<Style>1</Style>
+					</Font>
+					<Alignment>RIGHT</Alignment>
+				</Text>
+				<Text>
+					<Id>1648805174190</Id>
+					<Name><![CDATA[text80]]></Name>
+					<X>480</X><Y>866.4</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-1</Color>
+					<Text><![CDATA[F]]></Text>
+					<TextCode><![CDATA["F"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>14</Size>
+						<Style>1</Style>
+					</Font>
+					<Alignment>RIGHT</Alignment>
+				</Text>
+				<Text>
+					<Id>1648805178893</Id>
+					<Name><![CDATA[text81]]></Name>
+					<X>511</X><Y>866.4</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-1</Color>
+					<Text><![CDATA[G]]></Text>
+					<TextCode><![CDATA["G"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>14</Size>
+						<Style>1</Style>
 					</Font>
 					<Alignment>RIGHT</Alignment>
 				</Text>
