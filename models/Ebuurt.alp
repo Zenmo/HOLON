@@ -103,6 +103,7 @@ for ( int i = 0; i < p_boot_woningen; i++) {
 		h.energyManager.v_bidPriceV2G_eurpkWh=uniform(0.25, 0.30);
 	}
 }
+f_AddHeatingSystemsToHouses();
 f_setHeatingTypes(0);
 f_setIsolationLevels();
 f_setHeatingBehavior();
@@ -2997,7 +2998,7 @@ traceln( basislastElektriciteitsverbruikHuishoudensJaartotaal / huishoudens.size
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
 					<Action><![CDATA[//Buiten temperatuur
-Tbuiten = temperatuurFunctie(time(HOUR)+hourOfYearStart);
+Tbuiten = temperatuurFunctie( time(HOUR) + hourOfYearStart );
 
 // Incentives
 incentiveGenerator.f_setCongestionTariff(); // Dynamic incentives need to be updated every timestep
@@ -3012,17 +3013,20 @@ for ( Huishouden h : huishoudens ) {
 // District heating?
 v_districtHeatDemand_kW = 0.0;
 warmtepompVerbruik_kW = 0.0;
+
 for (Huishouden h : huishoudens) {
-	if ( h.p_heatingSystem instanceof HS_DistrictHeating ) {
-		HS_DistrictHeating x = (HS_DistrictHeating)h.p_heatingSystem;
-		v_districtHeatDemand_kW += x.v_districtHeatAbsorption_kW;
-	} else if ( h.p_heatingSystem instanceof HS_Heatpump ) {
-		HS_Heatpump x = (HS_Heatpump)h.p_heatingSystem;
-		warmtepompVerbruik_kW += x.v_heatPumpPower_kW;
-	} else if ( h.p_heatingSystem instanceof HS_HeatpumpHybrid ) {
-		HS_HeatpumpHybrid x = (HS_HeatpumpHybrid)h.p_heatingSystem;
-		warmtepompVerbruik_kW += x.v_heatPumpPower_kW;
-	}
+	HeatingSystem hs = h.heatingSystem;
+	switch (hs.p_HeatingType) {
+		case OL_HeatingTypes.DistrictHeating:
+		v_districtHeatDemand_kW += hs.v_HeatDelivery_kW; //TODO moet hier niet ook hot water delivery bij?
+		break;
+		
+		case OL_HeatingTypes.HeatPump || OL_HeatingTypes.HeatPump_Hybrid:
+		warmtepompVerbruik_kW += hs.v_ElectricityConsumption_kW;
+		break;
+		
+		//TODO hier moet boiler en evt heatpumpBoiler nog bij neem ik aan (Peter)
+	}	
 }
 
 // Wijkvermogens
@@ -3054,16 +3058,22 @@ v_wijkTotaalBenzineVerbruik_l = sumWhere(autos, x->x.v_fuelConsumed_l, x->x.p_fu
 v_wijkTotaalDieselVerbruik_l = sumWhere(autos, x->x.v_fuelConsumed_l, x->x.p_fuelType==fuelType.diesel && !x.elektrisch);
 
 v_wijkTotaalGasVerbruik_m3 = 0.0;
-for (Huishouden h : huishoudens) {
-	if ( h.p_heatingSystem instanceof HS_Gasburner ) {
-		HS_Gasburner x = (HS_Gasburner)h.p_heatingSystem;
-		v_wijkTotaalGasVerbruik_m3 += x.v_gasConsumed_m3;
-	}
-	if ( h.p_heatingSystem instanceof HS_HeatpumpHybrid ) {
-		HS_HeatpumpHybrid x = (HS_HeatpumpHybrid)h.p_heatingSystem;
-		v_wijkTotaalGasVerbruik_m3 += x.v_gasConsumed_m3;
-	}
-}
+v_wijkTotaalGasVerbruik_m3 = sumWhere( huishoudens, 
+	h -> h.heatingSystem.v_GasConsumption_m3ph * dt_h, 
+	h -> ( h.heatingSystem.p_HeatingType.equals( OL_HeatingTypes.GasHeater ) || h.heatingSystem.p_HeatingType.equals( OL_HeatingTypes.HeatPump_Hybrid ) ) 
+	);
+
+//for (Huishouden h : huishoudens) {
+	//if ( h.heatingSystem.p_HeatingType.equals(OL_HeatingTypes.GasHeater) || h.heatingSystem.p_HeatingType.equals(OL_HeatingTypes.HeatPump_Hybrid) ) {
+		//HS_Gasburner x = (HS_Gasburner)h.p_heatingSystem;
+		//v_wijkTotaalGasVerbruik_m3 += h.heatingSystem.v_gasConsumed_m3;
+	//}
+	//if ( h.p_heatingSystem instanceof HS_HeatpumpHybrid ) {
+		//HS_HeatpumpHybrid x = (HS_HeatpumpHybrid)h.p_heatingSystem;
+		//v_wijkTotaalGasVerbruik_m3 += x.v_gasConsumed_m3;
+	//}
+//}
+
 // CO2 totaal wijk
 v_WijkTotaalCO2_kg = (p_GasCO2_gpm3 * v_wijkTotaalGasVerbruik_m3 + p_GridPowerCO2_gpkWh * v_wijkNettoElectriciteitsVerbruik_kWh + p_petrolWTWCO2_gpl * v_wijkTotaalBenzineVerbruik_l + p_dieselWTWCO2_gpl * v_wijkTotaalDieselVerbruik_l)/1000;
 
@@ -3389,29 +3399,26 @@ int nbHybridHeatpump = 0;
 int nbDistrictheating = 0;
 
 for (Huishouden h : huishoudens) {
-	h.p_heatingSystem = null;
-	double rand = uniform(0,100);
-	//traceln(rand);
+	HeatingSystem hs = h.heatingSystem;
+	double rand = uniform(0, 100);
 	if (rand < pctArray[0]) {		
-		h.p_heatingSystemType=HeatingTypes.CV_ketel;
-		h.p_heatingSystem = new HS_Gasburner();	
+		hs.p_HeatingType = OL_HeatingTypes.GasHeater;
+		hs.p_MyPrimaryHeatingSystem = new J_GasHeater( hs, 20);	
 		nbGasBurner++;
 	} else if ( rand >= pctArray[0] && rand < pctArray[1]+pctArray[0]) {
-		h.p_heatingSystemType=HeatingTypes.HeatPump;	
-		h.p_heatingSystem = new HS_Heatpump();
+		hs.p_HeatingType = OL_HeatingTypes.HeatPump;
+		hs.p_MyPrimaryHeatingSystem = new J_Heatpump( hs, 3);
 		nbHeatpump++;
 	} else if ( rand >= pctArray[0] + pctArray[1] && rand < pctArray[1]+pctArray[0]+pctArray[2]) {
-		h.p_heatingSystemType=HeatingTypes.HeatPump_Hybrid;	
-		h.p_heatingSystem = new HS_HeatpumpHybrid();
+		hs.p_HeatingType = OL_HeatingTypes.HeatPump_Hybrid;
+		hs.p_MyPrimaryHeatingSystem = new J_Heatpump( hs, 3);
+		hs.p_MyPrimaryHeatingSystem = new J_GasHeater( hs, 20);
 		nbHybridHeatpump++;
 	} else if ( rand >= pctArray[0] + pctArray[1] + pctArray[2]) {
-		h.p_heatingSystemType=HeatingTypes.DistrictHeating;	
-		h.p_heatingSystem = new HS_DistrictHeating();
+		hs.p_HeatingType = OL_HeatingTypes.DistrictHeating;
+		hs.p_MyPrimaryHeatingSystem = new J_DistrictHeatingCon( hs, 10);
 		nbDistrictheating++;
 	}
-	h.p_heatingSystem.f_startup();
-	h.p_heatingSystem.l_Household.connectTo(h);
-	h.agentLink.connectTo(h.p_heatingSystem);
 }
 traceln(nbGasBurner + " CV ketels, " + nbHeatpump + " warmtepompen, " + nbHybridHeatpump + " hybride warmtepompen, " + nbDistrictheating + " stadsverwarming");
 ]]></Body>
@@ -3528,6 +3535,19 @@ else if( p_neighborhoodType == 1 ){
 	//root.s_avgLabel.getValue();
 }]]></Body>
 				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1650011866010</Id>
+					<Name><![CDATA[f_AddHeatingSystemsToHouses]]></Name>
+					<Description><![CDATA[@author Peter Hogeveen
+@since 15-04-2022]]></Description>
+					<X>-220</X><Y>1500</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+				</Function>
 			</Functions>
 			<TableFunctions>
 				<TableFunction AccessType="public" StaticFunction="false">
@@ -3619,12 +3639,6 @@ else if( p_neighborhoodType == 1 ){
 						</GenericParameterSubstituteReference>
 					</GenericParameterSubstitute>
 					<Parameters>
-						<Parameter>
-							<Name><![CDATA[p_heatingSystemType]]></Name>
-							<Value Class="CodeValue">
-								<Code><![CDATA[randomTrue(1/3.0) ? HeatingTypes.CV_ketel : (randomTrue(0.5) ? HeatingTypes.HeatPump : HeatingTypes.HeatPump_Hybrid)]]></Code>
-							</Value>
-						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_floorSurfaceArea]]></Name>
 						</Parameter>
@@ -3735,9 +3749,6 @@ else if( p_neighborhoodType == 1 ){
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_rcValueAverage_m2KpW]]></Name>
-						</Parameter>
-						<Parameter>
-							<Name><![CDATA[p_heatingSystem]]></Name>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_setpointNight]]></Name>
@@ -13594,27 +13605,6 @@ p_rcValueAverage_m2KpW = t_rcByEnergyLabel(main.c_energyLabels.get(p_energyLabel
 					</Properties>
 				</Variable>
 				<Variable Class="Parameter">
-					<Id>1641891987662</Id>
-					<Name><![CDATA[p_heatingSystemType]]></Name>
-					<X>820</X><Y>560</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[HeatingTypes]]></Type>
-						<UnitType><![CDATA[NONE]]></UnitType>
-						<SdArray>false</SdArray>
-						<ParameterEditor>
-							<Id>1641891987660</Id>
-							<EditorContolType>TEXT_BOX</EditorContolType>
-							<MinSliderValue><![CDATA[0]]></MinSliderValue>
-							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
-							<DelimeterType>NO_DELIMETER</DelimeterType>
-						</ParameterEditor>
-					</Properties>                 
-				</Variable>
-				<Variable Class="Parameter">
 					<Id>1641892549721</Id>
 					<Name><![CDATA[p_floorSurfaceArea]]></Name>
 					<X>40</X><Y>250</Y>
@@ -14437,27 +14427,6 @@ p_rcValueAverage_m2KpW = t_rcByEnergyLabel(main.c_energyLabels.get(p_energyLabel
 					</Properties>                 
 				</Variable>
 				<Variable Class="Parameter">
-					<Id>1648113930688</Id>
-					<Name><![CDATA[p_heatingSystem]]></Name>
-					<X>820</X><Y>580</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[HeatingSystem]]></Type>
-						<UnitType><![CDATA[NONE]]></UnitType>
-						<SdArray>false</SdArray>
-						<ParameterEditor>
-							<Id>1648113930686</Id>
-							<EditorContolType>TEXT_BOX</EditorContolType>
-							<MinSliderValue><![CDATA[0]]></MinSliderValue>
-							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
-							<DelimeterType>NO_DELIMETER</DelimeterType>
-						</ParameterEditor>
-					</Properties>                 
-				</Variable>
-				<Variable Class="Parameter">
 					<Id>1648467872045</Id>
 					<Name><![CDATA[p_setpointNight]]></Name>
 					<Description><![CDATA[Setpoint voor de nacht
@@ -15088,8 +15057,8 @@ v_heatingThermalPower_kW = p_heatingSystem.v_heatDelivery_kW ;]]></Body>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[//
-double old_gasMeterReading = v_gasMeter_m3;
+					<Body><![CDATA[/**
+//double old_gasMeterReading = v_gasMeter_m3;
 
 if ( p_heatingSystem instanceof HS_Gasburner ) {
 		HS_Gasburner x = (HS_Gasburner)p_heatingSystem;
@@ -15099,10 +15068,13 @@ if ( p_heatingSystem instanceof HS_Gasburner ) {
 		HS_HeatpumpHybrid x = (HS_HeatpumpHybrid)p_heatingSystem;
 		v_gasMeter_m3 = x.v_gasConsumed_m3;
 	}
-
 double gasUsed_m3 = v_gasMeter_m3 - old_gasMeterReading;
 double v_gasCost_eur = gasUsed_m3 * main.v_gasPrice_eurpm3;
 v_gasBill_eur += v_gasCost_eur;
+*/ 
+
+v_gasBill_eur += ( heatingSystem.v_CumGasConsumed_m3 - v_gasMeter_m3 ) * main.v_gasPrice_eurpm3;
+v_gasMeter_m3 = heatingSystem.v_CumGasConsumed_m3;
 
 //bereken incentive afname gas a.g.v. prijselasticiteit
 if ( main.p_thermostatPriceDependent ){
@@ -15298,25 +15270,6 @@ TODO: data afleiden en corrigeren.
 					<HandleReceiveInConnections>false</HandleReceiveInConnections>
 					<AgentLinkType>COLLECTION_OF_LINKS</AgentLinkType>
 					<AgentLinkBidirectional>true</AgentLinkBidirectional>
-					<MessageType><![CDATA[Object]]></MessageType>
-					<LineStyle>SOLID</LineStyle>
-					<LineWidth>1</LineWidth>
-					<LineColor>-16777216</LineColor>
-					<LineZOrder>UNDER_AGENTS</LineZOrder>
-					<LineArrow>NONE</LineArrow>
-					<LineArrowPosition>END</LineArrowPosition>
-				</AgentLink>
-				<AgentLink>
-					<Id>1648288796449</Id>
-					<Name><![CDATA[agentLink]]></Name>
-					<X>1300</X><Y>550</Y>
-					<Label><X>15</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<HandleReceiveInConnections>false</HandleReceiveInConnections>
-					<AgentLinkType>SINGLE_LINK</AgentLinkType>
-					<AgentLinkBidirectional>false</AgentLinkBidirectional>
 					<MessageType><![CDATA[Object]]></MessageType>
 					<LineStyle>SOLID</LineStyle>
 					<LineWidth>1</LineWidth>
@@ -15555,6 +15508,76 @@ TODO: data afleiden en corrigeren.
 						<Code><![CDATA[""]]></Code>
 					</LocationNameCode>
 					<InitializationType>EMPTY</InitializationType>
+					<InitializationDatabaseTableQuery>
+						<TableReference>
+						</TableReference>
+					</InitializationDatabaseTableQuery>
+					<InitializationDatabaseType>ONE_AGENT_PER_DATABASE_RECORD</InitializationDatabaseType>
+					<QuantityColumn>
+					</QuantityColumn>
+				</EmbeddedObject>
+				<EmbeddedObject>
+					<Id>1650012398056</Id>
+					<Name><![CDATA[heatingSystem]]></Name>
+					<X>1340</X><Y>570</Y>
+					<Label><X>-35</X><Y>-30</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<ActiveObjectClass>
+						<PackageName><![CDATA[heatingsystems]]></PackageName>
+						<ClassName><![CDATA[HeatingSystem]]></ClassName>
+					</ActiveObjectClass>
+					<GenericParameterSubstitute>
+						<GenericParameterSubstituteReference>
+							<PackageName><![CDATA[heatingsystems]]></PackageName>
+							<ClassName><![CDATA[HeatingSystem]]></ClassName>
+							<ItemName><![CDATA[1648027127020]]></ItemName>
+						</GenericParameterSubstituteReference>
+					</GenericParameterSubstitute>
+					<Parameters>
+						<Parameter>
+							<Name><![CDATA[p_HeatingType]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_MyPrimaryHeatingSystem]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_MySecondaryHeatingSystem]]></Name>
+						</Parameter>
+					</Parameters>
+					<ReplicationFlag>false</ReplicationFlag>
+					<Replication Class="CodeValue">
+						<Code><![CDATA[100]]></Code>
+					</Replication>
+					<CollectionType>ARRAY_LIST_BASED</CollectionType>
+					<InEnvironment>true</InEnvironment>	
+					<InitialLocationType>AT_ANIMATION_POSITION</InitialLocationType>
+					<XCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</XCode>
+					<YCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</YCode>
+					<ZCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ZCode>
+					<ColumnCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ColumnCode>
+					<RowCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</RowCode>
+					<LatitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LatitudeCode>
+					<LongitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LongitudeCode>
+					<LocationNameCode Class="CodeValue">
+						<Code><![CDATA[""]]></Code>
+					</LocationNameCode>
+					<InitializationType>SPECIFIED_NUMBER</InitializationType>
 					<InitializationDatabaseTableQuery>
 						<TableReference>
 						</TableReference>
@@ -16518,7 +16541,7 @@ traceln("test");]]></ActionCode>
 					<Id>1648289661115</Id>
 					<Expression><![CDATA[my_dataset]]></Expression>
 					<Color>-13447886</Color>
-					<Expression2><![CDATA[p_heatingSystem.v_HeatRequest_kW]]></Expression2>
+					<Expression2><![CDATA[heatingSystem.v_HeatRequested_kW]]></Expression2>
 					<Expression2Flag>true</Expression2Flag>
 						<PointStyle>NONE</PointStyle>
 						<LineWidth>1.0</LineWidth>
@@ -16528,7 +16551,7 @@ traceln("test");]]></ActionCode>
 					<Id>1648289661116</Id>
 					<Expression><![CDATA[my_dataset1]]></Expression>
 					<Color>-16744448</Color>
-					<Expression2><![CDATA[p_heatingSystem.v_heatDelivery_kW]]></Expression2>
+					<Expression2><![CDATA[heatingSystem.v_HeatDelivery_kW]]></Expression2>
 					<Expression2Flag>true</Expression2Flag>
 						<PointStyle>CIRCLE</PointStyle>
 						<LineWidth>1.0</LineWidth>
@@ -16538,7 +16561,7 @@ traceln("test");]]></ActionCode>
 					<Id>1648289661117</Id>
 					<Expression><![CDATA[my_dataset2]]></Expression>
 					<Color>-16711681</Color>
-					<Expression2><![CDATA[p_heatingSystem.v_HotWaterRequest_kW]]></Expression2>
+					<Expression2><![CDATA[heatingSystem.v_HotWaterRequested_kW]]></Expression2>
 					<Expression2Flag>true</Expression2Flag>
 						<PointStyle>NONE</PointStyle>
 						<LineWidth>1.0</LineWidth>
@@ -16548,7 +16571,7 @@ traceln("test");]]></ActionCode>
 					<Id>1648289661118</Id>
 					<Expression><![CDATA[my_dataset3]]></Expression>
 					<Color>-14774017</Color>
-					<Expression2><![CDATA[p_heatingSystem.v_hotWaterProduction_kW]]></Expression2>
+					<Expression2><![CDATA[heatingSystem.v_hotWaterDelivery_kW]]></Expression2>
 					<Expression2Flag>true</Expression2Flag>
 						<PointStyle>CIRCLE</PointStyle>
 						<LineWidth>1.0</LineWidth>
