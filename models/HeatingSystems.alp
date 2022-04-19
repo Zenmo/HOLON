@@ -1165,17 +1165,23 @@
 						<Name><![CDATA[timeStep_HR]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
-					<Body><![CDATA[v_HeatDelivery_kW = 0;
+					<Body><![CDATA[//Reset waarden voor tijdstap
+v_HeatDelivery_kW = 0;
 v_hotWaterDelivery_kW = 0;
 v_GasConsumption_m3ph = 0;
 v_ElectricityConsumption_kW = 0;
 
+//Initialiseer lokale variabelen
 J_GasHeater gasheater;
 J_Heatpump heatpump;
 J_Boiler boiler;
 J_DistrictHeatingCon districtHeatingCon;
 double COPheating;
 double COPwater;
+
+//Zet de warmte vraag van deze staat stap
+v_HeatRequested_kW = heatRequest_kW;
+v_HotWaterRequested_kW = hotWaterRequest_kW;
 
 //Produceer warm water en warmte
 switch (p_HeatingType) {
@@ -1192,8 +1198,8 @@ switch (p_HeatingType) {
 		COPheating = tf_heatPumpCOPspaceHeating( temperatureOutside );
 		t_COPHeat.setText("COP Heating = " + COPheating);
 		heatpump = (J_Heatpump)p_MyPrimaryHeatingSystem;
-		heatpump.produceHotWater( hotWaterRequest_kW, COPwater);
-		heatpump.produceHeat(heatRequest_kW, COPheating);
+		heatpump.produceHotWater( hotWaterRequest_kW, COPwater, true);
+		heatpump.produceHeat(heatRequest_kW, COPheating, false);
 		v_ElectricityConsumption_kW = heatpump.getElectricityConsumption();
 	break;
 	
@@ -1201,18 +1207,15 @@ switch (p_HeatingType) {
 		COPheating = tf_heatPumpCOPspaceHeating( temperatureOutside );
 		heatpump = (J_Heatpump)p_MyPrimaryHeatingSystem;
 		boiler = (J_Boiler)p_MySecondaryHeatingSystem;
-		heatpump.currentPower_kW = 0;
-		heatpump.produceHeat( heatRequest_kW, COPheating );
+		heatpump.produceHeat( heatRequest_kW, COPheating, true );
 		boiler.produceHotWater( hotWaterRequest_kW );
 		v_ElectricityConsumption_kW = heatpump.getElectricityConsumption() + boiler.getElectricityConsumption();
-		
 	break;
 	
 	case HeatPump_Hybrid:
 		COPheating = tf_heatPumpCOPspaceHeating( temperatureOutside );
 		heatpump = (J_Heatpump)p_MyPrimaryHeatingSystem;
 		gasheater = (J_GasHeater)p_MySecondaryHeatingSystem;
-		heatpump.currentPower_kW = 0;
 		if ( COPheating < p_hybridCOPThreshold ) {
 			gasheater.produceHotWater( hotWaterRequest_kW );
 			gasheater.produceHeat( heatRequest_kW );
@@ -1222,7 +1225,7 @@ switch (p_HeatingType) {
 			gasheater.heatDelivery_kW = 0;
 			gasheater.produceHotWater( hotWaterRequest_kW );
 			v_GasConsumption_m3ph = gasheater.getGasConsumption();
-			heatpump.produceHeat( heatRequest_kW, COPheating );
+			heatpump.produceHeat( heatRequest_kW, COPheating, true );
 			v_ElectricityConsumption_kW = heatpump.getElectricityConsumption();
 		}
 	break;
@@ -1233,7 +1236,7 @@ switch (p_HeatingType) {
 		districtHeatingCon.deliverHeat( heatRequest_kW );
 	break;
 	
-	case  DistrictHeating_w_Boiler:
+	case DistrictHeating_w_Boiler:
 		districtHeatingCon = (J_DistrictHeatingCon)p_MyPrimaryHeatingSystem;
 		boiler = (J_Boiler)p_MySecondaryHeatingSystem;
 		districtHeatingCon.deliverHeat(heatRequest_kW);
@@ -1245,16 +1248,13 @@ switch (p_HeatingType) {
 		error("no correct heating system in place");
 }
 
+plot.updateData();
+
 //Bereken totalen van deze tijdstap
 v_HeatDelivered_kWh += v_HeatDelivery_kW * timeStep_HR ;
 v_hotWaterDelivered_kWh += v_hotWaterDelivery_kW * timeStep_HR ;
 v_CumGasConsumed_m3 += v_GasConsumption_m3ph * timeStep_HR;
-v_CumElectricityConsumed_kWh += v_ElectricityConsumption_kW * timeStep_HR;
-
-v_HeatRequested_kW = heatRequest_kW;
-v_HotWaterRequested_kW = hotWaterRequest_kW;
-
-plot.updateData();]]></Body>
+v_CumElectricityConsumed_kWh += v_ElectricityConsumption_kW * timeStep_HR;]]></Body>
 				</Function>
 			</Functions>
 			<TableFunctions>
@@ -2110,18 +2110,24 @@ public class J_Heatpump implements Serializable {
 		return super.toString();
 	}
 
-	public void produceHotWater( double hotWaterRequest_kW, double COPwater ){
-		hotWaterDelivery_kW = min( hotWaterRequest_kW, maxPower_kW * COPwater ) ;
-		currentPower_kW = hotWaterDelivery_kW / COPwater;
+	public void produceHotWater( double hotWaterRequest_kW, double COPwater, boolean waterFirst ){
+		if (waterFirst) {
+			currentPower_kW = 0;
+		}
+		hotWaterDelivery_kW = min( hotWaterRequest_kW, ( maxPower_kW - currentPower_kW ) * COPwater ) ;
+		currentPower_kW += hotWaterDelivery_kW / COPwater;
 		myHeatingSystem.v_hotWaterDelivery_kW = hotWaterDelivery_kW;
 	}
 	
-	public void produceHeat( double heatRequest_kW, double COPheating ){
+	public void produceHeat( double heatRequest_kW, double COPheating, boolean heatFirst ){
+		if (heatFirst) {
+			currentPower_kW = 0;
+		}
 		heatDelivery_kW = min( heatRequest_kW, (maxPower_kW - currentPower_kW ) * COPheating) ; // Hot water gets priority
-		currentPower_kW += heatDelivery_kW / COPheating; //LET OP: als hotwater niet wrodt gemaakt dan moet de currentPower wel op 0 worden gezet voor deze functie wordt aangeroepen.
+		currentPower_kW += heatDelivery_kW / COPheating; 
 		myHeatingSystem.v_HeatDelivery_kW = heatDelivery_kW;
 	}
-
+	
 	public double getElectricityConsumption() {
 		return currentPower_kW;
 	}
