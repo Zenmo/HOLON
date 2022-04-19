@@ -1187,8 +1187,8 @@ v_HotWaterRequested_kW = hotWaterRequest_kW;
 switch (p_HeatingType) {
 	case GasHeater:
 		gasheater = (J_GasHeater)p_MyPrimaryHeatingSystem;
-		gasheater.produceHotWater( hotWaterRequest_kW );
-		gasheater.produceHeat( heatRequest_kW );
+		gasheater.produceHotWater( hotWaterRequest_kW, true );
+		gasheater.produceHeat( heatRequest_kW, false );
 		v_GasConsumption_m3ph = gasheater.getGasConsumption();
 	break;
 	
@@ -1217,13 +1217,12 @@ switch (p_HeatingType) {
 		heatpump = (J_Heatpump)p_MyPrimaryHeatingSystem;
 		gasheater = (J_GasHeater)p_MySecondaryHeatingSystem;
 		if ( COPheating < p_hybridCOPThreshold ) {
-			gasheater.produceHotWater( hotWaterRequest_kW );
-			gasheater.produceHeat( heatRequest_kW );
+			gasheater.produceHotWater( hotWaterRequest_kW, true );
+			gasheater.produceHeat( heatRequest_kW, false );
 			v_GasConsumption_m3ph = gasheater.getGasConsumption();
 		}
 		else {
-			gasheater.heatDelivery_kW = 0;
-			gasheater.produceHotWater( hotWaterRequest_kW );
+			gasheater.produceHotWater( hotWaterRequest_kW, true );
 			v_GasConsumption_m3ph = gasheater.getGasConsumption();
 			heatpump.produceHeat( heatRequest_kW, COPheating, true );
 			v_ElectricityConsumption_kW = heatpump.getElectricityConsumption();
@@ -2032,6 +2031,7 @@ public class J_GasHeater implements Serializable {
 	double efficiency;
 	double hotWaterDelivery_kW;
 	double heatDelivery_kW;
+	double currentPower_kW;
 	double gasConsumption_m3ph;
 	double energyDensityGas_kWhPm3; //moeten constanten eigenlijk in de main staan?
     //GasHeater esdlObject;
@@ -2052,18 +2052,28 @@ public class J_GasHeater implements Serializable {
 		return super.toString();
 	}
 
-	public void produceHotWater( double hotWaterRequest_kW ) {
-		hotWaterDelivery_kW = min( hotWaterRequest_kW, maxPower_kW );
+	public void produceHotWater( double hotWaterRequest_kW, boolean waterFirst ) {
+		if ( waterFirst ) {
+			currentPower_kW = 0;
+			heatDelivery_kW = 0;
+		}
+		hotWaterDelivery_kW = min( hotWaterRequest_kW, maxPower_kW - currentPower_kW );
+		currentPower_kW += hotWaterDelivery_kW;
 		myHeatingSystem.v_hotWaterDelivery_kW = hotWaterDelivery_kW;
 	}
 	
-	public void produceHeat( double heatRequest_kW ){
-		heatDelivery_kW = min( heatRequest_kW, maxPower_kW - hotWaterDelivery_kW ) ; // Hot water gets priority
+	public void produceHeat( double heatRequest_kW, boolean heatFirst ){
+		if ( heatFirst ) {
+			currentPower_kW = 0;
+			hotWaterDelivery_kW = 0;
+		}
+		heatDelivery_kW = min( heatRequest_kW, maxPower_kW - currentPower_kW ) ; // Hot water gets priority
+		currentPower_kW += heatDelivery_kW;
 		myHeatingSystem.v_HeatDelivery_kW = heatDelivery_kW;
 	}
 	
 	public double getGasConsumption() {
-		gasConsumption_m3ph = (heatDelivery_kW + hotWaterDelivery_kW) / efficiency / energyDensityGas_kWhPm3;
+		gasConsumption_m3ph = currentPower_kW / efficiency / energyDensityGas_kWhPm3;
 		return gasConsumption_m3ph;
 	}
 
@@ -2113,6 +2123,7 @@ public class J_Heatpump implements Serializable {
 	public void produceHotWater( double hotWaterRequest_kW, double COPwater, boolean waterFirst ){
 		if (waterFirst) {
 			currentPower_kW = 0;
+			heatDelivery_kW = 0;
 		}
 		hotWaterDelivery_kW = min( hotWaterRequest_kW, ( maxPower_kW - currentPower_kW ) * COPwater ) ;
 		currentPower_kW += hotWaterDelivery_kW / COPwater;
@@ -2122,6 +2133,7 @@ public class J_Heatpump implements Serializable {
 	public void produceHeat( double heatRequest_kW, double COPheating, boolean heatFirst ){
 		if (heatFirst) {
 			currentPower_kW = 0;
+			hotWaterDelivery_kW = 0;
 		}
 		heatDelivery_kW = min( heatRequest_kW, (maxPower_kW - currentPower_kW ) * COPheating) ; // Hot water gets priority
 		currentPower_kW += heatDelivery_kW / COPheating; 
