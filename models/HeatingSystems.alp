@@ -43,6 +43,7 @@
 		<OptionList>
 			<Id>1648661069364</Id>
 			<Name><![CDATA[OL_HouseTypes]]></Name>
+			<ExcludeFromBuild>true</ExcludeFromBuild>
 			<Option>
 				<Id>1648661069365</Id>
 				<Name><![CDATA[DETACHED]]></Name>
@@ -1231,14 +1232,14 @@ switch (p_HeatingType) {
 	
 	case DistrictHeating:
 		districtHeatingCon = (J_DistrictHeatingCon)p_MyPrimaryHeatingSystem;
-		districtHeatingCon.deliverHotWater( hotWaterRequest_kW );
-		districtHeatingCon.deliverHeat( heatRequest_kW );
+		districtHeatingCon.deliverHotWater( hotWaterRequest_kW, true );
+		districtHeatingCon.deliverHeat( heatRequest_kW, false );
 	break;
 	
 	case DistrictHeating_w_Boiler:
 		districtHeatingCon = (J_DistrictHeatingCon)p_MyPrimaryHeatingSystem;
 		boiler = (J_Boiler)p_MySecondaryHeatingSystem;
-		districtHeatingCon.deliverHeat(heatRequest_kW);
+		districtHeatingCon.deliverHeat(heatRequest_kW, true);
 		boiler.produceHotWater( hotWaterRequest_kW);
 		v_ElectricityConsumption_kW = boiler.getElectricityConsumption();
 	break;
@@ -1981,6 +1982,7 @@ v_CumElectricityConsumed_kWh += v_ElectricityConsumption_kW * timeStep_HR;]]></B
 public class J_DistrictHeatingCon implements Serializable {
 	public HeatingSystem myHeatingSystem;
 	public double maxPower_kW;
+	public double currentPower_kW;
 	public double hotWaterDelivery_kW;
 	public double heatDelivery_kW;
 
@@ -1994,14 +1996,24 @@ public class J_DistrictHeatingCon implements Serializable {
 		return super.toString();
 	}
 
-	public void deliverHotWater( double hotWaterRequest_kW ){
-		hotWaterDelivery_kW = min( hotWaterRequest_kW, maxPower_kW ) ;
+	public void deliverHotWater( double hotWaterRequest_kW, boolean waterFirst ){
+		if ( waterFirst ) {
+			currentPower_kW = 0;
+			heatDelivery_kW = 0;
+		}
+		hotWaterDelivery_kW = min( hotWaterRequest_kW, maxPower_kW );
+		currentPower_kW += hotWaterDelivery_kW;
 		myHeatingSystem.v_hotWaterDelivery_kW = hotWaterDelivery_kW ; 
 		
 	}
 	
-	public void deliverHeat( double heatRequest_kW ){
-		heatDelivery_kW = min( heatRequest_kW, maxPower_kW - hotWaterDelivery_kW) ; // Hot water gets priority
+	public void deliverHeat( double heatRequest_kW, boolean heatFirst ){
+		if ( heatFirst ) {
+			currentPower_kW = 0;
+			hotWaterDelivery_kW = 0;
+		}
+		heatDelivery_kW = min( heatRequest_kW, maxPower_kW - hotWaterDelivery_kW) ; 
+		currentPower_kW += heatDelivery_kW;
 		myHeatingSystem.v_HeatDelivery_kW = heatDelivery_kW ; 
 	}
 	
