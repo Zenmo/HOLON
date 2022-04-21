@@ -4,7 +4,7 @@
 	         AnyLogic Project File 
 *************************************************	         
 -->
-<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.11.202204111242" AlpVersion="8.7.3">
+<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.11.202204111309" AlpVersion="8.7.3">
 <Model>
 	<Id>1641891178629</Id>
 	<Name><![CDATA[Ebuurt]]></Name>
@@ -105,6 +105,7 @@ for ( int i = 0; i < p_boot_woningen; i++) {
 }
 f_AddHeatingSystemsToHouses();
 f_setHeatingTypes(0);
+//districtHeatingNetwork.f_connectHouseholds();
 f_setIsolationLevels();
 f_setHeatingBehavior();
 f_setSetpoints();
@@ -2973,8 +2974,6 @@ for ( Huishouden h : huishoudens ) {
 	h.f_gasBilling();
 }
 // District heating?
-pTES_w_Heatpump.f_heatManager(0,v_trafoMaxPower,dt_h);
-districtHeatingNetwork.f_UpdateNetworkHeatBalance();
 
 v_districtHeatDemand_kW = 0.0;
 warmtepompVerbruik_kW = 0.0;
@@ -2983,7 +2982,7 @@ for (Huishouden h : huishoudens) {
 	HeatingSystem hs = h.heatingSystem;
 	switch (hs.p_HeatingType) {
 		case DistrictHeating:
-		v_districtHeatDemand_kW += hs.v_HeatDelivery_kW; //TODO moet hier niet ook hot water delivery bij?
+		v_districtHeatDemand_kW += hs.v_DistrictHeatingAbsorption_kW; //TODO moet hier niet ook hot water delivery bij?
 		break;
 		
 		case HeatPump:
@@ -3000,12 +2999,19 @@ for (Huishouden h : huishoudens) {
 	}	
 }
 
+
 // Wijkvermogens
 pvOpwek_kW = sumWhere(huishoudens, x->x.zonnepanelen.get(0).pvOpwekKW, x->x.zonnepanelen.size() > 0);
-
 basislastElektriciteitsverbruikHuishoudens_kW = sum(huishoudens, x->x.v_basislastElektriciteitsverbruik_kW);
 eigenConsumptie = sum(huishoudens, x->x.v_eigenConsumptie_kW);
 trafoVermogen_kW = sum(huishoudens, x->x.v_netVermogen_kW); //basislastElektriciteitsverbruikHuishoudens_kW + autos.laadvraag() + warmtepompVerbruik_kW - pvOpwek_kW - autos.V2Gvermogen();
+
+// Update district heating system, need to use trafoVermogen_kW to allow 'opportunity heating' in the neighbourhood.
+districtHeatingNetwork.f_UpdateNetworkHeatBalance();
+pTES_w_Heatpump.f_heatManager(trafoVermogen_kW,dt_h);
+warmtepompVerbruik_kW += pTES_w_Heatpump.v_heatPumpPowerDraw_kW;
+trafoVermogen_kW += pTES_w_Heatpump.v_heatPumpPowerDraw_kW;
+
 wijkVerbruik_kW = basislastElektriciteitsverbruikHuishoudens_kW + autos.laadvraag() + warmtepompVerbruik_kW - autos.V2Gvermogen(); // Alle 'final' energieverbuik in de wijk
 gemiddeldeSoC_pct = averageWhere(autos, x->x.huidigBatterijCap_kWh/x.maxBatterijCap_kWh, x->x.elektrisch);
 
@@ -3360,7 +3366,7 @@ for (Huishouden h : huishoudens) {
 	}
 }
 traceln(nbGasBurner + " CV ketels, " + nbHeatpump + " warmtepompen, " + nbHybridHeatpump + " hybride warmtepompen, " + nbDistrictheating + " stadsverwarming");
-]]></Body>
+districtHeatingNetwork.f_connectHouseholds();]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -23184,7 +23190,7 @@ jaarlijksTotaalPVOpwekKWh = 0.0;]]></Action>
 }
 
 if (aantalPanelen < 1){
-	aantalPanelen =  round(normal(5, 15, 10, 2.5));
+	aantalPanelen =  round(2.0*normal(5, 15, 10, 2.5));
 }
 ]]></Body>
 				</Function>
@@ -31563,7 +31569,11 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 			<Name><![CDATA[DistrictHeatingNetwork]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
 			<StartupCode><![CDATA[this.conn_heatSuppliers.connectTo(main.pTES_w_Heatpump);
-main.pTES_w_Heatpump.connections.connectTo(this);]]></StartupCode>
+main.pTES_w_Heatpump.connections.connectTo(this);
+// update the number of connections to the network
+
+
+]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1650448792082</Id>
@@ -31698,7 +31708,7 @@ Value is not a known quantity (to heat producers), but is used in f_UpdateNetwor
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1650448792095</Id>
-					<Name><![CDATA[v_producerHeatSupply_kW]]></Name>
+					<Name><![CDATA[v_networkHeatDemand_kW]]></Name>
 					<Description><![CDATA[Total heat supplied to the network by connected suppliers for use in the network energy balance.
 
 Updated in: f_UpdateNetworkHeatBalance().
@@ -31719,7 +31729,7 @@ Updated in: f_UpdateNetworkHeatBalance().
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1650448792097</Id>
-					<Name><![CDATA[v_heatLossSupply_kW]]></Name>
+					<Name><![CDATA[v_heatLoss_kW]]></Name>
 					<Description><![CDATA[Current heat loss of the supply side of the network in kW.
 
 @author: JorritvandenHouten
@@ -31775,26 +31785,6 @@ Used to calculate volume flows and power later (TODO: implement this)
 						</InitialValue>
 					</Properties>
 				</Variable>
-				<Variable Class="PlainVariable">
-					<Id>1650448792103</Id>
-					<Name><![CDATA[v_heatLossReturn_kW]]></Name>
-					<Description><![CDATA[Current heat loss of the return side of the network in kW. Not used yet.
-TODO: model return flow temperature! 
-
-@author: JorritvandenHouten
-@since: 15/04/2022]]></Description>
-					<X>50</X><Y>250</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[double]]></Type>        
-						<InitialValue Class="CodeValue">
-							<Code><![CDATA[0]]></Code>
-						</InitialValue>
-					</Properties>
-				</Variable>
 				<Variable Class="Parameter">
 					<Id>1650448792123</Id>
 					<Name><![CDATA[p_heatLossFraction]]></Name>
@@ -31834,7 +31824,6 @@ Kept as reference for validation of heat loss)
 
 @author: JorritvandenHouten
 @since: 15/04/2022]]></Description>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>50</X><Y>340</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -31872,7 +31861,7 @@ Derived from: https://doi.org/10.1016/j.egypro.2016.09.069]]></Description>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[0.3]]></Code>
+							<Code><![CDATA[0.03]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1650448792127</Id>
@@ -31988,7 +31977,7 @@ Uses:
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[800]]></Code>
+							<Code><![CDATA[400]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1650448792139</Id>
@@ -32006,6 +31995,7 @@ Uses:
 
 @author: JorritvandenHouten
 @since: 15/04/2022]]></Description>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>300</X><Y>40</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -32030,6 +32020,7 @@ Uses:
 				<Variable Class="Parameter">
 					<Id>1650448792147</Id>
 					<Name><![CDATA[p_networkSpecificHeat_kWhpK]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>300</X><Y>80</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -32123,9 +32114,7 @@ Uses:
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[// update the number of connections to the network
-v_numberOfConsumers = 0;
-
+					<Body><![CDATA[/* v_numberOfConsumers = 0;
 for ( Huishouden h : main.huishoudens ) {
 	if ( h.heatingSystem.p_HeatingType.equals(OL_HeatingTypes.DistrictHeating) || h.heatingSystem.p_HeatingType.equals(OL_HeatingTypes.DistrictHeating_w_Boiler ) ) {
 		// traceln("connect! ");
@@ -32133,7 +32122,7 @@ for ( Huishouden h : main.huishoudens ) {
 		h.heatingSystem.connectTo(this);
 		v_numberOfConsumers ++;
 	}
-}
+} */
 
 // retrieve the current heat demand from the network
 v_consumerHeatDemand_kW = 0;
@@ -32142,24 +32131,26 @@ for (int i = 0; i < this.conn_heatConsumers.getConnections().size(); i++) {
 	v_consumerHeatDemand_kW += h.v_DistrictHeatingAbsorption_kW;
 }
 
-// retrieve the current heat influx in the network from producers
-v_producerHeatSupply_kW = 0;
+// retrieve the current heat influx in the network from producers -> Not needed, simply use inflow temp as either fixed (and equal to minimum buffertemp) or equal to buffertemp.
+/*v_producerHeatSupply_kW = 0;
 for (int j = 0; j < this.conn_heatSuppliers.getConnections().size(); j++) {
 	DH_PTESWithHeatpump p = (DH_PTESWithHeatpump)this.conn_heatSuppliers.getConnectedAgent(j);
 		v_producerHeatSupply_kW += p.v_heatDelivery_kW;
-	}
+	}*/
 
 // update network energy balance
-v_heatLossSupply_kW = ( p_networkHeatloss_Wpm2K * 3.1415 * p_networkDiameter_m * p_networkLength_m * ( v_networkSupplyTemp_degC - p_soilTemp_degC ) ) / 1000;
+v_heatLoss_kW = ( p_networkHeatloss_Wpm2K * 3.1415 * p_networkDiameter_m * p_networkLength_m * ( (v_networkSupplyTemp_degC + v_networkReturnTemp_degC)/2 - p_soilTemp_degC ) ) / 1000;
 //v_heatLossReturn_kW = ( p_networkHeatloss_WpK_m * p_networkLength_m * ( v_networkReturnTemp_degC - p_soilTemp_degC ) ) / 1000;
 
-double dQdt_kW;
-dQdt_kW = - v_heatLossSupply_kW - v_consumerHeatDemand_kW + main.pTES_w_Heatpump.v_heatDelivery_kW;
+//double dQdt_kW;
+v_networkHeatDemand_kW = v_heatLoss_kW + v_consumerHeatDemand_kW;
 
 // update network temperature
-v_networkSupplyTemp_degC += dQdt_kW * main.dt_h / p_networkSpecificHeat_kWhpK;
+// v_networkSupplyTemp_degC += dQdt_kW * main.dt_h / p_networkSpecificHeat_kWhpK;
+
 //v_networkSupplyTemp_degC += dQdt_kW * main.dt_h / ((4.2*1000)*v_networkWaterFlow_m3ph/3600);
-//v_networkReturnTemp_degC -= dQdt_kW * main.dt_h / ((4.2*1000)*v_networkWaterFlow_m3ph/3600);
+v_networkSupplyTemp_degC = main.pTES_w_Heatpump.v_bufferTemp_degC;
+v_networkReturnTemp_degC = v_networkSupplyTemp_degC - v_networkHeatDemand_kW / (cpWater_kJpkgK * 1000 * v_networkWaterFlow_m3ph/3600 ); // 
 
 /*
 // update heat demand to production
@@ -32167,6 +32158,26 @@ v_heatDemandProduction = v_heatDemandConnectedObjects_kW / ( 1 - p_heatLossFract
 */
 
 ]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1650528115598</Id>
+					<Name><![CDATA[f_connectHouseholds]]></Name>
+					<X>50</X><Y>400</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[v_numberOfConsumers = 0;
+for ( Huishouden h : main.huishoudens ) {
+	if ( h.heatingSystem.p_HeatingType.equals(OL_HeatingTypes.DistrictHeating) || h.heatingSystem.p_HeatingType.equals(OL_HeatingTypes.DistrictHeating_w_Boiler ) ) {
+		// traceln("connect! ");
+		this.conn_heatConsumers.connectTo(h.heatingSystem);
+		h.heatingSystem.connectTo(this);
+		v_numberOfConsumers ++;
+	}
+}]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -32421,7 +32432,7 @@ Connections managed in f_UpdateNetworkHeatBalance().
 						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
 					</OccurrenceTime>
 					<RecurrenceCode Class="CodeUnitValue">
-						<Code><![CDATA[0.25]]></Code>
+						<Code><![CDATA[1]]></Code>
 						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
 					</RecurrenceCode>
 					<EmbeddedIcon>false</EmbeddedIcon>
@@ -32497,7 +32508,7 @@ Connections managed in f_UpdateNetworkHeatBalance().
 						<LineWidth>1.0</LineWidth>
 					</DatasetExpression>
 					<SamplesToKeep>8760</SamplesToKeep>
-					<TimeWindowExpression><![CDATA[100]]></TimeWindowExpression>
+					<TimeWindowExpression><![CDATA[8760]]></TimeWindowExpression>
 					<FillAreaUnderLine>false</FillAreaUnderLine>
 					<LabelFormat>MODEL_TIME_UNITS</LabelFormat>
     			</TimePlot>
@@ -33250,10 +33261,6 @@ return heatProduction_kW;]]></Body>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Parameter>
-						<Name><![CDATA[districtHeatDemand_kW]]></Name>
-						<Type><![CDATA[double]]></Type>
-					</Parameter>
-					<Parameter>
 						<Name><![CDATA[trafoVermogen_kW]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
@@ -33268,25 +33275,20 @@ double networkReturnTemperature = h.v_networkReturnTemp_degC; // TODO
 double networkMinTemperature = h.p_minOperatingTemp_degC;
 double networkMaxTemperature = h.p_maxOperatingTemp_degC;
 
-double networkHeatDemandLevel = max(( networkMaxTemperature - networkSupplyTemperature ) / (networkMaxTemperature - networkMinTemperature),0);
-double networkHeatDemand_kW = networkHeatDemandLevel * 500;  // fractie van maximale warmteoverdrachtsvermogen buffertank, t.b.d.
+//double networkHeatDemandLevel = max(( networkMaxTemperature - networkSupplyTemperature ) / (networkMaxTemperature - networkMinTemperature),0);
+//double networkHeatDemand_kW = networkHeatDemandLevel * 500;  // fractie van maximale warmteoverdrachtsvermogen buffertank, t.b.d.
+double networkHeatDemand_kW = main.districtHeatingNetwork.v_networkHeatDemand_kW;
 
 if ( trafoVermogen_kW < 0 ) { // Overvloed aan stroom in de wijk, zet het in om de PTES op te warmen
 	v_heatPumpPowerDraw_kW = min(-trafoVermogen_kW,p_heatPumpMaxPower_kW);
-	//f_socUpdate(districtHeatDemand_kW, v_heatPumpPowerDraw_kW, dt_h); // de producent heeft geen direct inzicht in warmtevraag!
-	f_socUpdate(networkHeatDemand_kW, v_heatPumpPowerDraw_kW, dt_h); // 
+	traceln("opportunity heating");
 } else if (v_bufferTemp_degC < p_bufferTempHeatingTreshold_degC) { // If PTES temperature drops too low, start heating it regardless of power available in neighbourhood
 	v_heatPumpPowerDraw_kW = 30;
-	//f_socUpdate(districtHeatDemand_kW, v_heatPumpPowerDraw_kW, dt_h); // 
-	f_socUpdate(networkHeatDemand_kW, v_heatPumpPowerDraw_kW, dt_h); // 
-//	traceln("Backup heating");
 } else { // Anders verwarming uit
 	v_heatPumpPowerDraw_kW = 0;
-	//f_socUpdate(districtHeatDemand_kW, v_heatPumpPowerDraw_kW, dt_h); // 
-	f_socUpdate(networkHeatDemand_kW, v_heatPumpPowerDraw_kW, dt_h); // 
 }	
 
-	]]></Body>
+f_socUpdate(networkHeatDemand_kW, v_heatPumpPowerDraw_kW, dt_h); // 	]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -34896,7 +34898,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 						<Enabled>true</Enabled>
 					</BasicProperties>
 					<ExtendedProperties>
-						<DefaultValueCode><![CDATA[20]]></DefaultValueCode>
+						<DefaultValueCode><![CDATA[80]]></DefaultValueCode>
 						<Orientation>HORIZONTAL</Orientation>
 						<MinValue><![CDATA[0]]></MinValue>
 						<MaxValue><![CDATA[100]]></MaxValue>
@@ -37157,7 +37159,7 @@ else {
 			</Parameters>			
 			<PresentationProperties>
 				<EnableZoomAndPanning>true</EnableZoomAndPanning>
-				<ExecutionMode><![CDATA[realTimeScaled]]></ExecutionMode>
+				<ExecutionMode><![CDATA[virtualTime]]></ExecutionMode>
 				<Title><![CDATA[Ebuurt : Simulation]]></Title>	
 				<EnableDeveloperPanel>true</EnableDeveloperPanel>
 				<ShowDeveloperPanelOnStart>false</ShowDeveloperPanelOnStart>
@@ -37165,10 +37167,10 @@ else {
 			</PresentationProperties>
 			<ModelTimeProperties>
 				<StopOption><![CDATA[Stop at specified time]]></StopOption>
-				<InitialDate><![CDATA[1643673600000]]></InitialDate>	
+				<InitialDate><![CDATA[1640995200000]]></InitialDate>	
 				<InitialTime><![CDATA[0.0]]></InitialTime>	
-				<FinalDate><![CDATA[1644278400000]]></FinalDate>	
-				<FinalTime><![CDATA[168.0]]></FinalTime>	
+				<FinalDate><![CDATA[1672531200000]]></FinalDate>	
+				<FinalTime><![CDATA[8760.0]]></FinalTime>	
 			</ModelTimeProperties>
 			<BypassInitialScreen>false</BypassInitialScreen>
 		</SimulationExperiment>	
