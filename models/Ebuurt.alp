@@ -3004,13 +3004,13 @@ for (Huishouden h : huishoudens) {
 pvOpwek_kW = sumWhere(huishoudens, x->x.zonnepanelen.get(0).pvOpwekKW, x->x.zonnepanelen.size() > 0);
 basislastElektriciteitsverbruikHuishoudens_kW = sum(huishoudens, x->x.v_basislastElektriciteitsverbruik_kW);
 eigenConsumptie = sum(huishoudens, x->x.v_eigenConsumptie_kW);
-trafoVermogen_kW = sum(huishoudens, x->x.v_netVermogen_kW); //basislastElektriciteitsverbruikHuishoudens_kW + autos.laadvraag() + warmtepompVerbruik_kW - pvOpwek_kW - autos.V2Gvermogen();
+double totaalVermogenHuishoudens_kW = sum(huishoudens, x->x.v_netVermogen_kW); //basislastElektriciteitsverbruikHuishoudens_kW + autos.laadvraag() + warmtepompVerbruik_kW - pvOpwek_kW - autos.V2Gvermogen();
 
 // Update district heating system, need to use trafoVermogen_kW to allow 'opportunity heating' in the neighbourhood.
 districtHeatingNetwork.f_UpdateNetworkHeatBalance();
-pTES_w_Heatpump.f_heatManager(trafoVermogen_kW,dt_h);
-warmtepompVerbruik_kW += pTES_w_Heatpump.v_heatPumpPowerDraw_kW;
-trafoVermogen_kW += pTES_w_Heatpump.v_heatPumpPowerDraw_kW;
+dhPTESwHeatpump.f_heatManager(totaalVermogenHuishoudens_kW,dt_h);
+warmtepompVerbruik_kW += dhPTESwHeatpump.v_heatPumpPowerDraw_kW;
+trafoVermogen_kW = totaalVermogenHuishoudens_kW + dhPTESwHeatpump.v_heatPumpPowerDraw_kW;
 
 wijkVerbruik_kW = basislastElektriciteitsverbruikHuishoudens_kW + autos.laadvraag() + warmtepompVerbruik_kW - autos.V2Gvermogen(); // Alle 'final' energieverbuik in de wijk
 gemiddeldeSoC_pct = averageWhere(autos, x->x.huidigBatterijCap_kWh/x.maxBatterijCap_kWh, x->x.elektrisch);
@@ -4415,7 +4415,7 @@ else if( p_neighborhoodType == 1 ){
 				</EmbeddedObject>
 				<EmbeddedObject>
 					<Id>1650455117196</Id>
-					<Name><![CDATA[pTES_w_Heatpump]]></Name>
+					<Name><![CDATA[dhPTESwHeatpump]]></Name>
 					<X>-550</X><Y>220</Y>
 					<Label><X>15</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -31568,8 +31568,8 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 			<Id>1650448792087</Id>
 			<Name><![CDATA[DistrictHeatingNetwork]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
-			<StartupCode><![CDATA[this.conn_heatSuppliers.connectTo(main.pTES_w_Heatpump);
-main.pTES_w_Heatpump.connections.connectTo(this);
+			<StartupCode><![CDATA[this.conn_heatSuppliers.connectTo(main.dhPTESwHeatpump);
+main.dhPTESwHeatpump.connections.connectTo(this);
 // update the number of connections to the network
 
 
@@ -32149,7 +32149,7 @@ v_networkHeatDemand_kW = v_heatLoss_kW + v_consumerHeatDemand_kW;
 // v_networkSupplyTemp_degC += dQdt_kW * main.dt_h / p_networkSpecificHeat_kWhpK;
 
 //v_networkSupplyTemp_degC += dQdt_kW * main.dt_h / ((4.2*1000)*v_networkWaterFlow_m3ph/3600);
-v_networkSupplyTemp_degC = main.pTES_w_Heatpump.v_bufferTemp_degC;
+v_networkSupplyTemp_degC = main.dhPTESwHeatpump.v_bufferTemp_degC;
 v_networkReturnTemp_degC = v_networkSupplyTemp_degC - v_networkHeatDemand_kW / (cpWater_kJpkgK * 1000 * v_networkWaterFlow_m3ph/3600 ); // 
 
 /*
@@ -33206,10 +33206,6 @@ else if (thermalEnergyBufferCurrent < 0.2 * thermalEnergyBufferMax){
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Parameter>
-						<Name><![CDATA[v_heatDemand_kW]]></Name>
-						<Type><![CDATA[double]]></Type>
-					</Parameter>
-					<Parameter>
 						<Name><![CDATA[v_heatPumpPower_kW]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
@@ -33217,17 +33213,18 @@ else if (thermalEnergyBufferCurrent < 0.2 * thermalEnergyBufferMax){
 						<Name><![CDATA[dt_h]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
-					<Body><![CDATA[double heatPumpHeatProduction_kW = f_heatPump(v_heatPumpPower_kW);
-double dQdt_kW = heatPumpHeatProduction_kW - p_bufferHeatloss_kWpK * (v_bufferTemp_degC - p_soilTemp_degC) - v_heatDemand_kW;
+					<Body><![CDATA[double networkHeatDemand_kW = main.districtHeatingNetwork.v_networkHeatDemand_kW;
+double heatPumpHeatProduction_kW = f_heatPump(v_heatPumpPower_kW);
+double dQdt_kW = heatPumpHeatProduction_kW - p_bufferHeatloss_kWpK * (v_bufferTemp_degC - p_soilTemp_degC) - networkHeatDemand_kW;
 
 if ( v_bufferTemp_degC + dQdt_kW * dt_h / p_bufferSpecificHeat_kWhpK < p_minTempBuffer_degC ) { // if buffertemp would drop below minimum
-   	v_heatDelivery_kW = min(max(0,heatPumpHeatProduction_kW - p_bufferHeatloss_kWpK * (v_bufferTemp_degC - p_soilTemp_degC)),v_heatDemand_kW);
+   	v_heatDelivery_kW = min(max(0,heatPumpHeatProduction_kW - p_bufferHeatloss_kWpK * (v_bufferTemp_degC - p_soilTemp_degC)),networkHeatDemand_kW);
 	dQdt_kW = heatPumpHeatProduction_kW - p_bufferHeatloss_kWpK * (v_bufferTemp_degC - p_soilTemp_degC) - v_heatDelivery_kW;
 	v_bufferTemp_degC += dQdt_kW * dt_h / p_bufferSpecificHeat_kWhpK;
 	traceln("District heat demand not met!");
 } else {
 	v_bufferTemp_degC += dQdt_kW * dt_h / p_bufferSpecificHeat_kWhpK;
-	v_heatDelivery_kW = v_heatDemand_kW;
+	v_heatDelivery_kW = networkHeatDemand_kW;
 }
 
 //return heatDelivery_kW;]]></Body>
@@ -33268,16 +33265,7 @@ return heatProduction_kW;]]></Body>
 						<Name><![CDATA[dt_h]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
-					<Body><![CDATA[// haal prestatieindicatoren v.h. warmtenet op, om warmtebehoefte te bepalen
-DistrictHeatingNetwork h = (DistrictHeatingNetwork)this.connections.getConnectedAgent(0);
-double networkSupplyTemperature = h.v_networkSupplyTemp_degC;
-double networkReturnTemperature = h.v_networkReturnTemp_degC; // TODO
-double networkMinTemperature = h.p_minOperatingTemp_degC;
-double networkMaxTemperature = h.p_maxOperatingTemp_degC;
-
-//double networkHeatDemandLevel = max(( networkMaxTemperature - networkSupplyTemperature ) / (networkMaxTemperature - networkMinTemperature),0);
-//double networkHeatDemand_kW = networkHeatDemandLevel * 500;  // fractie van maximale warmteoverdrachtsvermogen buffertank, t.b.d.
-double networkHeatDemand_kW = main.districtHeatingNetwork.v_networkHeatDemand_kW;
+					<Body><![CDATA[// 'energy manager' van de warmtepomp
 
 if ( trafoVermogen_kW < 0 ) { // Overvloed aan stroom in de wijk, zet het in om de PTES op te warmen
 	v_heatPumpPowerDraw_kW = min(-trafoVermogen_kW,p_heatPumpMaxPower_kW);
@@ -33288,7 +33276,7 @@ if ( trafoVermogen_kW < 0 ) { // Overvloed aan stroom in de wijk, zet het in om 
 	v_heatPumpPowerDraw_kW = 0;
 }	
 
-f_socUpdate(networkHeatDemand_kW, v_heatPumpPowerDraw_kW, dt_h); // 	]]></Body>
+f_socUpdate(v_heatPumpPowerDraw_kW, dt_h); // 	]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
