@@ -1154,7 +1154,23 @@
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
 					<Parameter>
-						<Name><![CDATA[temperatureOutside]]></Name>
+						<Name><![CDATA[baseTemperatureHeating]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
+					<Parameter>
+						<Name><![CDATA[destinationTemperatureHeating]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
+					<Parameter>
+						<Name><![CDATA[baseTemperatureHotWater]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
+					<Parameter>
+						<Name><![CDATA[destinationTemperatureHotWater]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
+					<Parameter>
+						<Name><![CDATA[etafactor]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
 					<Parameter>
@@ -1175,7 +1191,17 @@ J_Boiler boiler;
 J_DistrictHeatingCon districtHeatingCon;
 double COPheating;
 double COPwater;
+double etaHeatpump_f = etafactor;   // heatpump efficiency factor for calculating COP with temperature deltas
 
+//traceln("eta "+etaHeatpump_f);
+//traceln(" baseTempHeating" + baseTemperatureHeating);
+//traceln(" destinationtempHeating" +destinationTemperatureHeating);
+//traceln(" baseTempHotwater" + baseTemperatureHotWater);
+//traceln(" destinationtempHotwater" +destinationTemperatureHotWater);
+COPheating = etaHeatpump_f * ( 273.15 + destinationTemperatureHeating ) / (destinationTemperatureHeating - baseTemperatureHeating);
+COPwater = etaHeatpump_f * ( 273.15 + destinationTemperatureHotWater ) / (destinationTemperatureHotWater - baseTemperatureHotWater);
+//traceln("COP heating: "+COPheating);
+//traceln("COP water: "+COPwater);
 //Zet de warmte vraag van deze staat stap
 v_HeatRequested_kW = heatRequest_kW;
 v_HotWaterRequested_kW = hotWaterRequest_kW;
@@ -1190,27 +1216,29 @@ switch (p_HeatingType) {
 	break;
 	
 	case HeatPump:
-		COPwater = tf_heatPumpCOPhotWater( temperatureOutside );
+		//COPwater = tf_heatPumpCOPhotWater( temperatureOutside );
 		t_COPWater.setText("COP water = " + COPwater);
-		COPheating = tf_heatPumpCOPspaceHeating( temperatureOutside );
+		//COPheating = tf_heatPumpCOPspaceHeating( temperatureOutside );
 		t_COPHeat.setText("COP Heating = " + COPheating);
 		heatpump = (J_Heatpump)p_MyPrimaryHeatingSystem;
-		heatpump.produceHotWater( hotWaterRequest_kW, COPwater, true);
-		heatpump.produceHeat(heatRequest_kW, COPheating, false);
+		heatpump.produceHotWater( hotWaterRequest_kW, baseTemperatureHotWater, destinationTemperatureHotWater, etaHeatpump_f, true);
+		heatpump.produceHeat(heatRequest_kW, baseTemperatureHeating, destinationTemperatureHeating, etaHeatpump_f, false);
 		v_ElectricityConsumption_kW = heatpump.getElectricityConsumption();
 	break;
 	
 	case HeatPump_w_Boiler:
-		COPheating = tf_heatPumpCOPspaceHeating( temperatureOutside );
+		//COPheating = tf_heatPumpCOPspaceHeating( temperatureOutside );
+		t_COPHeat.setText("COP Heating = " + COPheating);
 		heatpump = (J_Heatpump)p_MyPrimaryHeatingSystem;
 		boiler = (J_Boiler)p_MySecondaryHeatingSystem;
-		heatpump.produceHeat( heatRequest_kW, COPheating, true );
+		heatpump.produceHeat( heatRequest_kW, baseTemperatureHeating, destinationTemperatureHeating, etaHeatpump_f, true );
 		boiler.produceHotWater( hotWaterRequest_kW );
 		v_ElectricityConsumption_kW = heatpump.getElectricityConsumption() + boiler.getElectricityConsumption();
 	break;
 	
 	case HeatPump_Hybrid:
-		COPheating = tf_heatPumpCOPspaceHeating( temperatureOutside );
+		//COPheating = tf_heatPumpCOPspaceHeating( temperatureOutside );
+		t_COPHeat.setText("COP Heating = " + COPheating);
 		heatpump = (J_Heatpump)p_MyPrimaryHeatingSystem;
 		gasheater = (J_GasHeater)p_MySecondaryHeatingSystem;
 		if ( COPheating < p_hybridCOPThreshold ) {
@@ -1221,7 +1249,7 @@ switch (p_HeatingType) {
 		else {
 			gasheater.produceHotWater( hotWaterRequest_kW, true );
 			v_GasConsumption_m3ph = gasheater.getGasConsumption();
-			heatpump.produceHeat( heatRequest_kW, COPheating, true );
+			heatpump.produceHeat( heatRequest_kW, baseTemperatureHeating, destinationTemperatureHeating, 0.5, true );
 			v_ElectricityConsumption_kW = heatpump.getElectricityConsumption();
 		}
 	break;
@@ -1260,6 +1288,7 @@ v_DistrictHeatingAbsorped_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]
 				<TableFunction AccessType="public" StaticFunction="false">
 					<Id>1649761112277</Id>
 					<Name><![CDATA[tf_heatPumpCOPspaceHeating]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>60</X><Y>690</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1291,6 +1320,7 @@ v_DistrictHeatingAbsorped_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]
 				<TableFunction AccessType="public" StaticFunction="false">
 					<Id>1649761112289</Id>
 					<Name><![CDATA[tf_heatPumpCOPhotWater]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>60</X><Y>720</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1519,6 +1549,7 @@ v_DistrictHeatingAbsorped_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]
 					<Name><![CDATA[button]]></Name>
 					<Description><![CDATA[@author Peter Hogeveen
 @since 15-04-2022]]></Description>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>640</X><Y>50</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1540,6 +1571,7 @@ v_DistrictHeatingAbsorped_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1650008940137</Id>
 					<Name><![CDATA[button1]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>640</X><Y>130</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1563,6 +1595,7 @@ v_DistrictHeatingAbsorped_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]
 					<Name><![CDATA[button2]]></Name>
 					<Description><![CDATA[@author Peter Hogeveen
 @since 15-04-2022]]></Description>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>640</X><Y>90</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1584,6 +1617,7 @@ v_DistrictHeatingAbsorped_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1650008974513</Id>
 					<Name><![CDATA[button3]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>640</X><Y>170</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1605,6 +1639,7 @@ v_DistrictHeatingAbsorped_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1650009288215</Id>
 					<Name><![CDATA[button4]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>640</X><Y>210</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1626,6 +1661,7 @@ v_DistrictHeatingAbsorped_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1650009302960</Id>
 					<Name><![CDATA[button5]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>640</X><Y>250</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1649,6 +1685,7 @@ v_DistrictHeatingAbsorped_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]
 					<Name><![CDATA[button6]]></Name>
 					<Description><![CDATA[@author Peter Hogeveen
 @since 15-04-2022]]></Description>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>820</X><Y>50</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1695,6 +1732,7 @@ v_DistrictHeatingAbsorped_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]
 					<Name><![CDATA[button7]]></Name>
 					<Description><![CDATA[@author Peter Hogeveen
 @since 15-04-2022]]></Description>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>820</X><Y>90</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1716,6 +1754,7 @@ v_DistrictHeatingAbsorped_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1650009639440</Id>
 					<Name><![CDATA[button8]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>820</X><Y>210</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1783,6 +1822,7 @@ v_DistrictHeatingAbsorped_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1650010374455</Id>
 					<Name><![CDATA[button9]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>820</X><Y>130</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1804,6 +1844,7 @@ v_DistrictHeatingAbsorped_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1650010394663</Id>
 					<Name><![CDATA[button10]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>820</X><Y>170</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1825,6 +1866,7 @@ v_DistrictHeatingAbsorped_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1650010565318</Id>
 					<Name><![CDATA[button11]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>820</X><Y>250</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -2120,6 +2162,12 @@ public class J_Heatpump implements Serializable {
 	public double currentPower_kW;
 	public double hotWaterDelivery_kW;
 	public double heatDelivery_kW;
+	//public double baseTemperature;
+	//public double destinationTemperature;
+	public double COPwater;
+	public double COPheat;
+	
+	
 	//HeatPump esdlObject;
 	
     public J_Heatpump(HeatingSystem HS, double power) {
@@ -2135,7 +2183,10 @@ public class J_Heatpump implements Serializable {
 		return super.toString();
 	}
 
-	public void produceHotWater( double hotWaterRequest_kW, double COPwater, boolean waterFirst ){
+	//public void produceHotWater( double hotWaterRequest_kW, double COPwater, boolean waterFirst ){
+	public void produceHotWater( double hotWaterRequest_kW, double baseTemperature, double destinationTemperature, double etaHeatPump, boolean waterFirst ){
+		double COPwater = etaHeatPump * ( 273.15 + destinationTemperature ) / (destinationTemperature - baseTemperature);
+		
 		if (waterFirst) {
 			currentPower_kW = 0;
 			heatDelivery_kW = 0;
@@ -2145,7 +2196,10 @@ public class J_Heatpump implements Serializable {
 		myHeatingSystem.v_hotWaterDelivery_kW = hotWaterDelivery_kW;
 	}
 	
-	public void produceHeat( double heatRequest_kW, double COPheating, boolean heatFirst ){
+	//public void produceHeat( double heatRequest_kW, double COPheating, boolean heatFirst ){
+	public void produceHeat( double heatRequest_kW, double baseTemperature, double destinationTemperature, double etaHeatPump, boolean heatFirst ){
+		double COPheating = etaHeatPump * ( 273.15 + destinationTemperature ) / (destinationTemperature - baseTemperature);
+		
 		if (heatFirst) {
 			currentPower_kW = 0;
 			hotWaterDelivery_kW = 0;
