@@ -3007,10 +3007,10 @@ eigenConsumptie = sum(huishoudens, x->x.v_eigenConsumptie_kW);
 double totaalVermogenHuishoudens_kW = sum(huishoudens, x->x.v_netVermogen_kW); //basislastElektriciteitsverbruikHuishoudens_kW + autos.laadvraag() + warmtepompVerbruik_kW - pvOpwek_kW - autos.V2Gvermogen();
 
 // Update district heating system, need to use trafoVermogen_kW to allow 'opportunity heating' in the neighbourhood.
-districtHeatingNetwork.f_UpdateNetworkHeatBalance();
-dhPTESwHeatpump.f_heatManager(totaalVermogenHuishoudens_kW,dt_h);
-warmtepompVerbruik_kW += dhPTESwHeatpump.v_heatPumpPowerDraw_kW;
-trafoVermogen_kW = totaalVermogenHuishoudens_kW + dhPTESwHeatpump.v_heatPumpPowerDraw_kW;
+//districtHeatingNetwork_HS.f_UpdateNetworkHeatBalance();
+dH_PTESWithHeatpump_HS.f_heatManager(totaalVermogenHuishoudens_kW,dt_h);
+warmtepompVerbruik_kW += dH_PTESWithHeatpump_HS.v_heatPumpPowerDraw_kW;
+trafoVermogen_kW = totaalVermogenHuishoudens_kW + dH_PTESWithHeatpump_HS.v_heatPumpPowerDraw_kW;
 
 wijkVerbruik_kW = basislastElektriciteitsverbruikHuishoudens_kW + autos.laadvraag() + warmtepompVerbruik_kW - autos.V2Gvermogen(); // Alle 'final' energieverbuik in de wijk
 gemiddeldeSoC_pct = averageWhere(autos, x->x.huidigBatterijCap_kWh/x.maxBatterijCap_kWh, x->x.elektrisch);
@@ -3366,7 +3366,8 @@ for (Huishouden h : huishoudens) {
 	}
 }
 traceln(nbGasBurner + " CV ketels, " + nbHeatpump + " warmtepompen, " + nbHybridHeatpump + " hybride warmtepompen, " + nbDistrictheating + " stadsverwarming");
-districtHeatingNetwork.f_connectHouseholds();]]></Body>
+f_connectConsumersToDistrictHeat();
+f_connectSuppliersToDistrictHeat();]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -3492,6 +3493,54 @@ else if( p_neighborhoodType == 1 ){
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1650619115058</Id>
+					<Name><![CDATA[f_connectConsumersToDistrictHeat]]></Name>
+					<X>420</X><Y>1590</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[districtHeatingNetwork_HS.v_numberOfConsumers = 0;
+
+for ( Huishouden h : huishoudens ) {
+	if ( h.heatingSystem.p_HeatingType.equals(OL_HeatingTypes.DistrictHeating) || h.heatingSystem.p_HeatingType.equals(OL_HeatingTypes.DistrictHeating_w_Boiler ) ) {
+		// traceln("connect! ");
+		districtHeatingNetwork_HS.conn_heatConsumers.connectTo(h.heatingSystem);
+		h.heatingSystem.connectTo(districtHeatingNetwork_HS);
+		districtHeatingNetwork_HS.v_numberOfConsumers ++;
+	}
+}]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1650620378902</Id>
+					<Name><![CDATA[f_connectSuppliersToDistrictHeat]]></Name>
+					<X>420</X><Y>1610</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[districtHeatingNetwork_HS.v_numberOfSuppliers = 0;
+
+districtHeatingNetwork_HS.conn_heatSuppliers.connectTo(dH_PTESWithHeatpump_HS);
+dH_PTESWithHeatpump_HS.connections.connectTo(districtHeatingNetwork_HS);
+
+districtHeatingNetwork_HS.v_numberOfSuppliers = 1;
+
+/*
+for ( Huishouden h : huishoudens ) {
+	if ( h.heatingSystem.p_HeatingType.equals(OL_HeatingTypes.DistrictHeating) || h.heatingSystem.p_HeatingType.equals(OL_HeatingTypes.DistrictHeating_w_Boiler ) ) {
+		// traceln("connect! ");
+		districtHeatingNetwork_HS.conn_heatConsumers.connectTo(h.heatingSystem);
+		h.heatingSystem.connectTo(districtHeatingNetwork_HS);
+		districtHeatingNetwork_HS.v_numberOfConsumers ++;
+	}
+}*/]]></Body>
 				</Function>
 			</Functions>
 			<TableFunctions>
@@ -4324,6 +4373,7 @@ else if( p_neighborhoodType == 1 ){
 				<EmbeddedObject>
 					<Id>1650455088937</Id>
 					<Name><![CDATA[districtHeatingNetwork]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>-550</X><Y>190</Y>
 					<Label><X>15</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -4419,6 +4469,7 @@ else if( p_neighborhoodType == 1 ){
 				<EmbeddedObject>
 					<Id>1650455117196</Id>
 					<Name><![CDATA[dhPTESwHeatpump]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>-550</X><Y>220</Y>
 					<Label><X>15</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -4477,6 +4528,203 @@ else if( p_neighborhoodType == 1 ){
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_heatPumpMaxPower_kW]]></Name>
+						</Parameter>
+					</Parameters>
+					<ReplicationFlag>false</ReplicationFlag>
+					<Replication Class="CodeValue">
+						<Code><![CDATA[100]]></Code>
+					</Replication>
+					<CollectionType>ARRAY_LIST_BASED</CollectionType>
+					<InEnvironment>true</InEnvironment>	
+					<InitialLocationType>AT_ANIMATION_POSITION</InitialLocationType>
+					<XCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</XCode>
+					<YCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</YCode>
+					<ZCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ZCode>
+					<ColumnCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ColumnCode>
+					<RowCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</RowCode>
+					<LatitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LatitudeCode>
+					<LongitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LongitudeCode>
+					<LocationNameCode Class="CodeValue">
+						<Code><![CDATA[""]]></Code>
+					</LocationNameCode>
+					<InitializationType>SPECIFIED_NUMBER</InitializationType>
+					<InitializationDatabaseTableQuery>
+						<TableReference>
+						</TableReference>
+					</InitializationDatabaseTableQuery>
+					<InitializationDatabaseType>ONE_AGENT_PER_DATABASE_RECORD</InitializationDatabaseType>
+					<QuantityColumn>
+					</QuantityColumn>
+				</EmbeddedObject>
+				<EmbeddedObject>
+					<Id>1650616580729</Id>
+					<Name><![CDATA[dH_PTESWithHeatpump_HS]]></Name>
+					<X>-500</X><Y>300</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<ActiveObjectClass>
+						<PackageName><![CDATA[heatingsystems]]></PackageName>
+						<ClassName><![CDATA[DH_PTESWithHeatpump]]></ClassName>
+					</ActiveObjectClass>
+					<GenericParameterSubstitute>
+						<GenericParameterSubstituteReference>
+							<PackageName><![CDATA[heatingsystems]]></PackageName>
+							<ClassName><![CDATA[DH_PTESWithHeatpump]]></ClassName>
+							<ItemName><![CDATA[1650616556349]]></ItemName>
+						</GenericParameterSubstituteReference>
+					</GenericParameterSubstitute>
+					<Parameters>
+						<Parameter>
+							<Name><![CDATA[p_bufferVolume_m3]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[cpWater_kJpkgK]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[DHWTemp]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[initialTemperature]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[thermalEnergyBufferMax]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[tapwaterTemp]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_bufferHeatloss_kWpK]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_maxTempBuffer_degC]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_minTempBuffer_degC]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_soilTemp_degC]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_bufferSpecificHeat_kWhpK]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_etaHeatPump_f]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_bufferTempHeatingTreshold_degC]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_heatPumpMaxPower_kW]]></Name>
+						</Parameter>
+					</Parameters>
+					<ReplicationFlag>false</ReplicationFlag>
+					<Replication Class="CodeValue">
+						<Code><![CDATA[100]]></Code>
+					</Replication>
+					<CollectionType>ARRAY_LIST_BASED</CollectionType>
+					<InEnvironment>true</InEnvironment>	
+					<InitialLocationType>AT_ANIMATION_POSITION</InitialLocationType>
+					<XCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</XCode>
+					<YCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</YCode>
+					<ZCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ZCode>
+					<ColumnCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ColumnCode>
+					<RowCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</RowCode>
+					<LatitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LatitudeCode>
+					<LongitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LongitudeCode>
+					<LocationNameCode Class="CodeValue">
+						<Code><![CDATA[""]]></Code>
+					</LocationNameCode>
+					<InitializationType>SPECIFIED_NUMBER</InitializationType>
+					<InitializationDatabaseTableQuery>
+						<TableReference>
+						</TableReference>
+					</InitializationDatabaseTableQuery>
+					<InitializationDatabaseType>ONE_AGENT_PER_DATABASE_RECORD</InitializationDatabaseType>
+					<QuantityColumn>
+					</QuantityColumn>
+				</EmbeddedObject>
+				<EmbeddedObject>
+					<Id>1650616630779</Id>
+					<Name><![CDATA[districtHeatingNetwork_HS]]></Name>
+					<X>-500</X><Y>330</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<ActiveObjectClass>
+						<PackageName><![CDATA[heatingsystems]]></PackageName>
+						<ClassName><![CDATA[DistrictHeatingNetwork]]></ClassName>
+					</ActiveObjectClass>
+					<GenericParameterSubstitute>
+						<GenericParameterSubstituteReference>
+							<PackageName><![CDATA[heatingsystems]]></PackageName>
+							<ClassName><![CDATA[DistrictHeatingNetwork]]></ClassName>
+							<ItemName><![CDATA[1650616566413]]></ItemName>
+						</GenericParameterSubstituteReference>
+					</GenericParameterSubstitute>
+					<Parameters>
+						<Parameter>
+							<Name><![CDATA[p_heatLossFraction]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[v_networkWaterFlow_m3ph]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_networkHeatloss_Wpm2K]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_soilTemp_degC]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_networkDiameter_m]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[cpWater_kJpkgK]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_networkLength_m]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_networkVolume_m3]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_networkSpecificHeat_kWhpK]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_minOperatingTemp_degC]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_maxOperatingTemp_degC]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>false</ReplicationFlag>
@@ -12721,6 +12969,7 @@ Bronnen:
 				<EmbeddedObjectPresentation>
 					<Id>1650455092189</Id>
 					<Name><![CDATA[districtHeatingNetwork_presentation]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>0</X><Y>0</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
@@ -31637,6 +31886,7 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 		<ActiveObjectClass>
 			<Id>1650448792087</Id>
 			<Name><![CDATA[DistrictHeatingNetwork]]></Name>
+			<ExcludeFromBuild>true</ExcludeFromBuild>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
 			<StartupCode><![CDATA[this.conn_heatSuppliers.connectTo(main.dhPTESwHeatpump);
 main.dhPTESwHeatpump.connections.connectTo(this);
@@ -32613,6 +32863,7 @@ Connections managed in f_UpdateNetworkHeatBalance().
 		<ActiveObjectClass>
 			<Id>1650454388628</Id>
 			<Name><![CDATA[DH_PTESWithHeatpump]]></Name>
+			<ExcludeFromBuild>true</ExcludeFromBuild>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -33283,7 +33534,8 @@ else if (thermalEnergyBufferCurrent < 0.2 * thermalEnergyBufferMax){
 						<Name><![CDATA[dt_h]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
-					<Body><![CDATA[double networkHeatDemand_kW = main.districtHeatingNetwork.v_networkHeatDemand_kW;
+					<Body><![CDATA[
+double networkHeatDemand_kW = main.districtHeatingNetwork_HS.v_networkHeatDemand_kW;
 double heatPumpHeatProduction_kW = f_heatPump(v_heatPumpPower_kW);
 double dQdt_kW = heatPumpHeatProduction_kW - p_bufferHeatloss_kWpK * (v_bufferTemp_degC - p_soilTemp_degC) - networkHeatDemand_kW;
 
