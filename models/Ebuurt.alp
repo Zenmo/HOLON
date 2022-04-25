@@ -3007,8 +3007,9 @@ eigenConsumptie = sum(huishoudens, x->x.v_eigenConsumptie_kW);
 double totaalVermogenHuishoudens_kW = sum(huishoudens, x->x.v_netVermogen_kW); //basislastElektriciteitsverbruikHuishoudens_kW + autos.laadvraag() + warmtepompVerbruik_kW - pvOpwek_kW - autos.V2Gvermogen();
 
 // Update district heating system, need to use trafoVermogen_kW to allow 'opportunity heating' in the neighbourhood.
-//districtHeatingNetwork_HS.f_UpdateNetworkHeatBalance();
-dH_PTESWithHeatPump.f_heatManager(totaalVermogenHuishoudens_kW,dt_h);
+districtHeatingNetwork.f_UpdateNetworkHeatBalance();
+dH_PTESWithHeatPump.f_heatManager(totaalVermogenHuishoudens_kW,dt_h, (DistrictHeatingNetwork)dH_PTESWithHeatPump.connections.getConnectedAgent(0));
+dH_PTESWithHeatPump.f_CalculateHeatProduction(0, 10, 65, 0.5, dt_h);
 warmtepompVerbruik_kW += dH_PTESWithHeatPump.v_heatPumpPowerDraw_kW;
 trafoVermogen_kW = totaalVermogenHuishoudens_kW + dH_PTESWithHeatPump.v_heatPumpPowerDraw_kW;
 
@@ -3369,8 +3370,10 @@ traceln(nbGasBurner + " CV ketels, " + nbHeatpump + " warmtepompen, " + nbHybrid
 
 // initialize district heating source
 dH_PTESWithHeatPump.p_heatingType = OL_HeatingTypesDH.HeatPump_GasPeak;
-dH_PTESWithHeatPump.p_MyPrimaryHeatingSystem = new J_HeatpumpDistrictHeating( dH_PTESWithHeatPump, 50);
-dH_PTESWithHeatPump.p_MySecondaryHeatingSystem = new J_GasHeaterDistrictHeating( dH_PTESWithHeatPump, 100);
+//dH_PTESWithHeatPump.p_heatingType = OL_HeatingTypesDH.GasHeater; 
+dH_PTESWithHeatPump.p_MyPrimaryHeatingSystem = new J_HeatpumpDistrictHeating( dH_PTESWithHeatPump, 100);
+//dH_PTESWithHeatPump.p_MyPrimaryHeatingSystem = new J_GasHeaterDistrictHeating( dH_PTESWithHeatPump, 500);
+dH_PTESWithHeatPump.p_MySecondaryHeatingSystem = new J_GasHeaterDistrictHeating( dH_PTESWithHeatPump, 500);
 
 
 f_connectConsumersToDistrictHeat();
@@ -4579,7 +4582,7 @@ TODO: data afleiden en corrigeren.
 					</QuantityColumn>
 				</EmbeddedObject>
 				<EmbeddedObject>
-					<Id>1650616630779</Id>
+					<Id>1650640320876</Id>
 					<Name><![CDATA[districtHeatingNetwork]]></Name>
 					<X>-550</X><Y>230</Y>
 					<Label><X>15</X><Y>0</Y></Label>

@@ -2127,7 +2127,7 @@ v_DistrictHeatingAbsorbed_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1650616556382</Id>
-					<Name><![CDATA[v_heatPumpHeatProduction_kW]]></Name>
+					<Name><![CDATA[v_primaryHeatProduction_kW]]></Name>
 					<X>250</X><Y>220</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -2204,7 +2204,7 @@ v_DistrictHeatingAbsorbed_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]
 				<Variable Class="PlainVariable">
 					<Id>1650636584910</Id>
 					<Name><![CDATA[v_CumGasConsumed_m3]]></Name>
-					<X>640</X><Y>360</Y>
+					<X>460</X><Y>380</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2219,7 +2219,7 @@ v_DistrictHeatingAbsorbed_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]
 				<Variable Class="PlainVariable">
 					<Id>1650637099339</Id>
 					<Name><![CDATA[v_HeatDelivered_kWh]]></Name>
-					<X>640</X><Y>380</Y>
+					<X>460</X><Y>400</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2234,13 +2234,43 @@ v_DistrictHeatingAbsorbed_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]
 				<Variable Class="PlainVariable">
 					<Id>1650637511641</Id>
 					<Name><![CDATA[v_CumElectricityConsumed_kWh]]></Name>
-					<X>640</X><Y>400</Y>
+					<X>460</X><Y>420</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1650646764228</Id>
+					<Name><![CDATA[v_secondaryHeatProduction_kW]]></Name>
+					<X>250</X><Y>240</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1650650638278</Id>
+					<Name><![CDATA[v_COPHeat]]></Name>
+					<X>510</X><Y>240</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
 					</Properties>
 				</Variable>
 				<Variable Class="Parameter">
@@ -2660,7 +2690,7 @@ v_DistrictHeatingAbsorbed_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[2.5]]></Code>
+							<Code><![CDATA[1.5]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1650637243561</Id>
@@ -2745,6 +2775,7 @@ else if (thermalEnergyBufferCurrent < 0.2 * thermalEnergyBufferMax){
 					</Parameter>
 					<Body><![CDATA[//double networkHeatDemand_kW = 100;
 double heatPumpHeatProduction_kW = f_heatPump(v_heatPumpPower_kW);
+//double heatPumpHeatProduction_kW = ;
 double dQdt_kW = heatPumpHeatProduction_kW - p_bufferHeatloss_kWpK * (v_bufferTemp_degC - p_soilTemp_degC) - networkHeatDemand_kW;
 
 if ( v_bufferTemp_degC + dQdt_kW * dt_h / p_bufferSpecificHeat_kWhpK < p_minTempBuffer_degC ) { // if buffertemp would drop below minimum
@@ -2774,7 +2805,7 @@ if ( v_bufferTemp_degC + dQdt_kW * dt_h / p_bufferSpecificHeat_kWhpK < p_minTemp
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
 					<Body><![CDATA[double heatProduction_kW = heatPumpPower_kW * p_etaHeatPump_f * ( 273.15 + v_bufferTemp_degC ) / (v_bufferTemp_degC - p_soilTemp_degC);
-v_heatPumpHeatProduction_kW = heatProduction_kW;
+//v_primaryHeatProduction_kW = heatProduction_kW;
 return heatProduction_kW;]]></Body>
 				</Function>
 				<Function AccessType="public" StaticFunction="false">
@@ -2795,23 +2826,35 @@ return heatProduction_kW;]]></Body>
 						<Name><![CDATA[dt_h]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
-					<Body><![CDATA[// 'energy manager' van de warmtepomp
+					<Parameter>
+						<Name><![CDATA[connectednetwork]]></Name>
+						<Type><![CDATA[DistrictHeatingNetwork]]></Type>
+					</Parameter>
+					<Body><![CDATA[// Leid benodigd vermogen warmtelevering uit buffer af uit delta T in warmtenet
+//double networkSupplyTemperature = connectednetwork.v_networkSupplyTemp_degC;
+//double networkReturnTemperature = connectednetwork.v_networkReturnTemp_degC;
+//double networkVolumeFlow = connectednetwork.v_networkWaterFlow_m3ph;
+//double networkHeatDemand = (cpWater_kJpkgK * 1000 * networkVolumeFlow/3600 ) * (networkSupplyTemperature - networkReturnTemperature);
+double networkHeatDemand = connectednetwork.v_networkHeatDemand_kW;
 
-if ( trafoVermogen_kW < 0 ) { // Overvloed aan stroom in de wijk, zet het in om de PTES op te warmen
-	v_heatPumpPowerDraw_kW = min(-trafoVermogen_kW,p_heatPumpMaxPower_kW);
-	//traceln("opportunity heating");
+v_heatingNetworkDemand = networkHeatDemand;
+traceln("v_heatingNetworkDemand "+v_heatingNetworkDemand);
+
+// 'energy manager' van de warmtepomp
+if ( trafoVermogen_kW < 0 & p_MyPrimaryHeatingSystem instanceof J_HeatpumpDistrictHeating ) { // Overvloed aan stroom in de wijk, zet het in om de PTES op te warmen
+	traceln("opportunity heating");
+	//v_heatPumpPowerDraw_kW = min(-trafoVermogen_kW,p_heatPumpMaxPower_kW);
+	f_CalculateHeatProduction(-(trafoVermogen_kW) * v_COPHeat, p_soilTemp_degC, p_maxTempBuffer_degC, p_etaHeatPump_f, dt_h);
+
 } else if (v_bufferTemp_degC < p_bufferTempHeatingTreshold_degC) { // If PTES temperature drops too low, start heating it regardless of power available in neighbourhood
-	v_heatPumpPowerDraw_kW = 30;
+//	v_heatPumpPowerDraw_kW = 30;
+	traceln("normal heating");
+	f_CalculateHeatProduction(500, p_soilTemp_degC, p_maxTempBuffer_degC, p_etaHeatPump_f, dt_h);
 } else { // Anders verwarming uit
 	v_heatPumpPowerDraw_kW = 0;
 }	
 
-//double networkHeatDemand_kW = main.districtHeatingNetwork.v_networkHeatDemand_kW;
-DistrictHeatingNetwork connectedNetwork = (DistrictHeatingNetwork)connections.getConnectedAgent(0);
-v_heatingNetworkDemand = connectedNetwork.v_networkHeatDemand_kW;
-traceln("v_heatingNetworkDemand "+v_heatingNetworkDemand);
-
-f_socUpdate(v_heatPumpPowerDraw_kW, dt_h,v_heatingNetworkDemand); // 	]]></Body>
+f_socUpdate(v_heatPumpPowerDraw_kW, dt_h, v_heatingNetworkDemand); // 	]]></Body>
 				</Function>
 				<Function AccessType="public" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -2820,10 +2863,10 @@ f_socUpdate(v_heatPumpPowerDraw_kW, dt_h,v_heatingNetworkDemand); // 	]]></Body>
 					<Name><![CDATA[f_CalculateHeatProduction]]></Name>
 					<Description><![CDATA[@author Peter Hogeveen
 @since 14-04-2022]]></Description>
-					<X>360</X><Y>310</Y>
+					<X>380</X><Y>310</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>false</PresentationFlag>
+					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Parameter>
 						<Name><![CDATA[heatRequest_kW]]></Name>
@@ -2849,32 +2892,35 @@ f_socUpdate(v_heatPumpPowerDraw_kW, dt_h,v_heatingNetworkDemand); // 	]]></Body>
 v_heatDelivery_kW = 0;
 v_GasConsumption_m3ph = 0;
 v_heatPumpPowerDraw_kW = 0;
+v_primaryHeatProduction_kW = 0;
+v_secondaryHeatProduction_kW = 0;
 
 //Initialiseer lokale variabelen
-J_GasHeater gasheater;
-J_Heatpump heatpump;
+J_GasHeaterDistrictHeating gasheater;
+J_HeatpumpDistrictHeating heatpump;
 J_Boiler boiler;
 //J_DistrictHeatingCon districtHeatingCon;
 double COPheat;
 double etaHeatpump_f = etafactor;   // heatpump efficiency factor for calculating COP with temperature deltas
+double heatDemandByPrimary_kW = 0;
+double heatDemandBySecondary_kW = 0;
 
-//traceln("eta "+etaHeatpump_f);
-//traceln(" baseTempHeating" + baseTemperatureHeating);
-//traceln(" destinationtempHeating" +destinationTemperatureHeating);
+//calculate curent COP for heating
 COPheat = etaHeatpump_f * ( 273.15 + destinationTemperatureHeat ) / (destinationTemperatureHeat - baseTemperatureHeat);
+v_COPHeat = COPheat;
 //traceln("COP heat: "+COPheat);
 
 //Zet de warmte vraag van deze staat stap
-v_heatingNetworkDemand = heatRequest_kW;
+//v_heatingNetworkDemand = heatRequest_kW;
 //v_HotWaterRequested_kW = hotWaterRequest_kW;
 
 //Produceer warm water en warmte
 switch (p_heatingType) {
 	case GasHeater:
-		/*gasheater = (J_GasHeater)p_MyPrimaryHeatingSystem;
-		gasheater.produceHotWater( hotWaterRequest_kW, true );
-		gasheater.produceHeat( heatRequest_kW, false );
-		v_GasConsumption_m3ph = gasheater.getGasConsumption();*/
+		gasheater = (J_GasHeaterDistrictHeating)p_MyPrimaryHeatingSystem;
+		gasheater.produceHeat( heatRequest_kW, true );
+		v_primaryHeatProduction_kW = gasheater.getHeatDelivery_kW();
+		v_GasConsumption_m3ph = gasheater.getGasConsumption();
 	break;
 	
 	case HeatPump:
@@ -2901,18 +2947,31 @@ switch (p_heatingType) {
 	case HeatPump_GasPeak:
 		//COPheating = tf_heatPumpCOPspaceHeating( temperatureOutside );
 		t_COPHeat.setText("COP Heating = " + COPheat);
-		heatpump = (J_Heatpump)p_MyPrimaryHeatingSystem;
-		gasheater = (J_GasHeater)p_MySecondaryHeatingSystem;
+		heatpump = (J_HeatpumpDistrictHeating)p_MyPrimaryHeatingSystem;
+		gasheater = (J_GasHeaterDistrictHeating)p_MySecondaryHeatingSystem;
+		
 		if ( COPheat < p_hybridCOPThreshold ) {
 			//gasheater.produceHotWater( hotWaterRequest_kW, true );
+			//too cold for heatpump operation!
 			gasheater.produceHeat( heatRequest_kW, false );
 			v_GasConsumption_m3ph = gasheater.getGasConsumption();
+			v_secondaryHeatProduction_kW = gasheater.getHeatDelivery_kW();
 		}
 		else {
-			//gasheater.produceHotWater( hotWaterRequest_kW, true );
-			v_GasConsumption_m3ph = gasheater.getGasConsumption();
-			heatpump.produceHeat( heatRequest_kW, baseTemperatureHeat, destinationTemperatureHeat, 0.5, true );
+			heatDemandByPrimary_kW = p_heatPumpMaxPower_kW * v_COPHeat; //heatpump.maxPower_kWe * heatpump.COPheat; niet SOLID
+			traceln("heatdemand by primary: "+heatDemandByPrimary_kW);
+			heatDemandBySecondary_kW = max(heatRequest_kW - heatDemandByPrimary_kW,0);
+			traceln("heatdemand by secondary: "+heatDemandBySecondary_kW);
+						
+			heatpump.produceHeat( heatDemandByPrimary_kW, baseTemperatureHeat, destinationTemperatureHeat, etafactor, true );
 			v_heatPumpPowerDraw_kW = heatpump.getElectricityConsumption();
+			v_primaryHeatProduction_kW = heatpump.getHeatDelivery_kW();
+			traceln("v_primaryHeatProduction_kW = "+ v_primaryHeatProduction_kW);
+			
+			gasheater.produceHeat( heatDemandBySecondary_kW, true );
+			v_GasConsumption_m3ph = gasheater.getGasConsumption();
+			traceln("v_secondaryHeatProduction_kW = "+ v_secondaryHeatProduction_kW);
+			v_secondaryHeatProduction_kW = gasheater.getHeatDelivery_kW();
 		}
 	break;
 	
@@ -2920,7 +2979,11 @@ switch (p_heatingType) {
 		error("no correct heating system in place");
 }
 
+v_heatDelivery_kW = v_primaryHeatProduction_kW + v_secondaryHeatProduction_kW;
+
 //plot.updateData();
+
+
 
 //Bereken totalen van deze tijdstap
 v_HeatDelivered_kWh += v_heatDelivery_kW * timeStep_HR ;
@@ -3685,7 +3748,7 @@ Uses:
 				</Variable>
 			</Variables>
 			<Functions>
-				<Function AccessType="default" StaticFunction="false">
+				<Function AccessType="public" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1650616566420</Id>
@@ -3721,7 +3784,7 @@ for (int i = 0; i < this.conn_heatConsumers.getConnections().size(); i++) {
 	Agent j = this.conn_heatConsumers.getConnectedAgent(i);
 	if ( j instanceof HeatingSystem ){
 		HeatingSystem h = (HeatingSystem)this.conn_heatConsumers.getConnectedAgent(i);
-		traceln("heat drawn from net "+h.v_DistrictHeatingAbsorption_kW);
+		//traceln("heat drawn from net "+h.v_DistrictHeatingAbsorption_kW);
 		v_consumerHeatDemand_kW += h.v_DistrictHeatingAbsorption_kW;
 	}
 }
@@ -3744,11 +3807,12 @@ v_networkHeatDemand_kW = v_heatLoss_kW + v_consumerHeatDemand_kW;
 // v_networkSupplyTemp_degC += dQdt_kW * main.dt_h / p_networkSpecificHeat_kWhpK;
 
 //v_networkSupplyTemp_degC += dQdt_kW * main.dt_h / ((4.2*1000)*v_networkWaterFlow_m3ph/3600);
-traceln("agent "+this.conn_heatSuppliers.getConnections());
-//if ( this.conn_heatSuppliers.getConnections(0) instanceof DH_PTESWithHeatpump ) {
-//	v_networkSupplyTemp_degC = source.v_bufferTemp_degC;
-///	v_networkReturnTemp_degC = v_networkSupplyTemp_degC - v_networkHeatDemand_kW / (cpWater_kJpkgK * 1000 * v_networkWaterFlow_m3ph/3600 ); // 
-//}
+//traceln("agent "+this.conn_heatSuppliers.getConnectedAgent(0));
+Agent d = this.conn_heatSuppliers.getConnectedAgent(0);
+if ( d instanceof DH_PTESWithHeatPump ) {
+	v_networkSupplyTemp_degC = ((DH_PTESWithHeatPump) d).v_bufferTemp_degC;
+	v_networkReturnTemp_degC = v_networkSupplyTemp_degC - v_networkHeatDemand_kW / (cpWater_kJpkgK * 1000 * v_networkWaterFlow_m3ph/3600 ); // 
+}
 
 /*
 // update heat demand to production
@@ -4492,18 +4556,18 @@ public class J_GasHeaterDistrictHeating implements Serializable {
 
     HeatingSystem myHeatingSystem;
     DH_PTESWithHeatPump myDH_PTESWithHeatPump;
-	double maxPower_kW;
+	double maxPower_kWth;
 	double efficiency;
-	double hotWaterDelivery_kW;
-	double heatDelivery_kW;
-	double currentPower_kW;
+	double hotWaterDelivery_kWth;
+	double heatDelivery_kWth;
+	double currentPower_kWth;
 	double gasConsumption_m3ph;
 	double energyDensityGas_kWhPm3; //moeten constanten eigenlijk in de main staan?
     //GasHeater esdlObject;
  
     public J_GasHeaterDistrictHeating( DH_PTESWithHeatPump d, double power ) {
     	myDH_PTESWithHeatPump = d;
-    	maxPower_kW = power;
+    	maxPower_kWth = power;
     	energyDensityGas_kWhPm3 = 9.769;
     	efficiency = 0.95;
     	
@@ -4517,32 +4581,25 @@ public class J_GasHeaterDistrictHeating implements Serializable {
 		return super.toString();
 	}
 
-	public void produceHotWater( double hotWaterRequest_kW, boolean waterFirst ) {
-		if ( waterFirst ) {
-			currentPower_kW = 0;
-			heatDelivery_kW = 0;
-		}
-		hotWaterDelivery_kW = min( hotWaterRequest_kW, maxPower_kW - currentPower_kW );
-		currentPower_kW += hotWaterDelivery_kW;
-		myHeatingSystem.v_hotWaterDelivery_kW = hotWaterDelivery_kW;
-	}
-	
 	public void produceHeat( double heatRequest_kW, boolean heatFirst ){
 		if ( heatFirst ) {
-			currentPower_kW = 0;
-			hotWaterDelivery_kW = 0;
+			currentPower_kWth = 0;
+			hotWaterDelivery_kWth = 0;
 		}
-		heatDelivery_kW = min( heatRequest_kW, maxPower_kW - currentPower_kW ) ; // Hot water gets priority
-		currentPower_kW += heatDelivery_kW;
-		myHeatingSystem.v_HeatDelivery_kW = heatDelivery_kW;
+		heatDelivery_kWth = min( heatRequest_kW, maxPower_kWth - currentPower_kWth ) ; // Hot water gets priority
+		currentPower_kWth += heatDelivery_kWth;
+		//myDH_PTESWithHeatPump.v_heatDelivery_kW += heatDelivery_kW;
+		traceln("heatdelivery J_Gasheater_kW: "+heatDelivery_kWth);
 	}
 	
 	public double getGasConsumption() {
-		gasConsumption_m3ph = currentPower_kW / efficiency / energyDensityGas_kWhPm3;
+		gasConsumption_m3ph = currentPower_kWth / efficiency / energyDensityGas_kWhPm3;
 		return gasConsumption_m3ph;
 	}
 
-	
+	public double getHeatDelivery_kW() {
+		return heatDelivery_kWth;
+	}
 	
 	/**
 	 * This number is here for model snapshot storing purpose<br>
@@ -4565,22 +4622,22 @@ public class J_GasHeaterDistrictHeating implements Serializable {
 
 public class J_HeatpumpDistrictHeating implements Serializable {
 
-	public HeatingSystem myHeatingSystem;
+	//public HeatingSystem myHeatingSystem;
 	public DH_PTESWithHeatPump myDH_PTESWithHeatPump;
-	public double maxPower_kW;
-	public double currentPower_kW;
-	public double hotWaterDelivery_kW;
-	public double heatDelivery_kW;
+	public double maxPower_kWe;
+	public double currentPower_kWe;
+	public double hotWaterDelivery_kWth;
+	public double heatDelivery_kWth;
 	//public double baseTemperature;
 	//public double destinationTemperature;
-	public double COPwater;
+	//public double COPwater;
 	public double COPheat;
 	
 	
 	//HeatPump esdlObject;
 	
     public J_HeatpumpDistrictHeating(DH_PTESWithHeatPump DH, double power) {
-    	maxPower_kW = power;
+    	maxPower_kWe = power;
     	myDH_PTESWithHeatPump = DH;
     	//DH.t_COPHeat.setVisible(true);
     	//DH.t_COPWater.setVisible(true);
@@ -4593,7 +4650,7 @@ public class J_HeatpumpDistrictHeating implements Serializable {
 	}
 
 	//public void produceHotWater( double hotWaterRequest_kW, double COPwater, boolean waterFirst ){
-	public void produceHotWater( double hotWaterRequest_kW, double baseTemperature, double destinationTemperature, double etaHeatPump, boolean waterFirst ){
+	/*public void produceHotWater( double hotWaterRequest_kW, double baseTemperature, double destinationTemperature, double etaHeatPump, boolean waterFirst ){
 		double COPwater = etaHeatPump * ( 273.15 + destinationTemperature ) / (destinationTemperature - baseTemperature);
 		
 		if (waterFirst) {
@@ -4602,24 +4659,30 @@ public class J_HeatpumpDistrictHeating implements Serializable {
 		}
 		hotWaterDelivery_kW = min( hotWaterRequest_kW, ( maxPower_kW - currentPower_kW ) * COPwater ) ;
 		currentPower_kW += hotWaterDelivery_kW / COPwater;
-		myHeatingSystem.v_hotWaterDelivery_kW = hotWaterDelivery_kW;
+		myDH_PTESWithHeatPump.v_hotWaterDelivery_kW = hotWaterDelivery_kW;
 	}
-	
+	*/
 	//public void produceHeat( double heatRequest_kW, double COPheating, boolean heatFirst ){
 	public void produceHeat( double heatRequest_kW, double baseTemperature, double destinationTemperature, double etaHeatPump, boolean heatFirst ){
 		double COPheating = etaHeatPump * ( 273.15 + destinationTemperature ) / (destinationTemperature - baseTemperature);
 		
 		if (heatFirst) {
-			currentPower_kW = 0;
-			hotWaterDelivery_kW = 0;
+			currentPower_kWe = 0;
+			hotWaterDelivery_kWth = 0;
 		}
-		heatDelivery_kW = min( heatRequest_kW, (maxPower_kW - currentPower_kW ) * COPheating) ; // Hot water gets priority
-		currentPower_kW += heatDelivery_kW / COPheating; 
-		myHeatingSystem.v_HeatDelivery_kW = heatDelivery_kW;
+		heatDelivery_kWth = min( heatRequest_kW, (maxPower_kWe - currentPower_kWe ) * COPheating) ; // Hot water gets priority
+		currentPower_kWe += heatDelivery_kWth / COPheating; 
+		//myDH_PTESWithHeatPump.v_heatDelivery_kW += heatDelivery_kW;
+		traceln("heatdelivery_kW J_heatpump: " + heatDelivery_kWth);
 	}
 	
 	public double getElectricityConsumption() {
-		return currentPower_kW;
+		return currentPower_kWe;
+	}
+	
+	public double getHeatDelivery_kW() {
+		return heatDelivery_kWth;
+
 	}
 	
 	/**
