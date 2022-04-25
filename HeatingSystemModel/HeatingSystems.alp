@@ -4,7 +4,7 @@
 	         AnyLogic Project File 
 *************************************************	         
 -->
-<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.11.202204111309" AlpVersion="8.7.3">
+<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.11.202204111242" AlpVersion="8.7.3">
 <Model>
 	<Id>1648027099882</Id>
 	<Name><![CDATA[HeatingSystems]]></Name>
@@ -1230,8 +1230,8 @@ v_HotWaterRequested_kW = hotWaterRequest_kW;
 switch (p_HeatingType) {
 	case GasHeater:
 		gasheater = (J_GasHeater)p_MyPrimaryHeatingSystem;
-		gasheater.produceHotWater( hotWaterRequest_kW, true );
-		gasheater.produceHeat( heatRequest_kW, false );
+		v_hotWaterDelivery_kW += gasheater.produceHotWater( hotWaterRequest_kW, true );
+		v_HeatDelivery_kW += gasheater.produceHeat( heatRequest_kW, false );
 		v_GasConsumption_m3ph = gasheater.getGasConsumption();
 	break;
 	
@@ -1241,7 +1241,7 @@ switch (p_HeatingType) {
 		//COPheating = tf_heatPumpCOPspaceHeating( temperatureOutside );
 		//t_COPHeat.setText("COP Heating = " + COPheating);
 		heatpump = (J_Heatpump)p_MyPrimaryHeatingSystem;
-		heatpump.produceHotWater( hotWaterRequest_kW, baseTemperatureHotWater, destinationTemperatureHotWater, true);
+		v_hotWaterDelivery_kW += heatpump.produceHotWater( hotWaterRequest_kW, baseTemperatureHotWater, destinationTemperatureHotWater, true);
 		heatpump.produceHeat(heatRequest_kW, baseTemperatureHeating, destinationTemperatureHeating, false);
 		v_ElectricityConsumption_kW = heatpump.getElectricityConsumption();
 	break;
@@ -1251,8 +1251,8 @@ switch (p_HeatingType) {
 		//t_COPHeat.setText("COP Heating = " + COPheating);
 		heatpump = (J_Heatpump)p_MyPrimaryHeatingSystem;
 		boiler = (J_Boiler)p_MySecondaryHeatingSystem;
-		heatpump.produceHeat( heatRequest_kW, baseTemperatureHeating, destinationTemperatureHeating, true );
-		boiler.produceHotWater( hotWaterRequest_kW );
+		v_HeatDelivery_kW += heatpump.produceHeat( heatRequest_kW, baseTemperatureHeating, destinationTemperatureHeating, true );
+		v_hotWaterDelivery_kW += boiler.produceHotWater( hotWaterRequest_kW );
 		v_ElectricityConsumption_kW = heatpump.getElectricityConsumption() + boiler.getElectricityConsumption();
 	break;
 	
@@ -1263,30 +1263,30 @@ switch (p_HeatingType) {
 		gasheater = (J_GasHeater)p_MySecondaryHeatingSystem;
 		COPheating = heatpump.getCOP(baseTemperatureHeating, destinationTemperatureHeating);
 		if ( COPheating < p_hybridCOPThreshold ) {
-			gasheater.produceHotWater( hotWaterRequest_kW, true );
-			gasheater.produceHeat( heatRequest_kW, false );
+			v_hotWaterDelivery_kW += gasheater.produceHotWater( hotWaterRequest_kW, true );
+			v_HeatDelivery_kW += gasheater.produceHeat( heatRequest_kW, false );
 			v_GasConsumption_m3ph = gasheater.getGasConsumption();
 		} else {
-			gasheater.produceHotWater( hotWaterRequest_kW, true );
+			v_hotWaterDelivery_kW += gasheater.produceHotWater( hotWaterRequest_kW, true );
 			v_GasConsumption_m3ph = gasheater.getGasConsumption();
-			heatpump.produceHeat( heatRequest_kW, baseTemperatureHeating, destinationTemperatureHeating, true );
+			v_HeatDelivery_kW += heatpump.produceHeat( heatRequest_kW, baseTemperatureHeating, destinationTemperatureHeating, true );
 			v_ElectricityConsumption_kW = heatpump.getElectricityConsumption();
 		}
 	break;
 	
 	case DistrictHeating:
 		districtHeatingCon = (J_DistrictHeatingCon)p_MyPrimaryHeatingSystem;
-		districtHeatingCon.deliverHotWater( hotWaterRequest_kW, true );
-		districtHeatingCon.deliverHeat( heatRequest_kW, false );
+		v_hotWaterDelivery_kW += districtHeatingCon.deliverHotWater( hotWaterRequest_kW, true );
+		v_HeatDelivery_kW += districtHeatingCon.deliverHeat( heatRequest_kW, false );
 		v_DistrictHeatingAbsorption_kW = districtHeatingCon.getAbsorption();
 	break;
 	
 	case DistrictHeating_w_Boiler:
 		districtHeatingCon = (J_DistrictHeatingCon)p_MyPrimaryHeatingSystem;
 		boiler = (J_Boiler)p_MySecondaryHeatingSystem;
-		districtHeatingCon.deliverHeat(heatRequest_kW, true);
+		v_HeatDelivery_kW += districtHeatingCon.deliverHeat(heatRequest_kW, true);
 		v_DistrictHeatingAbsorption_kW = districtHeatingCon.getAbsorption();
-		boiler.produceHotWater( hotWaterRequest_kW);
+		v_hotWaterDelivery_kW += boiler.produceHotWater( hotWaterRequest_kW);
 		v_ElectricityConsumption_kW = boiler.getElectricityConsumption();
 	break;
 	
@@ -1424,6 +1424,19 @@ v_DistrictHeatingAbsorbed_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]
 					<ActiveObjectClass>
 						<PackageName><![CDATA[heatingsystems]]></PackageName>
 						<ClassName><![CDATA[Main]]></ClassName>
+					</ActiveObjectClass>
+				</ContainerLink>
+				<ContainerLink>
+					<Id>1650876368508</Id>
+					<Name><![CDATA[dH_PTESWithHeatPump]]></Name>
+					<X>150</X><Y>-150</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<ActiveObjectClass>
+						<PackageName><![CDATA[heatingsystems]]></PackageName>
+						<ClassName><![CDATA[DH_PTESWithHeatPump]]></ClassName>
 					</ActiveObjectClass>
 				</ContainerLink>
 			</ContainerLinks>
@@ -2841,7 +2854,7 @@ v_heatingNetworkDemand = networkHeatDemand;
 traceln("v_heatingNetworkDemand "+v_heatingNetworkDemand);
 
 // 'energy manager' van de warmtepomp
-if ( trafoVermogen_kW < 0 & p_MyPrimaryHeatingSystem instanceof J_HeatpumpDistrictHeating ) { // Overvloed aan stroom in de wijk, zet het in om de PTES op te warmen
+if ( trafoVermogen_kW < 0 & p_MyPrimaryHeatingSystem instanceof J_Heatpump ) { // Overvloed aan stroom in de wijk, zet het in om de PTES op te warmen
 	traceln("opportunity heating");
 	//v_heatPumpPowerDraw_kW = min(-trafoVermogen_kW,p_heatPumpMaxPower_kW);
 	f_CalculateHeatProduction(-(trafoVermogen_kW) * v_COPHeat, p_soilTemp_degC, p_maxTempBuffer_degC, p_etaHeatPump_f, dt_h);
@@ -2896,8 +2909,8 @@ v_primaryHeatProduction_kW = 0;
 v_secondaryHeatProduction_kW = 0;
 
 //Initialiseer lokale variabelen
-J_GasHeaterDistrictHeating gasheater;
-J_HeatpumpDistrictHeating heatpump;
+J_GasHeater gasheater;
+J_Heatpump heatpump;
 J_Boiler boiler;
 //J_DistrictHeatingCon districtHeatingCon;
 double COPheat;
@@ -2917,9 +2930,8 @@ v_COPHeat = COPheat;
 //Produceer warm water en warmte
 switch (p_heatingType) {
 	case GasHeater:
-		gasheater = (J_GasHeaterDistrictHeating)p_MyPrimaryHeatingSystem;
-		gasheater.produceHeat( heatRequest_kW, true );
-		v_primaryHeatProduction_kW = gasheater.getHeatDelivery_kW();
+		gasheater = (J_GasHeater)p_MyPrimaryHeatingSystem;
+		v_primaryHeatProduction_kW += gasheater.produceHeat( heatRequest_kW, true );
 		v_GasConsumption_m3ph = gasheater.getGasConsumption();
 	break;
 	
@@ -2947,15 +2959,14 @@ switch (p_heatingType) {
 	case HeatPump_GasPeak:
 		//COPheating = tf_heatPumpCOPspaceHeating( temperatureOutside );
 		t_COPHeat.setText("COP Heating = " + COPheat);
-		heatpump = (J_HeatpumpDistrictHeating)p_MyPrimaryHeatingSystem;
-		gasheater = (J_GasHeaterDistrictHeating)p_MySecondaryHeatingSystem;
+		heatpump = (J_Heatpump)p_MyPrimaryHeatingSystem;
+		gasheater = (J_GasHeater)p_MySecondaryHeatingSystem;
 		
 		if ( COPheat < p_hybridCOPThreshold ) {
 			//gasheater.produceHotWater( hotWaterRequest_kW, true );
 			//too cold for heatpump operation!
-			gasheater.produceHeat( heatRequest_kW, false );
+			v_secondaryHeatProduction_kW += gasheater.produceHeat( heatRequest_kW, false );
 			v_GasConsumption_m3ph = gasheater.getGasConsumption();
-			v_secondaryHeatProduction_kW = gasheater.getHeatDelivery_kW();
 		}
 		else {
 			heatDemandByPrimary_kW = p_heatPumpMaxPower_kW * v_COPHeat; //heatpump.maxPower_kWe * heatpump.COPheat; niet SOLID
@@ -2963,16 +2974,15 @@ switch (p_heatingType) {
 			heatDemandBySecondary_kW = max(heatRequest_kW - heatDemandByPrimary_kW,0);
 			traceln("heatdemand by secondary: "+heatDemandBySecondary_kW);
 						
-			heatpump.produceHeat( heatDemandByPrimary_kW, baseTemperatureHeat, destinationTemperatureHeat, etafactor, true );
+			v_primaryHeatProduction_kW += heatpump.produceHeat( heatDemandByPrimary_kW, baseTemperatureHeat, destinationTemperatureHeat, true );
 			v_heatPumpPowerDraw_kW = heatpump.getElectricityConsumption();
-			v_primaryHeatProduction_kW = heatpump.getHeatDelivery_kW();
+			//v_primaryHeatProduction_kW = heatpump.getHeatDelivery_kW();
 			traceln("v_primaryHeatProduction_kW = "+ v_primaryHeatProduction_kW);
 			
-			gasheater.produceHeat( heatDemandBySecondary_kW, true );
+			v_secondaryHeatProduction_kW += gasheater.produceHeat( heatDemandBySecondary_kW, true );
 			v_GasConsumption_m3ph = gasheater.getGasConsumption();
 			traceln("v_secondaryHeatProduction_kW = "+ v_secondaryHeatProduction_kW);
-			v_secondaryHeatProduction_kW = gasheater.getHeatDelivery_kW();
-		}
+			}
 	break;
 	
 	default:
@@ -3034,6 +3044,81 @@ v_CumElectricityConsumed_kWh += v_heatPumpPowerDraw_kW * timeStep_HR;
 				</AgentLink>
 			</AgentLinks>
 
+			<EmbeddedObjects>
+				<EmbeddedObject>
+					<Id>1650876368323</Id>
+					<Name><![CDATA[heatingSystem]]></Name>
+					<X>720</X><Y>220</Y>
+					<Label><X>-50</X><Y>-30</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<ActiveObjectClass>
+						<PackageName><![CDATA[heatingsystems]]></PackageName>
+						<ClassName><![CDATA[HeatingSystem]]></ClassName>
+					</ActiveObjectClass>
+					<GenericParameterSubstitute>
+						<GenericParameterSubstituteReference>
+							<PackageName><![CDATA[heatingsystems]]></PackageName>
+							<ClassName><![CDATA[HeatingSystem]]></ClassName>
+							<ItemName><![CDATA[1648027127020]]></ItemName>
+						</GenericParameterSubstituteReference>
+					</GenericParameterSubstitute>
+					<Parameters>
+						<Parameter>
+							<Name><![CDATA[p_HeatingType]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_MyPrimaryHeatingSystem]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_MySecondaryHeatingSystem]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_hybridCOPThreshold]]></Name>
+						</Parameter>
+					</Parameters>
+					<ReplicationFlag>false</ReplicationFlag>
+					<Replication Class="CodeValue">
+						<Code><![CDATA[100]]></Code>
+					</Replication>
+					<CollectionType>ARRAY_LIST_BASED</CollectionType>
+					<InEnvironment>true</InEnvironment>	
+					<InitialLocationType>AT_ANIMATION_POSITION</InitialLocationType>
+					<XCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</XCode>
+					<YCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</YCode>
+					<ZCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ZCode>
+					<ColumnCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ColumnCode>
+					<RowCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</RowCode>
+					<LatitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LatitudeCode>
+					<LongitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LongitudeCode>
+					<LocationNameCode Class="CodeValue">
+						<Code><![CDATA[""]]></Code>
+					</LocationNameCode>
+					<InitializationType>SPECIFIED_NUMBER</InitializationType>
+					<InitializationDatabaseTableQuery>
+						<TableReference>
+						</TableReference>
+					</InitializationDatabaseTableQuery>
+					<InitializationDatabaseType>ONE_AGENT_PER_DATABASE_RECORD</InitializationDatabaseType>
+					<QuantityColumn>
+					</QuantityColumn>
+				</EmbeddedObject>
+			</EmbeddedObjects>
 
 			<Presentation>
 				<Level>
@@ -4302,25 +4387,25 @@ public class J_DistrictHeatingCon implements Serializable {
 		return super.toString();
 	}
 
-	public void deliverHotWater( double hotWaterRequest_kW, boolean waterFirst ){
+	public double deliverHotWater( double hotWaterRequest_kW, boolean waterFirst ){
 		if ( waterFirst ) {
 			currentPower_kW = 0;
 			heatDelivery_kW = 0;
 		}
 		hotWaterDelivery_kW = min( hotWaterRequest_kW, maxPower_kW );
 		currentPower_kW += hotWaterDelivery_kW;
-		myHeatingSystem.v_hotWaterDelivery_kW = hotWaterDelivery_kW ; 
-		
+		return hotWaterDelivery_kW ; 
+
 	}
 	
-	public void deliverHeat( double heatRequest_kW, boolean heatFirst ){
+	public double deliverHeat( double heatRequest_kW, boolean heatFirst ){
 		if ( heatFirst ) {
 			currentPower_kW = 0;
 			hotWaterDelivery_kW = 0;
 		}
 		heatDelivery_kW = min( heatRequest_kW, maxPower_kW - hotWaterDelivery_kW) ; 
 		currentPower_kW += heatDelivery_kW;
-		myHeatingSystem.v_HeatDelivery_kW = heatDelivery_kW ; 
+		return heatDelivery_kW ; 
 	}
 	
 	public double getAbsorption() {
@@ -4375,7 +4460,7 @@ public class J_GasHeater implements Serializable {
 		return super.toString();
 	}
 
-	public void produceHotWater( double hotWaterRequest_kW, boolean waterFirst ) {
+	public double produceHotWater( double hotWaterRequest_kW, boolean waterFirst ) {
 		if ( waterFirst ) {
 			currentPower_kW = 0;
 			heatDelivery_kW = 0;
@@ -4383,9 +4468,10 @@ public class J_GasHeater implements Serializable {
 		hotWaterDelivery_kW = min( hotWaterRequest_kW, maxPower_kW - currentPower_kW );
 		currentPower_kW += hotWaterDelivery_kW;
 		myHeatingSystem.v_hotWaterDelivery_kW = hotWaterDelivery_kW;
+		return heatDelivery_kW;
 	}
 	
-	public void produceHeat( double heatRequest_kW, boolean heatFirst ){
+	public double produceHeat( double heatRequest_kW, boolean heatFirst ){
 		if ( heatFirst ) {
 			currentPower_kW = 0;
 			hotWaterDelivery_kW = 0;
@@ -4393,6 +4479,7 @@ public class J_GasHeater implements Serializable {
 		heatDelivery_kW = min( heatRequest_kW, maxPower_kW - currentPower_kW ) ; // Hot water gets priority
 		currentPower_kW += heatDelivery_kW;
 		myHeatingSystem.v_HeatDelivery_kW = heatDelivery_kW;
+		return heatDelivery_kW;
 	}
 	
 	public double getGasConsumption() {
@@ -4453,7 +4540,7 @@ public class J_Heatpump implements Serializable {
 	}
 
 	//public void produceHotWater( double hotWaterRequest_kW, double COPwater, boolean waterFirst ){
-	public void produceHotWater( double hotWaterRequest_kW, double baseTemperature, double destinationTemperature, boolean waterFirst ){
+	public double produceHotWater( double hotWaterRequest_kW, double baseTemperature, double destinationTemperature, boolean waterFirst ){
 		double COPwater = etaHeatPump * ( 273.15 + destinationTemperature ) / (destinationTemperature - baseTemperature);
 		
 		if (waterFirst) {
@@ -4463,10 +4550,11 @@ public class J_Heatpump implements Serializable {
 		hotWaterDelivery_kW = min( hotWaterRequest_kW, ( maxPower_kW - currentPower_kW ) * COPwater ) ;
 		currentPower_kW += hotWaterDelivery_kW / COPwater;
 		myHeatingSystem.v_hotWaterDelivery_kW = hotWaterDelivery_kW;
+		return heatDelivery_kW;
 	}
 	
 	//public void produceHeat( double heatRequest_kW, double COPheating, boolean heatFirst ){
-	public void produceHeat( double heatRequest_kW, double baseTemperature, double destinationTemperature, boolean heatFirst ){
+	public double produceHeat( double heatRequest_kW, double baseTemperature, double destinationTemperature, boolean heatFirst ){
 		double COPheating = etaHeatPump * ( 273.15 + destinationTemperature ) / (destinationTemperature - baseTemperature);
 		
 		if (heatFirst) {
@@ -4476,6 +4564,7 @@ public class J_Heatpump implements Serializable {
 		heatDelivery_kW = min( heatRequest_kW, (maxPower_kW - currentPower_kW ) * COPheating) ; // Hot water gets priority
 		currentPower_kW += heatDelivery_kW / COPheating; 
 		myHeatingSystem.v_HeatDelivery_kW = heatDelivery_kW;
+		return heatDelivery_kW;
 	}
 	
 	public double getElectricityConsumption() {
@@ -4518,10 +4607,11 @@ public class J_Boiler implements Serializable {
     	efficiency = 0.95;
     }
 
-	public void produceHotWater( double hotWaterRequest_kW ){
+	public double produceHotWater( double hotWaterRequest_kW ){
 		hotwaterDelivery_kW = min( hotWaterRequest_kW, maxPower_kW * efficiency );
 		myHeatingSystem.v_hotWaterDelivery_kW = hotwaterDelivery_kW;
 		currentPower_kW = hotwaterDelivery_kW / efficiency;
+		return hotwaterDelivery_kW;
 	}
 	
 	public double getElectricityConsumption() {
@@ -4545,6 +4635,7 @@ public class J_Boiler implements Serializable {
 		<JavaClass>
 			<Id>1650635794243</Id>
 			<Name><![CDATA[J_GasHeaterDistrictHeating]]></Name>
+			<ExcludeFromBuild>true</ExcludeFromBuild>
 			<Text><![CDATA[/**
  * Author: Peter Hogeveen
  * Since: 13-04
@@ -4613,6 +4704,7 @@ public class J_GasHeaterDistrictHeating implements Serializable {
 		<JavaClass>
 			<Id>1650635854588</Id>
 			<Name><![CDATA[J_HeatpumpDistrictHeating]]></Name>
+			<ExcludeFromBuild>true</ExcludeFromBuild>
 			<Text><![CDATA[/**
  * Author: Peter Hogeveen
  * Since: 13-04
