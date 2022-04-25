@@ -3009,7 +3009,7 @@ double totaalVermogenHuishoudens_kW = sum(huishoudens, x->x.v_netVermogen_kW); /
 // Update district heating system, need to use trafoVermogen_kW to allow 'opportunity heating' in the neighbourhood.
 districtHeatingNetwork.f_UpdateNetworkHeatBalance();
 dH_PTESWithHeatPump.f_heatManager(totaalVermogenHuishoudens_kW,dt_h, (DistrictHeatingNetwork)dH_PTESWithHeatPump.connections.getConnectedAgent(0));
-dH_PTESWithHeatPump.f_CalculateHeatProduction(0, 10, 65, 0.5, dt_h);
+//dH_PTESWithHeatPump.f_CalculateHeatProduction(0, 10, 65, dt_h);
 warmtepompVerbruik_kW += dH_PTESWithHeatPump.v_heatPumpPowerDraw_kW;
 trafoVermogen_kW = totaalVermogenHuishoudens_kW + dH_PTESWithHeatPump.v_heatPumpPowerDraw_kW;
 
@@ -3036,7 +3036,7 @@ v_wijkTotaalBenzineVerbruik_l = sumWhere(autos, x->x.v_fuelConsumed_l, x->x.p_fu
 v_wijkTotaalDieselVerbruik_l = sumWhere(autos, x->x.v_fuelConsumed_l, x->x.p_fuelType==fuelType.diesel && !x.elektrisch);
 
 v_wijkTotaalGasVerbruik_m3 = 0.0;
-v_wijkTotaalGasVerbruik_m3 = sumWhere( huishoudens, 
+v_wijkTotaalGasVerbruik_m3 = dH_PTESWithHeatPump.heatingSystem.v_CumGasConsumed_m3 + sumWhere( huishoudens, 
 	h -> h.heatingSystem.v_GasConsumption_m3ph * dt_h, 
 	h -> ( h.heatingSystem.p_HeatingType.equals( OL_HeatingTypes.GasHeater ) || h.heatingSystem.p_HeatingType.equals( OL_HeatingTypes.HeatPump_Hybrid ) ) 
 	);
@@ -3371,9 +3371,9 @@ traceln(nbGasBurner + " CV ketels, " + nbHeatpump + " warmtepompen, " + nbHybrid
 // initialize district heating source
 dH_PTESWithHeatPump.p_heatingType = OL_HeatingTypesDH.HeatPump_GasPeak;
 //dH_PTESWithHeatPump.p_heatingType = OL_HeatingTypesDH.GasHeater; 
-dH_PTESWithHeatPump.p_MyPrimaryHeatingSystem = new J_Heatpump( dH_PTESWithHeatPump.heatingSystem, 100.0, 0.5);
+dH_PTESWithHeatPump.heatingSystem.p_MyPrimaryHeatingSystem = new J_Heatpump( dH_PTESWithHeatPump.heatingSystem, 100.0, 0.5);
 //dH_PTESWithHeatPump.p_MyPrimaryHeatingSystem = new J_GasHeaterDistrictHeating( dH_PTESWithHeatPump, 500);
-dH_PTESWithHeatPump.p_MySecondaryHeatingSystem = new J_GasHeater( dH_PTESWithHeatPump.heatingSystem, 500);
+dH_PTESWithHeatPump.heatingSystem.p_MySecondaryHeatingSystem = new J_GasHeater( dH_PTESWithHeatPump.heatingSystem, 200);
 
 
 f_connectConsumersToDistrictHeat();
@@ -4538,7 +4538,7 @@ TODO: data afleiden en corrigeren.
 							<Name><![CDATA[p_heatingType]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_hybridCOPThreshold]]></Name>
+							<Name><![CDATA[v_hybridCOPThreshold]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>false</ReplicationFlag>
@@ -15015,7 +15015,7 @@ else if ( main.p_thermostatPriceDependent && heatingSystem.p_HeatingType.equals(
 v_heatRequest_kW = v_Thouse < v_setpointActive ?  100 : 0; // TODO: 100 kW standaardwaarde aanpassen?
 //heatingSystem.f_CalculateHeatAndWaterProduction( v_heatRequest_kW, v_DHWEnergyDemand_kW, main.dt_h,main.Tbuiten);
 heatingSystem.f_CalculateHeatAndWaterProduction( v_heatRequest_kW, v_DHWEnergyDemand_kW, main.Tbuiten, v_temperatureLevelHeating_degC, main.Tbuiten, v_temperatureLevelHotWater_degC, p_etaHeatPump_f, main.dt_h );
-v_heatingThermalPower_kW = heatingSystem.v_HeatDelivery_kW ;]]></Body>
+v_heatingThermalPower_kW = heatingSystem.v_heatDelivery_kW ;]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -16446,7 +16446,7 @@ traceln("test");]]></ActionCode>
 					<Id>1648289661116</Id>
 					<Expression><![CDATA[my_dataset1]]></Expression>
 					<Color>-16744448</Color>
-					<Expression2><![CDATA[heatingSystem.v_HeatDelivery_kW]]></Expression2>
+					<Expression2><![CDATA[heatingSystem.v_heatDelivery_kW]]></Expression2>
 					<Expression2Flag>true</Expression2Flag>
 						<PointStyle>CIRCLE</PointStyle>
 						<LineWidth>1.0</LineWidth>
