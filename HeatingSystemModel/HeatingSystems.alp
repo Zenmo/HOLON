@@ -4,7 +4,7 @@
 	         AnyLogic Project File 
 *************************************************	         
 -->
-<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.11.202204111242" AlpVersion="8.7.3">
+<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.11.202204111309" AlpVersion="8.7.3">
 <Model>
 	<Id>1648027099882</Id>
 	<Name><![CDATA[HeatingSystems]]></Name>
@@ -302,7 +302,7 @@
 						<Parameter>
 							<Name><![CDATA[p_MyPrimaryHeatingSystem]]></Name>
 							<Value Class="CodeValue">
-								<Code><![CDATA[new J_Heatpump( Heatpump, 3 )]]></Code>
+								<Code><![CDATA[new J_Heatpump( Heatpump, 3 , 0.95)]]></Code>
 							</Value>
 						</Parameter>
 						<Parameter>
@@ -383,7 +383,7 @@
 						<Parameter>
 							<Name><![CDATA[p_MyPrimaryHeatingSystem]]></Name>
 							<Value Class="CodeValue">
-								<Code><![CDATA[new J_Heatpump( HybridHeatpump, 3 )]]></Code>
+								<Code><![CDATA[new J_Heatpump( HybridHeatpump, 3, 0.5 )]]></Code>
 							</Value>
 						</Parameter>
 						<Parameter>
@@ -467,7 +467,7 @@
 						<Parameter>
 							<Name><![CDATA[p_MyPrimaryHeatingSystem]]></Name>
 							<Value Class="CodeValue">
-								<Code><![CDATA[new J_Heatpump( HeatpumpBoiler, 3 )]]></Code>
+								<Code><![CDATA[new J_Heatpump( HeatpumpBoiler, 3 , 0.5)]]></Code>
 							</Value>
 						</Parameter>
 						<Parameter>
@@ -1026,7 +1026,7 @@
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1650443578375</Id>
-					<Name><![CDATA[v_DistrictHeatingAbsorped_kWh]]></Name>
+					<Name><![CDATA[v_DistrictHeatingAbsorbed_kWh]]></Name>
 					<X>280</X><Y>340</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1217,39 +1217,39 @@ switch (p_HeatingType) {
 	
 	case HeatPump:
 		//COPwater = tf_heatPumpCOPhotWater( temperatureOutside );
-		t_COPWater.setText("COP water = " + COPwater);
+		//t_COPWater.setText("COP water = " + COPwater);
 		//COPheating = tf_heatPumpCOPspaceHeating( temperatureOutside );
-		t_COPHeat.setText("COP Heating = " + COPheating);
+		//t_COPHeat.setText("COP Heating = " + COPheating);
 		heatpump = (J_Heatpump)p_MyPrimaryHeatingSystem;
-		heatpump.produceHotWater( hotWaterRequest_kW, baseTemperatureHotWater, destinationTemperatureHotWater, etaHeatpump_f, true);
-		heatpump.produceHeat(heatRequest_kW, baseTemperatureHeating, destinationTemperatureHeating, etaHeatpump_f, false);
+		heatpump.produceHotWater( hotWaterRequest_kW, baseTemperatureHotWater, destinationTemperatureHotWater, true);
+		heatpump.produceHeat(heatRequest_kW, baseTemperatureHeating, destinationTemperatureHeating, false);
 		v_ElectricityConsumption_kW = heatpump.getElectricityConsumption();
 	break;
 	
 	case HeatPump_w_Boiler:
 		//COPheating = tf_heatPumpCOPspaceHeating( temperatureOutside );
-		t_COPHeat.setText("COP Heating = " + COPheating);
+		//t_COPHeat.setText("COP Heating = " + COPheating);
 		heatpump = (J_Heatpump)p_MyPrimaryHeatingSystem;
 		boiler = (J_Boiler)p_MySecondaryHeatingSystem;
-		heatpump.produceHeat( heatRequest_kW, baseTemperatureHeating, destinationTemperatureHeating, etaHeatpump_f, true );
+		heatpump.produceHeat( heatRequest_kW, baseTemperatureHeating, destinationTemperatureHeating, true );
 		boiler.produceHotWater( hotWaterRequest_kW );
 		v_ElectricityConsumption_kW = heatpump.getElectricityConsumption() + boiler.getElectricityConsumption();
 	break;
 	
 	case HeatPump_Hybrid:
 		//COPheating = tf_heatPumpCOPspaceHeating( temperatureOutside );
-		t_COPHeat.setText("COP Heating = " + COPheating);
+		//t_COPHeat.setText("COP Heating = " + COPheating);
 		heatpump = (J_Heatpump)p_MyPrimaryHeatingSystem;
 		gasheater = (J_GasHeater)p_MySecondaryHeatingSystem;
+		COPheating = heatpump.getCOP(baseTemperatureHeating, destinationTemperatureHeating);
 		if ( COPheating < p_hybridCOPThreshold ) {
 			gasheater.produceHotWater( hotWaterRequest_kW, true );
 			gasheater.produceHeat( heatRequest_kW, false );
 			v_GasConsumption_m3ph = gasheater.getGasConsumption();
-		}
-		else {
+		} else {
 			gasheater.produceHotWater( hotWaterRequest_kW, true );
 			v_GasConsumption_m3ph = gasheater.getGasConsumption();
-			heatpump.produceHeat( heatRequest_kW, baseTemperatureHeating, destinationTemperatureHeating, 0.5, true );
+			heatpump.produceHeat( heatRequest_kW, baseTemperatureHeating, destinationTemperatureHeating, true );
 			v_ElectricityConsumption_kW = heatpump.getElectricityConsumption();
 		}
 	break;
@@ -1281,7 +1281,7 @@ v_HeatDelivered_kWh += v_HeatDelivery_kW * timeStep_HR ;
 v_hotWaterDelivered_kWh += v_hotWaterDelivery_kW * timeStep_HR ;
 v_CumGasConsumed_m3 += v_GasConsumption_m3ph * timeStep_HR;
 v_CumElectricityConsumed_kWh += v_ElectricityConsumption_kW * timeStep_HR;
-v_DistrictHeatingAbsorped_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]></Body>
+v_DistrictHeatingAbsorbed_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]></Body>
 				</Function>
 			</Functions>
 			<TableFunctions>
@@ -2159,6 +2159,7 @@ public class J_Heatpump implements Serializable {
 
 	public HeatingSystem myHeatingSystem;
 	public double maxPower_kW;
+	public double etaHeatPump;
 	public double currentPower_kW;
 	public double hotWaterDelivery_kW;
 	public double heatDelivery_kW;
@@ -2170,11 +2171,12 @@ public class J_Heatpump implements Serializable {
 	
 	//HeatPump esdlObject;
 	
-    public J_Heatpump(HeatingSystem HS, double power) {
+    public J_Heatpump(HeatingSystem HS, double power, double efficiency) {
     	maxPower_kW = power;
     	myHeatingSystem = HS;
-    	HS.t_COPHeat.setVisible(true);
-    	HS.t_COPWater.setVisible(true);
+    	etaHeatPump = efficiency;
+//    	HS.t_COPHeat.setVisible(true);
+//    	HS.t_COPWater.setVisible(true);
     	//esdlObject = EsdlFactory.eINSTANCE.createHeatPump(); 
     }
 
@@ -2184,7 +2186,7 @@ public class J_Heatpump implements Serializable {
 	}
 
 	//public void produceHotWater( double hotWaterRequest_kW, double COPwater, boolean waterFirst ){
-	public void produceHotWater( double hotWaterRequest_kW, double baseTemperature, double destinationTemperature, double etaHeatPump, boolean waterFirst ){
+	public void produceHotWater( double hotWaterRequest_kW, double baseTemperature, double destinationTemperature, boolean waterFirst ){
 		double COPwater = etaHeatPump * ( 273.15 + destinationTemperature ) / (destinationTemperature - baseTemperature);
 		
 		if (waterFirst) {
@@ -2197,7 +2199,7 @@ public class J_Heatpump implements Serializable {
 	}
 	
 	//public void produceHeat( double heatRequest_kW, double COPheating, boolean heatFirst ){
-	public void produceHeat( double heatRequest_kW, double baseTemperature, double destinationTemperature, double etaHeatPump, boolean heatFirst ){
+	public void produceHeat( double heatRequest_kW, double baseTemperature, double destinationTemperature, boolean heatFirst ){
 		double COPheating = etaHeatPump * ( 273.15 + destinationTemperature ) / (destinationTemperature - baseTemperature);
 		
 		if (heatFirst) {
@@ -2213,6 +2215,10 @@ public class J_Heatpump implements Serializable {
 		return currentPower_kW;
 	}
 	
+	public double getCOP(double baseTemperature, double destinationTemperature) {
+		double COP = etaHeatPump * ( 273.15 + destinationTemperature ) / (destinationTemperature - baseTemperature);
+		return COP;
+	}
 	/**
 	 * This number is here for model snapshot storing purpose<br>
 	 * It needs to be changed when this class gets changed
