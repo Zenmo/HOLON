@@ -4,7 +4,7 @@
 	         AnyLogic Project File 
 *************************************************	         
 -->
-<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.11.202204111242" AlpVersion="8.7.3">
+<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.11.202204111309" AlpVersion="8.7.3">
 <Model>
 	<Id>1648027099882</Id>
 	<Name><![CDATA[HeatingSystems]]></Name>
@@ -2306,7 +2306,7 @@ v_DistrictHeatingAbsorbed_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[6000*0.25]]></Code>
+							<Code><![CDATA[6000*2]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1650616556401</Id>
@@ -2916,17 +2916,17 @@ if ( trafoVermogen_kW < 0 & heatingSystem.p_MyPrimaryHeatingSystem instanceof J_
 	//v_heatPumpPowerDraw_kW = min(-trafoVermogen_kW,p_heatPumpMaxPower_kW);
 	v_hybridCOPThreshold = 0;
 
-	f_CalculateHeatProduction(-(trafoVermogen_kW) * COP, p_soilTemp_degC, v_bufferTemp_degC, dt_h);
+	f_CalculateHeatProduction(min(-trafoVermogen_kW,p_primarySystemMaxPower_kW) * COP, p_soilTemp_degC, v_bufferTemp_degC, dt_h);
 	t_incentiveMode.setColor(green);
 	t_incentiveMode.setText("opportunity");
 	
-} else if (v_bufferTemp_degC < p_bufferTempHeatingTreshold_degC & v_bufferTemp_degC >= p_minTempBuffer_degC) { // If PTES temperature drops too low, start heating it regardless of power available in neighbourhood
+} else if (v_bufferTemp_degC < p_bufferTempHeatingTreshold_degC && v_bufferTemp_degC >= p_minTempBuffer_degC) { // If PTES temperature drops too low, start heating it regardless of power available in neighbourhood
 //	v_heatPumpPowerDraw_kW = 30;
 	v_hybridCOPThreshold = 1.5;
-	//traceln("normal heating");
+	traceln("normal heating");
 	t_incentiveMode.setColor(black);
 	t_incentiveMode.setText("normal");
-	f_CalculateHeatProduction( (v_bufferTemp_degC - p_minTempBuffer_degC ) / (p_bufferTempHeatingTreshold_degC - p_minTempBuffer_degC) * p_primarySystemMaxPower_kW * COP , p_soilTemp_degC, v_bufferTemp_degC, dt_h);
+	f_CalculateHeatProduction( (p_bufferTempHeatingTreshold_degC - v_bufferTemp_degC) / (p_bufferTempHeatingTreshold_degC - p_minTempBuffer_degC) * p_primarySystemMaxPower_kW * COP , p_soilTemp_degC, v_bufferTemp_degC, dt_h);
 } else if (v_bufferTemp_degC < p_minTempBuffer_degC) { // If PTES temperature drops too low, start heating it regardless of power available in neighbourhood
 //	v_heatPumpPowerDraw_kW = 30;
 	v_hybridCOPThreshold = 1.5;
