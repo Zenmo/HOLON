@@ -797,7 +797,7 @@ f_setTrafoMinPower(p_connectionCapacityPerHousehold);
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1644825798181</Id>
-					<Name><![CDATA[warmtepompVerbruik_kW]]></Name>
+					<Name><![CDATA[v_warmteElektriciteitsVerbruik_kW]]></Name>
 					<X>-1070</X><Y>100</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -852,7 +852,7 @@ f_setTrafoMinPower(p_connectionCapacityPerHousehold);
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1644825798189</Id>
-					<Name><![CDATA[Tbuiten]]></Name>
+					<Name><![CDATA[v_outsideTemp_degC]]></Name>
 					<X>-1070</X><Y>270</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -2528,7 +2528,7 @@ EUR per m3 excl. belastingen]]></Description>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[p_boot_woningen * 3]]></Code>
+							<Code><![CDATA[p_boot_woningen * 0.7]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1650893698028</Id>
@@ -2556,6 +2556,30 @@ EUR per m3 excl. belastingen]]></Description>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1650893738976</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1650982509724</Id>
+					<Name><![CDATA[p_districtHeatingBackupPower_kW]]></Name>
+					<X>420</X><Y>1740</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[p_boot_woningen * 5]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1650982509722</Id>
 							<EditorContolType>TEXT_BOX</EditorContolType>
 							<MinSliderValue><![CDATA[0]]></MinSliderValue>
 							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
@@ -3009,10 +3033,11 @@ EUR per m3 excl. belastingen]]></Description>
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
 					<Action><![CDATA[//Buiten temperatuur
-Tbuiten = temperatuurFunctie( time(HOUR) + hourOfYearStart );
+v_outsideTemp_degC = temperatuurFunctie( time(HOUR) + hourOfYearStart );
 
 // Incentives
 incentiveGenerator.f_setCongestionTariff(); // Dynamic incentives need to be updated every timestep
+incentiveGenerator.f_setDayAheadTariff();
 incentiveGenerator.f_updateIncentive();
 	
 // Update all households, calculate power consumption
@@ -3024,7 +3049,7 @@ for ( Huishouden h : huishoudens ) {
 // District heating?
 
 v_districtHeatDemand_kW = 0.0;
-warmtepompVerbruik_kW = 0.0;
+v_warmteElektriciteitsVerbruik_kW = 0.0;
 
 for (Huishouden h : huishoudens) {
 	HeatingSystem hs = h.heatingSystem;
@@ -3034,11 +3059,11 @@ for (Huishouden h : huishoudens) {
 		break;
 		
 		case HeatPump:
-		warmtepompVerbruik_kW += hs.v_ElectricityConsumption_kW;
+		v_warmteElektriciteitsVerbruik_kW += hs.v_ElectricityConsumption_kW;
 		break;
 		
 		case HeatPump_Hybrid:
-		warmtepompVerbruik_kW += hs.v_ElectricityConsumption_kW;
+		v_warmteElektriciteitsVerbruik_kW += hs.v_ElectricityConsumption_kW;
 		break;
 		
 		default:;
@@ -3055,13 +3080,15 @@ eigenConsumptie = sum(huishoudens, x->x.v_eigenConsumptie_kW);
 double totaalVermogenHuishoudens_kW = sum(huishoudens, x->x.v_netVermogen_kW); //basislastElektriciteitsverbruikHuishoudens_kW + autos.laadvraag() + warmtepompVerbruik_kW - pvOpwek_kW - autos.V2Gvermogen();
 
 // Update district heating system, need to use trafoVermogen_kW to allow 'opportunity heating' in the neighbourhood.
+dH_PTESWithHeatPump.f_heatManager(totaalVermogenHuishoudens_kW,dt_h, (DistrictHeatingNetwork)dH_PTESWithHeatPump.connections.getConnectedAgent(0),v_outsideTemp_degC);
 districtHeatingNetwork.f_UpdateNetworkHeatBalance();
-dH_PTESWithHeatPump.f_heatManager(totaalVermogenHuishoudens_kW,dt_h, (DistrictHeatingNetwork)dH_PTESWithHeatPump.connections.getConnectedAgent(0));
+
 //dH_PTESWithHeatPump.f_CalculateHeatProduction(0, 10, 65, dt_h);
-warmtepompVerbruik_kW += dH_PTESWithHeatPump.v_heatPumpPowerDraw_kW;
+//warmtepompVerbruik_kW += dH_PTESWithHeatPump.v_heatPumpPowerDraw_kW;
+v_warmteElektriciteitsVerbruik_kW += dH_PTESWithHeatPump.heatingSystem.v_ElectricityConsumption_kW;
 trafoVermogen_kW = totaalVermogenHuishoudens_kW + dH_PTESWithHeatPump.v_heatPumpPowerDraw_kW;
 
-wijkVerbruik_kW = basislastElektriciteitsverbruikHuishoudens_kW + autos.laadvraag() + warmtepompVerbruik_kW - autos.V2Gvermogen(); // Alle 'final' energieverbuik in de wijk
+wijkVerbruik_kW = basislastElektriciteitsverbruikHuishoudens_kW + autos.laadvraag() + v_warmteElektriciteitsVerbruik_kW - autos.V2Gvermogen(); // Alle 'final' energieverbuik in de wijk
 gemiddeldeSoC_pct = averageWhere(autos, x->x.huidigBatterijCap_kWh/x.maxBatterijCap_kWh, x->x.elektrisch);
 
 //Grafieken updaten
@@ -3073,7 +3100,7 @@ householdByThermostatModes.updateData();
 
 // WijkTotalen
 pvOpwekJaartotaal += pvOpwek_kW * dt_h;
-v_wijkTotaalWPVerbruik_kWh += warmtepompVerbruik_kW * dt_h;
+v_wijkTotaalWPVerbruik_kWh += v_warmteElektriciteitsVerbruik_kW * dt_h;
 v_evVerbruikJaartotaal_kWh += autos.laadvraag() * dt_h; // Includes only charging, no discharging (V2G)! 
 basislastElektriciteitsverbruikHuishoudensJaartotaal += basislastElektriciteitsverbruikHuishoudens_kW * dt_h;
 v_eigenConsumptieJaartotaal_kWh += eigenConsumptie * dt_h;
@@ -3417,12 +3444,14 @@ for (Huishouden h : huishoudens) {
 traceln(nbGasBurner + " CV ketels, " + nbHeatpump + " warmtepompen, " + nbHybridHeatpump + " hybride warmtepompen, " + nbDistrictheating + " stadsverwarming");
 
 // initialize district heating source
-dH_PTESWithHeatPump.p_heatingType = OL_HeatingTypesDH.HeatPump_GasPeak;
+//dH_PTESWithHeatPump.p_heatingType = OL_HeatingTypesDH.HeatPump_GasPeak;
+dH_PTESWithHeatPump.p_heatingType = OL_HeatingTypesDH.HeatPump_GasPeak_Boiler;
 //dH_PTESWithHeatPump.p_heatingType = OL_HeatingTypesDH.GasHeater; 
 dH_PTESWithHeatPump.heatingSystem.p_MyPrimaryHeatingSystem = new J_Heatpump( dH_PTESWithHeatPump.heatingSystem, p_districtHeatingPrimaryPower_kW, 0.5);
 //dH_PTESWithHeatPump.p_MyPrimaryHeatingSystem = new J_GasHeaterDistrictHeating( dH_PTESWithHeatPump, 500);
 dH_PTESWithHeatPump.heatingSystem.p_MySecondaryHeatingSystem = new J_GasHeater( dH_PTESWithHeatPump.heatingSystem, p_districtHeatingSecondaryPower_kW);
 
+dH_PTESWithHeatPump.heatingSystem.p_MyBackupHeatingSystem = new J_Boiler( dH_PTESWithHeatPump.heatingSystem, p_districtHeatingBackupPower_kW);
 
 f_connectConsumersToDistrictHeat();
 f_connectSuppliersToDistrictHeat();]]></Body>
@@ -4599,6 +4628,9 @@ TODO: data afleiden en corrigeren.
 							<Value Class="CodeValue">
 								<Code><![CDATA[p_districtHeatingSecondaryPower_kW]]></Code>
 							</Value>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_backupSystemMaxPower_kW]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>false</ReplicationFlag>
@@ -10428,7 +10460,7 @@ bezoekPT / 10]]></LineWidthCode>
 					<Id>0</Id>
 					<Expression><![CDATA[my_dataset]]></Expression>
 					<Color>-65536</Color>
-					<Expression2><![CDATA[warmtepompVerbruik_kW]]></Expression2>
+					<Expression2><![CDATA[v_warmteElektriciteitsVerbruik_kW]]></Expression2>
 					<Expression2Flag>true</Expression2Flag>  
 							<Title><![CDATA[Warmtepompen]]></Title>
 					</DatasetExpression>
@@ -13349,7 +13381,7 @@ p_ventilationFlowrate_m3ph = p_specificVentilationFlowrate_mph * p_floorSurfaceA
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[double]]></Type>        
 						<InitialValue Class="CodeValue">
-							<Code><![CDATA[p_ventilationFlowrate_m3ph * second() *p_cpAir_JpkgpK*p_rhoAir_kgpm3*(v_Thouse-main.Tbuiten)/1000]]></Code>
+							<Code><![CDATA[p_ventilationFlowrate_m3ph * second() *p_cpAir_JpkgpK*p_rhoAir_kgpm3*(v_Thouse-main.v_outsideTemp_degC)/1000]]></Code>
 						</InitialValue>
 					</Properties>
 				</Variable>
@@ -13365,7 +13397,7 @@ p_ventilationFlowrate_m3ph = p_specificVentilationFlowrate_mph * p_floorSurfaceA
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[double]]></Type>        
 						<InitialValue Class="CodeValue">
-							<Code><![CDATA[(v_Thouse - main.Tbuiten) * p_buildingEnvelopeArea_m2 / p_rcValueAverage_m2KpW / 1000]]></Code>
+							<Code><![CDATA[(v_Thouse - main.v_outsideTemp_degC) * p_buildingEnvelopeArea_m2 / p_rcValueAverage_m2KpW / 1000]]></Code>
 						</InitialValue>
 					</Properties>
 				</Variable>
@@ -14979,8 +15011,8 @@ v_gemiddeldeStroomPrijs_eurpkWh = v_electricityBill_eur/v_totaalVerbruik_kWh;
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[// Berekenen warmtestromen uit
-v_fieVentilation_kW = p_ventilationFlowrate_m3ph / 3600 *p_cpAir_JpkgpK*p_rhoAir_kgpm3*(v_Thouse-main.Tbuiten)/1000;
-v_fieTransmissionLoss_kW = (v_Thouse - main.Tbuiten) * p_buildingEnvelopeArea_m2 / p_rcValueAverage_m2KpW / 1000;
+v_fieVentilation_kW = p_ventilationFlowrate_m3ph / 3600 *p_cpAir_JpkgpK*p_rhoAir_kgpm3*(v_Thouse-main.v_outsideTemp_degC)/1000;
+v_fieTransmissionLoss_kW = (v_Thouse - main.v_outsideTemp_degC) * p_buildingEnvelopeArea_m2 / p_rcValueAverage_m2KpW / 1000;
 
 // Bereken warmtestromen in excl. verwarming
 v_fieIrradiation_kW = 0;
@@ -15060,7 +15092,7 @@ v_setpointActive -= v_tempSetpointReduction_degC;
 double v_DHWEnergyDemand_kW=pop_dHWDemand.get(0).f_updateDHWEnergyDemand();
 
 // introduceer prijselasticiteit aardgas in setpoint en tapwatervraag wanneer actief. Percentuele setpoint-aanpassingen is relatief aan verschil met buitentemperatuur.
-double gasPriceIncentiveSetpointCorrection = ( v_gasUseIncentive_pct ) * ( main.p_thermostatPriceDependent ? max( ((v_setpointActive - main.Tbuiten)/v_setpointActive), 0) : 1);
+double gasPriceIncentiveSetpointCorrection = ( v_gasUseIncentive_pct ) * ( main.p_thermostatPriceDependent ? max( ((v_setpointActive - main.v_outsideTemp_degC)/v_setpointActive), 0) : 1);
 
 
 //TODO unnen deze twee samengevoegd worden? Waarom geen setpoiunt bij hybridheatpum?
@@ -15074,7 +15106,7 @@ else if ( main.p_thermostatPriceDependent && heatingSystem.p_HeatingType.equals(
 
 v_heatRequest_kW = v_Thouse < v_setpointActive ?  100 : 0; // TODO: 100 kW standaardwaarde aanpassen?
 //heatingSystem.f_CalculateHeatAndWaterProduction( v_heatRequest_kW, v_DHWEnergyDemand_kW, main.dt_h,main.Tbuiten);
-heatingSystem.f_CalculateHeatAndWaterProduction( v_heatRequest_kW, v_DHWEnergyDemand_kW, main.Tbuiten, v_temperatureLevelHeating_degC, main.Tbuiten, v_temperatureLevelHotWater_degC, p_etaHeatPump_f, main.dt_h );
+heatingSystem.f_CalculateHeatAndWaterProduction( v_heatRequest_kW, v_DHWEnergyDemand_kW, main.v_outsideTemp_degC, v_temperatureLevelHeating_degC, main.v_outsideTemp_degC, v_temperatureLevelHotWater_degC, p_etaHeatPump_f, main.dt_h );
 v_heatingThermalPower_kW = heatingSystem.v_heatDelivery_kW ;]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -15499,6 +15531,9 @@ p_buildingYear = 1960;
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_hybridCOPThreshold]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_MyBackupHeatingSystem]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>false</ReplicationFlag>
@@ -16339,7 +16374,7 @@ white]]></FillColorCode>
 					<Id>0</Id>
 					<Expression><![CDATA[my_dataset1]]></Expression>
 					<Color>-3137392</Color>
-					<Expression2><![CDATA[main.Tbuiten]]></Expression2>
+					<Expression2><![CDATA[main.v_outsideTemp_degC]]></Expression2>
 					<Expression2Flag>true</Expression2Flag>
 						<PointStyle>NONE</PointStyle>
 						<LineWidth>1.0</LineWidth>
@@ -25837,6 +25872,8 @@ f_setCapacityTariff();
 
 f_setCongestionTariff();
 
+f_setDayAheadTariff();
+
 //f_setHolonEnergyMarketTariff();
 
 f_updateIncentive();]]></StartupCode>
@@ -26024,7 +26061,7 @@ f_updateIncentive();]]></StartupCode>
 				<Variable Class="PlainVariable">
 					<Id>1644943240111</Id>
 					<Name><![CDATA[v_incentiveEuroNetMetering]]></Name>
-					<X>480</X><Y>630</Y>
+					<X>480</X><Y>660</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -26037,7 +26074,7 @@ f_updateIncentive();]]></StartupCode>
 					<Id>1644943240113</Id>
 					<Name><![CDATA[v_incentiveKWCapacityTariff]]></Name>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>480</X><Y>650</Y>
+					<X>480</X><Y>680</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -26049,7 +26086,7 @@ f_updateIncentive();]]></StartupCode>
 				<Variable Class="PlainVariable">
 					<Id>1644943240115</Id>
 					<Name><![CDATA[v_incentiveEuroCapacityTariff]]></Name>
-					<X>480</X><Y>670</Y>
+					<X>480</X><Y>700</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -26097,7 +26134,7 @@ f_updateIncentive();]]></StartupCode>
 				<Variable Class="PlainVariable">
 					<Id>1645275908116</Id>
 					<Name><![CDATA[v_incentiveCongestionTariff]]></Name>
-					<X>480</X><Y>700</Y>
+					<X>480</X><Y>730</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -26112,7 +26149,7 @@ f_updateIncentive();]]></StartupCode>
 				<Variable Class="PlainVariable">
 					<Id>1645431620726</Id>
 					<Name><![CDATA[v_holonLoadLowPassed_kW]]></Name>
-					<X>480</X><Y>730</Y>
+					<X>480</X><Y>760</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -26122,6 +26159,18 @@ f_updateIncentive();]]></StartupCode>
 						<InitialValue Class="CodeValue">
 							<Code><![CDATA[0.0]]></Code>
 						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1650980678074</Id>
+					<Name><![CDATA[v_incentiveDayAheadTariff_eurpkWh]]></Name>
+					<X>480</X><Y>630</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double []]]></Type>        
 					</Properties>
 				</Variable>
 				<Variable Class="Parameter">
@@ -26559,6 +26608,7 @@ v_incentiveEuroAfternoonOffPeakTariff = new double[v_incentiveLength];
 v_incentiveEuroNetMetering = new double[v_incentiveLength];
 //v_incentiveKWCapacityTariff = new double[v_incentiveLength];
 v_incentiveEuroCapacityTariff = new double[v_incentiveLength];
+v_incentiveDayAheadTariff_eurpkWh = new double[v_incentiveLength];
 
 //v_incentiveCongestionTariff = new double[v_incentiveLength];]]></Body>
 				</Function>
@@ -26621,8 +26671,9 @@ else {
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1644944721922</Id>
-					<Name><![CDATA[f_updateIncentive]]></Name>
-					<X>480</X><Y>780</Y>
+					<Name><![CDATA[f_updateIncentive_old]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>480</X><Y>830</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -26849,6 +26900,72 @@ else{
 	}
 }	]]></Body>
 				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1650980656771</Id>
+					<Name><![CDATA[f_setDayAheadTariff]]></Name>
+					<X>480</X><Y>280</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[//Creating price schedule to be added to basic fixed tariff schedule
+
+//zet de uurprijs o.b.v. de table function van de dayAheadTariff en delen door 1000 om van eurpMWh naar eurpkWh te gaann
+if( cb_dayAheadTariff.isSelected() ){ 
+	for( int i = 0; i < v_incentiveLength; i++ ) {
+		v_incentiveDayAheadTariff_eurpkWh[i] = tf_dayAheadTariff_euroPerMWh(time(HOUR) + main.hourOfYearStart) / 1000;
+	}
+}
+else {
+	for( int i = 0; i < v_incentiveLength; i++ ) {
+		v_incentiveDayAheadTariff_eurpkWh[i] = 0.0;
+	}
+}]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1650980713626</Id>
+					<Name><![CDATA[f_updateIncentive]]></Name>
+					<X>480</X><Y>800</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[// TODO: add switching logic to this function instead such that it is the only interface to all functionallity in this agent
+
+// kies tussen vast en variabel tarief als basis om incentives bij op te tellen, afhankelijk van de gekozen instelling.
+if( cb_dayAheadTariff.isSelected() ) {
+	for( int i = 0; i < v_incentiveLength; i++){ // Collect all incentive contributions
+		v_incentiveEuro[i] = v_incentiveDayAheadTariff_eurpkWh[i] + v_incentiveEuroOffPeakTariff[i] + v_incentiveEuroAfternoonOffPeakTariff[i] + v_incentiveEuroNetMetering[i] + v_incentiveEuroCapacityTariff[i] + v_incentiveCongestionTariff ;
+	}
+}
+else {
+	for( int i = 0; i < v_incentiveLength; i++){ // Collect all incentive contributions
+		v_incentiveEuro[i] = v_incentiveEuroFixedTariff[i] + v_incentiveEuroOffPeakTariff[i] + v_incentiveEuroAfternoonOffPeakTariff[i] + v_incentiveEuroNetMetering[i] + v_incentiveEuroCapacityTariff[i] + v_incentiveCongestionTariff ;
+	}
+}
+
+//update table function
+tf_incentivePowerCosts.setArgumentsAndValues(v_incentiveKW, v_incentiveEuro);
+
+//set to database from table to visualize in plot
+ds_incentives.reset();
+//for( double d = p_minHouseholdPowerKW; d < p_maxHouseholdPowerKW + 1; d++ ){
+for( int i = 0; i < v_incentiveLength; i++){
+	ds_incentives.add(v_incentiveKW[i], tf_incentivePowerCosts(v_incentiveKW[i]));
+}
+
+//update plot
+//main.pl_incentives1.setFixedHorizontalScale(p_minHouseholdPowerKW, p_maxHouseholdPowerKW);
+main.pl_incentives1.updateData();
+
+//pl_incentives.setFixedHorizontalScale(p_minHouseholdPowerKW, p_maxHouseholdPowerKW);
+pl_incentives.updateData();
+//main.t_congestietarief.setText(roundToInt(v_incentiveCongestionTariff*100.0)  + " ct/kWh congestietarief");]]></Body>
+				</Function>
 			</Functions>
 			<TableFunctions>
 				<TableFunction AccessType="public" StaticFunction="false">
@@ -26870,6 +26987,76 @@ else{
 							<ArgumentColumnReference>
 							</ArgumentColumnReference>
 							<ValueColumnReference>
+							</ValueColumnReference>
+					</ValuesQuery>
+// arguments and values
+					<Argument><![CDATA[0.0]]></Argument>
+					<Value><![CDATA[0.0]]></Value>
+				</TableFunction>
+				<TableFunction AccessType="public" StaticFunction="false">
+					<Id>1650980598702</Id>
+					<Name><![CDATA[tf_dayAheadTariff_euroPerMWh_old]]></Name>
+					<Description><![CDATA[Dit zijn de Nederlanse DayAhead elektricitietsprijzen uit 2019 op uurbasis om te gebruiken als tarief voor huishoudens die een uurprijzen energiecontract hebben. Met dit signaal kan de buurtHOLON sturen op een incentive die representatief is voor vraag en aanbod op het landelijke energiesysteem.
+@author: EmielvanDruten
+@since: 12/04/2022]]></Description>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>230</X><Y>70</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<InterpolationMethod>LINEAR</InterpolationMethod>
+					<OutOfRangeBehaviour>REPEATING</OutOfRangeBehaviour>
+					<OutOfRangeCustomValue><![CDATA[0.0]]></OutOfRangeCustomValue>
+					<ApproximationOrder><![CDATA[1]]></ApproximationOrder>
+					<LoadFromDatabase><![CDATA[true]]></LoadFromDatabase>
+					<ValuesQuery>
+						<TableReference>
+							<PackageName><![CDATA[ebuurt]]></PackageName>
+							<ClassName><![CDATA[day_ahead_prices_2019_de]]></ClassName>
+						</TableReference>
+							<ArgumentColumnReference>
+								<PackageName><![CDATA[ebuurt]]></PackageName>
+								<ClassName><![CDATA[day_ahead_prices_2019_de]]></ClassName>
+								<ItemName><![CDATA[hour]]></ItemName>
+							</ArgumentColumnReference>
+							<ValueColumnReference>
+								<PackageName><![CDATA[ebuurt]]></PackageName>
+								<ClassName><![CDATA[day_ahead_prices_2019_de]]></ClassName>
+								<ItemName><![CDATA[day_ahead_price_eur_mwh]]></ItemName>
+							</ValueColumnReference>
+					</ValuesQuery>
+// arguments and values
+					<Argument><![CDATA[0.0]]></Argument>
+					<Value><![CDATA[0.0]]></Value>
+				</TableFunction>
+				<TableFunction AccessType="public" StaticFunction="false">
+					<Id>1650981145425</Id>
+					<Name><![CDATA[tf_dayAheadTariff_euroPerMWh]]></Name>
+					<X>230</X><Y>40</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<InterpolationMethod>LINEAR</InterpolationMethod>
+					<OutOfRangeBehaviour>REPEATING</OutOfRangeBehaviour>
+					<OutOfRangeCustomValue><![CDATA[0.0]]></OutOfRangeCustomValue>
+					<ApproximationOrder><![CDATA[1]]></ApproximationOrder>
+					<LoadFromDatabase><![CDATA[true]]></LoadFromDatabase>
+					<ValuesQuery>
+						<TableReference>
+							<PackageName><![CDATA[ebuurt]]></PackageName>
+							<ClassName><![CDATA[day_ahead_prices_2019_de]]></ClassName>
+						</TableReference>
+							<ArgumentColumnReference>
+								<PackageName><![CDATA[ebuurt]]></PackageName>
+								<ClassName><![CDATA[day_ahead_prices_2019_de]]></ClassName>
+								<ItemName><![CDATA[hour]]></ItemName>
+							</ArgumentColumnReference>
+							<ValueColumnReference>
+								<PackageName><![CDATA[ebuurt]]></PackageName>
+								<ClassName><![CDATA[day_ahead_prices_2019_de]]></ClassName>
+								<ItemName><![CDATA[day_ahead_price_eur_mwh]]></ItemName>
 							</ValueColumnReference>
 					</ValuesQuery>
 // arguments and values
@@ -27231,6 +27418,32 @@ f_updateTariffs();]]></ActionCode>
 					<HorScaleToExpression><![CDATA[1]]></HorScaleToExpression>
 					<HorScaleType>AUTO</HorScaleType>
     			</Plot>
+				<Control Type="CheckBox">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1650980641817</Id>
+					<Name><![CDATA[cb_dayAheadTariff]]></Name>
+					<Description><![CDATA[@author: EmielvanDruten	
+@since: 12/04/2022]]></Description>
+					<X>10</X><Y>60</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="100" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<TextColor/>
+						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[f_setOffPeakTariff();
+f_updateIncentive();]]></ActionCode>
+					</BasicProperties>
+					<ExtendedProperties>
+						<Font Name="Dialog" Size="11" Style="0"/>
+						<LabelText><![CDATA[uurprijzen]]></LabelText>
+						<DefaultValueCode><![CDATA[true]]></DefaultValueCode>
+						<LinkTo>false</LinkTo>
+	 				</ExtendedProperties>
+				</Control>
 			</Presentation>
 
 				</Level>
@@ -31827,6 +32040,27 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 				<Password><![CDATA[]]></Password>
 			</ExternalConnection>
 			<ExternalConnection>
+				<Id>1650980455432</Id>
+				<Name><![CDATA[database]]></Name>
+				<X>0</X><Y>0</Y>
+				<Label><X>10</X><Y>0</Y></Label>
+				<PublicFlag>false</PublicFlag>
+				<PresentationFlag>true</PresentationFlag>
+				<ShowLabel>true</ShowLabel>
+				<DatabaseType>EXCEL_ACCESS</DatabaseType>
+				<ConnectionURL><![CDATA[]]></ConnectionURL>
+				<ConnectOnStartup>true</ConnectOnStartup>
+				<DatabaseName><![CDATA[]]></DatabaseName>
+				<ResourceReference>
+					<PackageName><![CDATA[ebuurt]]></PackageName>
+					<ClassName><![CDATA[../Data/Day-ahead Prices_201901010000-202001010000.xlsx]]></ClassName>
+				</ResourceReference>
+				<Host><![CDATA[localhost]]></Host>
+				<JdbcDriverClassName><![CDATA[net.sourceforge.jtds.jdbc.Driver]]></JdbcDriverClassName>
+				<Login><![CDATA[]]></Login>
+				<Password><![CDATA[]]></Password>
+			</ExternalConnection>
+			<ExternalConnection>
 				<Id>1648656120137</Id>
 				<Name><![CDATA[database]]></Name>
 				<X>0</X><Y>0</Y>
@@ -31898,11 +32132,11 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 			<TableImportSettings>
 				<TableReference>
 					<PackageName><![CDATA[ebuurt]]></PackageName>
-					<ClassName><![CDATA[db_housetypedata]]></ClassName>
+					<ClassName><![CDATA[day_ahead_prices_2019_de]]></ClassName>
 				</TableReference>
 				<ConnectionIndex>3</ConnectionIndex>
-				<ExternalTableName><![CDATA["blad01"]]></ExternalTableName>
-				<AutoImport>false</AutoImport>
+				<ExternalTableName><![CDATA["Day-ahead Prices_201901010000-2"]]></ExternalTableName>
+				<AutoImport>true</AutoImport>
 			</TableImportSettings>
 			<TableImportSettings>
 				<TableReference>
@@ -31918,7 +32152,7 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 					<PackageName><![CDATA[ebuurt]]></PackageName>
 					<ClassName><![CDATA[db_housetypedata]]></ClassName>
 				</TableReference>
-				<ConnectionIndex>1</ConnectionIndex>
+				<ConnectionIndex>4</ConnectionIndex>
 				<ExternalTableName><![CDATA["blad01"]]></ExternalTableName>
 				<AutoImport>false</AutoImport>
 			</TableImportSettings>
@@ -31936,7 +32170,7 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 					<PackageName><![CDATA[ebuurt]]></PackageName>
 					<ClassName><![CDATA[db_housingdata_utrecht]]></ClassName>
 				</TableReference>
-				<ConnectionIndex>4</ConnectionIndex>
+				<ConnectionIndex>5</ConnectionIndex>
 				<ExternalTableName><![CDATA["Blad2"]]></ExternalTableName>
 				<AutoImport>false</AutoImport>
 			</TableImportSettings>
@@ -35407,6 +35641,9 @@ else {
 				<Parameter>
 					<ParameterName><![CDATA[p_districtHeatingSecondaryPower_kW]]></ParameterName>
 				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_districtHeatingBackupPower_kW]]></ParameterName>
+				</Parameter>
 			</Parameters>			
 			<PresentationProperties>
 				<EnableZoomAndPanning>true</EnableZoomAndPanning>
@@ -35473,6 +35710,10 @@ else {
 		</Resource>
 		<Resource>
 			<Path><![CDATA[DHW4person_DHW.txt]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[../Data/Day-ahead Prices_201901010000-202001010000.xlsx]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
