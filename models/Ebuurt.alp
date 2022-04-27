@@ -84,7 +84,7 @@
 			<Import><![CDATA[import java.text.SimpleDateFormat;
 import javax.measure.quantity.RadioactiveActivity;]]></Import>
 			<StartupCode><![CDATA[f_ConfigureInitialSettings();
-
+double nbPVpanelen=0;
 viewAreaMain.navigateTo();
 huishoudensIDs.addAll( selectFrom( db_huishoudens ).list( db_huishoudens.hhid ) );
 
@@ -93,7 +93,8 @@ for ( int i = 0; i < p_boot_woningen; i++) {
 	h.initializeAutos( i );
 		
 	if ( randomTrue( p_boot_zonnepanelen / 100.0 ) ) {
-		h.add_zonnepanelen();
+		h.add_zonnepanelen();		
+		nbPVpanelen += h.zonnepanelen(0).aantalPanelen;
 		h.energyManager.v_bidPriceMedium_eurpkWh=uniform(0.18, 0.21);
 		h.energyManager.v_bidPriceLow_eurpkWh=uniform(0.15, 0.18);
 		h.energyManager.v_bidPriceV2G_eurpkWh=uniform(0.21, 0.25);
@@ -103,6 +104,7 @@ for ( int i = 0; i < p_boot_woningen; i++) {
 		h.energyManager.v_bidPriceV2G_eurpkWh=uniform(0.25, 0.30);
 	}
 }
+traceln("Totaal geinstalleerd PV vermogen in de wijk " + 0.275*nbPVpanelen + " kW");
 f_AddHeatingSystemsToHouses();
 f_setHeatingTypes(0);
 //districtHeatingNetwork.f_connectHouseholds();
@@ -1445,7 +1447,7 @@ f_setTrafoMinPower(p_connectionCapacityPerHousehold);
 				</Variable>
 				<Variable Class="Parameter">
 					<Id>1646175264641</Id>
-					<Name><![CDATA[p_boot_MiddagDaltarief]]></Name>
+					<Name><![CDATA[p_boot_hourlyPrices]]></Name>
 					<Description><![CDATA[@author Peter Hogeveen
 @since 03-01-2022]]></Description>
 					<X>-1170</X><Y>-270</Y>
@@ -3244,7 +3246,7 @@ return v_trafoMinPower;]]></Body>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[//combo_energyManagerMode.setValue(p_boot_EnergyManager);
-cb_afternoonOffPeakTariff.setSelected(p_boot_MiddagDaltarief, true);
+cb_hourlyPrices.setSelected(p_boot_hourlyPrices, true);
 cb_stopNetMetering.setSelected(p_boot_Salderen, true);
 cb_capacityTariff.setSelected(p_boot_capaciteitstarief, true);
 cb_congestionMarket.setSelected(p_boot_CongestieMarkt, true);
@@ -3303,7 +3305,7 @@ String mode = "basic";
 
 // only follows incentive if any of the boxes is selected
 boolean condition = cb_stopNetMetering.isSelected()
-		|| cb_afternoonOffPeakTariff.isSelected()
+		|| cb_hourlyPrices.isSelected()
 		|| cb_capacityTariff.isSelected()
 		|| cb_congestionMarket.isSelected();
 
@@ -3438,19 +3440,16 @@ for (Huishouden h : huishoudens) {
 	} else if ( rand >= pctArray[0] + pctArray[1] + pctArray[2]) {
 		hs.p_HeatingType = OL_HeatingTypes.DistrictHeating;
 		hs.p_MyPrimaryHeatingSystem = new J_DistrictHeatingCon( hs, 10);
+//		hs.p_MySecondaryHeatingSystem = new J_Boiler( hs, 10);
 		nbDistrictheating++;
 	}
 }
 traceln(nbGasBurner + " CV ketels, " + nbHeatpump + " warmtepompen, " + nbHybridHeatpump + " hybride warmtepompen, " + nbDistrictheating + " stadsverwarming");
 
 // initialize district heating source
-//dH_PTESWithHeatPump.p_heatingType = OL_HeatingTypesDH.HeatPump_GasPeak;
 dH_PTESWithHeatPump.p_heatingType = OL_HeatingTypesDH.HeatPump_GasPeak_Boiler;
-//dH_PTESWithHeatPump.p_heatingType = OL_HeatingTypesDH.GasHeater; 
 dH_PTESWithHeatPump.heatingSystem.p_MyPrimaryHeatingSystem = new J_Heatpump( dH_PTESWithHeatPump.heatingSystem, p_districtHeatingPrimaryPower_kW, 0.5);
-//dH_PTESWithHeatPump.p_MyPrimaryHeatingSystem = new J_GasHeaterDistrictHeating( dH_PTESWithHeatPump, 500);
 dH_PTESWithHeatPump.heatingSystem.p_MySecondaryHeatingSystem = new J_GasHeater( dH_PTESWithHeatPump.heatingSystem, p_districtHeatingSecondaryPower_kW);
-
 dH_PTESWithHeatPump.heatingSystem.p_MyBackupHeatingSystem = new J_Boiler( dH_PTESWithHeatPump.heatingSystem, p_districtHeatingBackupPower_kW);
 
 f_connectConsumersToDistrictHeat();
@@ -3612,11 +3611,10 @@ for ( Huishouden h : huishoudens ) {
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[districtHeatingNetwork.v_numberOfSuppliers = 0;
+					<Body><![CDATA[//districtHeatingNetwork.v_numberOfSuppliers = 0;
 
 districtHeatingNetwork.conn_heatSuppliers.connectTo(dH_PTESWithHeatPump);
 dH_PTESWithHeatPump.connections.connectTo(districtHeatingNetwork);
-
 districtHeatingNetwork.v_numberOfSuppliers = 1;
 
 /*
@@ -10391,7 +10389,7 @@ bezoekPT / 10]]></LineWidthCode>
 							<Title><![CDATA[V2G vermogen]]></Title>
 					</DatasetExpression>
 					<SamplesToKeep>10800</SamplesToKeep>
-					<VerScaleToExpression><![CDATA[60]]></VerScaleToExpression>
+					<VerScaleToExpression><![CDATA[180]]></VerScaleToExpression>
 					<VerScaleType>FIXED</VerScaleType>
 					<LabelFormat>HH_mm</LabelFormat>
     			</TimeStackChart>
@@ -10468,7 +10466,7 @@ bezoekPT / 10]]></LineWidthCode>
 							<Title><![CDATA[Warmtepompen]]></Title>
 					</DatasetExpression>
 					<SamplesToKeep>10800</SamplesToKeep>
-					<VerScaleToExpression><![CDATA[100
+					<VerScaleToExpression><![CDATA[200
 ]]></VerScaleToExpression>
 					<VerScaleType>FIXED</VerScaleType>
 					<LabelFormat>HH_mm</LabelFormat>
@@ -11615,7 +11613,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 				<Control Type="CheckBox">
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1646174120196</Id>
-					<Name><![CDATA[cb_afternoonOffPeakTariff]]></Name>
+					<Name><![CDATA[cb_hourlyPrices]]></Name>
 					<X>-200</X><Y>-50</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -11633,7 +11631,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 					</BasicProperties>
 					<ExtendedProperties>
 						<Font Name="Dialog" Size="13" Style="0"/>
-						<LabelText><![CDATA[middag daltarief]]></LabelText>
+						<LabelText><![CDATA[uurlijkse prijzen]]></LabelText>
 						<DefaultValueCode><![CDATA[false]]></DefaultValueCode>
 						<LinkTo>false</LinkTo>
 	 				</ExtendedProperties>
@@ -18302,7 +18300,7 @@ else {
 	loops++; // to shift simulation time back to 'start time'
 	//nextActivityInfo = "No next activity "; 
 	currentActivityEpisode = 0;
-	traceln("Loop activities voor bewoner " + this.getId());
+	//traceln("Loop activities voor bewoner " + this.getId());
 	dummyIndex = currentActivityEpisode;
 
 	while ( dummyIndex + 1 < activities.size() ){
@@ -23397,6 +23395,7 @@ jaarlijksTotaalPVOpwekKWh += pvOpwekKW;]]></Action>
 				<Event>
 					<Id>1642002847867</Id>
 					<Name><![CDATA[jaarlijksTotaal]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>60</X><Y>500</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -23440,14 +23439,14 @@ jaarlijksTotaalPVOpwekKWh = 0.0;]]></Action>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[if (piekVermogenPerPaneel < 1){
 	provincie = "averageOnshore";
-	piekVermogenPerPaneel = 0.275;
+	piekVermogenPerPaneel = 0.330;
 	oppervlaktePerPaneelM2 = 1.65;
 	efficientie = piekVermogenPerPaneel / oppervlaktePerPaneelM2;
 	capaciteitsFactor = 0.85;
 }
 
 if (aantalPanelen < 1){
-	aantalPanelen =  round(2.0*normal(5, 15, 10, 2.5)); 
+	aantalPanelen =  round(1.5*normal(5, 15, 10, 2.5)); 
 }
 ]]></Body>
 				</Function>
@@ -23461,13 +23460,13 @@ if (aantalPanelen < 1){
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[pvOpwekKW = zonnestraling(time(HOUR) + main.hourOfYearStart) / 1000 * efficientie * oppervlaktePerPaneelM2 * capaciteitsFactor * aantalPanelen;
+					<Body><![CDATA[pvOpwekKW = zonnestraling(time(HOUR) + main.hourOfYearStart) / 1000 * piekVermogenPerPaneel * capaciteitsFactor * aantalPanelen;
 //traceln( time(HOUR) ); // Debug
 //capaciteitsfactor kan afhankelijk door temperatuur, hellingshoek, orientatie, schaduw, e.d. meer detail nodig
 huishouden.v_pvOpwek_kW = pvOpwekKW;
 
 plot_PVOpwek.updateData();
-jaarlijksTotaalPVOpwekKWh += pvOpwekKW;]]></Body>
+jaarlijksTotaalPVOpwekKWh += pvOpwekKW*main.dt_h;]]></Body>
 				</Function>
 			</Functions>
 			<TableFunctions>
@@ -25903,7 +25902,7 @@ f_setFixedTariffIncentive();
 
 f_setOffPeakTariff();
 
-f_setAfternoonOffPeakTariff();
+//f_setAfternoonOffPeakTariff();
 
 f_setNetMetering();
 
@@ -26539,7 +26538,7 @@ f_updateIncentive();]]></StartupCode>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[0.01]]></Code>
+							<Code><![CDATA[0.002]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1645276000870</Id>
@@ -26579,6 +26578,7 @@ f_updateIncentive();]]></StartupCode>
 				<Event>
 					<Id>1645006675223</Id>
 					<Name><![CDATA[triggerOffPeakTariffs]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>230</X><Y>500</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -26666,7 +26666,7 @@ v_incentiveEuroFixedTariff = new double[v_incentiveLength];
 //v_incentiveKWOffPeakTariff = new double[v_incentiveLength];
 v_incentiveEuroOffPeakTariff = new double[v_incentiveLength];
 //v_incentiveKWAfternoonOffPeakTariff = new double[v_incentiveLength];
-v_incentiveEuroAfternoonOffPeakTariff = new double[v_incentiveLength];
+//v_incentiveEuroAfternoonOffPeakTariff = new double[v_incentiveLength];
 //v_incentiveKWNetMetering = new double[v_incentiveLength];
 v_incentiveEuroNetMetering = new double[v_incentiveLength];
 //v_incentiveKWCapacityTariff = new double[v_incentiveLength];
@@ -26769,6 +26769,7 @@ pl_incentives.updateData();
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1644944787334</Id>
 					<Name><![CDATA[f_setAfternoonOffPeakTariff]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>480</X><Y>320</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -32304,7 +32305,7 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 				<InputReference>
 					<PackageName><![CDATA[ebuurt]]></PackageName>
 					<ClassName><![CDATA[Main]]></ClassName>
-					<ItemName><![CDATA[p_boot_MiddagDaltarief]]></ItemName>
+					<ItemName><![CDATA[p_boot_hourlyPrices]]></ItemName>
 				</InputReference>
     		</RunConfigurationInput>
     		<RunConfigurationInput>
@@ -32504,7 +32505,7 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 		<!--   =========   Simulation Experiment   ========  -->
 		<SimulationExperiment ActiveObjectClassId="1641891178635">
 			<Id>1641891178637</Id>
-			<Name><![CDATA[Simulation]]></Name>
+			<Name><![CDATA[WarmteInDeWijkHolon]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
 			<CommandLineArguments><![CDATA[]]></CommandLineArguments>
 			<InitialSetupCode><![CDATA[r_neighborhoodType.setValue(0,true);]]></InitialSetupCode>
@@ -32531,6 +32532,9 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[int]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
 					</Properties>
 				</Variable>
 				<Variable Class="PlainVariable">
@@ -33417,7 +33421,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 						<Enabled>true</Enabled>
 					</BasicProperties>
 					<ExtendedProperties>
-						<DefaultValueCode><![CDATA[7]]></DefaultValueCode>
+						<DefaultValueCode><![CDATA[15]]></DefaultValueCode>
 						<Orientation>HORIZONTAL</Orientation>
 						<MinValue><![CDATA[0]]></MinValue>
 						<MaxValue><![CDATA[100]]></MaxValue>
@@ -33440,7 +33444,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 						<Enabled>true</Enabled>
 					</BasicProperties>
 					<ExtendedProperties>
-						<DefaultValueCode><![CDATA[80]]></DefaultValueCode>
+						<DefaultValueCode><![CDATA[20]]></DefaultValueCode>
 						<Orientation>HORIZONTAL</Orientation>
 						<MinValue><![CDATA[0]]></MinValue>
 						<MaxValue><![CDATA[100]]></MaxValue>
@@ -34204,7 +34208,7 @@ if ( value == 2 ){
 					</BasicProperties>
 					<ExtendedProperties>
 						<Font Name="Dialog" Size="14" Style="0"/>
-						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
+						<DefaultValueCode><![CDATA[v_isolationLevel]]></DefaultValueCode>
 						<Orientation>VERTICAL</Orientation>
 						<Button><![CDATA[Huidige isolatiegraad]]></Button>
 						<Button><![CDATA[Alle woningen energielabel B of beter]]></Button>
@@ -34522,7 +34526,7 @@ if ( value == 2 ){
 						<MinValue><![CDATA[0]]></MinValue>
 						<MaxValue><![CDATA[5]]></MaxValue>
 						<Step><![CDATA[1]]></Step>
-						<LinkTo>true</LinkTo>
+						<LinkTo>false</LinkTo>
 						<Link>p_thermostatReduction_degC</Link>
 					</ExtendedProperties>
 				</Control>
@@ -34546,7 +34550,7 @@ if ( value == 2 ){
 						<MinValue><![CDATA[0]]></MinValue>
 						<MaxValue><![CDATA[100]]></MaxValue>
 						<Step><![CDATA[1]]></Step>
-						<LinkTo>true</LinkTo>
+						<LinkTo>false</LinkTo>
 						<Link>p_thermostatReductionParticipation_pct</Link>
 					</ExtendedProperties>
 				</Control>
@@ -35158,22 +35162,29 @@ else {
 						<ActionCode><![CDATA[if (value == 0){
 	radio_IsolationLevels.setValue(0);
 	s_PV.setValue(20);
-	s_Ev.setValue(7);  // ELaad Outlook Q3 2021 scenario Midden
-	sl_hybridHeatPump_pct.setValue(10);
-	f_heatingSystemsSlidersMatch(2);
-	sl_heatPump_pct.setValue(0);
-	f_heatingSystemsSlidersMatch(3);
-	cb_stopNetMetering.setSelected(false);
+	s_Ev.setValue(10);  // ELaad Outlook Q3 2021 scenario Midden
+	sl_gasBurner_pct.setValue(100);
+	f_heatingSystemsSlidersMatch(0);
+	//sl_heatPump_pct.setValue(0);
+	//f_heatingSystemsSlidersMatch(3);
+	//cb_stopNetMetering.setSelected(false);
+	v_isolationLevel=0;
+	sl_setThermostatLower_degC.setValue(0);
+	sl_thermostatReductionParcicipation.setValue(0);
 }
 if (value == 1){
 	radio_IsolationLevels.setValue(1);
-	s_PV.setValue(40); // ambitie RESsen Gelderland
-	s_Ev.setValue(18); // ELaad Outlook Q3 2021 scenario Midden
-	sl_hybridHeatPump_pct.setValue(20);
-	f_heatingSystemsSlidersMatch(2);
-	sl_heatPump_pct.setValue(15);
+	s_PV.setValue(80); // ambitie RESsen Gelderland
+	s_Ev.setValue(20); // ELaad Outlook Q3 2021 scenario Midden
+//	sl_hybridHeatPump_pct.setValue(0);
+	sl_districtHeating_pct.setValue(100);
 	f_heatingSystemsSlidersMatch(3);
-	cb_stopNetMetering.setSelected(true);
+	//sl_heatPump_pct.setValue(15);
+	//f_heatingSystemsSlidersMatch(3);
+	//	cb_stopNetMetering.setSelected(true);
+	v_isolationLevel=1;
+	sl_setThermostatLower_degC.setValue(2);
+	sl_thermostatReductionParcicipation.setValue(50);
 }
 ]]></ActionCode>
 					</BasicProperties>
@@ -35244,7 +35255,7 @@ if (value == 1){
 					<ExtendedProperties>
 						<Font Name="Dialog" Size="13" Style="0"/>
 						<LabelText><![CDATA[buurtenergiemarkt]]></LabelText>
-						<DefaultValueCode><![CDATA[false]]></DefaultValueCode>
+						<DefaultValueCode><![CDATA[true]]></DefaultValueCode>
 						<LinkTo>false</LinkTo>
 	 				</ExtendedProperties>
 				</Control>
@@ -35305,7 +35316,7 @@ if (value == 1){
 				<Control Type="CheckBox">
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1649078339043</Id>
-					<Name><![CDATA[cb_afternoonOffPeakTariff]]></Name>
+					<Name><![CDATA[cb_hourlyPrices]]></Name>
 					<X>-200</X><Y>-20</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -35323,8 +35334,8 @@ if (value == 1){
 					</BasicProperties>
 					<ExtendedProperties>
 						<Font Name="Dialog" Size="13" Style="0"/>
-						<LabelText><![CDATA[middag daltarief]]></LabelText>
-						<DefaultValueCode><![CDATA[false]]></DefaultValueCode>
+						<LabelText><![CDATA[uurlijks varierende prijzen]]></LabelText>
+						<DefaultValueCode><![CDATA[true]]></DefaultValueCode>
 						<LinkTo>false</LinkTo>
 	 				</ExtendedProperties>
 				</Control>
@@ -35489,9 +35500,9 @@ else {
 					</ParameterValue>
 				</Parameter>
 				<Parameter>
-					<ParameterName><![CDATA[p_boot_MiddagDaltarief]]></ParameterName>
+					<ParameterName><![CDATA[p_boot_hourlyPrices]]></ParameterName>
 					<ParameterValue Class="CodeValue">
-						<Code><![CDATA[cb_afternoonOffPeakTariff.isSelected()]]></Code>
+						<Code><![CDATA[cb_hourlyPrices.isSelected()]]></Code>
 					</ParameterValue>
 				</Parameter>
 				<Parameter>
@@ -35587,13 +35598,13 @@ else {
 				<Parameter>
 					<ParameterName><![CDATA[p_thermostatReduction_degC]]></ParameterName>
 					<ParameterValue Class="CodeValue">
-						<Code><![CDATA[sl_setThermostatLower_degC.getValue()]]></Code>
+						<Code><![CDATA[sl_setThermostatLower_degC.getIntValue()]]></Code>
 					</ParameterValue>
 				</Parameter>
 				<Parameter>
 					<ParameterName><![CDATA[p_thermostatReductionParticipation_pct]]></ParameterName>
 					<ParameterValue Class="CodeValue">
-						<Code><![CDATA[sl_thermostatReductionParcicipation.getValue()]]></Code>
+						<Code><![CDATA[sl_thermostatReductionParcicipation.getIntValue()]]></Code>
 					</ParameterValue>
 				</Parameter>
 				<Parameter>
@@ -35713,7 +35724,7 @@ else {
 				<ExecutionMode><![CDATA[virtualTime]]></ExecutionMode>
 				<Title><![CDATA[Ebuurt : Simulation]]></Title>	
 				<EnableDeveloperPanel>true</EnableDeveloperPanel>
-				<ShowDeveloperPanelOnStart>false</ShowDeveloperPanelOnStart>
+				<ShowDeveloperPanelOnStart>true</ShowDeveloperPanelOnStart>
 				<RealTimeScale>5.0</RealTimeScale>
 			</PresentationProperties>
 			<ModelTimeProperties>

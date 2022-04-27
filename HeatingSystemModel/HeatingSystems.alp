@@ -1332,9 +1332,10 @@ switch (p_HeatingType) {
 	case DistrictHeating_w_Boiler:
 		districtHeatingCon = (J_DistrictHeatingCon)p_MyPrimaryHeatingSystem;
 		boiler = (J_Boiler)p_MySecondaryHeatingSystem;
-		v_heatDelivery_kW += districtHeatingCon.deliverHeat(heatRequest_kW, true);
+		double hotWaterTemp_degC = 65;
+		v_heatDelivery_kW += districtHeatingCon.deliverHeat(heatRequest_kW+hotWaterRequest_kW*(50-10)/(hotWaterTemp_degC-10), true); // Include part of hotwater request, for heating 10deg tapwater to 50 deg
 		v_DistrictHeatingAbsorption_kW = districtHeatingCon.getAbsorption();
-		v_hotWaterDelivery_kW += boiler.produceHotWater( hotWaterRequest_kW);
+		v_hotWaterDelivery_kW += boiler.produceHotWater(hotWaterRequest_kW*(hotWaterTemp_degC-50)/(hotWaterTemp_degC-10)); // Boiler only has to take care of last 20 deg heatup from 50 to 70 degrees.
 		v_ElectricityConsumption_kW = boiler.getElectricityConsumption();
 	break;
 	
@@ -2324,21 +2325,6 @@ v_DistrictHeatingAbsorbed_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]
 					</Properties>
 				</Variable>
 				<Variable Class="PlainVariable">
-					<Id>1650650638278</Id>
-					<Name><![CDATA[v_COPHeat]]></Name>
-					<X>510</X><Y>240</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[double]]></Type>        
-						<InitialValue Class="CodeValue">
-							<Code><![CDATA[0]]></Code>
-						</InitialValue>
-					</Properties>
-				</Variable>
-				<Variable Class="PlainVariable">
 					<Id>1650982638502</Id>
 					<Name><![CDATA[v_backupHeatProduction_kW]]></Name>
 					<X>250</X><Y>270</Y>
@@ -2937,31 +2923,12 @@ if ( v_bufferTemp_degC + dQdt_kW * dt_h / p_bufferSpecificHeat_kWhpK < p_minTemp
 
 //return heatDelivery_kW;]]></Body>
 				</Function>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>RETURNS_VALUE</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1650616556362</Id>
-					<Name><![CDATA[f_heatPump]]></Name>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>250</X><Y>290</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Parameter>
-						<Name><![CDATA[heatPumpPower_kW]]></Name>
-						<Type><![CDATA[double]]></Type>
-					</Parameter>
-					<Body><![CDATA[double heatProduction_kW = heatPumpPower_kW * p_etaHeatPump_f * ( 273.15 + v_bufferTemp_degC ) / (v_bufferTemp_degC - p_soilTemp_degC);
-//v_primaryHeatProduction_kW = heatProduction_kW;
-return heatProduction_kW;]]></Body>
-				</Function>
 				<Function AccessType="public" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1650616556364</Id>
 					<Name><![CDATA[f_heatManager]]></Name>
-					<X>510</X><Y>280</Y>
+					<X>480</X><Y>280</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3037,7 +3004,7 @@ f_socUpdate(v_heatDeliveryToNetwork_kW, v_heatingNetworkDemand, dt_h); // 	]]></
 					<Name><![CDATA[f_CalculateHeatProduction]]></Name>
 					<Description><![CDATA[@author Peter Hogeveen
 @since 14-04-2022]]></Description>
-					<X>380</X><Y>310</Y>
+					<X>480</X><Y>300</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3375,7 +3342,7 @@ switch (p_heatingType) {
 					<Id>1650876368323</Id>
 					<Name><![CDATA[heatingSystem]]></Name>
 					<X>720</X><Y>220</Y>
-					<Label><X>-50</X><Y>-30</Y></Label>
+					<Label><X>20</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
