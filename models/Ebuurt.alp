@@ -4427,10 +4427,13 @@ TODO: data afleiden en corrigeren.
 							<Name><![CDATA[p_capacityTariffEuroPerKW]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_congestieVermogen_kW]]></Name>
+							<Name><![CDATA[p_congestionPowerTresh_kW]]></Name>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_congestionTariff_eurpkW]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_incentiveTaxRate_eur]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>false</ReplicationFlag>
@@ -16767,13 +16770,28 @@ traceln("test");]]></ActionCode>
 				<Variable Class="PlainVariable">
 					<Id>1643474023033</Id>
 					<Name><![CDATA[nextActivityInfo]]></Name>
-					<X>780</X><Y>-40</Y>
+					<X>880</X><Y>170</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>false</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[String]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1651050862607</Id>
+					<Name><![CDATA[loops]]></Name>
+					<X>590</X><Y>260</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>false</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[int]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
 					</Properties>
 				</Variable>
 				<Variable Class="Parameter">
@@ -16975,7 +16993,7 @@ traceln("test");]]></ActionCode>
 					<Properties Width="100" Height="30">
 						<EntryAction><![CDATA[if ( currentActivityEpisode > 0 ) {
 	if( currentActivityEpisode + 1 < activities.size())
-			nextActivityTimer.restart( nextActivity.startMinute - time( MINUTE ), MINUTE);
+			nextActivityTimer.restart( loops*24*7*60 + nextActivity.startMinute - time( MINUTE ), MINUTE);
 }
 isHome = true;]]></EntryAction>
 						<ExitAction><![CDATA[startNextActivity();
@@ -16993,7 +17011,7 @@ isHome = false;]]></ExitAction>
 					<ShowLabel>true</ShowLabel>
 					<Properties Width="140" Height="60">
 						<EntryAction><![CDATA[travelTimer.restart( currentActivity.travelTime, MINUTE);
-countTrip();
+//countTrip();
 if( carInUse != null ) {
 	carInUse.currentTripDistance_km = carInUse.currentTripDistance_km + currentActivity.travelTime;
 }]]></EntryAction>
@@ -17009,7 +17027,7 @@ if( carInUse != null ) {
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties Width="240" Height="50">
-						<EntryAction><![CDATA[nextActivityTimer.restart( nextActivity.startMinute - time( MINUTE ), MINUTE)]]></EntryAction>
+						<EntryAction><![CDATA[nextActivityTimer.restart( loops*24*7*60 + nextActivity.startMinute - time( MINUTE ), MINUTE)]]></EntryAction>
 						<ExitAction><![CDATA[startNextActivity();]]></ExitAction>
 						<FillColor>-1644806</FillColor>
 					</Properties>
@@ -18273,13 +18291,33 @@ while ( dummyIndex + 1 < activities.size() ){
 		break;
 	}
 }
+
+
 if ( a != null ){
 	nextActivity = a;
 	nextActivityInfo = "Next activity: " + nextActivity.type + " (ep. " + nextActivity.episode + " / " +  activities.size() +
 	") in: " ;
 }
 else {
-	nextActivityInfo = "No next activity "; 
+	loops++; // to shift simulation time back to 'start time'
+	//nextActivityInfo = "No next activity "; 
+	currentActivityEpisode = 0;
+	traceln("Loop activities voor bewoner " + this.getId());
+	dummyIndex = currentActivityEpisode;
+
+	while ( dummyIndex + 1 < activities.size() ){
+		a = activities.get( dummyIndex + 1 );
+		if (currentActivity.type.equals("Home") && a.type.equals("Home") ){
+			dummyIndex ++;
+		}
+		else{
+			break;
+		}
+	}
+	nextActivity = a;
+	nextActivityInfo = "Next activity: " + nextActivity.type + " (ep. " + nextActivity.episode + " / " +  activities.size() +
+	") in: " ;
+	nextActivityTimer.restart( loops*24*7*60 + nextActivity.startMinute - time( MINUTE ), MINUTE);
 }
 
 ]]></Body>
@@ -18430,6 +18468,7 @@ else {
 					<Name><![CDATA[countTrip]]></Name>
 					<Description><![CDATA[@author Peter Hogeveen
 @since 02-2022]]></Description>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>760</X><Y>260</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -26465,7 +26504,7 @@ f_updateIncentive();]]></StartupCode>
 				</Variable>
 				<Variable Class="Parameter">
 					<Id>1645275927281</Id>
-					<Name><![CDATA[p_congestieVermogen_kW]]></Name>
+					<Name><![CDATA[p_congestionPowerTresh_kW]]></Name>
 					<X>230</X><Y>400</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -26504,6 +26543,30 @@ f_updateIncentive();]]></StartupCode>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1645276000870</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1651045726879</Id>
+					<Name><![CDATA[p_incentiveTaxRate_eur]]></Name>
+					<X>230</X><Y>460</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[0.16]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1651045726877</Id>
 							<EditorContolType>TEXT_BOX</EditorContolType>
 							<MinSliderValue><![CDATA[0]]></MinSliderValue>
 							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
@@ -26844,13 +26907,13 @@ double lowPassFraction = min(1,1.2*main.dt_h);
 v_holonLoadLowPassed_kW += lowPassFraction * ( main.trafoVermogen_kW - v_holonLoadLowPassed_kW );
 
 if (main.cb_congestionMarket.isSelected()){
-	if ( v_holonLoadLowPassed_kW > p_congestieVermogen_kW ) {
+	if ( v_holonLoadLowPassed_kW > p_congestionPowerTresh_kW ) {
 		// Maak afnemen duurder en terugleveren aantrekkelijker
-		v_incentiveCongestionTariff = p_congestionTariff_eurpkW * ( v_holonLoadLowPassed_kW - p_congestieVermogen_kW );
+		v_incentiveCongestionTariff = p_congestionTariff_eurpkW * ( v_holonLoadLowPassed_kW - p_congestionPowerTresh_kW );
 	}
-	else if ( v_holonLoadLowPassed_kW < -p_congestieVermogen_kW ) {
+	else if ( v_holonLoadLowPassed_kW < -p_congestionPowerTresh_kW ) {
 		// Maak terugleveren stroom duurder, want trafo zit bijna aan max teruglevering
-		v_incentiveCongestionTariff = p_congestionTariff_eurpkW * ( v_holonLoadLowPassed_kW + p_congestieVermogen_kW );	
+		v_incentiveCongestionTariff = p_congestionTariff_eurpkW * ( v_holonLoadLowPassed_kW + p_congestionPowerTresh_kW );	
 
 	}
 	else {
@@ -26939,7 +27002,7 @@ else {
 // kies tussen vast en variabel tarief als basis om incentives bij op te tellen, afhankelijk van de gekozen instelling.
 if( cb_dayAheadTariff.isSelected() ) {
 	for( int i = 0; i < v_incentiveLength; i++){ // Collect all incentive contributions
-		v_incentiveEuro[i] = v_incentiveDayAheadTariff_eurpkWh[i] + v_incentiveEuroOffPeakTariff[i] + v_incentiveEuroAfternoonOffPeakTariff[i] + v_incentiveEuroNetMetering[i] + v_incentiveEuroCapacityTariff[i] + v_incentiveCongestionTariff ;
+		v_incentiveEuro[i] = v_incentiveDayAheadTariff_eurpkWh[i] + p_incentiveTaxRate_eur + v_incentiveEuroNetMetering[i] + v_incentiveEuroCapacityTariff[i] + v_incentiveCongestionTariff ;
 	}
 }
 else {
