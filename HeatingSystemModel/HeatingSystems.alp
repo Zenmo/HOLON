@@ -2938,6 +2938,10 @@ if ( v_bufferTemp_degC + dQdt_kW * dt_h / p_bufferSpecificHeat_kWhpK < p_minTemp
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
 					<Parameter>
+						<Name><![CDATA[v_trafoMaxPower]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
+					<Parameter>
 						<Name><![CDATA[dt_h]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
@@ -2964,17 +2968,20 @@ J_Heatpump heatpump = (J_Heatpump)heatingSystem.p_MyPrimaryHeatingSystem;
 double COP = heatpump.getCOP(baseTemp_degC, v_bufferTemp_degC);
 	
 // Energy manager logic for heatpump, gas heater and boiler
-if (v_bufferTemp_degC < p_minTempBuffer_degC) { // If PTES temperature drops too low, start heating it regardless of power available in neighbourhood
+if (v_bufferTemp_degC < p_minTempBuffer_degC) { // If PTES temperature drops below minimum, start heating with HP and gas burner
 	//traceln("Peak heating");
 	t_incentiveMode.setColor(red);
 	t_incentiveMode.setText("power mode");
-	double boilerSetpoint = max(0,-trafoVermogen_kW - p_primarySystemMaxPower_kW);
-	f_CalculateHeatProduction(p_primarySystemMaxPower_kW * COP, p_secondarySystemMaxPower_kW, boilerSetpoint, baseTemp_degC, v_bufferTemp_degC, dt_h);
-} else if (v_bufferTemp_degC < p_bufferTempHeatingTreshold_degC && v_bufferTemp_degC >= p_minTempBuffer_degC) { // If PTES temperature drops too low, start heating it regardless of power available in neighbourhood
+	double availablePower_kW = max(0,v_trafoMaxPower-trafoVermogen_kW);
+	double heatPumpPowerSetpoint = COP*min(availablePower_kW,p_primarySystemMaxPower_kW);
+	double boilerSetpoint = max(0,-trafoVermogen_kW - p_primarySystemMaxPower_kW); // Only when more than p_primarySystemMaxPower_kW power is available)
+	f_CalculateHeatProduction(heatPumpPowerSetpoint, p_secondarySystemMaxPower_kW, boilerSetpoint, baseTemp_degC, v_bufferTemp_degC, dt_h);
+} else if (v_bufferTemp_degC < p_bufferTempHeatingTreshold_degC && v_bufferTemp_degC >= p_minTempBuffer_degC) { // If PTES temperature drops below heating treshold, gradually start heating with HP
 	//traceln("normal heating");
 	t_incentiveMode.setColor(black);
 	t_incentiveMode.setText("normal");
-	double heatPumpPowerSetpoint = min(p_primarySystemMaxPower_kW*COP,max((p_bufferTempHeatingTreshold_degC - v_bufferTemp_degC) / (p_bufferTempHeatingTreshold_degC - p_minTempBuffer_degC) * p_primarySystemMaxPower_kW * COP, -trafoVermogen_kW * COP));
+	double availablePower_kW = max(0,v_trafoMaxPower-trafoVermogen_kW);
+	double heatPumpPowerSetpoint = COP*min(availablePower_kW,min(p_primarySystemMaxPower_kW,max((p_bufferTempHeatingTreshold_degC - v_bufferTemp_degC) / (p_bufferTempHeatingTreshold_degC - p_minTempBuffer_degC) * p_primarySystemMaxPower_kW, -trafoVermogen_kW)));
 	double boilerSetpoint = max(0,-trafoVermogen_kW - heatPumpPowerSetpoint/COP);
 	f_CalculateHeatProduction(heatPumpPowerSetpoint,0,boilerSetpoint, baseTemp_degC, v_bufferTemp_degC, dt_h);
 } else if ( trafoVermogen_kW < 0 & heatingSystem.p_MyPrimaryHeatingSystem instanceof J_Heatpump & v_bufferTemp_degC < p_maxTempBuffer_degC) { // Overvloed aan stroom in de wijk, zet het in om de PTES op te warmen

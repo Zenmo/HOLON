@@ -3126,7 +3126,7 @@ double totaalVermogenHuishoudens_kW = sum(huishoudens, x->x.v_netVermogen_kW); /
 
 // Update district heating system, need to use trafoVermogen_kW to allow 'opportunity heating' in the neighbourhood.
 if (v_districtHeatingConnections_n > 0) {
-	dH_PTESWithHeatPump.f_heatManager(totaalVermogenHuishoudens_kW,dt_h, (DistrictHeatingNetwork)dH_PTESWithHeatPump.connections.getConnectedAgent(0),v_outsideTemp_degC);
+	dH_PTESWithHeatPump.f_heatManager(totaalVermogenHuishoudens_kW,v_trafoMaxPower,dt_h, (DistrictHeatingNetwork)dH_PTESWithHeatPump.connections.getConnectedAgent(0),v_outsideTemp_degC);
 	districtHeatingNetwork.f_UpdateNetworkHeatBalance();
 	v_warmteElektriciteitsVerbruik_kW += dH_PTESWithHeatPump.heatingSystem.v_ElectricityConsumption_kW;
 	trafoVermogen_kW = totaalVermogenHuishoudens_kW + dH_PTESWithHeatPump.v_heatPumpPowerDraw_kW;
@@ -3135,8 +3135,11 @@ if (v_districtHeatingConnections_n > 0) {
 }
 
 wijkVerbruik_kW = basislastElektriciteitsverbruikHuishoudens_kW + autos.laadvraag() + v_warmteElektriciteitsVerbruik_kW - autos.V2Gvermogen(); // Alle 'final' energieverbuik in de wijk
-gemiddeldeSoC_pct = averageWhere(autos, x->x.huidigBatterijCap_kWh/x.maxBatterijCap_kWh, x->x.elektrisch);
-
+if (autos.autosElektrisch() >  0) {
+	gemiddeldeSoC_pct = averageWhere(autos, x->x.huidigBatterijCap_kWh/x.maxBatterijCap_kWh, x->x.elektrisch);
+} else {
+	gemiddeldeSoC_pct = 0;
+}
 
 //Grafieken updaten
 pvOpwekChart.updateData();
@@ -10672,33 +10675,6 @@ bezoekPT / 10]]></LineWidthCode>
 					<FillAreaUnderLine>false</FillAreaUnderLine>
 					<LabelFormat>HH_mm</LabelFormat>
     			</TimePlot>
-				<Control Type="ComboBox">
-				 	<EmbeddedIcon>false</EmbeddedIcon>				
-					<Id>1645189622352</Id>
-					<Name><![CDATA[combo_energyManagerMode]]></Name>
-					<X>-1070</X><Y>1060</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<BasicProperties Width="110" Height="20">
-                        <EmbeddedIcon>false</EmbeddedIcon>	
-						<FillColor/>
-						<TextColor/>
-						<Enabled>true</Enabled>
-					</BasicProperties>
-					<ExtendedProperties>
-						<Font Name="Dialog" Size="11" Style="0"/>
-						<DefaultValueCode><![CDATA["basic"]]></DefaultValueCode>
-						<Editable>false</Editable>
-						<Button><![CDATA[basic]]></Button>
-						<Button><![CDATA[on solar]]></Button>
-						<Button><![CDATA[incentive]]></Button>
-						<Button><![CDATA[incentive + V2G]]></Button>
-						<LinkTo>false</LinkTo>
-					</ExtendedProperties>
-				</Control>
 				<Text>
 					<Id>1646175727449</Id>
 					<Name><![CDATA[text51]]></Name>
@@ -10744,27 +10720,6 @@ bezoekPT / 10]]></LineWidthCode>
 					<Dy>0</Dy>
 					<Dz>0</Dz>
 				</Line>
-				<Text>
-					<Id>1646215080947</Id>
-					<Name><![CDATA[text47]]></Name>
-					<X>-1045</X><Y>1040</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<Rotation>0.0</Rotation>
-					<Color>-16777216</Color>
-					<Text><![CDATA[Laadgedrag]]></Text>
-					<Font>
-						<Name>SansSerif</Name>
-						<Size>10</Size>
-						<Style>0</Style>
-					</Font>
-					<Alignment>LEFT</Alignment>
-				</Text>
 				<EmbeddedObjectPresentation>
 					<Id>1646310859482</Id>
 					<Name><![CDATA[pop_KPIs_presentation]]></Name>
@@ -13036,6 +12991,54 @@ Bronnen:
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>14</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Control Type="ComboBox">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1645189622352</Id>
+					<Name><![CDATA[combo_energyManagerMode]]></Name>
+					<X>-1070</X><Y>1060</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="110" Height="20">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<FillColor/>
+						<TextColor/>
+						<Enabled>true</Enabled>
+					</BasicProperties>
+					<ExtendedProperties>
+						<Font Name="Dialog" Size="11" Style="0"/>
+						<DefaultValueCode><![CDATA["incentive"]]></DefaultValueCode>
+						<Editable>false</Editable>
+						<Button><![CDATA[basic]]></Button>
+						<Button><![CDATA[on solar]]></Button>
+						<Button><![CDATA[incentive]]></Button>
+						<Button><![CDATA[incentive + V2G]]></Button>
+						<LinkTo>false</LinkTo>
+					</ExtendedProperties>
+				</Control>
+				<Text>
+					<Id>1646215080947</Id>
+					<Name><![CDATA[text47]]></Name>
+					<X>-1045</X><Y>1040</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Laadgedrag]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>10</Size>
 						<Style>0</Style>
 					</Font>
 					<Alignment>LEFT</Alignment>
@@ -18388,6 +18391,7 @@ else {
 	nextActivity = a;
 	nextActivityInfo = "Next activity: " + nextActivity.type + " (ep. " + nextActivity.episode + " / " +  activities.size() +
 	") in: " ;
+//	nextActivity.startMinute += 24*7*60;
 	nextActivityTimer.restart( loops*24*7*60 + nextActivity.startMinute - time( MINUTE ), MINUTE);
 }
 
@@ -24452,6 +24456,7 @@ currentTripDistance_km = 0;
 if (autoID == 2 ) { // 2e auto kijkt alleen naar activiteiten 2e bewoner
 	if ( huishouden.bewoners.size() > 1 ) {
 		nextActivity = huishouden.adult2.berekenVolgendeCarTrip();
+
 	}
 } else { // 1e auto, zijn er 1 of 2 bewoners?
 	// als er maar 1 adult in het huishouden is of als er 2 voertuigen zijn, kijk dan alleen naar adult 1
@@ -24487,6 +24492,10 @@ if (autoID == 2 ) { // 2e auto kijkt alleen naar activiteiten 2e bewoner
 }
 
 if ( nextActivity != null ) { 
+	/*while (nextActivity.startMinute < time(MINUTE)) { // activity starts in the past! Due to time-looping
+		 nextActivity.startMinute += 60*24*7;
+		 traceln("Activity starts in the past!");
+	}*/
 	double nextTripDistance_km = min( nextActivity.travelDistance_km * 2, maxBatterijCap_kWh/energieverbruik_kWhpkm ); // Limit trip distance to max range of vehicle
 	laadflexibiliteitTotVolgendVertrek_min = nextActivity.startMinute - time(MINUTE);
 	// Determine charging 'deadline' for next trip
@@ -25702,12 +25711,14 @@ String mode = main.combo_energyManagerMode.getValue();
 
 if (mode.equals("basic")) {
 	basicCharging(carArray);
+//	traceln("dumb charging!");
 }
 else if (mode.equals("on solar")) {
 	chargingTracksSolarProduction(carArray);
 }
 else if (mode.equals("incentive")) {
 	threeStageFinancial(carArray);
+//		traceln("smart charging!");
 }
 else if (mode.equals("incentive + V2G")) {
 	threeStageFinancialV2G(carArray);
@@ -28173,6 +28184,48 @@ if ( main.v_districtHeatingConnections_n == 0 ) {
 } else {
 	v_totalCostsHOLON_eur = main.v_WijkTotaalStroomKosten_eur + main.v_gasBill_eur + max(v_verzwaringskostenWijktrafoLeveringEUR,v_verzwaringskostenWijktrafoTerugleveringEUR);
 }]]></Action>
+				</Event>
+				<Event>
+					<Id>1651136041430</Id>
+					<Name><![CDATA[autoEnergieVerbruik]]></Name>
+					<X>-1370</X><Y>1070</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties TriggerType="timeout" Mode="cyclic">
+						<Timeout Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+						</Timeout>
+						<Rate Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="RateUnits"><![CDATA[PER_HOUR]]></Unit>
+						</Rate>
+						<OccurrenceAtTime>true</OccurrenceAtTime>
+						<OccurrenceDate>1642060800000</OccurrenceDate>
+						<OccurrenceTime Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+						</OccurrenceTime>
+						<RecurrenceCode Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+						</RecurrenceCode>
+						<Condition><![CDATA[false]]></Condition>
+					</Properties>
+					<Action><![CDATA[double petrolEnergy_MWh = main.v_wijkTotaalBenzineVerbruik_l*.044*.74/3.6 ;
+double dieselEnergy_MWh = main.v_wijkTotaalDieselVerbruik_l*0.85*.0427/3.6 ;
+double electricEnergy_MWh = .001* (main.v_evVerbruikJaartotaal_kWh - ( sum(main.autos, x->x.huidigBatterijCap_kWh) - main.v_initialTotalBatteryCharge_kWh));
+//int nPetrol=sumWhere(main.autos, 1, x->x.elektrisch)
+//int nDiesel=
+double nElectric=sum(main.autos, (x->x.elektrisch ? 1 : 0));
+double nPetrol=sum(main.autos, (x->x.elektrisch ? 0 : (x.p_fuelType==fuelType.petrol ? 1 : 0)));
+double nDiesel=sum(main.autos, (x->x.elektrisch ? 0 : (x.p_fuelType==fuelType.diesel ? 1 : 0)));
+//pvOpwek_kW = sumWhere(huishoudens, x->x.zonnepanelen.get(0).pvOpwekKW, x->x.zonnepanelen.size() > 0);
+traceln("Auto energievebruik " + petrolEnergy_MWh + " MWh benzine, "  + dieselEnergy_MWh + " MWh diesel, " + electricEnergy_MWh + " MWh stroom");
+traceln("Aantal benzine auto's " + nPetrol + ",  diesel auto's " + nDiesel + " ,elektrische auto's " + nElectric );
+]]></Action>
 				</Event>
 			</Events>
 			<Functions>
@@ -33031,7 +33084,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-1</Color>
-					<Text><![CDATA[HOLON: Userstory Sprint 3]]></Text>
+					<Text><![CDATA[HOLON: Userstory Sprint 4]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>28</Size>
@@ -33497,7 +33550,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 						<Enabled>true</Enabled>
 					</BasicProperties>
 					<ExtendedProperties>
-						<DefaultValueCode><![CDATA[15]]></DefaultValueCode>
+						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
 						<Orientation>HORIZONTAL</Orientation>
 						<MinValue><![CDATA[0]]></MinValue>
 						<MaxValue><![CDATA[100]]></MaxValue>
@@ -33817,8 +33870,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 	s_fractionHousesCorner.setValue(20);
 	s_fractionHousesTerraced.setValue(70);
 	s_fractionHousesAppartment.setValue(5);
-	s_fractionHousesHighrise.setValue(0);
-	
+	s_fractionHousesHighrise.setValue(0);	
 	s_avgLabel.setValue(2);
 }
 else if( r_neighborhoodType.getValue() == 1 ){
@@ -33827,8 +33879,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 	s_fractionHousesCorner.setValue(0);
 	s_fractionHousesTerraced.setValue(0);
 	s_fractionHousesAppartment.setValue(10);
-	s_fractionHousesHighrise.setValue(0);
-	
+	s_fractionHousesHighrise.setValue(0);	
 	s_avgLabel.setValue(4);
 }]]></ActionCode>
 					</BasicProperties>
@@ -33836,7 +33887,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 						<Font Name="Dialog" Size="14" Style="1"/>
 						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
 						<Orientation>VERTICAL</Orientation>
-						<Button><![CDATA[Rijtjeswoningen jaren 60]]></Button>
+						<Button><![CDATA[Rijtjeswoningen jaren 70]]></Button>
 						<Button><![CDATA[Grote vrijstaande villa's]]></Button>
 						<LinkTo>false</LinkTo>
 						<Link>p_neighborhoodType</Link>
@@ -35231,14 +35282,14 @@ else {
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<BasicProperties Width="120" Height="70">
+					<BasicProperties Width="170" Height="70">
                         <EmbeddedIcon>false</EmbeddedIcon>	
 						<TextColor/>
 						<Enabled>true</Enabled>
 						<ActionCode><![CDATA[if (value == 0){
 	radio_IsolationLevels.setValue(0);
 	s_PV.setValue(20);
-	s_Ev.setValue(10);  // ELaad Outlook Q3 2021 scenario Midden
+	s_Ev.setValue(0);  // ELaad Outlook Q3 2021 scenario Midden
 	sl_gasBurner_pct.setValue(100);
 	f_heatingSystemsSlidersMatch(0);
 	//sl_heatPump_pct.setValue(0);
@@ -35250,8 +35301,8 @@ else {
 }
 if (value == 1){
 	radio_IsolationLevels.setValue(1);
-	s_PV.setValue(80); // ambitie RESsen Gelderland
-	s_Ev.setValue(20); // ELaad Outlook Q3 2021 scenario Midden
+	s_PV.setValue(80); // 
+	s_Ev.setValue(0); // 
 //	sl_hybridHeatPump_pct.setValue(0);
 	sl_districtHeating_pct.setValue(100);
 	f_heatingSystemsSlidersMatch(3);
@@ -35268,8 +35319,8 @@ if (value == 1){
 						<Font Name="Dialog" Size="14" Style="0"/>
 						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
 						<Orientation>VERTICAL</Orientation>
-						<Button><![CDATA[2023]]></Button>
-						<Button><![CDATA[2027]]></Button>
+						<Button><![CDATA[Baseline]]></Button>
+						<Button><![CDATA[HOLON-warmtenet]]></Button>
 						<LinkTo>false</LinkTo>
 						<Link>p_yearChoice</Link>
 					</ExtendedProperties>
@@ -35287,7 +35338,7 @@ if (value == 1){
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
-					<Text><![CDATA[Selecteer jaar:]]></Text>
+					<Text><![CDATA[Selecteer situatie:]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>20</Size>
@@ -35331,7 +35382,7 @@ if (value == 1){
 					<ExtendedProperties>
 						<Font Name="Dialog" Size="13" Style="0"/>
 						<LabelText><![CDATA[buurtenergiemarkt]]></LabelText>
-						<DefaultValueCode><![CDATA[true]]></DefaultValueCode>
+						<DefaultValueCode><![CDATA[false]]></DefaultValueCode>
 						<LinkTo>false</LinkTo>
 	 				</ExtendedProperties>
 				</Control>
