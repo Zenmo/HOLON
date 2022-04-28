@@ -1387,6 +1387,36 @@ f_setTrafoMinPower(p_connectionCapacityPerHousehold);
 						<Type><![CDATA[int]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1651132597774</Id>
+					<Name><![CDATA[v_WijkTotaalStroomKosten_eur]]></Name>
+					<X>-1070</X><Y>980</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1651133732046</Id>
+					<Name><![CDATA[v_gasBill_eur]]></Name>
+					<X>-1070</X><Y>1010</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1646176440668</Id>
 					<Name><![CDATA[p_boot_woningen]]></Name>
@@ -3107,6 +3137,7 @@ if (v_districtHeatingConnections_n > 0) {
 wijkVerbruik_kW = basislastElektriciteitsverbruikHuishoudens_kW + autos.laadvraag() + v_warmteElektriciteitsVerbruik_kW - autos.V2Gvermogen(); // Alle 'final' energieverbuik in de wijk
 gemiddeldeSoC_pct = averageWhere(autos, x->x.huidigBatterijCap_kWh/x.maxBatterijCap_kWh, x->x.elektrisch);
 
+
 //Grafieken updaten
 pvOpwekChart.updateData();
 elektriciteitsVerbruikChart.updateData();
@@ -3144,7 +3175,8 @@ else {
 	p_VATGas_pct = 0.21;
 }
 
-v_expectedChangeDemandGas_pct = v_gasPriceChange_pct * huishoudens.avgPriceElasticityGas();]]></Action>
+v_expectedChangeDemandGas_pct = v_gasPriceChange_pct * huishoudens.avgPriceElasticityGas();
+f_energyBilling();]]></Action>
 				</Event>
 				<Event>
 					<Id>1644825763678</Id>
@@ -3629,6 +3661,45 @@ for ( Huishouden h : huishoudens ) {
 	}
 }*/]]></Body>
 				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1651132478569</Id>
+					<Name><![CDATA[f_energyBilling]]></Name>
+					<X>-750</X><Y>130</Y>
+					<Label><X>5</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[double dP = 0.1; // kW integration-step to calculate current electricity price
+double costCurrentTimestep_eurph=0;
+double v_netVermogen_kW = trafoVermogen_kW;
+
+if (v_netVermogen_kW >= 0) {
+	for ( double power_kW = dP; power_kW <= v_netVermogen_kW ; power_kW += dP) { // Integreer incrementele prijs-curve over vermogen
+		//traceln( power_kW + "   " + main.incentiveGenerator.tf_incentivePowerCosts( power_kW ) );
+		costCurrentTimestep_eurph += incentiveGenerator.tf_incentivePowerCosts( power_kW ) * dP ;
+	}
+	costCurrentTimestep_eurph += incentiveGenerator.tf_incentivePowerCosts( v_netVermogen_kW ) * (v_netVermogen_kW - dP * floor(v_netVermogen_kW / dP)) ;
+	
+}
+else if ( v_netVermogen_kW < 0 ) {
+	for ( double power_kW = -dP ; power_kW >= v_netVermogen_kW ; power_kW -= dP ) { // Integreer incrementele prijs-curve over vermogen
+		//traceln( power_kW + "   " + main.incentiveGenerator.tf_incentivePowerCosts( power_kW ) );
+		costCurrentTimestep_eurph -= incentiveGenerator.tf_incentivePowerCosts( power_kW ) * dP ;
+	}
+	costCurrentTimestep_eurph -= incentiveGenerator.tf_incentivePowerCosts( v_netVermogen_kW ) * (v_netVermogen_kW + dP * floor(-v_netVermogen_kW / dP)) ;
+}	
+//traceln(costCurrentTimestep_eur);
+v_WijkTotaalStroomKosten_eur += (costCurrentTimestep_eurph * dt_h);
+
+// gas billing
+v_gasBill_eur += dH_PTESWithHeatPump.heatingSystem.v_GasConsumption_m3ph * v_gasPrice_eurpm3 * dt_h; // allows for time-varying gas prices
+
+//v_totaalVerbruik_kWh += v_netVermogen_kW * main.dt_h;
+//v_gemiddeldeStroomPrijs_eurpkWh = v_WijkTotaalStroomKosten_eur/v_totaalVerbruik_kWh;
+//traceln(main.incentiveGenerator.tf_incentivePowerCosts( 0 ));]]></Body>
+				</Function>
 			</Functions>
 			<TableFunctions>
 				<TableFunction AccessType="public" StaticFunction="false">
@@ -3788,7 +3859,7 @@ TODO: data afleiden en corrigeren.
 				<EmbeddedObject>
 					<Id>1641893249239</Id>
 					<Name><![CDATA[huishoudens]]></Name>
-					<X>1740</X><Y>60</Y>
+					<X>-550</X><Y>90</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -4157,7 +4228,7 @@ TODO: data afleiden en corrigeren.
 				<EmbeddedObject>
 					<Id>1643455720337</Id>
 					<Name><![CDATA[bewoners]]></Name>
-					<X>1880</X><Y>60</Y>
+					<X>-550</X><Y>120</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -4250,7 +4321,7 @@ TODO: data afleiden en corrigeren.
 				<EmbeddedObject>
 					<Id>1643455730884</Id>
 					<Name><![CDATA[autos]]></Name>
-					<X>2000</X><Y>60</Y>
+					<X>-550</X><Y>150</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -4372,7 +4443,7 @@ TODO: data afleiden en corrigeren.
 					<Name><![CDATA[incentiveGenerator]]></Name>
 					<Description><![CDATA[@author Naud Loomans
 @since 16-02-2022]]></Description>
-					<X>-550</X><Y>130</Y>
+					<X>-550</X><Y>220</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -4479,7 +4550,7 @@ TODO: data afleiden en corrigeren.
 				<EmbeddedObject>
 					<Id>1645015385746</Id>
 					<Name><![CDATA[pop_KPIs]]></Name>
-					<X>-550</X><Y>100</Y>
+					<X>-550</X><Y>190</Y>
 					<Label><X>15</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>false</PresentationFlag>
@@ -4549,7 +4620,7 @@ TODO: data afleiden en corrigeren.
 				<EmbeddedObject>
 					<Id>1650616580729</Id>
 					<Name><![CDATA[dH_PTESWithHeatPump]]></Name>
-					<X>-550</X><Y>260</Y>
+					<X>-550</X><Y>290</Y>
 					<Label><X>15</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -4679,7 +4750,7 @@ TODO: data afleiden en corrigeren.
 				<EmbeddedObject>
 					<Id>1650640320876</Id>
 					<Name><![CDATA[districtHeatingNetwork]]></Name>
-					<X>-550</X><Y>230</Y>
+					<X>-550</X><Y>260</Y>
 					<Label><X>15</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -10605,7 +10676,7 @@ bezoekPT / 10]]></LineWidthCode>
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1645189622352</Id>
 					<Name><![CDATA[combo_energyManagerMode]]></Name>
-					<X>-1070</X><Y>1020</Y>
+					<X>-1070</X><Y>1060</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -10676,7 +10747,7 @@ bezoekPT / 10]]></LineWidthCode>
 				<Text>
 					<Id>1646215080947</Id>
 					<Name><![CDATA[text47]]></Name>
-					<X>-1045</X><Y>1000</Y>
+					<X>-1045</X><Y>1040</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -15142,7 +15213,7 @@ double v_gasCost_eur = gasUsed_m3 * main.v_gasPrice_eurpm3;
 v_gasBill_eur += v_gasCost_eur;
 */ 
 
-v_gasBill_eur += ( heatingSystem.v_CumGasConsumed_m3 - v_gasMeter_m3 ) * main.v_gasPrice_eurpm3;
+v_gasBill_eur += heatingSystem.v_GasConsumption_m3ph * main.v_gasPrice_eurpm3 * main.dt_h; // allows for time-varying gas prices
 v_gasMeter_m3 = heatingSystem.v_CumGasConsumed_m3;
 
 //bereken incentive afname gas a.g.v. prijselasticiteit
@@ -28085,7 +28156,6 @@ v_WijktrafoOverschrijdingTijdfractie = v_WijktrafoOverschrijdingUren / time();]]
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
 					<Action><![CDATA[//Totalen
-//double dt=1.0/60.0; // Integration timestep
 
 v_totalTrafoFeedIn_kWh = main.v_wijkEnergyAfname_kWh-main.v_wijkNettoElectriciteitsVerbruik_kWh;
 
@@ -28098,7 +28168,11 @@ v_ownUsageGeneratedEnergy_perc = ( 1 - v_totalTrafoFeedIn_kWh / main.pvOpwekJaar
 v_totalEnergyDemand_MWh = 0.001 * (v_totalElectricityDemand_kWh + main.v_wijkTotaalGasVerbruik_m3*9.769) + main.v_wijkTotaalBenzineVerbruik_l*.044*.74/3.6 + main.v_wijkTotaalDieselVerbruik_l*0.85*.0427/3.6;
 v_totalEnergyDemandVehicles_MWh = main.v_wijkTotaalBenzineVerbruik_l*.044*.74/3.6 + main.v_wijkTotaalDieselVerbruik_l*0.85*.0427/3.6 + .001* (main.v_evVerbruikJaartotaal_kWh - ( sum(main.autos, x->x.huidigBatterijCap_kWh) - main.v_initialTotalBatteryCharge_kWh));
 
-v_totalCostsHOLON_eur = sum(main.huishoudens, x->x.v_electricityBill_eur) + sum(main.huishoudens, x->x.v_gasBill_eur) + max(v_verzwaringskostenWijktrafoLeveringEUR,v_verzwaringskostenWijktrafoTerugleveringEUR);]]></Action>
+if ( main.v_districtHeatingConnections_n == 0 ) {
+	v_totalCostsHOLON_eur = sum(main.huishoudens, x->x.v_electricityBill_eur) + sum(main.huishoudens, x->x.v_gasBill_eur) + max(v_verzwaringskostenWijktrafoLeveringEUR,v_verzwaringskostenWijktrafoTerugleveringEUR);
+} else {
+	v_totalCostsHOLON_eur = main.v_WijkTotaalStroomKosten_eur + main.v_gasBill_eur + max(v_verzwaringskostenWijktrafoLeveringEUR,v_verzwaringskostenWijktrafoTerugleveringEUR);
+}]]></Action>
 				</Event>
 			</Events>
 			<Functions>
@@ -28272,6 +28346,7 @@ return (v_totalTrafoLoad / v_runningAverageCount) / main.v_trafoMaxPower * 100;]
 
 @author: naud@zenmo.com
 @since 2022_03_01]]></Description>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>-1020</X><Y>920</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
