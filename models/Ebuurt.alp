@@ -17067,7 +17067,7 @@ traceln("test");]]></ActionCode>
 					<Properties Width="100" Height="30">
 						<EntryAction><![CDATA[if ( currentActivityEpisode > 0 ) {
 	if( currentActivityEpisode + 1 < activities.size())
-			nextActivityTimer.restart( loops*24*7*60 + nextActivity.startMinute - time( MINUTE ), MINUTE);
+			nextActivityTimer.restart( nextActivity.startMinute - time( MINUTE ), MINUTE);
 }
 isHome = true;]]></EntryAction>
 						<ExitAction><![CDATA[startNextActivity();
@@ -17101,7 +17101,7 @@ if( carInUse != null ) {
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties Width="240" Height="50">
-						<EntryAction><![CDATA[nextActivityTimer.restart( loops*24*7*60 + nextActivity.startMinute - time( MINUTE ), MINUTE)]]></EntryAction>
+						<EntryAction><![CDATA[nextActivityTimer.restart( nextActivity.startMinute - time( MINUTE ), MINUTE)]]></EntryAction>
 						<ExitAction><![CDATA[startNextActivity();]]></ExitAction>
 						<FillColor>-1644806</FillColor>
 					</Properties>
@@ -18371,9 +18371,11 @@ if ( a != null ){
 	nextActivity = a;
 	nextActivityInfo = "Next activity: " + nextActivity.type + " (ep. " + nextActivity.episode + " / " +  activities.size() +
 	") in: " ;
+	//nextActivity.startMinute += 24*7*60*loops;
 }
-else {
-	loops++; // to shift simulation time back to 'start time'
+else { // When out of activities, reset episode counter to 0 and increment startMinute of all activities by one week (24*7*60 minutes)
+	activities.forEach(z -> z.startMinute += 24*7*60); // Is the 24*7*60 minutes correct??
+ 	//loops++; // to shift simulation time back to 'start time' -> Is this still used??
 	//nextActivityInfo = "No next activity "; 
 	currentActivityEpisode = 0;
 	//traceln("Loop activities voor bewoner " + this.getId());
@@ -18391,8 +18393,8 @@ else {
 	nextActivity = a;
 	nextActivityInfo = "Next activity: " + nextActivity.type + " (ep. " + nextActivity.episode + " / " +  activities.size() +
 	") in: " ;
-//	nextActivity.startMinute += 24*7*60;
-	nextActivityTimer.restart( loops*24*7*60 + nextActivity.startMinute - time( MINUTE ), MINUTE);
+	//nextActivity.startMinute += 24*7*60*loops;
+	nextActivityTimer.restart( nextActivity.startMinute - time( MINUTE ), MINUTE);
 }
 
 ]]></Body>
