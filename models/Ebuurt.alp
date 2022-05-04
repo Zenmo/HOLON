@@ -84,16 +84,17 @@
 			<Import><![CDATA[import java.text.SimpleDateFormat;
 import javax.measure.quantity.RadioactiveActivity;]]></Import>
 			<StartupCode><![CDATA[f_ConfigureInitialSettings();
+//traceln("Ebuurt main startup na f_ConfigureInitialSettings() "+System.currentTimeMillis());
 double nbPVpanelen=0;
 viewAreaMain.navigateTo();
 huishoudensIDs.addAll( selectFrom( db_huishoudens ).list( db_huishoudens.hhid ) );
+//traceln("Ebuurt main startup 2"+System.currentTimeMillis());
 
 for ( int i = 0; i < p_boot_woningen; i++) {
 	Huishouden h = add_huishoudens();
 	h.initializeAutos( i );
-		
 	if ( randomTrue( p_boot_zonnepanelen / 100.0 ) ) {
-		h.add_zonnepanelen();		
+		h.add_zonnepanelen();	
 		nbPVpanelen += h.zonnepanelen(0).aantalPanelen;
 		h.energyManager.v_bidPriceMedium_eurpkWh=uniform(0.18, 0.21);
 		h.energyManager.v_bidPriceLow_eurpkWh=uniform(0.15, 0.18);
@@ -104,8 +105,10 @@ for ( int i = 0; i < p_boot_woningen; i++) {
 		h.energyManager.v_bidPriceV2G_eurpkWh=uniform(0.25, 0.30);
 	}
 }
+
 traceln("Totaal geinstalleerd PV vermogen in de wijk " + 0.330*nbPVpanelen + " kW");
 f_AddHeatingSystemsToHouses();
+
 f_setHeatingTypes(0);
 //districtHeatingNetwork.f_connectHouseholds();
 f_setIsolationLevels();
@@ -2631,6 +2634,30 @@ EUR per m3 excl. belastingen]]></Description>
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1651657260996</Id>
+					<Name><![CDATA[provincie]]></Name>
+					<X>-910</X><Y>260</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[String]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA["AverageOnshore"]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1651657260994</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1642514169739</Id>
 					<Name><![CDATA[householdPoints]]></Name>
@@ -3322,8 +3349,7 @@ for (int j = 0; j <= 5; j++){
 }
 
 //f_setHousingTypeFractions();
-p_gasPriceAfterTaxInitial_eurpm3 = (p_gasPriceBeforeTax_eurpm3 + p_energyTaxOnGas_eurpm3) * (1 + p_VATGas_pct);
-]]></Body>
+p_gasPriceAfterTaxInitial_eurpm3 = (p_gasPriceBeforeTax_eurpm3 + p_energyTaxOnGas_eurpm3) * (1 + p_VATGas_pct);]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -3721,27 +3747,16 @@ v_gasBill_eur += dH_PTESWithHeatPump.heatingSystem.v_GasConsumption_m3ph * v_gas
 					<ValuesQuery>
 						<TableReference>
 							<PackageName><![CDATA[ebuurt]]></PackageName>
-							<ClassName><![CDATA[temperature]]></ClassName>
+							<ClassName><![CDATA[temperature_average]]></ClassName>
 						</TableReference>
-						<Condition>
-							<ColumnReference>
-								<PackageName><![CDATA[ebuurt]]></PackageName>
-								<ClassName><![CDATA[temperature]]></ClassName>
-								<ItemName><![CDATA[province]]></ItemName>
-							</ColumnReference>
-							<Value Class="CodeValue">
-								<Code><![CDATA["AverageOnshore"]]></Code>
-							</Value>
-							<Operator>EQUALS</Operator>
-						</Condition>
 							<ArgumentColumnReference>
 								<PackageName><![CDATA[ebuurt]]></PackageName>
-								<ClassName><![CDATA[temperature]]></ClassName>
-								<ItemName><![CDATA[timestep]]></ItemName>
+								<ClassName><![CDATA[temperature_average]]></ClassName>
+								<ItemName><![CDATA[hour]]></ItemName>
 							</ArgumentColumnReference>
 							<ValueColumnReference>
 								<PackageName><![CDATA[ebuurt]]></PackageName>
-								<ClassName><![CDATA[temperature]]></ClassName>
+								<ClassName><![CDATA[temperature_average]]></ClassName>
 								<ItemName><![CDATA[temperature]]></ItemName>
 							</ValueColumnReference>
 					</ValuesQuery>
@@ -3834,6 +3849,39 @@ TODO: data afleiden en corrigeren.
 					<Value><![CDATA[0.3]]></Value>
 					<Value><![CDATA[0.25]]></Value>
 					<Value><![CDATA[1.0]]></Value>
+				</TableFunction>
+				<TableFunction AccessType="public" StaticFunction="false">
+					<Id>1651656820968</Id>
+					<Name><![CDATA[zonnestraling]]></Name>
+					<X>-920</X><Y>230</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<InterpolationMethod>LINEAR</InterpolationMethod>
+					<OutOfRangeBehaviour>REPEATING</OutOfRangeBehaviour>
+					<OutOfRangeCustomValue><![CDATA[0.0]]></OutOfRangeCustomValue>
+					<ApproximationOrder><![CDATA[1]]></ApproximationOrder>
+					<LoadFromDatabase><![CDATA[true]]></LoadFromDatabase>
+					<ValuesQuery>
+						<TableReference>
+							<PackageName><![CDATA[ebuurt]]></PackageName>
+							<ClassName><![CDATA[irradiance_average]]></ClassName>
+						</TableReference>
+							<ArgumentColumnReference>
+								<PackageName><![CDATA[ebuurt]]></PackageName>
+								<ClassName><![CDATA[irradiance_average]]></ClassName>
+								<ItemName><![CDATA[hour]]></ItemName>
+							</ArgumentColumnReference>
+							<ValueColumnReference>
+								<PackageName><![CDATA[ebuurt]]></PackageName>
+								<ClassName><![CDATA[irradiance_average]]></ClassName>
+								<ItemName><![CDATA[irradiance]]></ItemName>
+							</ValueColumnReference>
+					</ValuesQuery>
+// arguments and values
+					<Argument><![CDATA[0.0]]></Argument>
+					<Value><![CDATA[0.0]]></Value>
 				</TableFunction>
 			</TableFunctions>
 			<AgentLinks>
@@ -13144,8 +13192,7 @@ for ( Auto a : autos ) {
 }
 
 // Thermische parameters initialiseren
-p_ventilationFlowrate_m3ph = p_specificVentilationFlowrate_mph * p_floorSurfaceArea;
-]]></StartupCode>
+p_ventilationFlowrate_m3ph = p_specificVentilationFlowrate_mph * p_floorSurfaceArea;]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1641891521966</Id>
@@ -14827,24 +14874,7 @@ work2 = tup.get( db_huishoudens.work2 );
 //education2 = tup.get( huishoudens_deel.education2 );
 
 //Opzet met boolean gebruikt om de eerdere code voor het ophalen van woningen uit BAG-data te parkeren.
-boolean readBAGData = false;
-
-if ( readBAGData ){
-	//Haal woningeigenschappen op uit BAG-data
-	Tuple tupWoning = selectFrom( db_housingdata_utrecht ).where( db_housingdata_utrecht.id.eq( id ) ).list().get(0);
-		
-	p_houseTypeString = tupWoning.get( db_housingdata_utrecht.woningtype );
-	p_floorSurfaceArea = tupWoning.get( db_housingdata_utrecht.oppervlakte_m2 );
-	p_energyLabel = tupWoning.get( db_housingdata_utrecht.schil_label_bekend );
-	p_energyLabelOriginal = p_energyLabel;
-	p_buildingYear = tupWoning.get( db_housingdata_utrecht.bouwjaar_yr );
-}
-else
-{	
-	//Genereer woningeneigenschappen op basis van wijkkeuze
-	f_generateHouseCharacterics();
-}
-
+f_generateHouseCharacterics();
 //Initialize adult 1
 nbAdults = composition < 2 ? 1 : 2;
 adult1 = main.add_bewoners();
@@ -14864,10 +14894,8 @@ if ( nbAdults > 1 ) {
 	g_adult2.setVisible(true);
 	bewoners.add( adult2 );
 }
-
 //Initialize DHW consumption
 add_pop_dHWDemand();
-
 //Set personal gas price elasticity value
 p_elasticityGas = triangular(-0.76, -0.06, -0.76, -0.41, -0.06);]]></Body>
 				</Function>
@@ -14953,7 +14981,8 @@ v_basislastElektriciteitsverbruik_kW = uniform(0.2,1.8)*elektriciteitsverbruikFr
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[f_basislastVerbruiksFunctie();
-zonnepanelen.forEach(z -> z.pvPowerFunction());
+double current_irradiance_W = main.zonnestraling(time(HOUR) + main.hourOfYearStart) / 1000;
+zonnepanelen.forEach(z -> z.pvPowerFunction(current_irradiance_W));
 f_heatingCooling();
 
 // Smart devices, managed in 'merit order' sequence
@@ -15361,9 +15390,6 @@ p_buildingYear = 1960;
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[aantalPanelen]]></Name>
-						</Parameter>
-						<Parameter>
-							<Name><![CDATA[provincie]]></Name>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[capaciteitsFactor]]></Name>
@@ -23354,30 +23380,6 @@ activities.get (currentActivityEpisode + 12 ).modality.toString()
 					</Properties>                 
 				</Variable>
 				<Variable Class="Parameter">
-					<Id>1642002642046</Id>
-					<Name><![CDATA[provincie]]></Name>
-					<X>60</X><Y>30</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[String]]></Type>
-						<UnitType><![CDATA[NONE]]></UnitType>
-						<SdArray>false</SdArray>
-						<DefaultValue Class="CodeValue">
-							<Code><![CDATA["AverageOnshore"]]></Code>
-						</DefaultValue>
-						<ParameterEditor>
-							<Id>1642002642044</Id>
-							<EditorContolType>TEXT_BOX</EditorContolType>
-							<MinSliderValue><![CDATA[0]]></MinSliderValue>
-							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
-							<DelimeterType>NO_DELIMETER</DelimeterType>
-						</ParameterEditor>
-					</Properties>                 
-				</Variable>
-				<Variable Class="Parameter">
 					<Id>1642004326274</Id>
 					<Name><![CDATA[capaciteitsFactor]]></Name>
 					<X>60</X><Y>110</Y>
@@ -23483,7 +23485,6 @@ jaarlijksTotaalPVOpwekKWh = 0.0;]]></Action>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[if (piekVermogenPerPaneel < 1){
-	provincie = "averageOnshore";
 	piekVermogenPerPaneel = 0.330;
 	oppervlaktePerPaneelM2 = 1.65;
 	efficientie = piekVermogenPerPaneel / oppervlaktePerPaneelM2;
@@ -23505,7 +23506,11 @@ if (aantalPanelen < 1){
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[pvOpwekKW = zonnestraling(time(HOUR) + main.hourOfYearStart) / 1000 * piekVermogenPerPaneel * capaciteitsFactor * aantalPanelen;
+					<Parameter>
+						<Name><![CDATA[current_irradiance_W]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
+					<Body><![CDATA[pvOpwekKW = current_irradiance_W * piekVermogenPerPaneel * capaciteitsFactor * aantalPanelen;
 //traceln( time(HOUR) ); // Debug
 //capaciteitsfactor kan afhankelijk door temperatuur, hellingshoek, orientatie, schaduw, e.d. meer detail nodig
 huishouden.v_pvOpwek_kW = pvOpwekKW;
@@ -23514,52 +23519,6 @@ plot_PVOpwek.updateData();
 jaarlijksTotaalPVOpwekKWh += pvOpwekKW*main.dt_h;]]></Body>
 				</Function>
 			</Functions>
-			<TableFunctions>
-				<TableFunction AccessType="public" StaticFunction="false">
-					<Id>1642002590365</Id>
-					<Name><![CDATA[zonnestraling]]></Name>
-					<X>60</X><Y>200</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<InterpolationMethod>LINEAR</InterpolationMethod>
-					<OutOfRangeBehaviour>REPEATING</OutOfRangeBehaviour>
-					<OutOfRangeCustomValue><![CDATA[0.0]]></OutOfRangeCustomValue>
-					<ApproximationOrder><![CDATA[1]]></ApproximationOrder>
-					<LoadFromDatabase><![CDATA[true]]></LoadFromDatabase>
-					<ValuesQuery>
-						<TableReference>
-							<PackageName><![CDATA[ebuurt]]></PackageName>
-							<ClassName><![CDATA[irradiance]]></ClassName>
-						</TableReference>
-						<Condition>
-							<ColumnReference>
-								<PackageName><![CDATA[ebuurt]]></PackageName>
-								<ClassName><![CDATA[irradiance]]></ClassName>
-								<ItemName><![CDATA[province]]></ItemName>
-							</ColumnReference>
-							<Value Class="CodeValue">
-								<Code><![CDATA[provincie]]></Code>
-							</Value>
-							<Operator>EQUALS</Operator>
-						</Condition>
-							<ArgumentColumnReference>
-								<PackageName><![CDATA[ebuurt]]></PackageName>
-								<ClassName><![CDATA[irradiance]]></ClassName>
-								<ItemName><![CDATA[timestep]]></ItemName>
-							</ArgumentColumnReference>
-							<ValueColumnReference>
-								<PackageName><![CDATA[ebuurt]]></PackageName>
-								<ClassName><![CDATA[irradiance]]></ClassName>
-								<ItemName><![CDATA[irradiance]]></ItemName>
-							</ValueColumnReference>
-					</ValuesQuery>
-// arguments and values
-					<Argument><![CDATA[0.0]]></Argument>
-					<Value><![CDATA[0.0]]></Value>
-				</TableFunction>
-			</TableFunctions>
 			<AgentLinks>
 				<AgentLink>
 					<Id>1641981966272</Id>
@@ -32181,27 +32140,6 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 				<Password><![CDATA[]]></Password>
 			</ExternalConnection>
 			<ExternalConnection>
-				<Id>1641992965338</Id>
-				<Name><![CDATA[database]]></Name>
-				<X>0</X><Y>0</Y>
-				<Label><X>10</X><Y>0</Y></Label>
-				<PublicFlag>false</PublicFlag>
-				<PresentationFlag>true</PresentationFlag>
-				<ShowLabel>true</ShowLabel>
-				<DatabaseType>EXCEL_ACCESS</DatabaseType>
-				<ConnectionURL><![CDATA[]]></ConnectionURL>
-				<ConnectOnStartup>true</ConnectOnStartup>
-				<DatabaseName><![CDATA[]]></DatabaseName>
-				<ResourceReference>
-					<PackageName><![CDATA[ebuurt]]></PackageName>
-					<ClassName><![CDATA[../../Data/Weather Data.xlsx]]></ClassName>
-				</ResourceReference>
-				<Host><![CDATA[localhost]]></Host>
-				<JdbcDriverClassName><![CDATA[net.sourceforge.jtds.jdbc.Driver]]></JdbcDriverClassName>
-				<Login><![CDATA[]]></Login>
-				<Password><![CDATA[]]></Password>
-			</ExternalConnection>
-			<ExternalConnection>
 				<Id>1650980455432</Id>
 				<Name><![CDATA[database]]></Name>
 				<X>0</X><Y>0</Y>
@@ -32216,6 +32154,27 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 				<ResourceReference>
 					<PackageName><![CDATA[ebuurt]]></PackageName>
 					<ClassName><![CDATA[../Data/Day-ahead Prices_201901010000-202001010000.xlsx]]></ClassName>
+				</ResourceReference>
+				<Host><![CDATA[localhost]]></Host>
+				<JdbcDriverClassName><![CDATA[net.sourceforge.jtds.jdbc.Driver]]></JdbcDriverClassName>
+				<Login><![CDATA[]]></Login>
+				<Password><![CDATA[]]></Password>
+			</ExternalConnection>
+			<ExternalConnection>
+				<Id>1641992965338</Id>
+				<Name><![CDATA[database]]></Name>
+				<X>0</X><Y>0</Y>
+				<Label><X>10</X><Y>0</Y></Label>
+				<PublicFlag>false</PublicFlag>
+				<PresentationFlag>true</PresentationFlag>
+				<ShowLabel>true</ShowLabel>
+				<DatabaseType>EXCEL_ACCESS</DatabaseType>
+				<ConnectionURL><![CDATA[]]></ConnectionURL>
+				<ConnectOnStartup>true</ConnectOnStartup>
+				<DatabaseName><![CDATA[]]></DatabaseName>
+				<ResourceReference>
+					<PackageName><![CDATA[ebuurt]]></PackageName>
+					<ClassName><![CDATA[../../Data/Weather Data.xlsx]]></ClassName>
 				</ResourceReference>
 				<Host><![CDATA[localhost]]></Host>
 				<JdbcDriverClassName><![CDATA[net.sourceforge.jtds.jdbc.Driver]]></JdbcDriverClassName>
@@ -32244,7 +32203,7 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 				<Password><![CDATA[]]></Password>
 			</ExternalConnection>
 			<ExternalConnection>
-				<Id>1648041536536</Id>
+				<Id>1651658294236</Id>
 				<Name><![CDATA[database]]></Name>
 				<X>0</X><Y>0</Y>
 				<Label><X>10</X><Y>0</Y></Label>
@@ -32257,7 +32216,7 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 				<DatabaseName><![CDATA[]]></DatabaseName>
 				<ResourceReference>
 					<PackageName><![CDATA[ebuurt]]></PackageName>
-					<ClassName><![CDATA[../Data/HousingData_BAG_Utrecht.xlsx]]></ClassName>
+					<ClassName><![CDATA[D:/Users/HOUJ/Documents/GitHub/HOLON/Data/Weather Data.xlsx]]></ClassName>
 				</ResourceReference>
 				<Host><![CDATA[localhost]]></Host>
 				<JdbcDriverClassName><![CDATA[net.sourceforge.jtds.jdbc.Driver]]></JdbcDriverClassName>
@@ -32285,28 +32244,19 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 			<TableImportSettings>
 				<TableReference>
 					<PackageName><![CDATA[ebuurt]]></PackageName>
-					<ClassName><![CDATA[wind_speed]]></ClassName>
-				</TableReference>
-				<ConnectionIndex>2</ConnectionIndex>
-				<ExternalTableName><![CDATA["Wind speed"]]></ExternalTableName>
-				<AutoImport>false</AutoImport>
-			</TableImportSettings>
-			<TableImportSettings>
-				<TableReference>
-					<PackageName><![CDATA[ebuurt]]></PackageName>
 					<ClassName><![CDATA[day_ahead_prices_2019_de]]></ClassName>
 				</TableReference>
-				<ConnectionIndex>3</ConnectionIndex>
+				<ConnectionIndex>2</ConnectionIndex>
 				<ExternalTableName><![CDATA["Day-ahead Prices_201901010000-2"]]></ExternalTableName>
 				<AutoImport>true</AutoImport>
 			</TableImportSettings>
 			<TableImportSettings>
 				<TableReference>
 					<PackageName><![CDATA[ebuurt]]></PackageName>
-					<ClassName><![CDATA[temperature]]></ClassName>
+					<ClassName><![CDATA[wind_speed]]></ClassName>
 				</TableReference>
-				<ConnectionIndex>2</ConnectionIndex>
-				<ExternalTableName><![CDATA["Temperature"]]></ExternalTableName>
+				<ConnectionIndex>3</ConnectionIndex>
+				<ExternalTableName><![CDATA["Wind speed"]]></ExternalTableName>
 				<AutoImport>false</AutoImport>
 			</TableImportSettings>
 			<TableImportSettings>
@@ -32321,19 +32271,19 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 			<TableImportSettings>
 				<TableReference>
 					<PackageName><![CDATA[ebuurt]]></PackageName>
-					<ClassName><![CDATA[irradiance]]></ClassName>
+					<ClassName><![CDATA[irradiance_average]]></ClassName>
 				</TableReference>
-				<ConnectionIndex>2</ConnectionIndex>
-				<ExternalTableName><![CDATA["Irradiance"]]></ExternalTableName>
+				<ConnectionIndex>5</ConnectionIndex>
+				<ExternalTableName><![CDATA["IrradianceAverage"]]></ExternalTableName>
 				<AutoImport>false</AutoImport>
 			</TableImportSettings>
 			<TableImportSettings>
 				<TableReference>
 					<PackageName><![CDATA[ebuurt]]></PackageName>
-					<ClassName><![CDATA[db_housingdata_utrecht]]></ClassName>
+					<ClassName><![CDATA[temperature_average]]></ClassName>
 				</TableReference>
 				<ConnectionIndex>5</ConnectionIndex>
-				<ExternalTableName><![CDATA["Blad2"]]></ExternalTableName>
+				<ExternalTableName><![CDATA["TemperatureAverage"]]></ExternalTableName>
 				<AutoImport>false</AutoImport>
 			</TableImportSettings>
 			<TableImportSettings>
@@ -35814,6 +35764,9 @@ else {
 				<Parameter>
 					<ParameterName><![CDATA[p_districtHeatingBackupPower_kW]]></ParameterName>
 				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[provincie]]></ParameterName>
+				</Parameter>
 			</Parameters>			
 			<PresentationProperties>
 				<EnableZoomAndPanning>true</EnableZoomAndPanning>
@@ -35855,10 +35808,6 @@ else {
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[../Data/HousingData_BAG_Utrecht.xlsx]]></Path>
-			<ReferencedFromUserCode>false</ReferencedFromUserCode>
-		</Resource>
-		<Resource>
 			<Path><![CDATA[../Data/HousingTypeData.xlsx]]></Path>
 			<ReferencedFromUserCode>true</ReferencedFromUserCode>
 		</Resource>
@@ -35884,6 +35833,10 @@ else {
 		</Resource>
 		<Resource>
 			<Path><![CDATA[../Data/Day-ahead Prices_201901010000-202001010000.xlsx]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[D:/Users/HOUJ/Documents/GitHub/HOLON/Data/Weather Data.xlsx]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
