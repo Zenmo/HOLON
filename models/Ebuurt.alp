@@ -4,7 +4,7 @@
 	         AnyLogic Project File 
 *************************************************	         
 -->
-<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.10.202202091651" AlpVersion="8.7.3">
+<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.11.202204111309" AlpVersion="8.7.3">
 <Model>
 	<Id>1641891178629</Id>
 	<Name><![CDATA[Ebuurt]]></Name>
@@ -1272,6 +1272,18 @@ f_setTrafoMinPower(p_connectionCapacityPerHousehold);
 						<InitialValue Class="CodeValue">
 							<Code><![CDATA[0]]></Code>
 						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1651993346212</Id>
+					<Name><![CDATA[v_totaalVermogenHuishoudens_kW]]></Name>
+					<X>-960</X><Y>600</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
 					</Properties>
 				</Variable>
 				<Variable Class="Parameter">
@@ -2573,16 +2585,16 @@ for (Huishouden h : huishoudens) {
 v_neighborhoodSolarProduction_kW = sumWhere(huishoudens, x->x.zonnepanelen.get(0).pvOpwekKW, x->x.zonnepanelen.size() > 0);
 v_neighborhoodApplianceConsumption_kW = sum(huishoudens, x->x.v_basislastElektriciteitsverbruik_kW);
 v_neighborhoodDirectSolarConsumption_kW = sum(huishoudens, x->x.v_eigenConsumptie_kW);
-double totaalVermogenHuishoudens_kW = sum(huishoudens, x->x.v_netVermogen_kW); //basislastElektriciteitsverbruikHuishoudens_kW + autos.laadvraag() + warmtepompVerbruik_kW - pvOpwek_kW - autos.V2Gvermogen();
+v_totaalVermogenHuishoudens_kW = sum(huishoudens, x->x.v_netVermogen_kW); //basislastElektriciteitsverbruikHuishoudens_kW + autos.laadvraag() + warmtepompVerbruik_kW - pvOpwek_kW - autos.V2Gvermogen();
 
 // Update district heating system, need to use trafoVermogen_kW to allow 'opportunity heating' in the neighbourhood.
 if (v_districtHeatingConnections_n > 0) {
-	dH_PTESWithHeatPump.f_heatManager(totaalVermogenHuishoudens_kW,v_trafoMaxPower,dt_h, (DistrictHeatingNetwork)dH_PTESWithHeatPump.connections.getConnectedAgent(0),v_outsideTemp_degC);
+	dH_PTESWithHeatPump.f_heatManager(v_totaalVermogenHuishoudens_kW,v_trafoMaxPower,dt_h, (DistrictHeatingNetwork)dH_PTESWithHeatPump.connections.getConnectedAgent(0),v_outsideTemp_degC);
 	districtHeatingNetwork.f_UpdateNetworkHeatBalance();
 	v_neighborhoodElectricityConsumptionForHeat_kW += dH_PTESWithHeatPump.heatingSystem.v_ElectricityConsumption_kW;
-	trafoVermogen_kW = totaalVermogenHuishoudens_kW + dH_PTESWithHeatPump.v_heatPumpPowerDraw_kW;
+	trafoVermogen_kW = v_totaalVermogenHuishoudens_kW + dH_PTESWithHeatPump.v_heatPumpPowerDraw_kW;
 } else {
-	trafoVermogen_kW = totaalVermogenHuishoudens_kW;
+	trafoVermogen_kW = v_totaalVermogenHuishoudens_kW;
 }
 
 wijkVerbruik_kW = v_neighborhoodApplianceConsumption_kW + autos.laadvraag() + v_neighborhoodElectricityConsumptionForHeat_kW - autos.V2Gvermogen(); // Alle 'final' energieverbuik in de wijk
@@ -25217,6 +25229,81 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 						<Type><![CDATA[double]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1651993076858</Id>
+					<Name><![CDATA[v_heatingPowerDrawLowPassed_kW]]></Name>
+					<X>40</X><Y>990</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1651993086636</Id>
+					<Name><![CDATA[v_heatingPowerDeliveryLowPassed_kW]]></Name>
+					<X>40</X><Y>1020</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1651993125774</Id>
+					<Name><![CDATA[v_householdLoadLowPassed_kW]]></Name>
+					<X>40</X><Y>960</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1651993151398</Id>
+					<Name><![CDATA[v_holonLoadLowPassed_kW]]></Name>
+					<X>40</X><Y>930</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1651996068579</Id>
+					<Name><![CDATA[v_irradianceLowPassed_kW]]></Name>
+					<X>40</X><Y>1050</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
 			</Variables>
 			<Events>
 				<Event>
@@ -25264,19 +25351,75 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[if ( main.trafoVermogen_kW > 0 ) {
-	t_powerHouseholds.setText( roundToInt( main.trafoVermogen_kW ) + " kW" );
+					<Body><![CDATA[// Low-pass filtered signals with cut-off period of ~1 week
+double lowPassFraction = min(1,.01*main.dt_h);
+//v_holonLoadLowPassed_kW += lowPassFraction * ( main.trafoVermogen_kW - v_holonLoadLowPassed_kW );
+double current_irradiance_kW = main.zonnestraling(time(HOUR) + main.hourOfYearStart) / 1000;
+v_irradianceLowPassed_kW += lowPassFraction * ( current_irradiance_kW - v_irradianceLowPassed_kW );
+
+v_householdLoadLowPassed_kW += lowPassFraction * ( main.v_totaalVermogenHuishoudens_kW - v_householdLoadLowPassed_kW );
+v_heatingPowerDrawLowPassed_kW += lowPassFraction * ( main.dH_PTESWithHeatPump.v_heatPumpPowerDraw_kW - v_heatingPowerDrawLowPassed_kW );
+v_heatingPowerDeliveryLowPassed_kW += lowPassFraction * ( main.dH_PTESWithHeatPump.v_heatDeliveryToNetwork_kW - v_heatingPowerDeliveryLowPassed_kW );
+v_holonLoadLowPassed_kW = v_householdLoadLowPassed_kW + v_heatingPowerDrawLowPassed_kW; // Use this expression to ensure consistency between the 3 numbers
+
+// Draw arrow from grid to households
+t_powerHouseholds.setText( roundToInt( abs( v_householdLoadLowPassed_kW ) ) + " kW" );
+line_households.setLineWidth( 1 + roundToInt( 25.0 * abs( v_householdLoadLowPassed_kW ) / v_maxNeighborhoodElectricityDemand ));
+if ( v_householdLoadLowPassed_kW > 0 ) {
 	arrow_housesIn.setVisible(true);
 	arrow_housesOut.setVisible(false);
-	line_households.setLineWidth( roundToInt( 25.0 * main.trafoVermogen_kW / v_maxNeighborhoodElectricityDemand ));
-}
+	}
 else {
-	t_powerHouseholds.setText( -main.trafoVermogen_kW + " kW" );
 	arrow_housesIn.setVisible(false);
 	arrow_housesOut.setVisible(true);
-	line_households.setLineWidth( - 25 * main.trafoVermogen_kW / v_maxNeighborhoodElectricityDemand);
+	}
+
+// Draw arrow from trafo to grid
+t_powerGrid.setText( roundToInt( abs( v_holonLoadLowPassed_kW ) ) + " kW" );
+line_grid.setLineWidth( 1 + roundToInt( 25.0 * abs( v_holonLoadLowPassed_kW ) / v_maxNeighborhoodElectricityDemand ));
+if ( v_holonLoadLowPassed_kW < 0 ) {
+	arrow_gridIn.setVisible(true);
+	arrow_gridOut.setVisible(false);
+	}
+else {
+	arrow_gridIn.setVisible(false);
+	arrow_gridOut.setVisible(true);
 }
-]]></Body>
+
+// Draw arrow from grid to heating systems (only one direction possible)
+t_powerHeatpump.setText( roundToInt( v_heatingPowerDrawLowPassed_kW ) + " kW" );
+line_buffer.setLineWidth( 1 + roundToInt( 25.0 * abs( v_heatingPowerDrawLowPassed_kW ) / v_maxNeighborhoodElectricityDemand ));
+
+// Draw arrow from buffer to households (only one direction possible)
+t_hotWater.setText( roundToInt( v_heatingPowerDeliveryLowPassed_kW ) + " kW" );
+line_hotWater.setLineWidth( 1 + roundToInt( 25.0 * abs( v_heatingPowerDeliveryLowPassed_kW ) / v_maxNeighborhoodElectricityDemand ));
+
+// Buffer temperature
+text4.setText("Buffer temperature: " + roundToInt( main.dH_PTESWithHeatPump.v_bufferTemp_degC ) + " deg C");
+
+// Change length of sunrays based on lowpassed irradiance
+double sunrayscale = v_irradianceLowPassed_kW*10.0;
+
+line31.setLineWidth(1+roundToInt(sunrayscale));
+line31.setScale(sunrayscale,sunrayscale);
+line32.setLineWidth(1+roundToInt(sunrayscale));
+line32.setScale(sunrayscale,sunrayscale);
+line33.setLineWidth(1+roundToInt(sunrayscale));
+line33.setScale(sunrayscale,sunrayscale);
+line34.setLineWidth(1+roundToInt(sunrayscale));
+line34.setScale(sunrayscale,sunrayscale);
+line35.setLineWidth(1+roundToInt(sunrayscale));
+line35.setScale(sunrayscale,sunrayscale);
+//line36.setLineWidth(1+roundToInt(sunrayscale));
+//line36.setScale(sunrayscale,sunrayscale);
+//line37.setLineWidth(1+roundToInt(sunrayscale));
+//line37.setScale(sunrayscale,sunrayscale);
+line38.setLineWidth(1+roundToInt(sunrayscale));
+line38.setScale(sunrayscale,sunrayscale);
+line39.setLineWidth(1+roundToInt(sunrayscale));
+line39.setScale(sunrayscale,sunrayscale);
+line40.setLineWidth(1+roundToInt(sunrayscale));
+line40.setScale(sunrayscale,sunrayscale);]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -25296,9 +25439,9 @@ else {
 						<Name><![CDATA[nb_households]]></Name>
 						<Type><![CDATA[int]]></Type>
 					</Parameter>
-					<Body><![CDATA[v_maxNeighborhoodElectricityDemand = main.p_connectionCapacityPerHousehold * nb_households;
-v_maxNeighborhoodHeatDemand = 5 * nb_households;
-v_maxDistrictHeatingBuffer = 0; //TODO @Gillis maak hier maar wat van.]]></Body>
+					<Body><![CDATA[v_maxNeighborhoodElectricityDemand = 100;//2* main.p_connectionCapacityPerHousehold * nb_households;
+v_maxNeighborhoodHeatDemand = 100;//5 * nb_households;
+v_maxDistrictHeatingBuffer = 100; //TODO @Gillis maak hier maar wat van.]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -28277,7 +28420,7 @@ v_maxDistrictHeatingBuffer = 0; //TODO @Gillis maak hier maar wat van.]]></Body>
 				</Text>
 				<Text>
 					<Id>1651948385345</Id>
-					<Name><![CDATA[text3]]></Name>
+					<Name><![CDATA[t_hotWater]]></Name>
 					<X>1113</X><Y>581</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
@@ -28309,7 +28452,7 @@ v_maxDistrictHeatingBuffer = 0; //TODO @Gillis maak hier maar wat van.]]></Body>
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
-					<Text><![CDATA[Buffer energy: 100 kWh]]></Text>
+					<Text><![CDATA[Buffer temperature: 55 deg C]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>16</Size>
@@ -32508,15 +32651,15 @@ v_maxDistrictHeatingBuffer = 0; //TODO @Gillis maak hier maar wat van.]]></Body>
 		<MaximumMemory>4096</MaximumMemory>
 		<ModelTimeProperties>
 			<StopOption><![CDATA[Stop at specified time]]></StopOption>
-			<InitialDate><![CDATA[1643673600000]]></InitialDate>	
+			<InitialDate><![CDATA[1648771200000]]></InitialDate>	
 			<InitialTime><![CDATA[0.0]]></InitialTime>	
-			<FinalDate><![CDATA[1644278400000]]></FinalDate>	
-			<FinalTime><![CDATA[168.0]]></FinalTime>	
+			<FinalDate><![CDATA[1680307200000]]></FinalDate>	
+			<FinalTime><![CDATA[8760.0]]></FinalTime>	
 		</ModelTimeProperties>
 		<AnimationProperties>
 			<StopNever>false</StopNever>
 			<ExecutionMode>realTimeScaled</ExecutionMode>
-			<RealTimeScale>5.0</RealTimeScale>
+			<RealTimeScale>250.0</RealTimeScale>
 			<EnableZoomAndPanning>true</EnableZoomAndPanning>
 			<EnableDeveloperPanel>true</EnableDeveloperPanel>
 			<ShowDeveloperPanelOnStart>false</ShowDeveloperPanelOnStart>
@@ -32745,6 +32888,33 @@ v_maxDistrictHeatingBuffer = 0; //TODO @Gillis maak hier maar wat van.]]></Body>
 					<PackageName><![CDATA[ebuurt]]></PackageName>
 					<ClassName><![CDATA[Main]]></ClassName>
 					<ItemName><![CDATA[p_thermostatPriceDependent]]></ItemName>
+				</InputReference>
+    		</RunConfigurationInput>
+    		<RunConfigurationInput>
+				<Id>1651997409922</Id>
+				<Name><![CDATA[P district heating primary power k W]]></Name>
+				<InputReference>
+					<PackageName><![CDATA[ebuurt]]></PackageName>
+					<ClassName><![CDATA[Main]]></ClassName>
+					<ItemName><![CDATA[p_districtHeatingPrimaryPower_kW]]></ItemName>
+				</InputReference>
+    		</RunConfigurationInput>
+    		<RunConfigurationInput>
+				<Id>1651997410678</Id>
+				<Name><![CDATA[P district heating secondary power k W]]></Name>
+				<InputReference>
+					<PackageName><![CDATA[ebuurt]]></PackageName>
+					<ClassName><![CDATA[Main]]></ClassName>
+					<ItemName><![CDATA[p_districtHeatingSecondaryPower_kW]]></ItemName>
+				</InputReference>
+    		</RunConfigurationInput>
+    		<RunConfigurationInput>
+				<Id>1651997411372</Id>
+				<Name><![CDATA[P district heating backup power k W]]></Name>
+				<InputReference>
+					<PackageName><![CDATA[ebuurt]]></PackageName>
+					<ClassName><![CDATA[Main]]></ClassName>
+					<ItemName><![CDATA[p_districtHeatingBackupPower_kW]]></ItemName>
 				</InputReference>
     		</RunConfigurationInput>		
 		</Inputs>
@@ -35954,11 +36124,11 @@ else {
 			</Parameters>			
 			<PresentationProperties>
 				<EnableZoomAndPanning>true</EnableZoomAndPanning>
-				<ExecutionMode><![CDATA[virtualTime]]></ExecutionMode>
+				<ExecutionMode><![CDATA[realTimeScaled]]></ExecutionMode>
 				<Title><![CDATA[Ebuurt : Simulation]]></Title>	
 				<EnableDeveloperPanel>true</EnableDeveloperPanel>
 				<ShowDeveloperPanelOnStart>true</ShowDeveloperPanelOnStart>
-				<RealTimeScale>5.0</RealTimeScale>
+				<RealTimeScale>250.0</RealTimeScale>
 			</PresentationProperties>
 			<ModelTimeProperties>
 				<StopOption><![CDATA[Stop at specified time]]></StopOption>
