@@ -907,7 +907,7 @@ f_setTrafoMinPower(p_connectionCapacityPerHousehold);
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1644825798203</Id>
-					<Name><![CDATA[trafoVermogen_kW]]></Name>
+					<Name><![CDATA[v_trafoVermogen_kW]]></Name>
 					<X>-960</X><Y>630</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1914,7 +1914,7 @@ f_setTrafoMinPower(p_connectionCapacityPerHousehold);
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[new SimpleDateFormat("D MMMMM HH:mm")]]></Code>
+							<Code><![CDATA[new SimpleDateFormat("dd MMMMM HH:mm")]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1646391386869</Id>
@@ -2584,7 +2584,7 @@ for (Huishouden h : huishoudens) {
 // Wijkvermogens
 v_neighborhoodSolarProduction_kW = sumWhere(huishoudens, x->x.zonnepanelen.get(0).pvOpwekKW, x->x.zonnepanelen.size() > 0);
 v_neighborhoodApplianceConsumption_kW = sum(huishoudens, x->x.v_basislastElektriciteitsverbruik_kW);
-v_neighborhoodDirectSolarConsumption_kW = sum(huishoudens, x->x.v_eigenConsumptie_kW);
+//v_neighborhoodDirectSolarConsumption_kW = sum(huishoudens, x->x.v_eigenConsumptie_kW); // Doesn't include power consumption in local heatpump/e-boiler!!
 v_totaalVermogenHuishoudens_kW = sum(huishoudens, x->x.v_netVermogen_kW); //basislastElektriciteitsverbruikHuishoudens_kW + autos.laadvraag() + warmtepompVerbruik_kW - pvOpwek_kW - autos.V2Gvermogen();
 
 // Update district heating system, need to use trafoVermogen_kW to allow 'opportunity heating' in the neighbourhood.
@@ -2592,10 +2592,11 @@ if (v_districtHeatingConnections_n > 0) {
 	dH_PTESWithHeatPump.f_heatManager(v_totaalVermogenHuishoudens_kW,v_trafoMaxPower,dt_h, (DistrictHeatingNetwork)dH_PTESWithHeatPump.connections.getConnectedAgent(0),v_outsideTemp_degC);
 	districtHeatingNetwork.f_UpdateNetworkHeatBalance();
 	v_neighborhoodElectricityConsumptionForHeat_kW += dH_PTESWithHeatPump.heatingSystem.v_ElectricityConsumption_kW;
-	trafoVermogen_kW = v_totaalVermogenHuishoudens_kW + dH_PTESWithHeatPump.v_heatPumpPowerDraw_kW;
+	v_trafoVermogen_kW = v_totaalVermogenHuishoudens_kW + dH_PTESWithHeatPump.v_heatPumpPowerDraw_kW;
 } else {
-	trafoVermogen_kW = v_totaalVermogenHuishoudens_kW;
+	v_trafoVermogen_kW = v_totaalVermogenHuishoudens_kW;
 }
+v_neighborhoodDirectSolarConsumption_kW = v_neighborhoodSolarProduction_kW + min(0,v_trafoVermogen_kW); 
 
 wijkVerbruik_kW = v_neighborhoodApplianceConsumption_kW + autos.laadvraag() + v_neighborhoodElectricityConsumptionForHeat_kW - autos.V2Gvermogen(); // Alle 'final' energieverbuik in de wijk
 if (autos.autosElektrisch() >  0) {
@@ -2617,8 +2618,8 @@ v_wijkTotaalWPVerbruik_kWh += v_neighborhoodElectricityConsumptionForHeat_kW * d
 v_evVerbruikJaartotaal_kWh += autos.laadvraag() * dt_h; // Includes only charging, no discharging (V2G)! 
 basislastElektriciteitsverbruikHuishoudensJaartotaal += v_neighborhoodApplianceConsumption_kW * dt_h;
 v_eigenConsumptieJaartotaal_kWh += v_neighborhoodDirectSolarConsumption_kW * dt_h;
-v_wijkNettoElectriciteitsVerbruik_kWh += trafoVermogen_kW * dt_h; // Includes negative contribution from PV
-v_wijkEnergyAfname_kWh += max(0,trafoVermogen_kW * dt_h);
+v_wijkNettoElectriciteitsVerbruik_kWh += v_trafoVermogen_kW * dt_h; // Includes negative contribution from PV
+v_wijkEnergyAfname_kWh += max(0,v_trafoVermogen_kW * dt_h);
 v_wijkTotaalElektriciteitsVerbruik_kWh += wijkVerbruik_kW * dt_h; // Excludes negative contribution from PV
 v_wijkTotaalBenzineVerbruik_l = sumWhere(autos, x->x.v_fuelConsumed_l, x->x.p_fuelType==fuelType.petrol && !x.elektrisch);
 v_wijkTotaalDieselVerbruik_l = sumWhere(autos, x->x.v_fuelConsumed_l, x->x.p_fuelType==fuelType.diesel && !x.elektrisch);
@@ -3068,7 +3069,7 @@ for ( Huishouden h : huishoudens ) {
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[double dP = 0.1; // kW integration-step to calculate current electricity price
 double costCurrentTimestep_eurph=0;
-double v_netVermogen_kW = trafoVermogen_kW;
+double v_netVermogen_kW = v_trafoVermogen_kW;
 
 if (v_netVermogen_kW >= 0) {
 	for ( double power_kW = dP; power_kW <= v_netVermogen_kW ; power_kW += dP) { // Integreer incrementele prijs-curve over vermogen
@@ -5017,7 +5018,7 @@ TODO: data afleiden en corrigeren.
 					<Id>0</Id>
 					<Expression><![CDATA[my_dataset3]]></Expression>
 					<Color>-4565549</Color>
-					<Expression2><![CDATA[trafoVermogen_kW]]></Expression2>
+					<Expression2><![CDATA[v_trafoVermogen_kW]]></Expression2>
 					<Expression2Flag>true</Expression2Flag>
 						<PointStyle>NONE</PointStyle>
 						<LineWidth>1.0</LineWidth>
@@ -19924,7 +19925,7 @@ else{
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[//set congestion tariff
 double lowPassFraction = min(1,1.2*main.dt_h);
-v_holonLoadLowPassed_kW += lowPassFraction * ( main.trafoVermogen_kW - v_holonLoadLowPassed_kW );
+v_holonLoadLowPassed_kW += lowPassFraction * ( main.v_trafoVermogen_kW - v_holonLoadLowPassed_kW );
 
 if (main.cb_congestionMarket.isSelected()){
 	if ( v_holonLoadLowPassed_kW > p_congestionPowerTresh_kW ) {
@@ -20822,7 +20823,7 @@ Bron: Vesta MAIS 5.0.
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1646228436146</Id>
-					<Name><![CDATA[v_selfGeneratedEnergy_perc]]></Name>
+					<Name><![CDATA[v_selfGeneratedElectricity_perc]]></Name>
 					<X>100</X><Y>1260</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -20908,6 +20909,18 @@ Bron: Vesta MAIS 5.0.
 					<Id>1649064362486</Id>
 					<Name><![CDATA[v_totalEnergyDemandVehicles_MWh]]></Name>
 					<X>100</X><Y>1340</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1652093766592</Id>
+					<Name><![CDATA[v_selfSufficiency_perc]]></Name>
+					<X>100</X><Y>1360</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -21065,12 +21078,12 @@ v_verzwaringskostenWijktrafoTerugleveringEUR = f_BerekenKostenVerwaringWijktrafo
 						</RecurrenceCode>
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
-					<Action><![CDATA[v_averageTrafoLoad = f_runningAverageTrafoLoad(main.trafoVermogen_kW);
+					<Action><![CDATA[v_averageTrafoLoad = f_runningAverageTrafoLoad(main.v_trafoVermogen_kW);
 
-v_maximaleBelastingWijktrafoKWlevering = f_bepaalLopendMaximum(v_maximaleBelastingWijktrafoKWlevering, main.trafoVermogen_kW, true);
-v_maximaleBelastingWijktrafoKWteruglevering = f_bepaalLopendMaximum(v_maximaleBelastingWijktrafoKWteruglevering, main.trafoVermogen_kW, false);
+v_maximaleBelastingWijktrafoKWlevering = f_bepaalLopendMaximum(v_maximaleBelastingWijktrafoKWlevering, main.v_trafoVermogen_kW, true);
+v_maximaleBelastingWijktrafoKWteruglevering = f_bepaalLopendMaximum(v_maximaleBelastingWijktrafoKWteruglevering, main.v_trafoVermogen_kW, false);
 
-v_WijktrafoOverschrijdingUren += f_bepaalWijktrafoOverschrijding(main.trafoVermogen_kW, main.v_trafoMaxPower);
+v_WijktrafoOverschrijdingUren += f_bepaalWijktrafoOverschrijding(main.v_trafoVermogen_kW, main.v_trafoMaxPower);
 v_WijktrafoOverschrijdingTijdfractie = v_WijktrafoOverschrijdingUren / time();]]></Action>
 				</Event>
 				<Event>
@@ -21109,7 +21122,8 @@ v_totalTrafoFeedIn_kWh = main.v_wijkEnergyAfname_kWh-main.v_wijkNettoElectricite
 v_totalElectricityDemand_kWh = main.v_wijkTotaalElektriciteitsVerbruik_kWh - ( sum(main.autos, x->x.huidigBatterijCap_kWh) - main.v_initialTotalBatteryCharge_kWh); //main.evVerbruikJaartotaal + main.basislastElektriciteitsverbruikHuishoudensJaartotaal + main.warmtepompVerbruikJaartotaal;
 v_renewableEnergy_perc = main.v_pvOpwekJaartotaal_kWh / v_totalElectricityDemand_kWh * 100;
 //TODO 
-v_selfGeneratedEnergy_perc = ( 1 - main.v_wijkEnergyAfname_kWh / main.v_wijkTotaalElektriciteitsVerbruik_kWh ) * 100;
+v_selfGeneratedElectricity_perc = ( 1 - main.v_wijkEnergyAfname_kWh / main.v_wijkTotaalElektriciteitsVerbruik_kWh ) * 100;
+v_selfSufficiency_perc =  main.v_eigenConsumptieJaartotaal_kWh/0.7 / ( main.v_wijkTotaalElektriciteitsVerbruik_kWh/0.7 + main.v_wijkTotaalGasVerbruik_m3*main.p_energyDensityGas_kWhpm3) * 100;
 v_ownUsageGeneratedEnergy_perc = ( 1 - v_totalTrafoFeedIn_kWh / main.v_pvOpwekJaartotaal_kWh ) * 100;
 
 v_totalEnergyDemand_MWh = 0.001 * (v_totalElectricityDemand_kWh + main.v_wijkTotaalGasVerbruik_m3*9.769) + main.v_wijkTotaalBenzineVerbruik_l*.044*.74/3.6 + main.v_wijkTotaalDieselVerbruik_l*0.85*.0427/3.6;
@@ -21320,7 +21334,7 @@ return tijdsIncrement;]]></Body>
 						<Name><![CDATA[trafoLoad]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
-					<Body><![CDATA[v_totalTrafoLoad += abs(main.trafoVermogen_kW);
+					<Body><![CDATA[v_totalTrafoLoad += abs(main.v_trafoVermogen_kW);
 v_runningAverageCount++;
 return (v_totalTrafoLoad / v_runningAverageCount) / main.v_trafoMaxPower * 100;]]></Body>
 				</Function>
@@ -21378,13 +21392,13 @@ else {
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[if (v_totalCostsHOLON_eur < 100){
+					<Body><![CDATA[if (v_totalCostsHOLON_eur < 30000){
 	return green;
 }
-else if (v_totalCostsHOLON_eur < 200){
+else if (v_totalCostsHOLON_eur < 50000){
 	return gold;
 }
-else if (v_totalCostsHOLON_eur < 500){
+else if (v_totalCostsHOLON_eur < 70000){
 	return orange;
 }
 else {
@@ -21401,13 +21415,13 @@ else {
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[if (v_renewableEnergy_perc > 75){
+					<Body><![CDATA[if (v_selfSufficiency_perc > 75){
 	return green;
 }
-else if (v_renewableEnergy_perc > 50){
+else if (v_selfSufficiency_perc > 50){
 	return gold;
 }
-else if (v_renewableEnergy_perc > 25){
+else if (v_selfSufficiency_perc > 25){
 	return orange;
 }
 else {
@@ -21418,19 +21432,19 @@ else {
 					<ReturnModificator>RETURNS_VALUE</ReturnModificator>
 					<ReturnType><![CDATA[Color]]></ReturnType>
 					<Id>1646232485920</Id>
-					<Name><![CDATA[setAutonomyOvalColor]]></Name>
+					<Name><![CDATA[setSelfSufficiencyOvalColor]]></Name>
 					<X>30</X><Y>890</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[if (v_selfGeneratedEnergy_perc > 75){
+					<Body><![CDATA[if (v_selfSufficiency_perc > 75){
 	return green;
 }
-else if (v_selfGeneratedEnergy_perc > 50){
+else if (v_selfSufficiency_perc > 50){
 	return gold;
 }
-else if (v_selfGeneratedEnergy_perc > 25){
+else if (v_selfSufficiency_perc > 25){
 	return orange;
 }
 else {
@@ -21447,13 +21461,13 @@ else {
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[if (main.v_wijkTotaalGasVerbruik_m3 > 750){
+					<Body><![CDATA[if (main.v_wijkTotaalGasVerbruik_m3 > 50000){
 	return red;
 }
-else if (main.v_wijkTotaalGasVerbruik_m3 > 500){
+else if (main.v_wijkTotaalGasVerbruik_m3 > 30000){
 	return orange;
 }
-else if (main.v_wijkTotaalGasVerbruik_m3 > 250){
+else if (main.v_wijkTotaalGasVerbruik_m3 > 10000){
 	return gold;
 }
 else {
@@ -21482,7 +21496,7 @@ else {
 						<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
 					</RecurrenceCode>
 					<Discrete>false</Discrete>
-					<ValueCode><![CDATA[main.trafoVermogen_kW]]></ValueCode>
+					<ValueCode><![CDATA[main.v_trafoVermogen_kW]]></ValueCode>
 				</Statistics>
 			</AnalysisData>
 			<AgentLinks>
@@ -21639,7 +21653,7 @@ else {
 					<RadiusY>40</RadiusY>
 					<Rotation>0.0</Rotation>
 					<FillColor>-6632142</FillColor>
-					<FillColorCode><![CDATA[setAutonomyOvalColor()]]></FillColorCode>
+					<FillColorCode><![CDATA[setSelfSufficiencyOvalColor()]]></FillColorCode>
 					<FillMaterial>null</FillMaterial>
 				</Oval>
 				<Text>
@@ -21763,7 +21777,7 @@ else {
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
-					<Text><![CDATA[eigen opgewekte elektriciteit]]></Text>
+					<Text><![CDATA[eigen opgewekte energie]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>14</Size>
@@ -21785,7 +21799,7 @@ else {
 					<Rotation>0.0</Rotation>
 					<Color>-1</Color>
 					<Text><![CDATA[20%]]></Text>
-					<TextCode><![CDATA[roundToInt(v_selfGeneratedEnergy_perc) + "%"]]></TextCode>
+					<TextCode><![CDATA[roundToInt(v_selfSufficiency_perc) + "%"]]></TextCode>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>26</Size>
@@ -22058,7 +22072,7 @@ if (g_fullKPIs.getY() != 160){
 					<Rotation>0.0</Rotation>
 					<Color>-1</Color>
 					<Text><![CDATA[20%]]></Text>
-					<TextCode><![CDATA[roundToInt(main.v_wijkTotaalGasVerbruik_m3 + main.v_wijkNettoElectriciteitsVerbruik_kWh*main.p_gasstroomPEF/main.p_energyDensityGas_kWhpm3) + " m\u00B3"]]></TextCode>
+					<TextCode><![CDATA[roundToInt(main.v_wijkTotaalGasVerbruik_m3) + " m\u00B3"]]></TextCode>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>20</Size>
@@ -22566,7 +22580,7 @@ energie:]]></Text>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
 					<Text><![CDATA[x %]]></Text>
-					<TextCode><![CDATA[roundToInt(v_selfGeneratedEnergy_perc) + " %"]]></TextCode>
+					<TextCode><![CDATA[roundToInt(v_selfGeneratedElectricity_perc) + " %"]]></TextCode>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>22</Size>
@@ -22849,7 +22863,7 @@ energie:]]></Text>
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
-					<Text><![CDATA[Autonomie]]></Text>
+					<Text><![CDATA[Zelfvoorzienendheid]]></Text>
 					<Font>
 						<Name>Calibri Light</Name>
 						<Size>24</Size>
@@ -23454,7 +23468,7 @@ elektriciteit:]]></Text>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
 					<Text><![CDATA[x%]]></Text>
-					<TextCode><![CDATA[roundToInt(v_selfGeneratedEnergy_perc) + "%"]]></TextCode>
+					<TextCode><![CDATA[roundToInt(v_selfGeneratedElectricity_perc) + "%"]]></TextCode>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>12</Size>
@@ -24245,7 +24259,7 @@ de tijd.]]></Text>
 					<Rotation>0.0</Rotation>
 					<Color>-1</Color>
 					<Text><![CDATA[20%]]></Text>
-					<TextCode><![CDATA[roundToInt(v_selfGeneratedEnergy_perc) + "%"]]></TextCode>
+					<TextCode><![CDATA[roundToInt(v_selfGeneratedElectricity_perc) + "%"]]></TextCode>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>26</Size>
@@ -24267,7 +24281,7 @@ de tijd.]]></Text>
 					<Rotation>0.0</Rotation>
 					<Color>-1</Color>
 					<Text><![CDATA[20%]]></Text>
-					<TextCode><![CDATA[roundToInt(v_selfGeneratedEnergy_perc) + "%"]]></TextCode>
+					<TextCode><![CDATA[roundToInt(v_selfGeneratedElectricity_perc) + "%"]]></TextCode>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>26</Size>
@@ -25093,6 +25107,7 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 			<Id>1651948385097</Id>
 			<Name><![CDATA[Schematic]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
+			<StartupCode><![CDATA[f_startUp();]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1651948385092</Id>
@@ -25489,12 +25504,23 @@ if( main.dH_PTESWithHeatPump != null){
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Parameter>
-						<Name><![CDATA[nb_households]]></Name>
-						<Type><![CDATA[int]]></Type>
-					</Parameter>
 					<Body><![CDATA[v_maxNeighborhoodElectricityDemand = 100; //2* main.p_connectionCapacityPerHousehold * nb_households;
-v_maxNeighborhoodHeatDemand = 100; //5 * nb_households;]]></Body>
+v_maxNeighborhoodHeatDemand = 100; //5 * nb_households;
+
+if ( main.p_districtHeatingPrimaryPower_kW == 0 ){
+	traceln("No heat buffer in use!");
+	text7.setText("\n Gas-ketel");
+	line_buffer.setVisible(false);
+	polyline7.setVisible(false);
+	polyline8.setVisible(false);
+	text4.setVisible(false);
+	rectangle.setVisible(false);	
+	t_powerHeatpump.setVisible(false);
+	line26.setVisible(false);
+	arrow_bufferIn.setVisible(false);
+} else {
+traceln("Fail!");
+}]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -27960,7 +27986,7 @@ v_maxNeighborhoodHeatDemand = 100; //5 * nb_households;]]></Body>
 				<Polyline>
 					<Id>1651948385337</Id>
 					<Name><![CDATA[line_hotWater]]></Name>
-					<X>810</X><Y>700</Y>
+					<X>660</X><Y>700</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -27981,8 +28007,8 @@ v_maxNeighborhoodHeatDemand = 100; //5 * nb_households;]]></Body>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
-					   <Point><X>260</X><Y>0</Y><Z>0</Z></Point>
-					   <Point><X>260</X><Y>-260</Y><Z>0</Z></Point>
+					   <Point><X>410</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>410</X><Y>-260</Y><Z>0</Z></Point>
 					</Points>
 					<Closed>false</Closed>
 				</Polyline>
@@ -28216,7 +28242,7 @@ temperatuur: 55 deg C]]></Text>
 				<Text>
 					<Id>1652078146975</Id>
 					<Name><![CDATA[text5]]></Name>
-					<X>1170</X><Y>530</Y>
+					<X>1150</X><Y>530</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -28226,7 +28252,7 @@ temperatuur: 55 deg C]]></Text>
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
-					<Text><![CDATA[Verwarmingsvraag]]></Text>
+					<Text><![CDATA[Warmtevraag]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>20</Size>
@@ -32861,6 +32887,51 @@ E-Boiler]]></Text>
 						<Type><![CDATA[int]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1652093999079</Id>
+					<Name><![CDATA[v_districtHeatingPrimaryPower_kW]]></Name>
+					<X>40</X><Y>1210</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1652094027006</Id>
+					<Name><![CDATA[v_districtHeatingSecondaryPower_kW]]></Name>
+					<X>40</X><Y>1240</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[200]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1652094045918</Id>
+					<Name><![CDATA[v_districtHeatingBackupPower_kW]]></Name>
+					<X>40</X><Y>1270</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
 			</Variables>
 			<Functions>
 				<Function AccessType="default" StaticFunction="false">
@@ -34445,7 +34516,7 @@ if ( value == 2 ){
 						<ActionCode><![CDATA[f_heatingSystemsSlidersMatch(0)]]></ActionCode>
 					</BasicProperties>
 					<ExtendedProperties>
-						<DefaultValueCode><![CDATA[100]]></DefaultValueCode>
+						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
 						<Orientation>HORIZONTAL</Orientation>
 						<MinValue><![CDATA[0]]></MinValue>
 						<MaxValue><![CDATA[100]]></MaxValue>
@@ -34517,7 +34588,7 @@ if ( value == 2 ){
 						<ActionCode><![CDATA[f_heatingSystemsSlidersMatch(3)]]></ActionCode>
 					</BasicProperties>
 					<ExtendedProperties>
-						<DefaultValueCode><![CDATA[0]]></DefaultValueCode>
+						<DefaultValueCode><![CDATA[100]]></DefaultValueCode>
 						<Orientation>HORIZONTAL</Orientation>
 						<MinValue><![CDATA[0]]></MinValue>
 						<MaxValue><![CDATA[100]]></MaxValue>
@@ -35333,8 +35404,11 @@ else {
 	radio_IsolationLevels.setValue(0);
 	s_PV.setValue(20);
 	s_Ev.setValue(0);  // ELaad Outlook Q3 2021 scenario Midden
-	sl_gasBurner_pct.setValue(100);
-	f_heatingSystemsSlidersMatch(0);
+	sl_districtHeating_pct.setValue(100);
+	f_heatingSystemsSlidersMatch(3);
+	v_districtHeatingPrimaryPower_kW=0;
+	v_districtHeatingSecondaryPower_kW=200;
+	v_districtHeatingBackupPower_kW=0;
 	//sl_heatPump_pct.setValue(0);
 	//f_heatingSystemsSlidersMatch(3);
 	//cb_stopNetMetering.setSelected(false);
@@ -35349,6 +35423,9 @@ if (value == 1){
 //	sl_hybridHeatPump_pct.setValue(0);
 	sl_districtHeating_pct.setValue(100);
 	f_heatingSystemsSlidersMatch(3);
+	v_districtHeatingPrimaryPower_kW=30;
+	v_districtHeatingSecondaryPower_kW=50;
+	v_districtHeatingBackupPower_kW=150;
 	//sl_heatPump_pct.setValue(15);
 	//f_heatingSystemsSlidersMatch(3);
 	//	cb_stopNetMetering.setSelected(true);
@@ -35952,12 +36029,21 @@ else {
 				</Parameter>
 				<Parameter>
 					<ParameterName><![CDATA[p_districtHeatingPrimaryPower_kW]]></ParameterName>
+					<ParameterValue Class="CodeValue">
+						<Code><![CDATA[v_districtHeatingPrimaryPower_kW]]></Code>
+					</ParameterValue>
 				</Parameter>
 				<Parameter>
 					<ParameterName><![CDATA[p_districtHeatingSecondaryPower_kW]]></ParameterName>
+					<ParameterValue Class="CodeValue">
+						<Code><![CDATA[v_districtHeatingSecondaryPower_kW]]></Code>
+					</ParameterValue>
 				</Parameter>
 				<Parameter>
 					<ParameterName><![CDATA[p_districtHeatingBackupPower_kW]]></ParameterName>
+					<ParameterValue Class="CodeValue">
+						<Code><![CDATA[v_districtHeatingBackupPower_kW]]></Code>
+					</ParameterValue>
 				</Parameter>
 				<Parameter>
 					<ParameterName><![CDATA[provincie]]></ParameterName>
@@ -36067,6 +36153,6 @@ else {
 		<VersionMinor>0</VersionMinor>
 		<VersionBuild>0</VersionBuild>
     </RequiredLibraryReference>
-	<CloudModelUuid><![CDATA[368fab1c-0ab1-4250-af4d-17d51214d554]]></CloudModelUuid>
+	<CloudModelUuid><![CDATA[70b5f823-a9b6-4f58-9529-35a56a9f62a3]]></CloudModelUuid>
 </Model>
 </AnyLogicWorkspace>
