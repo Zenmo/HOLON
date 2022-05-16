@@ -21546,6 +21546,30 @@ Bron: Vesta MAIS 5.0.
 						</InitialValue>
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1652729829432</Id>
+					<Name><![CDATA[v_betrouwbaarheid]]></Name>
+					<X>175</X><Y>-35</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[int]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1652730030380</Id>
+					<Name><![CDATA[v_betrouwbaarheidColor]]></Name>
+					<X>175</X><Y>-60</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[Color]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1646215419977</Id>
 					<Name><![CDATA[p_SchuifKostenVerzwaringLSNet]]></Name>
@@ -21755,6 +21779,40 @@ double nDiesel=sum(main.autos, (x->x.elektrisch ? 0 : (x.p_fuelType==fuelType.di
 //pvOpwek_kW = sumWhere(huishoudens, x->x.zonnepanelen.get(0).pvOpwekKW, x->x.zonnepanelen.size() > 0);
 traceln("Auto energievebruik " + petrolEnergy_MWh + " MWh benzine, "  + dieselEnergy_MWh + " MWh diesel, " + electricEnergy_MWh + " MWh stroom");
 traceln("Aantal benzine auto's " + nPetrol + ",  diesel auto's " + nDiesel + " ,elektrische auto's " + nElectric );
+]]></Action>
+				</Event>
+				<Event>
+					<Id>1652729805997</Id>
+					<Name><![CDATA[event]]></Name>
+					<X>85</X><Y>-35</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties TriggerType="timeout" Mode="cyclic">
+						<Timeout Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+						</Timeout>
+						<Rate Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="RateUnits"><![CDATA[PER_HOUR]]></Unit>
+						</Rate>
+						<OccurrenceAtTime>true</OccurrenceAtTime>
+						<OccurrenceDate>1652774400000</OccurrenceDate>
+						<OccurrenceTime Class="CodeUnitValue">
+							<Code><![CDATA[0]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[DAY]]></Unit>
+						</OccurrenceTime>
+						<RecurrenceCode Class="CodeUnitValue">
+							<Code><![CDATA[3]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+						</RecurrenceCode>
+						<Condition><![CDATA[false]]></Condition>
+					</Properties>
+					<Action><![CDATA[v_betrouwbaarheid = roundToInt(100 - v_WijktrafoOverschrijdingTijdfractie * 100);
+v_betrouwbaarheid = uniform_discr(0,100);
+v_betrouwbaarheidColor = f_getColor(v_betrouwbaarheid);
 ]]></Action>
 				</Event>
 			</Events>
@@ -22075,6 +22133,29 @@ v_WijktrafoOverschrijdingTijdfractie = v_WijktrafoOverschrijdingUren / time();
 v_holonLoadFactor_fr = v_totalElectricityDemand_kWh/v_maximaleBelastingWijktrafoKWlevering/time(HOUR);
 v_holonAverageSupplyInterruptionDuration_h = v_WijktrafoOverschrijdingUren / v_holonSupplyInterruptionCount;]]></Body>
 				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>RETURNS_VALUE</ReturnModificator>
+					<ReturnType><![CDATA[Color]]></ReturnType>
+					<Id>1652730139021</Id>
+					<Name><![CDATA[f_getColor]]></Name>
+					<X>175</X><Y>-85</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[perc]]></Name>
+						<Type><![CDATA[int]]></Type>
+					</Parameter>
+					<Body><![CDATA[if ( perc > 85 ) { return greenYellow; }
+if ( perc > 70 ) { return yellowGreen; }
+if ( perc > 55 ) { return new Color(205, 200, 50); }
+if ( perc > 40 ) { return new Color(203, 170, 52); }
+if ( perc > 25 ) { return new Color(203, 137, 52); }
+if ( perc > 10 ) { return new Color(228, 58, 27); }
+if ( perc <= 10 ){ return new Color(228, 58, 27); }
+return null;]]></Body>
+				</Function>
 			</Functions>
 			<AnalysisData>
     			<Statistics>
@@ -22165,13 +22246,13 @@ v_holonAverageSupplyInterruptionDuration_h = v_WijktrafoOverschrijdingUren / v_h
 					<Z>0</Z>
 					<ZHeight>10</ZHeight>
 					<LineWidth>1</LineWidth>
-					<LineColor/>
+					<LineColor>-8355712</LineColor>
 					<LineMaterial>null</LineMaterial>
 					<LineStyle>SOLID</LineStyle>
 					<Width>1100</Width>
 					<Height>200</Height>
 					<Rotation>0.0</Rotation>
-					<FillColor>-918279</FillColor>
+					<FillColor/>
 					<FillMaterial>null</FillMaterial>
 				</Rectangle>
 				<Group>
@@ -22282,7 +22363,7 @@ v_holonAverageSupplyInterruptionDuration_h = v_WijktrafoOverschrijdingUren / v_h
 				<Oval>
 					<Id>1646227633288</Id>
 					<Name><![CDATA[ovalReliability]]></Name>
-					<X>-330</X><Y>-58</Y>
+					<X>-300</X><Y>-55</Y>
 					<Label><X>0</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22291,15 +22372,15 @@ v_holonAverageSupplyInterruptionDuration_h = v_WijktrafoOverschrijdingUren / v_h
 					<EmbeddedIcon>false</EmbeddedIcon>
 					<Z>0</Z>
 					<ZHeight>10</ZHeight>
-					<LineWidth>1</LineWidth>
-					<LineColor/>
+					<LineWidth>2</LineWidth>
+					<LineColor>-6632142</LineColor>
+					<LineColorCode><![CDATA[v_betrouwbaarheidColor]]></LineColorCode>
 					<LineMaterial>null</LineMaterial>
 					<LineStyle>SOLID</LineStyle>
-					<RadiusX>45</RadiusX>
+					<RadiusX>34</RadiusX>
 					<RadiusY>40</RadiusY>
 					<Rotation>0.0</Rotation>
-					<FillColor>-16744448</FillColor>
-					<FillColorCode><![CDATA[setReliabilityOvalColor()]]></FillColorCode>
+					<FillColor/>
 					<FillMaterial>null</FillMaterial>
 				</Oval>
 				<Text>
@@ -22411,7 +22492,7 @@ v_holonAverageSupplyInterruptionDuration_h = v_WijktrafoOverschrijdingUren / v_h
 				<Text>
 					<Id>1646227633316</Id>
 					<Name><![CDATA[text31]]></Name>
-					<X>-330</X><Y>-75</Y>
+					<X>-300</X><Y>-68</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22420,13 +22501,13 @@ v_holonAverageSupplyInterruptionDuration_h = v_WijktrafoOverschrijdingUren / v_h
 					<EmbeddedIcon>false</EmbeddedIcon>
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
-					<Color>-1</Color>
+					<Color>-12566464</Color>
 					<Text><![CDATA[x %]]></Text>
 					<TextCode><![CDATA[roundToInt(100 - v_WijktrafoOverschrijdingTijdfractie * 100) + "%"]]></TextCode>
 					<Font>
-						<Name>SansSerif</Name>
-						<Size>26</Size>
-						<Style>0</Style>
+						<Name>Century Gothic</Name>
+						<Size>18</Size>
+						<Style>1</Style>
 					</Font>
 					<Alignment>CENTER</Alignment>
 				</Text>
@@ -22455,7 +22536,7 @@ v_holonAverageSupplyInterruptionDuration_h = v_WijktrafoOverschrijdingUren / v_h
 				<Image>
 					<Id>1646310785801</Id>
 					<Name><![CDATA[image]]></Name>
-					<X>-50</X><Y>-100</Y>
+					<X>-35</X><Y>-155</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22483,7 +22564,7 @@ if (!affordabilityExplanation.isVisible()){
 				<Image>
 					<Id>1646313121662</Id>
 					<Name><![CDATA[image1]]></Name>
-					<X>-270</X><Y>-100</Y>
+					<X>-245</X><Y>-155</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22511,7 +22592,7 @@ if (!reliabilityExplanation.isVisible()){
 				<Image>
 					<Id>1646313170402</Id>
 					<Name><![CDATA[image2]]></Name>
-					<X>170</X><Y>-100</Y>
+					<X>185</X><Y>-155</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22539,7 +22620,7 @@ if (!sustainabilityExplanation.isVisible()){
 				<Image>
 					<Id>1646313187579</Id>
 					<Name><![CDATA[image3]]></Name>
-					<X>390</X><Y>-100</Y>
+					<X>430</X><Y>-155</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22705,7 +22786,7 @@ if (g_fullKPIs.getY() != 160){
 				<Image>
 					<Id>1648638045079</Id>
 					<Name><![CDATA[image11]]></Name>
-					<X>1020</X><Y>60</Y>
+					<X>985</X><Y>5</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -25155,6 +25236,256 @@ voor opwek van elektriciteit.]]></Text>
 					</Font>
 					<Alignment>LEFT</Alignment>
 				</Text>
+				<RoundedRectangle>
+					<Id>1652729611878</Id>
+					<Name><![CDATA[roundRectangle3]]></Name>
+					<X>70</X><Y>137</Y>
+					<Label><X>10</X><Y>10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<VisibleCode><![CDATA[v_betrouwbaarheid > 5]]></VisibleCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor>-4144960</LineColor>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<Width>25</Width>
+					<Height>6</Height>
+					<Rotation>0.0</Rotation>
+					<FillColor>-6632142</FillColor>
+					<FillColorCode><![CDATA[v_betrouwbaarheidColor]]></FillColorCode>
+					<FillMaterial>null</FillMaterial>
+					<ArcRadius>3</ArcRadius>
+				</RoundedRectangle>
+				<RoundedRectangle>
+					<Id>1652729658629</Id>
+					<Name><![CDATA[roundRectangle4]]></Name>
+					<X>70</X><Y>129</Y>
+					<Label><X>10</X><Y>10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<VisibleCode><![CDATA[v_betrouwbaarheid > 15]]></VisibleCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor>-4144960</LineColor>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<Width>25</Width>
+					<Height>6</Height>
+					<Rotation>0.0</Rotation>
+					<FillColor>-6632142</FillColor>
+					<FillColorCode><![CDATA[v_betrouwbaarheidColor]]></FillColorCode>
+					<FillMaterial>null</FillMaterial>
+					<ArcRadius>3</ArcRadius>
+				</RoundedRectangle>
+				<RoundedRectangle>
+					<Id>1652729662020</Id>
+					<Name><![CDATA[roundRectangle5]]></Name>
+					<X>70</X><Y>121</Y>
+					<Label><X>10</X><Y>10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<VisibleCode><![CDATA[v_betrouwbaarheid > 25]]></VisibleCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor>-4144960</LineColor>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<Width>25</Width>
+					<Height>6</Height>
+					<Rotation>0.0</Rotation>
+					<FillColor>-6632142</FillColor>
+					<FillColorCode><![CDATA[v_betrouwbaarheidColor]]></FillColorCode>
+					<FillMaterial>null</FillMaterial>
+					<ArcRadius>3</ArcRadius>
+				</RoundedRectangle>
+				<RoundedRectangle>
+					<Id>1652729666691</Id>
+					<Name><![CDATA[roundRectangle6]]></Name>
+					<X>70</X><Y>113</Y>
+					<Label><X>10</X><Y>10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<VisibleCode><![CDATA[v_betrouwbaarheid > 35]]></VisibleCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor>-4144960</LineColor>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<Width>25</Width>
+					<Height>6</Height>
+					<Rotation>0.0</Rotation>
+					<FillColor>-2023906</FillColor>
+					<FillColorCode><![CDATA[v_betrouwbaarheidColor]]></FillColorCode>
+					<FillMaterial>null</FillMaterial>
+					<ArcRadius>3</ArcRadius>
+				</RoundedRectangle>
+				<RoundedRectangle>
+					<Id>1652729669412</Id>
+					<Name><![CDATA[roundRectangle7]]></Name>
+					<X>70</X><Y>105</Y>
+					<Label><X>10</X><Y>10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<VisibleCode><![CDATA[v_betrouwbaarheid > 45]]></VisibleCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor>-4144960</LineColor>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<Width>25</Width>
+					<Height>6</Height>
+					<Rotation>0.0</Rotation>
+					<FillColor>-1820133</FillColor>
+					<FillColorCode><![CDATA[v_betrouwbaarheidColor]]></FillColorCode>
+					<FillMaterial>null</FillMaterial>
+					<ArcRadius>3</ArcRadius>
+				</RoundedRectangle>
+				<RoundedRectangle>
+					<Id>1652729672099</Id>
+					<Name><![CDATA[roundRectangle8]]></Name>
+					<X>70</X><Y>97</Y>
+					<Label><X>10</X><Y>10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<VisibleCode><![CDATA[v_betrouwbaarheid > 55]]></VisibleCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor>-4144960</LineColor>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<Width>25</Width>
+					<Height>6</Height>
+					<Rotation>0.0</Rotation>
+					<FillColor>-3438284</FillColor>
+					<FillColorCode><![CDATA[v_betrouwbaarheidColor]]></FillColorCode>
+					<FillMaterial>null</FillMaterial>
+					<ArcRadius>3</ArcRadius>
+				</RoundedRectangle>
+				<RoundedRectangle>
+					<Id>1652729674921</Id>
+					<Name><![CDATA[roundRectangle9]]></Name>
+					<X>70</X><Y>89</Y>
+					<Label><X>10</X><Y>10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<VisibleCode><![CDATA[v_betrouwbaarheid > 65]]></VisibleCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor>-4144960</LineColor>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<Width>25</Width>
+					<Height>6</Height>
+					<Rotation>0.0</Rotation>
+					<FillColor>-3429836</FillColor>
+					<FillColorCode><![CDATA[v_betrouwbaarheidColor]]></FillColorCode>
+					<FillMaterial>null</FillMaterial>
+					<ArcRadius>3</ArcRadius>
+				</RoundedRectangle>
+				<RoundedRectangle>
+					<Id>1652729683954</Id>
+					<Name><![CDATA[roundRectangle10]]></Name>
+					<X>70</X><Y>81</Y>
+					<Label><X>10</X><Y>10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<VisibleCode><![CDATA[v_betrouwbaarheid > 75]]></VisibleCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor>-4144960</LineColor>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<Width>25</Width>
+					<Height>6</Height>
+					<Rotation>0.0</Rotation>
+					<FillColor>-3291086</FillColor>
+					<FillColorCode><![CDATA[v_betrouwbaarheidColor]]></FillColorCode>
+					<FillMaterial>null</FillMaterial>
+					<ArcRadius>3</ArcRadius>
+				</RoundedRectangle>
+				<RoundedRectangle>
+					<Id>1652729688939</Id>
+					<Name><![CDATA[roundRectangle11]]></Name>
+					<X>70</X><Y>73</Y>
+					<Label><X>10</X><Y>10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<VisibleCode><![CDATA[v_betrouwbaarheid > 85]]></VisibleCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor>-4144960</LineColor>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<Width>25</Width>
+					<Height>6</Height>
+					<Rotation>0.0</Rotation>
+					<FillColor>-6632142</FillColor>
+					<FillColorCode><![CDATA[v_betrouwbaarheidColor]]></FillColorCode>
+					<FillMaterial>null</FillMaterial>
+					<ArcRadius>3</ArcRadius>
+				</RoundedRectangle>
+				<RoundedRectangle>
+					<Id>1652729691713</Id>
+					<Name><![CDATA[roundRectangle12]]></Name>
+					<X>70</X><Y>65</Y>
+					<Label><X>10</X><Y>10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<VisibleCode><![CDATA[v_betrouwbaarheid > 95]]></VisibleCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor>-4144960</LineColor>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<Width>25</Width>
+					<Height>6</Height>
+					<Rotation>0.0</Rotation>
+					<FillColor>-5374161</FillColor>
+					<FillColorCode><![CDATA[v_betrouwbaarheidColor]]></FillColorCode>
+					<FillMaterial>null</FillMaterial>
+					<ArcRadius>3</ArcRadius>
+				</RoundedRectangle>
 			</Presentation>
 
 				</Level>
@@ -29082,7 +29413,7 @@ E-Boiler]]></Text>
 				<Text>
 					<Id>1652078654289</Id>
 					<Name><![CDATA[text8]]></Name>
-					<X>1060</X><Y>250</Y>
+					<X>810</X><Y>300</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -33396,7 +33727,7 @@ for(ShapePolyLine c : c_schools){
 				<Image>
 					<Id>1652526219239</Id>
 					<Name><![CDATA[image]]></Name>
-					<X>40</X><Y>0</Y>
+					<X>0</X><Y>0</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -33419,7 +33750,7 @@ for(ShapePolyLine c : c_schools){
 				<Image>
 					<Id>1652526285841</Id>
 					<Name><![CDATA[image1]]></Name>
-					<X>28</X><Y>678</Y>
+					<X>-12</X><Y>678</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -33442,11 +33773,12 @@ for(ShapePolyLine c : c_schools){
 				<Image>
 					<Id>1652526362006</Id>
 					<Name><![CDATA[image2]]></Name>
-					<X>112</X><Y>1358</Y>
+					<X>72</X><Y>1358</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
+					<Lock>true</Lock>
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
 					<EmbeddedIcon>false</EmbeddedIcon>
 					<Z>0</Z>
@@ -33464,7 +33796,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652527133576</Id>
 					<Name><![CDATA[polyline]]></Name>
-					<X>1032.7999999999995</X><Y>354.5999999999998</Y>
+					<X>992.8</X><Y>354.6</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -33481,7 +33813,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -33502,7 +33834,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652527257577</Id>
 					<Name><![CDATA[polyline1]]></Name>
-					<X>795</X><Y>416.6</Y>
+					<X>755</X><Y>416.6</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -33519,7 +33851,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -33540,7 +33872,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652527267450</Id>
 					<Name><![CDATA[polyline2]]></Name>
-					<X>561</X><Y>477</Y>
+					<X>521</X><Y>477</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -33557,7 +33889,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -33578,13 +33910,12 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652527271403</Id>
 					<Name><![CDATA[polyline3]]></Name>
-					<X>325</X><Y>540</Y>
+					<X>285</X><Y>540</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<OnClickCode><![CDATA[traceln("test");]]></OnClickCode>
 					<EmbeddedIcon>false</EmbeddedIcon>
 					<Z>0</Z>
 					<ZHeight>50</ZHeight>
@@ -33596,7 +33927,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -33617,7 +33948,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652527281091</Id>
 					<Name><![CDATA[polyline4]]></Name>
-					<X>104</X><Y>599</Y>
+					<X>64</X><Y>599</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -33634,7 +33965,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -33655,7 +33986,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652527324001</Id>
 					<Name><![CDATA[polyline5]]></Name>
-					<X>690.9999999999999</X><Y>721.4</Y>
+					<X>651</X><Y>721.4</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -33690,7 +34021,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652527428636</Id>
 					<Name><![CDATA[polyline6]]></Name>
-					<X>550.9999999999994</X><Y>740.2000000000004</Y>
+					<X>511</X><Y>740.2</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -33707,7 +34038,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -33720,7 +34051,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652527469816</Id>
 					<Name><![CDATA[polyline7]]></Name>
-					<X>610.4000000000009</X><Y>899.199999999999</Y>
+					<X>570.4</X><Y>899.2</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -33737,7 +34068,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -33750,7 +34081,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652527487948</Id>
 					<Name><![CDATA[polyline8]]></Name>
-					<X>911.2</X><Y>978.6</Y>
+					<X>871.2</X><Y>978.6</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -33767,7 +34098,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -33780,7 +34111,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652527504812</Id>
 					<Name><![CDATA[polyline9]]></Name>
-					<X>512.0000000000009</X><Y>604.8</Y>
+					<X>472</X><Y>604.8</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -33797,7 +34128,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -33818,7 +34149,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652529941537</Id>
 					<Name><![CDATA[polyline10]]></Name>
-					<X>696.5</X><Y>621</Y>
+					<X>656.5</X><Y>621</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -33848,7 +34179,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652529977101</Id>
 					<Name><![CDATA[polyline11]]></Name>
-					<X>740</X><Y>601</Y>
+					<X>700</X><Y>601</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -33878,7 +34209,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652529991502</Id>
 					<Name><![CDATA[polyline12]]></Name>
-					<X>779</X><Y>654</Y>
+					<X>739</X><Y>654</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -33908,7 +34239,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652530093332</Id>
 					<Name><![CDATA[polyline13]]></Name>
-					<X>229</X><Y>680.5</Y>
+					<X>189</X><Y>680.5</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -33925,7 +34256,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -33948,7 +34279,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652530147714</Id>
 					<Name><![CDATA[polyline14]]></Name>
-					<X>236.5</X><Y>880</Y>
+					<X>196.5</X><Y>880</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -33965,7 +34296,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -33982,7 +34313,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652530268797</Id>
 					<Name><![CDATA[polyline15]]></Name>
-					<X>609.499</X><Y>965</Y>
+					<X>569.499</X><Y>965</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -33999,7 +34330,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -34012,7 +34343,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652530321115</Id>
 					<Name><![CDATA[polyline16]]></Name>
-					<X>614</X><Y>981</Y>
+					<X>574</X><Y>981</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -34029,7 +34360,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -34042,7 +34373,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652530324653</Id>
 					<Name><![CDATA[polyline17]]></Name>
-					<X>617.8329999999999</X><Y>997.1669999999999</Y>
+					<X>577.833</X><Y>997.167</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -34059,7 +34390,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -34072,7 +34403,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652530332108</Id>
 					<Name><![CDATA[polyline18]]></Name>
-					<X>621</X><Y>1011.167</Y>
+					<X>581</X><Y>1011.167</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -34089,7 +34420,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -34102,7 +34433,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652530346935</Id>
 					<Name><![CDATA[polyline19]]></Name>
-					<X>624.667</X><Y>1026</Y>
+					<X>584.667</X><Y>1026</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -34119,7 +34450,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -34132,7 +34463,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652530350607</Id>
 					<Name><![CDATA[polyline20]]></Name>
-					<X>628.5</X><Y>1040.8329999999999</Y>
+					<X>588.5</X><Y>1040.833</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -34162,7 +34493,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652530427894</Id>
 					<Name><![CDATA[polyline21]]></Name>
-					<X>1098.5</X><Y>756</Y>
+					<X>1058.5</X><Y>756</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -34179,7 +34510,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -34192,7 +34523,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652530454851</Id>
 					<Name><![CDATA[polyline27]]></Name>
-					<X>1103</X><Y>771</Y>
+					<X>1063</X><Y>771</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -34209,7 +34540,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -34222,7 +34553,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652530470668</Id>
 					<Name><![CDATA[polyline28]]></Name>
-					<X>1100.75</X><Y>788.25</Y>
+					<X>1060.75</X><Y>788.25</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -34239,7 +34570,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -34252,7 +34583,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652530479917</Id>
 					<Name><![CDATA[polyline29]]></Name>
-					<X>1111</X><Y>803</Y>
+					<X>1071</X><Y>803</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -34269,7 +34600,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -34282,7 +34613,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652530500754</Id>
 					<Name><![CDATA[polyline30]]></Name>
-					<X>1115.5</X><Y>819.75</Y>
+					<X>1075.5</X><Y>819.75</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -34299,7 +34630,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -34312,7 +34643,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652530504202</Id>
 					<Name><![CDATA[polyline31]]></Name>
-					<X>1120.25</X><Y>836.25</Y>
+					<X>1080.25</X><Y>836.25</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -34329,7 +34660,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -34342,7 +34673,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652530511609</Id>
 					<Name><![CDATA[polyline32]]></Name>
-					<X>1188.25</X><Y>824</Y>
+					<X>1148.25</X><Y>824</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -34359,7 +34690,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -34372,7 +34703,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652530520673</Id>
 					<Name><![CDATA[polyline33]]></Name>
-					<X>1181</X><Y>768</Y>
+					<X>1141</X><Y>768</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -34389,7 +34720,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -34402,7 +34733,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652530520675</Id>
 					<Name><![CDATA[polyline34]]></Name>
-					<X>1185.5</X><Y>784.75</Y>
+					<X>1145.5</X><Y>784.75</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -34419,7 +34750,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -34432,7 +34763,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652530520677</Id>
 					<Name><![CDATA[polyline35]]></Name>
-					<X>1189.6670000000001</X><Y>799.9999999999999</Y>
+					<X>1149.667</X><Y>800</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -34449,7 +34780,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -34462,7 +34793,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652530528114</Id>
 					<Name><![CDATA[polyline22]]></Name>
-					<X>1172.5</X><Y>735.5</Y>
+					<X>1132.5</X><Y>735.5</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -34479,7 +34810,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -34492,7 +34823,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652530528116</Id>
 					<Name><![CDATA[polyline36]]></Name>
-					<X>1177</X><Y>750.5</Y>
+					<X>1137</X><Y>750.5</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -34509,7 +34840,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -34522,7 +34853,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652530543156</Id>
 					<Name><![CDATA[polyline37]]></Name>
-					<X>1259.2</X><Y>765</Y>
+					<X>1219.2</X><Y>765</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -34539,7 +34870,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -34552,7 +34883,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652530543158</Id>
 					<Name><![CDATA[polyline38]]></Name>
-					<X>1263.7</X><Y>781.75</Y>
+					<X>1223.7</X><Y>781.75</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -34569,7 +34900,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -34582,7 +34913,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652530543160</Id>
 					<Name><![CDATA[polyline39]]></Name>
-					<X>1268.45</X><Y>798.25</Y>
+					<X>1228.45</X><Y>798.25</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -34599,7 +34930,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -34612,7 +34943,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652530546218</Id>
 					<Name><![CDATA[polyline40]]></Name>
-					<X>1246.8</X><Y>715.8</Y>
+					<X>1206.8</X><Y>715.8</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -34629,7 +34960,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -34642,7 +34973,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652530546220</Id>
 					<Name><![CDATA[polyline41]]></Name>
-					<X>1251.3</X><Y>732.55</Y>
+					<X>1211.3</X><Y>732.55</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -34659,7 +34990,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -34672,7 +35003,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652530546222</Id>
 					<Name><![CDATA[polyline42]]></Name>
-					<X>1255</X><Y>748.1669999999998</Y>
+					<X>1215</X><Y>748.167</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -34689,7 +35020,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -34702,7 +35033,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652530584225</Id>
 					<Name><![CDATA[polyline43]]></Name>
-					<X>1333.15</X><Y>744.7</Y>
+					<X>1293.15</X><Y>744.7</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -34719,7 +35050,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -34732,7 +35063,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652530584227</Id>
 					<Name><![CDATA[polyline44]]></Name>
-					<X>1337.65</X><Y>761.45</Y>
+					<X>1297.65</X><Y>761.45</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -34749,7 +35080,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -34762,7 +35093,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652530584229</Id>
 					<Name><![CDATA[polyline45]]></Name>
-					<X>1342.4</X><Y>777.95</Y>
+					<X>1302.4</X><Y>777.95</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -34779,7 +35110,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -34792,7 +35123,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652530584231</Id>
 					<Name><![CDATA[polyline46]]></Name>
-					<X>1320.75</X><Y>695.5</Y>
+					<X>1280.75</X><Y>695.5</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -34809,7 +35140,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -34822,7 +35153,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652530584233</Id>
 					<Name><![CDATA[polyline47]]></Name>
-					<X>1325.25</X><Y>712.25</Y>
+					<X>1285.25</X><Y>712.25</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -34839,7 +35170,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -34852,7 +35183,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652530584235</Id>
 					<Name><![CDATA[polyline48]]></Name>
-					<X>1328.95</X><Y>727.867</Y>
+					<X>1288.95</X><Y>727.867</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -34869,7 +35200,7 @@ for(ShapePolyLine c : c_schools){
 					<BeginArrowStyle>0</BeginArrowStyle>
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-657931</FillColor>
+					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 					<Points>
 					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
@@ -34882,18 +35213,18 @@ for(ShapePolyLine c : c_schools){
 				<Camera3D>
 					<Id>1652530670574</Id>
 					<Name><![CDATA[camera]]></Name>
-					<X>826.13</X><Y>1380.4</Y><Z>475.4</Z>
+					<X>539.79</X><Y>1341.68</Y><Z>823.04</Z>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<ShowLabel>false</ShowLabel>
-					<RotationX>37.85</RotationX>
-					<RotationZ>-86.79</RotationZ>
+					<RotationX>56.46</RotationX>
+					<RotationZ>-66.48</RotationZ>
 				</Camera3D>
 				<Control Type="Window3D">
 					<Id>1652530696661</Id>
 					<Name><![CDATA[window3d]]></Name>
-					<X>2076</X><Y>104</Y>
-					<Width>1080</Width>
-					<Height>640</Height>
+					<X>100</X><Y>3240</Y>
+					<Width>1380</Width>
+					<Height>740</Height>
 					<MakeDefaultViewArea>true</MakeDefaultViewArea>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<ShowLabel>false</ShowLabel>
@@ -34905,7 +35236,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652534865148</Id>
 					<Name><![CDATA[polyline23]]></Name>
-					<X>1068.6670000000017</X><Y>499.99999999999983</Y>
+					<X>1028.667</X><Y>500</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -34939,7 +35270,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652534905240</Id>
 					<Name><![CDATA[polyline24]]></Name>
-					<X>1184.0000000000018</X><Y>472.66699999999963</Y>
+					<X>1144</X><Y>472.667</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -34996,7 +35327,7 @@ for(ShapePolyLine c : c_schools){
 				<Polyline>
 					<Id>1652535043333</Id>
 					<Name><![CDATA[polyline25]]></Name>
-					<X>1164.3999999999992</X><Y>473.2</Y>
+					<X>1124.4</X><Y>473.2</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -35023,10 +35354,210 @@ for(ShapePolyLine c : c_schools){
 					</Points>
 					<Closed>true</Closed>
 				</Polyline>
+				<Rectangle>
+					<Id>1652728238158</Id>
+					<Name><![CDATA[rectangle]]></Name>
+					<X>-180</X><Y>0</Y>
+					<Label><X>10</X><Y>10</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<Width>2140</Width>
+					<Height>60</Height>
+					<Rotation>0.0</Rotation>
+					<FillColor>-1</FillColor>
+					<FillMaterial>null</FillMaterial>
+				</Rectangle>
+				<Text>
+					<Id>1652728238160</Id>
+					<Name><![CDATA[text]]></Name>
+					<X>185</X><Y>20</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Go to]]></Text>
+					<Font>
+						<Name>Dialog</Name>
+						<Size>16</Size>
+						<Style>1</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Rectangle>
+					<Id>1652728238162</Id>
+					<Name><![CDATA[rectangle1]]></Name>
+					<X>260</X><Y>0</Y>
+					<Label><X>10</X><Y>10</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<OnClickCode><![CDATA[view_3d.navigateTo();]]></OnClickCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<Width>110</Width>
+					<Height>60</Height>
+					<Rotation>0.0</Rotation>
+					<FillColor>-14774017</FillColor>
+					<FillMaterial>null</FillMaterial>
+				</Rectangle>
+				<Text>
+					<Id>1652728238155</Id>
+					<Name><![CDATA[text1]]></Name>
+					<X>285</X><Y>20</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-1</Color>
+					<Text><![CDATA[3D view]]></Text>
+					<Font>
+						<Name>Dialog</Name>
+						<Size>16</Size>
+						<Style>1</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Rectangle>
+					<Id>1652728296260</Id>
+					<Name><![CDATA[rectangle2]]></Name>
+					<X>-200</X><Y>3100</Y>
+					<Label><X>10</X><Y>10</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<Width>2140</Width>
+					<Height>60</Height>
+					<Rotation>0.0</Rotation>
+					<FillColor>-1</FillColor>
+					<FillMaterial>null</FillMaterial>
+				</Rectangle>
+				<Rectangle>
+					<Id>1652728296263</Id>
+					<Name><![CDATA[rectangle3]]></Name>
+					<X>240</X><Y>3100</Y>
+					<Label><X>10</X><Y>10</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<OnClickCode><![CDATA[view_2d.navigateTo();]]></OnClickCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<Width>110</Width>
+					<Height>60</Height>
+					<Rotation>0.0</Rotation>
+					<FillColor>-6632142</FillColor>
+					<FillMaterial>null</FillMaterial>
+				</Rectangle>
+				<Text>
+					<Id>1652728296266</Id>
+					<Name><![CDATA[text3]]></Name>
+					<X>165</X><Y>3120</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Go to]]></Text>
+					<Font>
+						<Name>Dialog</Name>
+						<Size>16</Size>
+						<Style>1</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1652728296255</Id>
+					<Name><![CDATA[text2]]></Name>
+					<X>265</X><Y>3120</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-1</Color>
+					<Text><![CDATA[2D view]]></Text>
+					<Font>
+						<Name>Dialog</Name>
+						<Size>16</Size>
+						<Style>1</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
 			</Presentation>
 
 				</Level>
 			</Presentation>
+			<Areas>
+				<Area>
+					<Id>1652728346369</Id>
+					<Name><![CDATA[view_3d]]></Name>
+					<X>0</X><Y>3100</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Title><![CDATA[]]></Title>
+					<Width>1540</Width>
+					<Height>1000</Height>
+				</Area>
+				<Area>
+					<Id>1652728362474</Id>
+					<Name><![CDATA[view_2d]]></Name>
+					<X>0</X><Y>0</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Title><![CDATA[]]></Title>
+					<Width>1540</Width>
+					<Height>1000</Height>
+				</Area>
+			</Areas>
 
 		</ActiveObjectClass>
 	</ActiveObjectClasses>	
@@ -35772,7 +36303,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				<Rectangle>
 					<Id>1649079654824</Id>
 					<Name><![CDATA[rectangle19]]></Name>
-					<X>60</X><Y>120</Y>
+					<X>30</X><Y>120</Y>
 					<Label><X>10</X><Y>10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -35785,7 +36316,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 					<LineColor/>
 					<LineMaterial>null</LineMaterial>
 					<LineStyle>SOLID</LineStyle>
-					<Width>400</Width>
+					<Width>250</Width>
 					<Height>40</Height>
 					<Rotation>0.0</Rotation>
 					<FillColor>-10185235</FillColor>
@@ -35794,7 +36325,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				<Rectangle>
 					<Id>1649079482643</Id>
 					<Name><![CDATA[rectangle17]]></Name>
-					<X>-1000</X><Y>160</Y>
+					<X>-1320</X><Y>160</Y>
 					<Label><X>10</X><Y>10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -35816,7 +36347,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				<Rectangle>
 					<Id>1649079466385</Id>
 					<Name><![CDATA[rectangle16]]></Name>
-					<X>20</X><Y>628</Y>
+					<X>20</X><Y>560</Y>
 					<Label><X>10</X><Y>10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -35838,7 +36369,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				<Rectangle>
 					<Id>1649079453324</Id>
 					<Name><![CDATA[rectangle15]]></Name>
-					<X>400</X><Y>628</Y>
+					<X>400</X><Y>560</Y>
 					<Label><X>10</X><Y>10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -35860,7 +36391,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				<Rectangle>
 					<Id>1649079439483</Id>
 					<Name><![CDATA[rectangle14]]></Name>
-					<X>680</X><Y>628</Y>
+					<X>680</X><Y>560</Y>
 					<Label><X>10</X><Y>10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -35882,7 +36413,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				<Rectangle>
 					<Id>1649079410251</Id>
 					<Name><![CDATA[rectangle13]]></Name>
-					<X>1010</X><Y>628</Y>
+					<X>1010</X><Y>560</Y>
 					<Label><X>10</X><Y>10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -35904,7 +36435,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				<Rectangle>
 					<Id>1646173849773</Id>
 					<Name><![CDATA[rectangle3]]></Name>
-					<X>-1000</X><Y>510</Y>
+					<X>-1320</X><Y>510</Y>
 					<Label><X>10</X><Y>10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -35926,7 +36457,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				<Rectangle>
 					<Id>1646173834396</Id>
 					<Name><![CDATA[rectangle2]]></Name>
-					<X>-1000</X><Y>340</Y>
+					<X>-1320</X><Y>340</Y>
 					<Label><X>10</X><Y>10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -35948,7 +36479,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				<Rectangle>
 					<Id>1646173793699</Id>
 					<Name><![CDATA[rectangle1]]></Name>
-					<X>-1000</X><Y>100</Y>
+					<X>-1320</X><Y>100</Y>
 					<Label><X>10</X><Y>10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -35992,7 +36523,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				<Text>
 					<Id>1646172533353</Id>
 					<Name><![CDATA[text1]]></Name>
-					<X>-980</X><Y>110</Y>
+					<X>-1300</X><Y>110</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36014,7 +36545,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				<Text>
 					<Id>1646172586616</Id>
 					<Name><![CDATA[text2]]></Name>
-					<X>-980</X><Y>360</Y>
+					<X>-1300</X><Y>360</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36036,7 +36567,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				<Text>
 					<Id>1646173341049</Id>
 					<Name><![CDATA[text5]]></Name>
-					<X>-980</X><Y>390</Y>
+					<X>-1300</X><Y>390</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36058,7 +36589,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				<Text>
 					<Id>1646173385577</Id>
 					<Name><![CDATA[text6]]></Name>
-					<X>-980</X><Y>540</Y>
+					<X>-1300</X><Y>540</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36080,7 +36611,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				<Text>
 					<Id>1646173448703</Id>
 					<Name><![CDATA[text7]]></Name>
-					<X>-983</X><Y>463</Y>
+					<X>-1303</X><Y>463</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36101,7 +36632,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				<Text>
 					<Id>1646173593807</Id>
 					<Name><![CDATA[text8]]></Name>
-					<X>-820</X><Y>463</Y>
+					<X>-1140</X><Y>463</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36122,7 +36653,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				<Text>
 					<Id>1646173649006</Id>
 					<Name><![CDATA[text9]]></Name>
-					<X>-664</X><Y>463</Y>
+					<X>-984</X><Y>463</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36143,7 +36674,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				<Text>
 					<Id>1646173661560</Id>
 					<Name><![CDATA[text10]]></Name>
-					<X>-504</X><Y>463</Y>
+					<X>-824</X><Y>463</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36164,7 +36695,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				<Line>
 					<Id>1646176031303</Id>
 					<Name><![CDATA[line]]></Name>
-					<X>-981</X><Y>493</Y>
+					<X>-1301</X><Y>493</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36188,7 +36719,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				<Line>
 					<Id>1646176059222</Id>
 					<Name><![CDATA[line1]]></Name>
-					<X>-821</X><Y>493</Y>
+					<X>-1141</X><Y>493</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36212,7 +36743,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				<Line>
 					<Id>1646176066058</Id>
 					<Name><![CDATA[line2]]></Name>
-					<X>-671</X><Y>493</Y>
+					<X>-991</X><Y>493</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36236,7 +36767,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				<Line>
 					<Id>1646176071394</Id>
 					<Name><![CDATA[line3]]></Name>
-					<X>-511</X><Y>493</Y>
+					<X>-831</X><Y>493</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36260,7 +36791,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				<Text>
 					<Id>1646176224121</Id>
 					<Name><![CDATA[startTekst4]]></Name>
-					<X>204</X><Y>410</Y>
+					<X>480</X><Y>280</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36282,7 +36813,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1646176224129</Id>
 					<Name><![CDATA[s_Huishoudens]]></Name>
-					<X>240</X><Y>407</Y>
+					<X>516</X><Y>277</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36304,7 +36835,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				<Text>
 					<Id>1646176230294</Id>
 					<Name><![CDATA[text11]]></Name>
-					<X>240</X><Y>432</Y>
+					<X>516</X><Y>302</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36326,7 +36857,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				<Text>
 					<Id>1646176230295</Id>
 					<Name><![CDATA[text12]]></Name>
-					<X>410</X><Y>432</Y>
+					<X>686</X><Y>302</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36348,7 +36879,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				<Text>
 					<Id>1646176230296</Id>
 					<Name><![CDATA[text13]]></Name>
-					<X>440</X><Y>417</Y>
+					<X>716</X><Y>287</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36370,7 +36901,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				<Rectangle>
 					<Id>1646176244256</Id>
 					<Name><![CDATA[rectangle4]]></Name>
-					<X>60</X><Y>280</Y>
+					<X>350</X><Y>120</Y>
 					<Label><X>10</X><Y>10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36392,7 +36923,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				<Text>
 					<Id>1646176244264</Id>
 					<Name><![CDATA[text14]]></Name>
-					<X>260</X><Y>290</Y>
+					<X>550</X><Y>130</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36414,7 +36945,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1646176972058</Id>
 					<Name><![CDATA[s_Ev]]></Name>
-					<X>240</X><Y>507</Y>
+					<X>516</X><Y>377</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36437,7 +36968,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1646176972064</Id>
 					<Name><![CDATA[s_PV]]></Name>
-					<X>240</X><Y>457</Y>
+					<X>516</X><Y>327</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36459,7 +36990,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				<Text>
 					<Id>1646176972068</Id>
 					<Name><![CDATA[text15]]></Name>
-					<X>204</X><Y>464</Y>
+					<X>480</X><Y>334</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36481,7 +37012,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				<Text>
 					<Id>1646176972072</Id>
 					<Name><![CDATA[text17]]></Name>
-					<X>204</X><Y>512</Y>
+					<X>480</X><Y>382</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36502,7 +37033,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				<Text>
 					<Id>1646177114543</Id>
 					<Name><![CDATA[text18]]></Name>
-					<X>240</X><Y>482</Y>
+					<X>516</X><Y>352</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36524,7 +37055,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				<Text>
 					<Id>1646177114545</Id>
 					<Name><![CDATA[text19]]></Name>
-					<X>410</X><Y>482</Y>
+					<X>686</X><Y>352</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36546,7 +37077,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				<Text>
 					<Id>1646177114546</Id>
 					<Name><![CDATA[text20]]></Name>
-					<X>440</X><Y>467</Y>
+					<X>716</X><Y>337</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36568,7 +37099,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				<Text>
 					<Id>1646177119752</Id>
 					<Name><![CDATA[text24]]></Name>
-					<X>240</X><Y>532</Y>
+					<X>516</X><Y>402</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36590,7 +37121,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				<Text>
 					<Id>1646177119754</Id>
 					<Name><![CDATA[text25]]></Name>
-					<X>410</X><Y>532</Y>
+					<X>686</X><Y>402</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36612,7 +37143,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 				<Text>
 					<Id>1646177119756</Id>
 					<Name><![CDATA[text26]]></Name>
-					<X>440</X><Y>517</Y>
+					<X>716</X><Y>387</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36639,7 +37170,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 
 @author: JorritvandenHouten
 @since: 30/03/2022]]></Description>
-					<X>30</X><Y>778</Y>
+					<X>30</X><Y>710</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36671,7 +37202,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 
 @author: JorritvandenHouten
 @since: 30/03/2022]]></Description>
-					<X>440</X><Y>808</Y>
+					<X>440</X><Y>740</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36699,7 +37230,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 
 @author: JorritvandenHouten
 @since: 30/03/2022]]></Description>
-					<X>30</X><Y>808</Y>
+					<X>30</X><Y>740</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36728,7 +37259,7 @@ sl_districtHeating_pct.setValue(pctArray[3]);
 
 @author: JorritvandenHouten
 @since: 30/03/2022]]></Description>
-					<X>160</X><Y>330</Y>
+					<X>440</X><Y>180</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36775,7 +37306,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 
 @author: JorritvandenHouten
 @since: 30/03/2022]]></Description>
-					<X>30</X><Y>718</Y>
+					<X>30</X><Y>650</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36799,7 +37330,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<Text>
 					<Id>1648652160338</Id>
 					<Name><![CDATA[text65]]></Name>
-					<X>170</X><Y>751</Y>
+					<X>170</X><Y>683</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36826,7 +37357,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 
 @author: JorritvandenHouten
 @since: 30/03/2022]]></Description>
-					<X>30</X><Y>688</Y>
+					<X>30</X><Y>620</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36850,7 +37381,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<Text>
 					<Id>1648652160342</Id>
 					<Name><![CDATA[text40]]></Name>
-					<X>180</X><Y>751</Y>
+					<X>180</X><Y>683</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36871,7 +37402,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<Text>
 					<Id>1648652160344</Id>
 					<Name><![CDATA[text39]]></Name>
-					<X>180</X><Y>721</Y>
+					<X>180</X><Y>653</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36892,7 +37423,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<Text>
 					<Id>1648652160346</Id>
 					<Name><![CDATA[text66]]></Name>
-					<X>170</X><Y>781</Y>
+					<X>170</X><Y>713</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36914,7 +37445,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<Text>
 					<Id>1648652160348</Id>
 					<Name><![CDATA[text38]]></Name>
-					<X>180</X><Y>691</Y>
+					<X>180</X><Y>623</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36935,7 +37466,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<Text>
 					<Id>1648652160350</Id>
 					<Name><![CDATA[text67]]></Name>
-					<X>170</X><Y>811</Y>
+					<X>170</X><Y>743</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36957,7 +37488,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<Text>
 					<Id>1648652160352</Id>
 					<Name><![CDATA[text68]]></Name>
-					<X>170</X><Y>841</Y>
+					<X>170</X><Y>773</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36979,7 +37510,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<Text>
 					<Id>1648652160356</Id>
 					<Name><![CDATA[text57]]></Name>
-					<X>180</X><Y>781</Y>
+					<X>180</X><Y>713</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -37000,7 +37531,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<Text>
 					<Id>1648652160358</Id>
 					<Name><![CDATA[text64]]></Name>
-					<X>170</X><Y>721</Y>
+					<X>170</X><Y>653</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -37027,7 +37558,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 
 @author: JorritvandenHouten
 @since: 30/03/2022]]></Description>
-					<X>30</X><Y>838</Y>
+					<X>30</X><Y>770</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -37051,7 +37582,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<Text>
 					<Id>1648652160362</Id>
 					<Name><![CDATA[text69]]></Name>
-					<X>530</X><Y>778</Y>
+					<X>530</X><Y>710</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -37072,7 +37603,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<Text>
 					<Id>1648652160364</Id>
 					<Name><![CDATA[text60]]></Name>
-					<X>180</X><Y>841</Y>
+					<X>180</X><Y>773</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -37093,7 +37624,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<Text>
 					<Id>1648652160366</Id>
 					<Name><![CDATA[text59]]></Name>
-					<X>180</X><Y>811</Y>
+					<X>180</X><Y>743</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -37119,7 +37650,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 
 @author: JorritvandenHouten
 @since: 30/03/2022]]></Description>
-					<X>30</X><Y>748</Y>
+					<X>30</X><Y>680</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -37143,7 +37674,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<Text>
 					<Id>1648652160372</Id>
 					<Name><![CDATA[text63]]></Name>
-					<X>170</X><Y>691</Y>
+					<X>170</X><Y>623</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -37165,7 +37696,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				<Text>
 					<Id>1648812724559</Id>
 					<Name><![CDATA[text27]]></Name>
-					<X>30</X><Y>638</Y>
+					<X>30</X><Y>570</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -37187,7 +37718,7 @@ else if( r_neighborhoodType.getValue() == 1 ){
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1648816025697</Id>
 					<Name><![CDATA[radio_IsolationLevels]]></Name>
-					<X>410</X><Y>668</Y>
+					<X>410</X><Y>600</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -37221,7 +37752,7 @@ if ( value == 2 ){
 				<Text>
 					<Id>1648816988451</Id>
 					<Name><![CDATA[text28]]></Name>
-					<X>410</X><Y>638</Y>
+					<X>410</X><Y>570</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -37243,7 +37774,7 @@ if ( value == 2 ){
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1648817200983</Id>
 					<Name><![CDATA[sl_gasBurner_pct]]></Name>
-					<X>700</X><Y>678</Y>
+					<X>700</X><Y>610</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -37267,7 +37798,7 @@ if ( value == 2 ){
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1648817200987</Id>
 					<Name><![CDATA[sl_heatPump_pct]]></Name>
-					<X>700</X><Y>708</Y>
+					<X>700</X><Y>640</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -37291,7 +37822,7 @@ if ( value == 2 ){
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1648817200989</Id>
 					<Name><![CDATA[sl_hybridHeatPump_pct]]></Name>
-					<X>700</X><Y>738</Y>
+					<X>700</X><Y>670</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -37315,7 +37846,7 @@ if ( value == 2 ){
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1648817200991</Id>
 					<Name><![CDATA[sl_districtHeating_pct]]></Name>
-					<X>700</X><Y>768</Y>
+					<X>700</X><Y>700</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -37338,7 +37869,7 @@ if ( value == 2 ){
 				<Text>
 					<Id>1648817200993</Id>
 					<Name><![CDATA[text29]]></Name>
-					<X>860</X><Y>678</Y>
+					<X>860</X><Y>610</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -37359,7 +37890,7 @@ if ( value == 2 ){
 				<Text>
 					<Id>1648817200995</Id>
 					<Name><![CDATA[text30]]></Name>
-					<X>860</X><Y>708</Y>
+					<X>860</X><Y>640</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -37380,7 +37911,7 @@ if ( value == 2 ){
 				<Text>
 					<Id>1648817200997</Id>
 					<Name><![CDATA[text31]]></Name>
-					<X>860</X><Y>738</Y>
+					<X>860</X><Y>670</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -37401,7 +37932,7 @@ if ( value == 2 ){
 				<Text>
 					<Id>1648817200999</Id>
 					<Name><![CDATA[text32]]></Name>
-					<X>860</X><Y>768</Y>
+					<X>860</X><Y>700</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -37422,7 +37953,7 @@ if ( value == 2 ){
 				<Text>
 					<Id>1648817793352</Id>
 					<Name><![CDATA[text70]]></Name>
-					<X>850</X><Y>678</Y>
+					<X>850</X><Y>610</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -37444,7 +37975,7 @@ if ( value == 2 ){
 				<Text>
 					<Id>1648817848542</Id>
 					<Name><![CDATA[text71]]></Name>
-					<X>850</X><Y>708</Y>
+					<X>850</X><Y>640</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -37466,7 +37997,7 @@ if ( value == 2 ){
 				<Text>
 					<Id>1648817881116</Id>
 					<Name><![CDATA[text72]]></Name>
-					<X>850</X><Y>738</Y>
+					<X>850</X><Y>670</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -37488,7 +38019,7 @@ if ( value == 2 ){
 				<Text>
 					<Id>1648817898069</Id>
 					<Name><![CDATA[text73]]></Name>
-					<X>850</X><Y>768</Y>
+					<X>850</X><Y>700</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -37511,7 +38042,7 @@ if ( value == 2 ){
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1648818103996</Id>
 					<Name><![CDATA[sl_setThermostatLower_degC]]></Name>
-					<X>1020</X><Y>678</Y>
+					<X>1020</X><Y>610</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -37535,7 +38066,7 @@ if ( value == 2 ){
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1648818104001</Id>
 					<Name><![CDATA[sl_thermostatReductionParcicipation]]></Name>
-					<X>1020</X><Y>709</Y>
+					<X>1020</X><Y>641</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -37558,7 +38089,7 @@ if ( value == 2 ){
 				<Text>
 					<Id>1648818104003</Id>
 					<Name><![CDATA[text33]]></Name>
-					<X>1150</X><Y>678</Y>
+					<X>1150</X><Y>610</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -37580,7 +38111,7 @@ if ( value == 2 ){
 				<Text>
 					<Id>1648818104005</Id>
 					<Name><![CDATA[text34]]></Name>
-					<X>1150</X><Y>709</Y>
+					<X>1150</X><Y>641</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -37612,7 +38143,7 @@ Bronnen:
 
 @author: JorritvandenHouten
 @since: 28/03/2022]]></Description>
-					<X>1020</X><Y>848</Y>
+					<X>1020</X><Y>780</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -37645,7 +38176,7 @@ else {
 
 @author: Jorrit
 @since: 28/03/2022]]></Description>
-					<X>1020</X><Y>739</Y>
+					<X>1020</X><Y>671</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -37668,7 +38199,7 @@ else {
 				<Text>
 					<Id>1648818104015</Id>
 					<Name><![CDATA[text36]]></Name>
-					<X>1150</X><Y>739</Y>
+					<X>1150</X><Y>671</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -37691,7 +38222,7 @@ else {
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1648818104017</Id>
 					<Name><![CDATA[sl_thermostatAdvanceTimeParticipation]]></Name>
-					<X>1020</X><Y>769</Y>
+					<X>1020</X><Y>701</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -37714,7 +38245,7 @@ else {
 				<Text>
 					<Id>1648818104019</Id>
 					<Name><![CDATA[text37]]></Name>
-					<X>1150</X><Y>769</Y>
+					<X>1150</X><Y>701</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -37740,7 +38271,7 @@ else {
 					<Description><![CDATA[Keuze om prijselasticiteit voor aardgas mee te nemen. Wanneer actief geldt voor elk huishouden dat het aardgasgebruik reageert op eventuele prijsstijgingen- en dalingen van aardgas, bijvoorbeeld BTW-verlaging.
 
 Bron: bijv. CE Delft (2021). ]]></Description>
-					<X>1020</X><Y>808</Y>
+					<X>1020</X><Y>740</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -37767,7 +38298,7 @@ else {
 				<Group>
 					<Id>1648830227066</Id>
 					<Name><![CDATA[group]]></Name>
-					<X>610</X><Y>848</Y>
+					<X>610</X><Y>780</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -37782,7 +38313,7 @@ else {
 				<Group>
 					<Id>1648830330241</Id>
 					<Name><![CDATA[group1]]></Name>
-					<X>530</X><Y>843</Y>
+					<X>530</X><Y>775</Y>
 					<Label><X>9.431</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -38107,7 +38638,7 @@ else {
 				<Text>
 					<Id>1648830471292</Id>
 					<Name><![CDATA[text41]]></Name>
-					<X>690</X><Y>638</Y>
+					<X>690</X><Y>570</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -38129,7 +38660,7 @@ else {
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1648831339604</Id>
 					<Name><![CDATA[radio_yearChoice]]></Name>
-					<X>180</X><Y>180</Y>
+					<X>80</X><Y>180</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -38187,7 +38718,7 @@ if (value == 1){
 				<Text>
 					<Id>1648831362716</Id>
 					<Name><![CDATA[text42]]></Name>
-					<X>250</X><Y>130</Y>
+					<X>160</X><Y>130</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -38208,7 +38739,7 @@ if (value == 1){
 				<Group>
 					<Id>1649078339035</Id>
 					<Name><![CDATA[g_sturingsmechanismen]]></Name>
-					<X>-790</X><Y>220</Y>
+					<X>-1110</X><Y>220</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -38331,7 +38862,7 @@ if (value == 1){
 				<Text>
 					<Id>1649078921123</Id>
 					<Name><![CDATA[text16]]></Name>
-					<X>-354</X><Y>463</Y>
+					<X>-674</X><Y>463</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -38352,7 +38883,7 @@ if (value == 1){
 				<Line>
 					<Id>1649078921127</Id>
 					<Name><![CDATA[line4]]></Name>
-					<X>-361</X><Y>493</Y>
+					<X>-681</X><Y>493</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -38377,7 +38908,7 @@ if (value == 1){
 				 	<EmbeddedIcon>false</EmbeddedIcon>				
 					<Id>1648825031758</Id>
 					<Name><![CDATA[b_policyLowerVAT]]></Name>
-					<X>-760</X><Y>200</Y>
+					<X>-1080</X><Y>200</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -38404,7 +38935,7 @@ else {
 				<Text>
 					<Id>1649079251651</Id>
 					<Name><![CDATA[text43]]></Name>
-					<X>1020</X><Y>641</Y>
+					<X>1020</X><Y>573</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -38425,7 +38956,7 @@ else {
 				<Text>
 					<Id>1649079818323</Id>
 					<Name><![CDATA[text3]]></Name>
-					<X>-990</X><Y>170</Y>
+					<X>-1310</X><Y>170</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -38446,7 +38977,7 @@ else {
 				<Text>
 					<Id>1649079856080</Id>
 					<Name><![CDATA[text4]]></Name>
-					<X>-760</X><Y>170</Y>
+					<X>-1080</X><Y>170</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -38510,7 +39041,7 @@ else {
 				<Line>
 					<Id>1652005407835</Id>
 					<Name><![CDATA[line5]]></Name>
-					<X>20</X><Y>600</Y>
+					<X>20</X><Y>532</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -38532,9 +39063,9 @@ else {
 					<Dz>0</Dz>
 				</Line>
 				<Image>
-					<Id>1652005667378</Id>
-					<Name><![CDATA[image]]></Name>
-					<X>620</X><Y>120</Y>
+					<Id>1652729103232</Id>
+					<Name><![CDATA[image2]]></Name>
+					<X>800</X><Y>100</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -38542,13 +39073,13 @@ else {
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
 					<EmbeddedIcon>false</EmbeddedIcon>
 					<Z>0</Z>
-					<Width>720</Width>
-					<Height>400</Height>
+					<Width>740</Width>
+					<Height>380</Height>
 					<Rotation>0.0</Rotation>
 					<ImageFiles>
 						<ImageResourceReference>
 							<PackageName><![CDATA[ebuurt]]></PackageName>
-							<ClassName><![CDATA[image2.png]]></ClassName>
+							<ClassName><![CDATA[image8.png]]></ClassName>
 						</ImageResourceReference>
 					</ImageFiles>
 					<OriginalSize>false</OriginalSize>
@@ -38843,8 +39374,6 @@ public class J_Building implements Serializable {
 	ShapePolyLine shape;
 	Main main;
 	
-	
-	
     public J_Building(int nbHouseholds, int nbUtilities, ShapePolyLine shape, Main main, int fillPrio) {
     	this.shape = shape;
     	this.nbHouseholds = nbHouseholds;
@@ -38926,10 +39455,6 @@ public class J_Building implements Serializable {
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[image2.png]]></Path>
-			<ReferencedFromUserCode>false</ReferencedFromUserCode>
-		</Resource>
-		<Resource>
 			<Path><![CDATA[image5.png]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
@@ -38939,6 +39464,10 @@ public class J_Building implements Serializable {
 		</Resource>
 		<Resource>
 			<Path><![CDATA[image7.png]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[image8.png]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
