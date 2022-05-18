@@ -110,6 +110,8 @@ traceln("main startup function!");
 //c_energyLabelsReverse.put(4,"E");
 //c_energyLabelsReverse.put(5,"F");
 //c_energyLabelsReverse.put(6,"G");
+
+chart_energiestroom.update();
 ]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -833,13 +835,23 @@ traceln("main startup function!");
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[chart_zelfconsumptie.removeAll();
+					<Body><![CDATA[chart_energiestroom.removeAll();
+int i = 0;
+
 for( EBuurtModel e : pop_buurtHolonen ){
+	double trafovermogen = e.v_trafoVermogen_kW;
 	DataItem di = new DataItem();
-	di.setValue( e.kpiVisuals.v_selfSufficiency_perc );
-    chart_zelfconsumptie.addDataItem( di , e.getName(), blue );
+	di.setValue( trafovermogen );
+    Color graphColor = trafovermogen > 0 ? red : green;
+    
+    chart_energiestroom.addDataItem( di , e.p_buurtName, graphColor );
+    
+    i++;
 }
-chart_zelfconsumptie.update();]]></Body>
+chart_energiestroom.update();
+
+
+]]></Body>
 				</Function>
 			</Functions>
 			<TableFunctions>
@@ -1118,10 +1130,13 @@ chart_zelfconsumptie.update();]]></Body>
 						<Parameter>
 							<Name><![CDATA[b_CAPEXCounted]]></Name>
 						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_buurtName]]></Name>
+						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
 					<Replication Class="CodeValue">
-						<Code><![CDATA[100]]></Code>
+						<Code><![CDATA[1]]></Code>
 					</Replication>
 					<CollectionType>ARRAY_LIST_BASED</CollectionType>
 					<StatisticsItem>
@@ -1322,6 +1337,18 @@ chart_zelfconsumptie.update();]]></Body>
 								<PackageName><![CDATA[ebuurt]]></PackageName>
 								<ClassName><![CDATA[db_wijktest]]></ClassName>
 								<ItemName><![CDATA[perc_warmtenet]]></ItemName>
+							</Value>
+						</Item>
+						<Item>
+							<Key>
+								<PackageName><![CDATA[ebuurt]]></PackageName>
+								<ClassName><![CDATA[EBuurtModel]]></ClassName>
+								<ItemName><![CDATA[p_buurtName]]></ItemName>
+							</Key>
+							<Value>
+								<PackageName><![CDATA[ebuurt]]></PackageName>
+								<ClassName><![CDATA[db_wijktest]]></ClassName>
+								<ItemName><![CDATA[naam]]></ItemName>
 							</Value>
 						</Item>	
 					</ParameterToDatabaseColumnMapping>
@@ -1695,14 +1722,14 @@ chart_zelfconsumptie.update();]]></Body>
 				</Text>
     			<BarChart>
 					<Id>1652804056829</Id>
-					<Name><![CDATA[chart_zelfconsumptie]]></Name>
-					<X>350</X><Y>180</Y>
+					<Name><![CDATA[chart_energiestroom]]></Name>
+					<X>350</X><Y>240</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<AutoUpdate>true</AutoUpdate>
+					<AutoUpdate>false</AutoUpdate>
 					<OccurrenceAtTime>true</OccurrenceAtTime>
 					<OccurrenceDate>1652860800000</OccurrenceDate>
 					<OccurrenceTime Class="CodeUnitValue">
@@ -1745,9 +1772,9 @@ chart_zelfconsumptie.update();]]></Body>
 					<Expression2Flag>true</Expression2Flag>
 						<Title><![CDATA[item]]></Title>
 					</DataItem>
-					<ScaleFromExpression><![CDATA[0]]></ScaleFromExpression>
-					<ScaleToExpression><![CDATA[1]]></ScaleToExpression>
-					<ScaleType>AUTO</ScaleType>
+					<ScaleFromExpression><![CDATA[-40]]></ScaleFromExpression>
+					<ScaleToExpression><![CDATA[50]]></ScaleToExpression>
+					<ScaleType>FIXED</ScaleType>
 					<Bars>
 						<Direction>UP</Direction>
 						<RelativeWidth>0.8</RelativeWidth>
@@ -20493,7 +20520,7 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1651993076858</Id>
-					<Name><![CDATA[v_heatingPowerDrawLowPassed_kW]]></Name>
+					<Name><![CDATA[v_heatingPowerDraw_kW]]></Name>
 					<X>40</X><Y>990</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -20508,7 +20535,7 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1651993086636</Id>
-					<Name><![CDATA[v_heatingPowerDeliveryLowPassed_kW]]></Name>
+					<Name><![CDATA[v_heatingPowerDelivery_kW]]></Name>
 					<X>40</X><Y>1020</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -20523,7 +20550,7 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1651993125774</Id>
-					<Name><![CDATA[v_householdLoadLowPassed_kW]]></Name>
+					<Name><![CDATA[v_householdLoad_kW]]></Name>
 					<X>40</X><Y>960</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -20538,7 +20565,7 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1651993151398</Id>
-					<Name><![CDATA[v_holonLoadLowPassed_kW]]></Name>
+					<Name><![CDATA[v_holonLoad_kW]]></Name>
 					<X>40</X><Y>930</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -20553,7 +20580,7 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1651996068579</Id>
-					<Name><![CDATA[v_irradianceLowPassed_kW]]></Name>
+					<Name><![CDATA[v_irradiance_kW]]></Name>
 					<X>40</X><Y>1050</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -20583,7 +20610,7 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1652078999357</Id>
-					<Name><![CDATA[v_PVopwekLowPassed_kW]]></Name>
+					<Name><![CDATA[v_PVopwek_kW]]></Name>
 					<X>40</X><Y>1080</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -20627,7 +20654,8 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 						</RecurrenceCode>
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
-					<Action><![CDATA[f_CalculateEnergyFlows();]]></Action>
+					<Action><![CDATA[f_CalculateEnergyFlows(cb_KPIEnergy.isSelected());
+f_UpdateGraphics();]]></Action>
 				</Event>
 			</Events>
 			<Functions>
@@ -20638,86 +20666,36 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 					<Name><![CDATA[f_CalculateEnergyFlows]]></Name>
 					<Description><![CDATA[@author Peter Hogeveen
 @since 07-06-2022]]></Description>
-					<X>380</X><Y>1200</Y>
+					<X>380</X><Y>1190</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[// Low-pass filtered signals with cut-off period of ~1 week
-double lowPassFraction = min( 1, .01 * eBuurtModel.main.dt_h);
-//v_holonLoadLowPassed_kW += lowPassFraction * ( eBuurtModel.trafoVermogen_kW - v_holonLoadLowPassed_kW );
-double current_irradiance_kW = eBuurtModel.main.zonnestraling(time(HOUR) + eBuurtModel.hourOfYearStart) / 1000;
-v_irradianceLowPassed_kW += lowPassFraction * ( current_irradiance_kW - v_irradianceLowPassed_kW );
-
-v_householdLoadLowPassed_kW += lowPassFraction * ( eBuurtModel.v_totaalVermogenHuishoudens_kW - v_householdLoadLowPassed_kW );
-v_heatingPowerDrawLowPassed_kW += lowPassFraction * ( eBuurtModel.districtHeatingStorageAndHeatpump.v_heatPumpPowerDraw_kW - v_heatingPowerDrawLowPassed_kW );
-v_heatingPowerDeliveryLowPassed_kW += lowPassFraction * ( eBuurtModel.districtHeatingStorageAndHeatpump.v_heatDeliveryToNetwork_kW - v_heatingPowerDeliveryLowPassed_kW );
-v_PVopwekLowPassed_kW += lowPassFraction * ( eBuurtModel.v_neighborhoodSolarProduction_kW - v_PVopwekLowPassed_kW );
-
-v_holonLoadLowPassed_kW = v_householdLoadLowPassed_kW + v_heatingPowerDrawLowPassed_kW; // Use this expression to ensure consistency between the 3 numbers
-
-
-// Draw arrow from grid to households
-t_powerHouseholds.setText( roundToInt( abs( v_householdLoadLowPassed_kW ) ) + " kW" );
-line_households.setLineWidth( 1 + roundToInt( 25.0 * abs( v_householdLoadLowPassed_kW ) / v_maxNeighborhoodElectricityDemand ));
-if ( v_householdLoadLowPassed_kW > 0 ) {
-	arrow_housesIn.setVisible(true);
-	arrow_housesOut.setVisible(false);
-	}
-else {
-	arrow_housesIn.setVisible(false);
-	arrow_housesOut.setVisible(true);
-	}
-
-// Draw arrow from trafo to grid
-t_powerGrid.setText( roundToInt( abs( v_holonLoadLowPassed_kW ) ) + " kW" );
-line_grid.setLineWidth( 1 + roundToInt( 25.0 * abs( v_holonLoadLowPassed_kW ) / v_maxNeighborhoodElectricityDemand ));
-if ( v_holonLoadLowPassed_kW < 0 ) {
-	arrow_gridIn.setVisible(true);
-	arrow_gridOut.setVisible(false);
-	}
-else {
-	arrow_gridIn.setVisible(false);
-	arrow_gridOut.setVisible(true);
+					<Parameter>
+						<Name><![CDATA[lowpass]]></Name>
+						<Type><![CDATA[boolean]]></Type>
+					</Parameter>
+					<Body><![CDATA[if ( lowpass ) {
+	// Low-pass filtered signals with cut-off period of ~1 week
+	double lowPassFraction = min( 1, .01 * eBuurtModel.main.dt_h);
+	//v_holonLoadLowPassed_kW += lowPassFraction * ( eBuurtModel.trafoVermogen_kW - v_holonLoadLowPassed_kW );
+	double current_irradiance_kW = eBuurtModel.main.zonnestraling(time(HOUR) + eBuurtModel.hourOfYearStart) / 1000;
+	v_irradiance_kW += lowPassFraction * ( current_irradiance_kW - v_irradiance_kW );
+	
+	v_householdLoad_kW += lowPassFraction * ( eBuurtModel.v_totaalVermogenHuishoudens_kW - v_householdLoad_kW );
+	v_heatingPowerDraw_kW += lowPassFraction * ( eBuurtModel.districtHeatingStorageAndHeatpump.v_heatPumpPowerDraw_kW - v_heatingPowerDraw_kW );
+	v_heatingPowerDelivery_kW += lowPassFraction * ( eBuurtModel.districtHeatingStorageAndHeatpump.v_heatDeliveryToNetwork_kW - v_heatingPowerDelivery_kW );
+	v_PVopwek_kW += lowPassFraction * ( eBuurtModel.v_neighborhoodSolarProduction_kW - v_PVopwek_kW );
+	
+	v_holonLoad_kW = v_householdLoad_kW + v_heatingPowerDraw_kW; // Use this expression to ensure consistency between the 3 numbers
 }
-
-// Draw arrow from grid to heating systems (only one direction possible)
-t_powerHeatpump.setText( roundToInt( v_heatingPowerDrawLowPassed_kW ) + " kW" );
-line_buffer.setLineWidth( 1 + roundToInt( 25.0 * abs( v_heatingPowerDrawLowPassed_kW ) / v_maxNeighborhoodElectricityDemand ));
-
-// Draw arrow from buffer to households (only one direction possible)
-t_hotWater.setText( roundToInt( v_heatingPowerDeliveryLowPassed_kW ) + " kW" );
-line_hotWater.setLineWidth( 1 + roundToInt( 25.0 * abs( v_heatingPowerDeliveryLowPassed_kW ) / v_maxNeighborhoodElectricityDemand ));
-
-// Buffer temperature
-text4.setText("Warmtebuffer \n temperatuur: " + roundToInt( eBuurtModel.districtHeatingStorageAndHeatpump.v_bufferTemp_degC ) + " deg C");
-
-// PV production text
-text8.setText("PV opwek: " + roundToInt(v_PVopwekLowPassed_kW) + " kW");
-
-// Change length of sunrays based on lowpassed irradiance
-double sunrayscale = v_irradianceLowPassed_kW * 10.0;
-
-line31.setLineWidth( 1 + roundToInt(sunrayscale) );
-line31.setScale( sunrayscale , sunrayscale );
-line32.setLineWidth( 1 + roundToInt(sunrayscale) );
-line32.setScale( sunrayscale, sunrayscale);
-line33.setLineWidth( 1 + roundToInt(sunrayscale) );
-line33.setScale( sunrayscale, sunrayscale);
-line34.setLineWidth( 1 + roundToInt(sunrayscale) );
-line34.setScale( sunrayscale, sunrayscale );
-line35.setLineWidth( 1 + roundToInt(sunrayscale) );
-line35.setScale( sunrayscale, sunrayscale );
-line38.setLineWidth( 1 + roundToInt(sunrayscale) );
-line38.setScale( sunrayscale, sunrayscale );
-line39.setLineWidth( 1 + roundToInt(sunrayscale) );
-line39.setScale( sunrayscale, sunrayscale );
-line40.setLineWidth( 1 + roundToInt(sunrayscale) );
-line40.setScale( sunrayscale, sunrayscale );
-
-if( eBuurtModel.districtHeatingStorageAndHeatpump != null){
-	int transparancy = roundToInt( 100 * (  eBuurtModel.districtHeatingStorageAndHeatpump.v_bufferTemp_degC - v_minBufferTemperature ) / ( v_maxBufferTemperature - v_minBufferTemperature ) ) ;
-	v_redColor = new Color(255, 0, 0, transparancy);
+else {
+	v_irradiance_kW = eBuurtModel.main.zonnestraling(time(HOUR) + eBuurtModel.hourOfYearStart) / 1000;
+	v_householdLoad_kW = eBuurtModel.v_totaalVermogenHuishoudens_kW;
+	v_heatingPowerDraw_kW = eBuurtModel.districtHeatingStorageAndHeatpump.v_heatPumpPowerDraw_kW;
+	v_heatingPowerDelivery_kW = eBuurtModel.districtHeatingStorageAndHeatpump.v_heatDeliveryToNetwork_kW;
+	v_PVopwek_kW = eBuurtModel.v_neighborhoodSolarProduction_kW;
+	v_holonLoad_kW = v_householdLoad_kW + v_heatingPowerDraw_kW; 
 }]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -20749,6 +20727,79 @@ if ( eBuurtModel.p_districtHeatingPrimaryPower_kW == 0 ){
 	arrow_bufferIn.setVisible(false);
 } else {
 traceln("Fail!");
+}]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1652875573552</Id>
+					<Name><![CDATA[f_UpdateGraphics]]></Name>
+					<X>380</X><Y>1210</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[// Draw arrow from grid to households
+t_powerHouseholds.setText( roundToInt( abs( v_householdLoad_kW ) ) + " kW" );
+line_households.setLineWidth( 1 + roundToInt( 25.0 * abs( v_householdLoad_kW ) / v_maxNeighborhoodElectricityDemand ));
+if ( v_householdLoad_kW > 0 ) {
+	arrow_housesIn.setVisible(true);
+	arrow_housesOut.setVisible(false);
+	}
+else {
+	arrow_housesIn.setVisible(false);
+	arrow_housesOut.setVisible(true);
+	}
+
+// Draw arrow from trafo to grid
+t_powerGrid.setText( roundToInt( abs( v_holonLoad_kW ) ) + " kW" );
+line_grid.setLineWidth( 1 + roundToInt( 25.0 * abs( v_holonLoad_kW ) / v_maxNeighborhoodElectricityDemand ));
+if ( v_holonLoad_kW < 0 ) {
+	arrow_gridIn.setVisible(true);
+	arrow_gridOut.setVisible(false);
+	}
+else {
+	arrow_gridIn.setVisible(false);
+	arrow_gridOut.setVisible(true);
+}
+
+// Draw arrow from grid to heating systems (only one direction possible)
+t_powerHeatpump.setText( roundToInt( v_heatingPowerDraw_kW ) + " kW" );
+line_buffer.setLineWidth( 1 + roundToInt( 25.0 * abs( v_heatingPowerDraw_kW ) / v_maxNeighborhoodElectricityDemand ));
+
+// Draw arrow from buffer to households (only one direction possible)
+t_hotWater.setText( roundToInt( v_heatingPowerDelivery_kW ) + " kW" );
+line_hotWater.setLineWidth( 1 + roundToInt( 25.0 * abs( v_heatingPowerDelivery_kW ) / v_maxNeighborhoodElectricityDemand ));
+
+// Buffer temperature
+text4.setText("Warmtebuffer \n temperatuur: " + roundToInt( eBuurtModel.districtHeatingStorageAndHeatpump.v_bufferTemp_degC ) + " deg C");
+
+// PV production text
+text8.setText("PV opwek: " + roundToInt(v_PVopwek_kW) + " kW");
+
+// Change length of sunrays based on lowpassed irradiance
+double sunrayscale = v_irradiance_kW * 10.0;
+
+line31.setLineWidth( 1 + roundToInt(sunrayscale) );
+line31.setScale( sunrayscale , sunrayscale );
+line32.setLineWidth( 1 + roundToInt(sunrayscale) );
+line32.setScale( sunrayscale, sunrayscale);
+line33.setLineWidth( 1 + roundToInt(sunrayscale) );
+line33.setScale( sunrayscale, sunrayscale);
+line34.setLineWidth( 1 + roundToInt(sunrayscale) );
+line34.setScale( sunrayscale, sunrayscale );
+line35.setLineWidth( 1 + roundToInt(sunrayscale) );
+line35.setScale( sunrayscale, sunrayscale );
+line38.setLineWidth( 1 + roundToInt(sunrayscale) );
+line38.setScale( sunrayscale, sunrayscale );
+line39.setLineWidth( 1 + roundToInt(sunrayscale) );
+line39.setScale( sunrayscale, sunrayscale );
+line40.setLineWidth( 1 + roundToInt(sunrayscale) );
+line40.setScale( sunrayscale, sunrayscale );
+
+if( eBuurtModel.districtHeatingStorageAndHeatpump != null){
+	int transparancy = roundToInt( 100 * (  eBuurtModel.districtHeatingStorageAndHeatpump.v_bufferTemp_degC - v_minBufferTemperature ) / ( v_maxBufferTemperature - v_minBufferTemperature ) ) ;
+	v_redColor = new Color(255, 0, 0, transparancy);
 }]]></Body>
 				</Function>
 			</Functions>
@@ -23567,6 +23618,28 @@ E-Boiler]]></Text>
 					</Font>
 					<Alignment>CENTER</Alignment>
 				</Text>
+				<Control Type="CheckBox">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1652875395636</Id>
+					<Name><![CDATA[cb_KPIEnergy]]></Name>
+					<X>390</X><Y>640</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="130" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<TextColor/>
+						<Enabled>true</Enabled>
+					</BasicProperties>
+					<ExtendedProperties>
+						<Font Name="Dialog" Size="11" Style="0"/>
+						<LabelText><![CDATA[gemiddelde waarden]]></LabelText>
+						<DefaultValueCode><![CDATA[false]]></DefaultValueCode>
+						<LinkTo>false</LinkTo>
+	 				</ExtendedProperties>
+				</Control>
 			</Presentation>
 
 				</Level>
@@ -31690,6 +31763,27 @@ Uses:
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1652873145068</Id>
+					<Name><![CDATA[p_buurtName]]></Name>
+					<X>-1320</X><Y>120</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[String]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1652873145066</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1652789519606</Id>
 					<Name><![CDATA[huishoudensIDs]]></Name>
@@ -33943,7 +34037,7 @@ als we willen dat ze tijdens het moidel worden aangepast.
 				<Text>
 					<Id>1652789519529</Id>
 					<Name><![CDATA[jaarlijksEigenConsumptieText]]></Name>
-					<X>-870</X><Y>890</Y>
+					<X>-780</X><Y>880</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
