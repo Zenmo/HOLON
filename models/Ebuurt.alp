@@ -84,7 +84,7 @@
 			<Import><![CDATA[import java.text.SimpleDateFormat;
 import javax.measure.quantity.RadioactiveActivity;]]></Import>
 			<StartupCode><![CDATA[//f_configureInitialSettingsMain();
-traceln("main startup function!");
+traceln("On Startup main "+this.getName()+" | "+System.currentTimeMillis());
 // lookup-tabel om woningtypen (string) te koppelen aan een getal voor gebruik in tablefunction in Huishoudens
 //c_houseTypes.put(OL_HouseTypes.DETACHED, 0);
 //c_houseTypes.put(OL_HouseTypes.SEMIDETACHED, 1);
@@ -112,7 +112,7 @@ traceln("main startup function!");
 //c_energyLabelsReverse.put(6,"G");
 f_PositionHolons();
 chart_energiestroom.update();
-]]></StartupCode>
+traceln("On Startup end main "+this.getName()+" | "+System.currentTimeMillis());]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1641891178633</Id>
@@ -1162,7 +1162,7 @@ for( EBuurtModel e : pop_buurtHolonen ){
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
 					<Replication Class="CodeValue">
-						<Code><![CDATA[5]]></Code>
+						<Code><![CDATA[1]]></Code>
 					</Replication>
 					<CollectionType>ARRAY_LIST_BASED</CollectionType>
 					<StatisticsItem>
@@ -1930,26 +1930,26 @@ for( EBuurtModel e : pop_buurtHolonen ){
 			<Id>1641891521968</Id>
 			<Name><![CDATA[Huishouden]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
-			<StartupCode><![CDATA[// Initialiseer GIS
-p_gisRegion =  eBuurtModel.gisMap.huizenUtrechtNeuhuijsstraat.get ( this.getIndex() );
-p_gisRegion.setLineStyle( LineStyle.LINE_STYLE_SOLID );
-p_gisRegion.setVisible( true );
-setLocation( p_gisRegion.randomPointInside() );
+			<StartupCode><![CDATA[traceln("Huishouden startup 1 "+this.getEnvironment().getIndex()+"."+this.getIndex()+" | "+System.currentTimeMillis());
+
+//traceln("Huishouden startup - GIS realized "+this.getEnvironment().getIndex()+"."+this.getIndex()+" | "+System.currentTimeMillis());
 
 // Kies een ID en haal data binnen vnauit Albatros DB
 id = eBuurtModel.huishoudensIDs.get(uniform_discr(1731)); //dit leidt tot dubbelingen in uitzonderlijke gevallen. Geen probleem maar wel aanpassen in toekosmt
 initializeHousehold( this, id );
-
+traceln("Huishouden startup initialized "+this.getEnvironment().getIndex()+"."+this.getIndex()+" | "+System.currentTimeMillis());
 // Creer bewoners
 for( Bewoner b : bewoners ) {
 	b.generateActivities( this );
 }
+traceln("Huishouden startup activities generated "+this.getEnvironment().getIndex()+"."+this.getIndex()+" | "+System.currentTimeMillis());
 for ( Auto a : autos ) {
 	a.f_bepaalFlexibiliteit();
 }
-
+traceln("Huishouden startup - Auto's flexed "+this.getEnvironment().getIndex()+"."+this.getIndex()+" | "+System.currentTimeMillis());
 // Thermische parameters initialiseren
-p_ventilationFlowrate_m3ph = p_specificVentilationFlowrate_mph * p_floorSurfaceArea;]]></StartupCode>
+p_ventilationFlowrate_m3ph = p_specificVentilationFlowrate_mph * p_floorSurfaceArea;
+traceln("Huishouden startup 2 "+this.getEnvironment().getIndex()+"."+this.getIndex()+" | "+System.currentTimeMillis());]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1641891521966</Id>
@@ -3658,8 +3658,7 @@ nbAdults = composition < 2 ? 1 : 2;
 adult1 = eBuurtModel.add_bewoners();
 adult1.memberID = 0;
 adult1.household = this;
-adult1.thuisLocatie = p_gisRegion.randomPointInside();
-adult1.setLocation( adult1.thuisLocatie);
+
 bewoners.add( adult1 );
 
 //Initialize adult 2
@@ -3667,8 +3666,6 @@ if ( nbAdults > 1 ) {
 	adult2 = eBuurtModel.add_bewoners();
 	adult2.memberID = 1;
 	adult2.household = this;
-	adult2.thuisLocatie = p_gisRegion.randomPointInside();
-	adult2.setLocation( adult2.thuisLocatie );
 	g_adult2.setVisible(true);
 	bewoners.add( adult2 );
 }
@@ -3694,8 +3691,6 @@ p_elasticityGas = triangular(-0.76, -0.06, -0.76, -0.41, -0.06);]]></Body>
 					</Parameter>
 					<Body><![CDATA[//Zet de parkeerplaats bij het juiste huis. 
 //Merk op dat dit afhankelijk is v.d. volgorde in de GIS collecties! Dat moet handmatig in deze versie
-parkeerplaatsPoint1 = eBuurtModel.gisMap.parkeerplaatsenUtrechtNeuhuijsstraat.get( 2 * index );
-parkeerplaatsPoint2 = eBuurtModel.gisMap.parkeerplaatsenUtrechtNeuhuijsstraat.get( 2 * index + 1);
 
 //Initialize auto 1
 if( nbVehicles > 0){
@@ -3706,7 +3701,7 @@ if( nbVehicles > 0){
 	auto1.elektrisch = randomTrue( eBuurtModel.p_boot_evs / 100.0 );
 	auto1.p_fuelType = randomTrue(0.5) ? fuelType.petrol : fuelType.diesel;
 	auto1.p_fuelConsumption_lpkm = 1/15.0;
-	auto1.setLocation( parkeerplaatsPoint1 );
+	
 	ovalAuto1.setVisible( true );
 	auto1.f_bepaalFlexibiliteit();
 
@@ -3724,7 +3719,6 @@ if( nbVehicles > 0){
 		auto2.elektrisch = randomTrue( eBuurtModel.p_boot_evs / 100.0 );
 		auto2.p_fuelType = randomTrue(0.5) ? fuelType.petrol : fuelType.diesel;
 		auto2.p_fuelConsumption_lpkm = 1/15.0;
-		auto2.setLocation( parkeerplaatsPoint2 );
 		ovalAuto2.setVisible( true );
 		auto2.f_bepaalFlexibiliteit();
 		
@@ -4077,6 +4071,41 @@ p_buildingYear = 1960;
 	energyManager.v_bidPriceLow_eurpkWh=uniform(0.15,0.19);
 	energyManager.v_bidPriceV2G_eurpkWh=uniform(0.25, 0.30);
 }]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1653318610645</Id>
+					<Name><![CDATA[f_ConfigureGISmap]]></Name>
+					<X>940</X><Y>190</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[// Initialiseer GIS
+p_gisRegion =  eBuurtModel.gisMap.huizenUtrechtNeuhuijsstraat.get ( 0 );
+if( this.getId() <= 40 ) {
+	p_gisRegion =  eBuurtModel.gisMap.huizenUtrechtNeuhuijsstraat.get ( this.getIndex() );
+}
+p_gisRegion.setLineStyle( LineStyle.LINE_STYLE_SOLID );
+p_gisRegion.setVisible( true );
+setLocation( p_gisRegion.randomPointInside() );
+
+// adults
+adult1.thuisLocatie = p_gisRegion.randomPointInside();
+adult1.setLocation( adult1.thuisLocatie);
+
+adult2.thuisLocatie = p_gisRegion.randomPointInside();
+adult2.setLocation( adult2.thuisLocatie );
+
+//parkeerplaatsen
+int indexRobust = this.getIndex() % 40;
+parkeerplaatsPoint1 = eBuurtModel.gisMap.parkeerplaatsenUtrechtNeuhuijsstraat.get( 2 * indexRobust );
+parkeerplaatsPoint2 = eBuurtModel.gisMap.parkeerplaatsenUtrechtNeuhuijsstraat.get( 2 * indexRobust + 1);
+
+auto1.setLocation( parkeerplaatsPoint1 );
+auto2.setLocation( parkeerplaatsPoint2 );
+]]></Body>
 				</Function>
 			</Functions>
 			<TableFunctions>
@@ -5394,6 +5423,7 @@ traceln("test");]]></ActionCode>
 			<Id>1641891597106</Id>
 			<Name><![CDATA[Bewoner]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
+			<StartupCode><![CDATA[//traceln("Bewoner agent startup "+this.getEnvironment().getIndex()+"."+this.getIndex()+" | "+System.currentTimeMillis());]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1641891597104</Id>
@@ -10836,7 +10866,9 @@ activities.get (currentActivityEpisode + 12 ).modality.toString()
 			<Id>1641981966277</Id>
 			<Name><![CDATA[Zonnepanelen]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
-			<StartupCode><![CDATA[f_initializeSolarInstallation();]]></StartupCode>
+			<StartupCode><![CDATA[//traceln("Zonnepanelen agent startup "+System.currentTimeMillis());
+f_initializeSolarInstallation();
+//traceln("Zonnepanelen agent startup end "+System.currentTimeMillis());]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1641981966275</Id>
@@ -11399,6 +11431,7 @@ jaarlijksTotaalPVOpwekKWh += pvOpwekKW*eBuurtModel.main.dt_h;]]></Body>
 			<Id>1641981998418</Id>
 			<Name><![CDATA[Auto]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
+			<StartupCode><![CDATA[//traceln("Auto agent startup "+this.getEnvironment()+" "+System.currentTimeMillis());]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1641981998416</Id>
@@ -12413,6 +12446,7 @@ else {
 			<Id>1643369499414</Id>
 			<Name><![CDATA[Activity]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
+			<StartupCode><![CDATA[//traceln("Activity agent startup "+System.currentTimeMillis());]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1643369499409</Id>
@@ -13214,6 +13248,7 @@ else {
 			<Id>1644921539577</Id>
 			<Name><![CDATA[EnergyManager]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
+			<StartupCode><![CDATA[//]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1644921539575</Id>
@@ -13662,7 +13697,8 @@ for (int i = 0 ; i< huishouden.nbVehicles; i++) {
 			<Name><![CDATA[IncentiveGenerator]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
 			<Import><![CDATA[import java.util.function.DoubleToIntFunction;]]></Import>
-			<StartupCode><![CDATA[f_setIncentiveLength();
+			<StartupCode><![CDATA[traceln("incentiveGenerator startup "+this.getEnvironment()+" "+System.currentTimeMillis());
+f_setIncentiveLength();
 
 f_setFixedTariffIncentive();
 
@@ -13680,7 +13716,8 @@ f_setDayAheadTariff();
 
 //f_setHolonEnergyMarketTariff();
 
-f_updateIncentive();]]></StartupCode>
+f_updateIncentive();
+//traceln("incentiveGenerator end "+this.getEnvironment()+" "+System.currentTimeMillis());]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1644943240083</Id>
@@ -15298,6 +15335,7 @@ f_updateIncentive();]]></ActionCode>
 			<Id>1645015324391</Id>
 			<Name><![CDATA[UI_KPIs]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
+			<StartupCode><![CDATA[traceln("UI KPIS agent startup "+System.currentTimeMillis());]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1645015324389</Id>
@@ -19721,7 +19759,9 @@ voor opwek van elektriciteit.]]></Text>
 			<Id>1648049184832</Id>
 			<Name><![CDATA[DHWDemand]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
-			<StartupCode><![CDATA[f_readDHWFile();]]></StartupCode>
+			<StartupCode><![CDATA[//traceln("DHWDemand agent startup "+this.getEnvironment()+" "+System.currentTimeMillis());
+f_readDHWFile();
+//traceln("DHWDDemand agent startup end "+this.getEnvironment()+" "+System.currentTimeMillis());]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1648049184827</Id>
@@ -20451,7 +20491,8 @@ https://www.uni-kassel.de/maschinenbau/institute/thermische-energietechnik/fachg
 			<Id>1651948385097</Id>
 			<Name><![CDATA[UI_Schematic]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
-			<StartupCode><![CDATA[f_startUp();]]></StartupCode>
+			<StartupCode><![CDATA[traceln("UI Schematic agent startup "+System.currentTimeMillis());
+f_startUp();]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1651948385092</Id>
@@ -20813,7 +20854,7 @@ if ( eBuurtModel.p_districtHeatingPrimaryPower_kW == 0 ){
 	line26.setVisible(false);
 	arrow_bufferIn.setVisible(false);
 } else {
-traceln("Fail!");
+//traceln("Fail!");
 }]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -23738,6 +23779,7 @@ E-Boiler]]></Text>
 			<Id>1651951841731</Id>
 			<Name><![CDATA[UI_GISMap]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
+			<StartupCode><![CDATA[traceln("UI GISMAP agent startup "+System.currentTimeMillis());]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1651951841729</Id>
@@ -27710,7 +27752,8 @@ E-Boiler]]></Text>
 			<Id>1652524466070</Id>
 			<Name><![CDATA[UI_Neighborhood3D]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
-			<StartupCode><![CDATA[createBuildingAgents();]]></StartupCode>
+			<StartupCode><![CDATA[traceln("UI_Neighboorhood3D agent startup "+System.currentTimeMillis());
+createBuildingAgents();]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1652524466068</Id>
@@ -29887,17 +29930,17 @@ for(ShapePolyLine c : c_schools){
 			<Id>1652789142365</Id>
 			<Name><![CDATA[EBuurtModel]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
-			<StartupCode><![CDATA[traceln("On Startup Ebuurt nr."+this.getFullName());
+			<StartupCode><![CDATA[traceln("Ebuurt "+this.getIndex()+" startup A | "+System.currentTimeMillis());
 f_ConfigureInitialSettings();
+//traceln("Ebuurt "+this.getIndex()+" startup settingsConfigured | "+System.currentTimeMillis());
 huishoudensIDs.addAll( selectFrom( db_huishoudens ).list( db_huishoudens.hhid ) ); 
-
-//traceln("Ebuurt main startup A: "+System.currentTimeMillis());
+//traceln("Ebuurt "+this.getIndex()+" startup data read | "+System.currentTimeMillis());
 for ( int i = 0; i < p_boot_woningen; i++) {
        Huishouden h = add_huishoudens();
        h.initializeAutos( i );
        h.f_initializeSolarPanels();
 }
-//traceln("Ebuurt main startup B: "+System.currentTimeMillis());
+//traceln("Ebuurt "+this.getIndex()+" startup huishoudens added, auto's pv init | "+System.currentTimeMillis());
 
 // deze functie doet nu niets. Maar lijkt wel duidelijk te beschrijven wat er zou moeten gebeuren!
 f_AddHeatingSystemsToHouses();
@@ -29917,7 +29960,7 @@ v_initialTotalBatteryCharge_kWh = sum(autos, x->x.huidigBatterijCap_kWh);
 //Set trafo power based on number of households
 f_setTrafoMaxPower(p_connectionCapacityPerHousehold);
 f_setTrafoMinPower(p_connectionCapacityPerHousehold);
-]]></StartupCode>
+traceln("Ebuurt "+this.getIndex()+" startup END | "+System.currentTimeMillis());]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1652789142363</Id>
@@ -37885,7 +37928,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
 			<CommandLineArguments><![CDATA[]]></CommandLineArguments>
 			<InitialSetupCode><![CDATA[r_neighborhoodType.setValue(0,true);]]></InitialSetupCode>
-			<MaximumMemory>512</MaximumMemory>
+			<MaximumMemory>1024</MaximumMemory>
 			<RandomNumberGenerationType>fixedSeed</RandomNumberGenerationType>
 			<CustomGeneratorCode>new Random()</CustomGeneratorCode>
 			<SeedValue>3</SeedValue>
