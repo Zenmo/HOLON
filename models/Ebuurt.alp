@@ -72,6 +72,30 @@
 				<Name><![CDATA[cng]]></Name>
 			</Option>
 		</OptionList>
+		<OptionList>
+			<Id>1653477932927</Id>
+			<Name><![CDATA[OL_HolonMessages]]></Name>
+			<Option>
+				<Id>1653477932928</Id>
+				<Name><![CDATA[JOIN_ME]]></Name>
+			</Option>
+		</OptionList>
+		<OptionList>
+			<Id>1653478472658</Id>
+			<Name><![CDATA[OL_motivationOptions]]></Name>
+			<Option>
+				<Id>1653478472659</Id>
+				<Name><![CDATA[NO_PRIORITY]]></Name>
+			</Option>
+			<Option>
+				<Id>1653478472660</Id>
+				<Name><![CDATA[NORMAL_PRIORITY]]></Name>
+			</Option>
+			<Option>
+				<Id>1653478472661</Id>
+				<Name><![CDATA[HIGH_PRIORITY]]></Name>
+			</Option>
+		</OptionList>
 	</OptionLists>
 	<ActiveObjectClasses>
 		<!--   =========   Active Object Class   ========  -->
@@ -112,6 +136,11 @@ traceln("On Startup main "+this.getName()+" | "+System.currentTimeMillis());
 //c_energyLabelsReverse.put(4,"E");
 //c_energyLabelsReverse.put(5,"F");
 //c_energyLabelsReverse.put(6,"G");
+
+c_motivationToScoring.put(OL_motivationOptions.NO_PRIORITY,0);
+c_motivationToScoring.put(OL_motivationOptions.NORMAL_PRIORITY,1);
+c_motivationToScoring.put(OL_motivationOptions.HIGH_PRIORITY,2);
+
 f_PositionHolons();
 chart_energiestroom.update();
 traceln("On Startup end main "+this.getName()+" | "+System.currentTimeMillis());]]></StartupCode>
@@ -891,6 +920,21 @@ traceln("On Startup end main "+this.getName()+" | "+System.currentTimeMillis());
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1653479152579</Id>
+					<Name><![CDATA[c_motivationToScoring]]></Name>
+					<X>-190</X><Y>220</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[LinkedHashMap]]></CollectionClass>
+						<ElementClass><![CDATA[OL_motivationOptions]]></ElementClass>
+						<ValueElementClass><![CDATA[Integer]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
 			</Variables>
 			<Events>
 				<Event>
@@ -1356,6 +1400,12 @@ for( EBuurtModel e : pop_buurtHolonen ){
 						<Parameter>
 							<Name><![CDATA[p_buurtName]]></Name>
 						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_averageCostMotivation]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_averageSustainabilityMotivation]]></Name>
+						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
 					<Replication Class="CodeValue">
@@ -1597,10 +1647,19 @@ for( EBuurtModel e : pop_buurtHolonen ){
 						</GenericParameterSubstituteReference>
 					</GenericParameterSubstitute>
 					<Parameters>
+						<Parameter>
+							<Name><![CDATA[p_holonName]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_motivationSustainability]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_motivationCosts]]></Name>
+						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
 					<Replication Class="CodeValue">
-						<Code><![CDATA[100]]></Code>
+						<Code><![CDATA[1]]></Code>
 					</Replication>
 					<CollectionType>ARRAY_LIST_BASED</CollectionType>
 					<InEnvironment>true</InEnvironment>	
@@ -1629,7 +1688,7 @@ for( EBuurtModel e : pop_buurtHolonen ){
 					<LocationNameCode Class="CodeValue">
 						<Code><![CDATA[""]]></Code>
 					</LocationNameCode>
-					<InitializationType>EMPTY</InitializationType>
+					<InitializationType>SPECIFIED_NUMBER</InitializationType>
 					<InitializationDatabaseTableQuery>
 						<TableReference>
 						</TableReference>
@@ -2515,26 +2574,26 @@ for( EBuurtModel e : pop_buurtHolonen ){
 			<Id>1641891521968</Id>
 			<Name><![CDATA[Huishouden]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
-			<StartupCode><![CDATA[traceln("Huishouden startup 1 "+this.getEnvironment().getIndex()+"."+this.getIndex()+" | "+System.currentTimeMillis());
+			<StartupCode><![CDATA[//traceln("Huishouden startup 1 "+this.getEnvironment().getIndex()+"."+this.getIndex()+" | "+System.currentTimeMillis());
 
 //traceln("Huishouden startup - GIS realized "+this.getEnvironment().getIndex()+"."+this.getIndex()+" | "+System.currentTimeMillis());
 
 // Kies een ID en haal data binnen vnauit Albatros DB
 id = eBuurtModel.huishoudensIDs.get(uniform_discr(1731)); //dit leidt tot dubbelingen in uitzonderlijke gevallen. Geen probleem maar wel aanpassen in toekosmt
 initializeHousehold( this, id );
-traceln("Huishouden startup initialized "+this.getEnvironment().getIndex()+"."+this.getIndex()+" | "+System.currentTimeMillis());
+//traceln("Huishouden startup initialized "+this.getEnvironment().getIndex()+"."+this.getIndex()+" | "+System.currentTimeMillis());
 // Creer bewoners
 for( Bewoner b : bewoners ) {
 	b.generateActivities( this );
 }
-traceln("Huishouden startup activities generated "+this.getEnvironment().getIndex()+"."+this.getIndex()+" | "+System.currentTimeMillis());
+//traceln("Huishouden startup activities generated "+this.getEnvironment().getIndex()+"."+this.getIndex()+" | "+System.currentTimeMillis());
 for ( Auto a : autos ) {
 	a.f_bepaalFlexibiliteit();
 }
-traceln("Huishouden startup - Auto's flexed "+this.getEnvironment().getIndex()+"."+this.getIndex()+" | "+System.currentTimeMillis());
+//traceln("Huishouden startup - Auto's flexed "+this.getEnvironment().getIndex()+"."+this.getIndex()+" | "+System.currentTimeMillis());
 // Thermische parameters initialiseren
 p_ventilationFlowrate_m3ph = p_specificVentilationFlowrate_mph * p_floorSurfaceArea;
-traceln("Huishouden startup 2 "+this.getEnvironment().getIndex()+"."+this.getIndex()+" | "+System.currentTimeMillis());]]></StartupCode>
+//traceln("Huishouden startup 2 "+this.getEnvironment().getIndex()+"."+this.getIndex()+" | "+System.currentTimeMillis());]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1641891521966</Id>
@@ -4167,6 +4226,58 @@ Bron getallen en verdeling: CE Delft, 2021 Evaluatie van de energiebelasting.
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1653474380772</Id>
+					<Name><![CDATA[p_motiveForSustainability]]></Name>
+					<Description><![CDATA[Scale from 0 - 5, indicating the motive of a household for sustainable behaviors and choices, where 0 is low motivation, 5 highest motivation.
+
+@author: JorritvandenHouten
+@since: 25/05/2022]]></Description>
+					<X>1130</X><Y>260</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[3]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1653474380770</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1653478530279</Id>
+					<Name><![CDATA[p_motiveForCosts]]></Name>
+					<X>1130</X><Y>290</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[2]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1653478530277</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1643455674954</Id>
 					<Name><![CDATA[bewoners]]></Name>
@@ -4699,6 +4810,34 @@ auto1.setLocation( parkeerplaatsPoint1 );
 auto2.setLocation( parkeerplaatsPoint2 );
 ]]></Body>
 				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1653478244429</Id>
+					<Name><![CDATA[f_evaluateHolonJoinRequest]]></Name>
+					<X>1130</X><Y>320</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[sender_holon]]></Name>
+						<Type><![CDATA[HolonAgent]]></Type>
+					</Parameter>
+					<Body><![CDATA[//int holonCostPrio = sender_holon.p_motivationCosts;
+//int holonSustainabilityPrio = sender_holon.p_motivationSustainability;
+boolean hasOwnPV = this.zonnepanelen.size() > 0? true : false;
+
+
+// huishouden connect met holon, mits:
+// 	- sustainability is boven threshold?
+//  - holon goal is ook sustainability
+//  - relatieve match qua kosten preference. (holon mag niet lager?)
+//  - ??? doel? functionaliteit? eigen PV verhandelen met de holon? Holon-pv aantrekken?
+if( hasOwnPV == false ) {
+	this.holonConnections.connectTo(sender_holon);
+}]]></Body>
+				</Function>
 			</Functions>
 			<TableFunctions>
 				<TableFunction AccessType="public" StaticFunction="false">
@@ -4744,10 +4883,35 @@ auto2.setLocation( parkeerplaatsPoint2 );
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
+					<OnReceive><![CDATA[//traceln(msg);
+if (msg == OL_HolonMessages.JOIN_ME ) {
+	f_evaluateHolonJoinRequest((HolonAgent)sender);
+}]]></OnReceive>
 					<HandleReceiveInConnections>false</HandleReceiveInConnections>
 					<AgentLinkType>COLLECTION_OF_LINKS</AgentLinkType>
 					<AgentLinkBidirectional>true</AgentLinkBidirectional>
 					<MessageType><![CDATA[Object]]></MessageType>
+					<LineStyle>SOLID</LineStyle>
+					<LineWidth>1</LineWidth>
+					<LineColor>-16777216</LineColor>
+					<LineZOrder>UNDER_AGENTS</LineZOrder>
+					<LineArrow>NONE</LineArrow>
+					<LineArrowPosition>END</LineArrowPosition>
+				</AgentLink>
+				<AgentLink>
+					<Id>1653478777331</Id>
+					<Name><![CDATA[holonConnections]]></Name>
+					<X>170</X><Y>-50</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<HandleReceiveInConnections>false</HandleReceiveInConnections>
+					<AgentLinkType>COLLECTION_OF_LINKS</AgentLinkType>
+					<AgentReferenceId>1653469816639</AgentReferenceId>
+					<AgentLinkBidirectional>true</AgentLinkBidirectional>
+					<BidirectionalPeerId>1653478844865</BidirectionalPeerId>
+					<MessageType><![CDATA[OL_HolonMessages]]></MessageType>
 					<LineStyle>SOLID</LineStyle>
 					<LineWidth>1</LineWidth>
 					<LineColor>-16777216</LineColor>
@@ -32508,6 +32672,48 @@ Uses:
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1653479515578</Id>
+					<Name><![CDATA[p_averageCostMotivation]]></Name>
+					<X>-1300</X><Y>-120</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1653479515576</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1653479528268</Id>
+					<Name><![CDATA[p_averageSustainabilityMotivation]]></Name>
+					<X>-1300</X><Y>-100</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1653479528266</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1652789519606</Id>
 					<Name><![CDATA[huishoudensIDs]]></Name>
@@ -33736,6 +33942,12 @@ TODO: data afleiden en corrigeren.
 							<Value Class="CodeValue">
 								<Code><![CDATA[randomTrue( p_boot_zonnepanelen / 100.0 )]]></Code>
 							</Value>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_motiveForSustainability]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_motiveForCosts]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -38490,6 +38702,150 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 			</ScaleRuler>
 			<CurrentLevel>1653469816638</CurrentLevel>
 			<ConnectionsId>1653469816634</ConnectionsId>
+			<Variables>
+				<Variable Class="PlainVariable">
+					<Id>1653471204507</Id>
+					<Name><![CDATA[v_numberOfMembers]]></Name>
+					<X>360</X><Y>90</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[int]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1653471189102</Id>
+					<Name><![CDATA[p_holonName]]></Name>
+					<X>60</X><Y>60</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[String]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA["WindHolon"]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1653471189100</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1653478369099</Id>
+					<Name><![CDATA[p_motivationSustainability]]></Name>
+					<X>60</X><Y>180</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[3]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1653478369097</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1653478381526</Id>
+					<Name><![CDATA[p_motivationCosts]]></Name>
+					<X>60</X><Y>210</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[2]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1653478381524</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1653471374648</Id>
+					<Name><![CDATA[c_connectedConsumers]]></Name>
+					<X>360</X><Y>60</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
+						<ElementClass><![CDATA[Object]]></ElementClass>
+						<ValueElementClass><![CDATA[String]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
+			</Variables>
+			<Events>
+				<Event>
+					<Id>1653471226869</Id>
+					<Name><![CDATA[e_joinRequest]]></Name>
+					<X>60</X><Y>130</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties TriggerType="timeout" Mode="cyclic">
+						<Timeout Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+						</Timeout>
+						<Rate Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="RateUnits"><![CDATA[PER_HOUR]]></Unit>
+						</Rate>
+						<OccurrenceAtTime>true</OccurrenceAtTime>
+						<OccurrenceDate>1653552000000</OccurrenceDate>
+						<OccurrenceTime Class="CodeUnitValue">
+							<Code><![CDATA[0]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
+						</OccurrenceTime>
+						<RecurrenceCode Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[DAY]]></Unit>
+						</RecurrenceCode>
+						<Condition><![CDATA[false]]></Condition>
+					</Properties>
+					<Action><![CDATA[for ( EBuurtModel e : main.pop_buurtHolonen ) {
+	for ( Huishouden h : e.huishoudens ) {
+		send(OL_HolonMessages.JOIN_ME,h);
+	}
+}
+c_connectedConsumers.clear();
+c_connectedConsumers.addAll(holonConnections.getConnections());
+v_numberOfMembers = c_connectedConsumers.size();]]></Action>
+				</Event>
+			</Events>
 			<AgentLinks>
 				<AgentLink>
 					<Id>1653469816634</Id>
@@ -38503,6 +38859,27 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 					<AgentLinkType>COLLECTION_OF_LINKS</AgentLinkType>
 					<AgentLinkBidirectional>true</AgentLinkBidirectional>
 					<MessageType><![CDATA[Object]]></MessageType>
+					<LineStyle>SOLID</LineStyle>
+					<LineWidth>1</LineWidth>
+					<LineColor>-16777216</LineColor>
+					<LineZOrder>UNDER_AGENTS</LineZOrder>
+					<LineArrow>NONE</LineArrow>
+					<LineArrowPosition>END</LineArrowPosition>
+				</AgentLink>
+				<AgentLink>
+					<Id>1653478844865</Id>
+					<Name><![CDATA[holonConnections]]></Name>
+					<X>200</X><Y>-50</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<HandleReceiveInConnections>false</HandleReceiveInConnections>
+					<AgentLinkType>COLLECTION_OF_LINKS</AgentLinkType>
+					<AgentReferenceId>1641891521968</AgentReferenceId>
+					<AgentLinkBidirectional>true</AgentLinkBidirectional>
+					<BidirectionalPeerId>1653478777331</BidirectionalPeerId>
+					<MessageType><![CDATA[OL_HolonMessages]]></MessageType>
 					<LineStyle>SOLID</LineStyle>
 					<LineWidth>1</LineWidth>
 					<LineColor>-16777216</LineColor>
