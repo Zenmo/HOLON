@@ -4,7 +4,7 @@
 	         AnyLogic Project File 
 *************************************************	         
 -->
-<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.11.202204111309" AlpVersion="8.7.3">
+<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.11.202204111242" AlpVersion="8.7.3">
 <Model>
 	<Id>1641891178629</Id>
 	<Name><![CDATA[Ebuurt]]></Name>
@@ -1017,8 +1017,10 @@ v_currentWindspeed_mps = current_windspeed_mps;
 windParken.forEach(w -> w.windPowerFunction(current_windspeed_mps));
 windParken.forEach(w -> v_centralWindPower_kW += w.v_currentPower_kW);
 
-v_nodePower_kW = v_subNodesTotalPower_kW- v_centralPvPower_kW + v_centralWindPower_kW;
-]]></Action>
+v_nodePower_kW = v_subNodesTotalPower_kW - v_centralPvPower_kW - v_centralWindPower_kW;
+
+// update holon energy balance and incentive generation
+holonAgent.forEach(h -> h.f_updateEnergyBalance());]]></Action>
 				</Event>
 			</Events>
 			<Functions>
@@ -1656,6 +1658,12 @@ for( EBuurtModel e : pop_buurtHolonen ){
 						<Parameter>
 							<Name><![CDATA[p_motivationCosts]]></Name>
 						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_hourlyPrices]]></Name>
+							<Value Class="CodeValue">
+								<Code><![CDATA[true]]></Code>
+							</Value>
+						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
 					<Replication Class="CodeValue">
@@ -1721,13 +1729,13 @@ for( EBuurtModel e : pop_buurtHolonen ){
 						<Parameter>
 							<Name><![CDATA[peakWindspeed_mps]]></Name>
 							<Value Class="CodeValue">
-								<Code><![CDATA[10]]></Code>
+								<Code><![CDATA[8]]></Code>
 							</Value>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[peakPower_kW]]></Name>
 							<Value Class="CodeValue">
-								<Code><![CDATA[100]]></Code>
+								<Code><![CDATA[200]]></Code>
 							</Value>
 						</Parameter>
 					</Parameters>
@@ -1860,7 +1868,7 @@ for( EBuurtModel e : pop_buurtHolonen ){
 					<LocationNameCode Class="CodeValue">
 						<Code><![CDATA[""]]></Code>
 					</LocationNameCode>
-					<InitializationType>SPECIFIED_NUMBER</InitializationType>
+					<InitializationType>EMPTY</InitializationType>
 					<InitializationDatabaseTableQuery>
 						<TableReference>
 						</TableReference>
@@ -4485,10 +4493,16 @@ if ( p_heatingSystem instanceof HS_DistrictHeatingWBoiler ) {
 }
 */
 
+// Select incentive source - use holon incentives if you are a member! TODO: use in conjunction with local network tariff
+IncentiveGenerator incentiveSource = eBuurtModel.incentiveGenerator;
+if( holonConnections.size() > 0 ) {
+	incentiveSource = holonConnections.getConnectedAgent(0).incentiveGenerator;
+}
+
 // EV charging
 v_totaalVerbruik_kW = v_basislastElektriciteitsverbruik_kW + heatingSystem.v_ElectricityConsumption_kW;
 v_gridPowerBalAfterPV_kW = v_totaalVerbruik_kW - v_pvOpwek_kW;
-energyManager.manage(p_energyManagerMode);
+energyManager.manage(p_energyManagerMode,incentiveSource);
 
 double V2G_kW=0;
 if (nbVehicles > 0) {
@@ -4812,7 +4826,7 @@ auto2.setLocation( parkeerplaatsPoint2 );
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
+					<ReturnType><![CDATA[boolean]]></ReturnType>
 					<Id>1653478244429</Id>
 					<Name><![CDATA[f_evaluateHolonJoinRequest]]></Name>
 					<X>1130</X><Y>320</Y>
@@ -4828,7 +4842,6 @@ auto2.setLocation( parkeerplaatsPoint2 );
 //int holonSustainabilityPrio = sender_holon.p_motivationSustainability;
 boolean hasOwnPV = this.zonnepanelen.size() > 0? true : false;
 
-
 // huishouden connect met holon, mits:
 // 	- sustainability is boven threshold?
 //  - holon goal is ook sustainability
@@ -4836,7 +4849,9 @@ boolean hasOwnPV = this.zonnepanelen.size() > 0? true : false;
 //  - ??? doel? functionaliteit? eigen PV verhandelen met de holon? Holon-pv aantrekken?
 if( hasOwnPV == false ) {
 	this.holonConnections.connectTo(sender_holon);
-}]]></Body>
+	sender_holon.holonConnections.connectTo(this);
+}
+]]></Body>
 				</Function>
 			</Functions>
 			<TableFunctions>
@@ -4909,8 +4924,7 @@ if (msg == OL_HolonMessages.JOIN_ME ) {
 					<HandleReceiveInConnections>false</HandleReceiveInConnections>
 					<AgentLinkType>COLLECTION_OF_LINKS</AgentLinkType>
 					<AgentReferenceId>1653469816639</AgentReferenceId>
-					<AgentLinkBidirectional>true</AgentLinkBidirectional>
-					<BidirectionalPeerId>1653478844865</BidirectionalPeerId>
+					<AgentLinkBidirectional>false</AgentLinkBidirectional>
 					<MessageType><![CDATA[OL_HolonMessages]]></MessageType>
 					<LineStyle>SOLID</LineStyle>
 					<LineWidth>1</LineWidth>
@@ -14167,6 +14181,10 @@ else {
 						<Name><![CDATA[p_energyManagerMode]]></Name>
 						<Type><![CDATA[int]]></Type>
 					</Parameter>
+					<Parameter>
+						<Name><![CDATA[incentiveSource]]></Name>
+						<Type><![CDATA[IncentiveGenerator]]></Type>
+					</Parameter>
 					<Body><![CDATA[// Loop over all vehicles (can become; loop over all smart devices later)
 
 ArrayList<Auto> carArray = huishouden.autos;
@@ -14180,11 +14198,11 @@ else if (mode.equals("on solar")) {
 	chargingTracksSolarProduction(carArray);
 }
 else if (mode.equals("incentive")) {
-	threeStageFinancial(carArray);
+	threeStageFinancial(carArray,incentiveSource);
 //		traceln("smart charging!");
 }
 else if (mode.equals("incentive + V2G")) {
-	threeStageFinancialV2G(carArray);
+	threeStageFinancialV2G(carArray,incentiveSource);
 }
 
 for (int i = 0 ; i < carArray.size() ; i++){
@@ -14244,13 +14262,17 @@ for (int i = 0 ; i< huishouden.nbVehicles; i++) {
 						<Name><![CDATA[carArray]]></Name>
 						<Type><![CDATA[ArrayList<Auto>]]></Type>
 					</Parameter>
+					<Parameter>
+						<Name><![CDATA[incentiveSource]]></Name>
+						<Type><![CDATA[IncentiveGenerator]]></Type>
+					</Parameter>
 					<Body><![CDATA[if ( carArray.size() > 0 ){
 	for (int i = 0 ; i < carArray.size(); i++) {
 		Auto car = carArray.get(i);
 
 		//Prepare input for bidding
 
-		double maxChargingPower_kW = min( eBuurtModel.incentiveGenerator.p_maxHouseholdPowerKW - huishouden.v_gridPowerBalAfterPV_kW, car.maxLaadsnelheid_kW ); // Max of highest possible charging speed, and net-power available
+		double maxChargingPower_kW = min( incentiveSource.p_maxHouseholdPowerKW - huishouden.v_gridPowerBalAfterPV_kW, car.maxLaadsnelheid_kW ); // Max of highest possible charging speed, and net-power available
 		double maxAffordableChargingPower_kW = 0; // Start scanning from charging power of 0
 		
 		if (car.nextActivity != null){ // Only apply medium and high cost charging if a trip is planned
@@ -14261,7 +14283,7 @@ for (int i = 0 ; i< huishouden.nbVehicles; i++) {
 			// Between chargingDeadlineT1 and chargingDeadlineT2, charge against medium rate
 			else if ( time(MINUTE) >= ( car.nextActivity.startMinute - car.v_minChargingTime_min*v_mediumTariffWindowFactor )  && car.huidigBatterijCap_kWh < car.v_chargingTarget_kWh ) { // Between t2 and t1 till charging, charge against medium rate
 				double chargingPower_kW = 0 ;
-				while ( chargingPower_kW < min(maxChargingPower_kW, car.maxLaadsnelheid_kW) && eBuurtModel.incentiveGenerator.tf_incentivePowerCosts( (double)chargingPower_kW + huishouden.v_gridPowerBalAfterPV_kW ) < v_bidPriceMedium_eurpkWh) { // TODO: this reacts spiky to a flat rate (which is logical but obscure)
+				while ( chargingPower_kW < min(maxChargingPower_kW, car.maxLaadsnelheid_kW) && incentiveSource.tf_incentivePowerCosts( (double)chargingPower_kW + huishouden.v_gridPowerBalAfterPV_kW ) < v_bidPriceMedium_eurpkWh) { // TODO: this reacts spiky to a flat rate (which is logical but obscure)
 					 chargingPower_kW+=0.1;
 				}
 			    maxAffordableChargingPower_kW = chargingPower_kW;				
@@ -14270,7 +14292,7 @@ for (int i = 0 ; i< huishouden.nbVehicles; i++) {
 		// Low cost charging regardless of next trip planned, and if there was not already 'urgent' charging
 		if ( maxAffordableChargingPower_kW == 0 && car.huidigBatterijCap_kWh < car.maxBatterijCap_kWh) { // Longer than t1 till charging, only charge against cheapest rate when battery is not full
 			double chargingPower_kW = 0 ;
-			while ( chargingPower_kW < min(maxChargingPower_kW, car.maxLaadsnelheid_kW) && eBuurtModel.incentiveGenerator.tf_incentivePowerCosts( (double)chargingPower_kW + huishouden.v_gridPowerBalAfterPV_kW ) < v_bidPriceLow_eurpkWh) { // TODO: this reacts spiky to a flat rate (which is logical but obscure)
+			while ( chargingPower_kW < min(maxChargingPower_kW, car.maxLaadsnelheid_kW) && incentiveSource.tf_incentivePowerCosts( (double)chargingPower_kW + huishouden.v_gridPowerBalAfterPV_kW ) < v_bidPriceLow_eurpkWh) { // TODO: this reacts spiky to a flat rate (which is logical but obscure)
 				 chargingPower_kW+=0.1;
 			}
 		    maxAffordableChargingPower_kW = chargingPower_kW;	
@@ -14319,12 +14341,16 @@ for (int i = 0 ; i< huishouden.nbVehicles; i++) {
 						<Name><![CDATA[carArray]]></Name>
 						<Type><![CDATA[ArrayList<Auto>]]></Type>
 					</Parameter>
+					<Parameter>
+						<Name><![CDATA[incentiveSource]]></Name>
+						<Type><![CDATA[IncentiveGenerator]]></Type>
+					</Parameter>
 					<Body><![CDATA[if ( carArray.size() > 0 ){
 	for (int i = 0 ; i < carArray.size(); i++) {
 		
 		//Prepare input for bidding
 		Auto car = carArray.get(i);
-		double maxChargingPower_kW = min( eBuurtModel.incentiveGenerator.p_maxHouseholdPowerKW - huishouden.v_gridPowerBalAfterPV_kW, car.maxLaadsnelheid_kW ); // Max of highest possible charging speed, and net-power available
+		double maxChargingPower_kW = min( incentiveSource.p_maxHouseholdPowerKW - huishouden.v_gridPowerBalAfterPV_kW, car.maxLaadsnelheid_kW ); // Max of highest possible charging speed, and net-power available
 		double maxAffordableChargingPower_kW = 0; // Start scanning from charging power of 0
 
 		if (car.nextActivity != null){ // Only apply medium and high cost charging if a trip is planned
@@ -14335,7 +14361,7 @@ for (int i = 0 ; i< huishouden.nbVehicles; i++) {
 			// Between chargingDeadlineT1 and chargingDeadlineT2, charge against medium rate
 			else if ( time(MINUTE) >= ( car.nextActivity.startMinute - car.v_minChargingTime_min*v_mediumTariffWindowFactor )  && car.huidigBatterijCap_kWh < car.v_chargingTarget_kWh ) { // Between t2 and t1 till charging, charge against medium rate
 				double chargingPower_kW = 0 ;
-				while ( chargingPower_kW < min(maxChargingPower_kW, car.maxLaadsnelheid_kW) && eBuurtModel.incentiveGenerator.tf_incentivePowerCosts( (double)chargingPower_kW + huishouden.v_gridPowerBalAfterPV_kW ) < v_bidPriceMedium_eurpkWh) { // TODO: this reacts spiky to a flat rate (which is logical but obscure)
+				while ( chargingPower_kW < min(maxChargingPower_kW, car.maxLaadsnelheid_kW) && incentiveSource.tf_incentivePowerCosts( (double)chargingPower_kW + huishouden.v_gridPowerBalAfterPV_kW ) < v_bidPriceMedium_eurpkWh) { // TODO: this reacts spiky to a flat rate (which is logical but obscure)
 					 chargingPower_kW+=0.1;
 				}
 			    maxAffordableChargingPower_kW = chargingPower_kW;		
@@ -14344,14 +14370,14 @@ for (int i = 0 ; i< huishouden.nbVehicles; i++) {
 		// Low cost charging regardless of next trip planned, and if there was not already 'urgent' charging
 		if ( maxAffordableChargingPower_kW == 0 && car.huidigBatterijCap_kWh < car.maxBatterijCap_kWh) { // Longer than t1 till charging, only charge against cheapest rate when battery is not full
 			double chargingPower_kW = 0 ;
-			while ( chargingPower_kW < min(maxChargingPower_kW, car.maxLaadsnelheid_kW) && eBuurtModel.incentiveGenerator.tf_incentivePowerCosts( (double)chargingPower_kW + huishouden.v_gridPowerBalAfterPV_kW ) < v_bidPriceLow_eurpkWh) { // TODO: this reacts spiky to a flat rate (which is logical but obscure)
+			while ( chargingPower_kW < min(maxChargingPower_kW, car.maxLaadsnelheid_kW) && incentiveSource.tf_incentivePowerCosts( (double)chargingPower_kW + huishouden.v_gridPowerBalAfterPV_kW ) < v_bidPriceLow_eurpkWh) { // TODO: this reacts spiky to a flat rate (which is logical but obscure)
 				 chargingPower_kW+=0.1;
 			}
 		    maxAffordableChargingPower_kW = chargingPower_kW;		
 		} 
 		if ( maxAffordableChargingPower_kW == 0 && car.huidigBatterijCap_kWh > car.v_chargingTarget_kWh) { // V2G!
 			double chargingPower_kW = 0 ;
-			while ( chargingPower_kW > -min(maxChargingPower_kW, car.maxLaadsnelheid_kW) && eBuurtModel.incentiveGenerator.tf_incentivePowerCosts( chargingPower_kW + huishouden.v_gridPowerBalAfterPV_kW ) > v_bidPriceV2G_eurpkWh ) { // TODO: this reacts spiky to a flat rate (which is logical but obscure)
+			while ( chargingPower_kW > -min(maxChargingPower_kW, car.maxLaadsnelheid_kW) && incentiveSource.tf_incentivePowerCosts( chargingPower_kW + huishouden.v_gridPowerBalAfterPV_kW ) > v_bidPriceV2G_eurpkWh ) { // TODO: this reacts spiky to a flat rate (which is logical but obscure)
 				 chargingPower_kW-=0.1;
 			}
 		    maxAffordableChargingPower_kW = chargingPower_kW;				
@@ -14468,7 +14494,7 @@ f_setNetMetering();
 
 f_setCapacityTariff();
 
-f_setCongestionTariff();
+f_setCongestionTariff(0);
 
 f_setDayAheadTariff();
 
@@ -15134,6 +15160,102 @@ f_updateIncentive();
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1653484881451</Id>
+					<Name><![CDATA[p_hourlyPrices]]></Name>
+					<X>20</X><Y>320</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[boolean]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[true]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1653484881449</Id>
+							<EditorContolType>CHECK_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1653484950112</Id>
+					<Name><![CDATA[p_capacityTariff]]></Name>
+					<X>20</X><Y>340</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[boolean]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[false]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1653484950110</Id>
+							<EditorContolType>CHECK_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1653484988076</Id>
+					<Name><![CDATA[p_netMetering]]></Name>
+					<X>20</X><Y>360</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[boolean]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[false]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1653484988074</Id>
+							<EditorContolType>CHECK_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1653485001747</Id>
+					<Name><![CDATA[p_energyMarket]]></Name>
+					<X>20</X><Y>380</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[boolean]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[false]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1653485001745</Id>
+							<EditorContolType>CHECK_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 			</Variables>
 			<Events>
 				<Event>
@@ -15393,7 +15515,7 @@ else {
 					<Body><![CDATA[//Net metering
 
 //if selected, net metering is being used and selling prices equal buying prices
-if( !eBuurtModel.cb_stopNetMetering.isSelected() ){
+if( !p_netMetering ){
 	for( int i = 0; i < v_incentiveLength; i++ ) {
 		//v_incentiveKWNetMetering[i] = p_minHouseholdPowerKW + i;
 		v_incentiveEuroNetMetering[i] = 0;
@@ -15430,7 +15552,7 @@ else {
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[//set capacity tariff
 
-if (eBuurtModel.cb_capacityTariff.isSelected()){
+if (p_capacityTariff){
 	for( int i = 0; i < v_incentiveLength; i++ ) {
 		//v_incentiveKWCapacityTariff[i] = p_minHouseholdPowerKW + i;
 		
@@ -15464,11 +15586,15 @@ else{
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[holonCurrentPower_kW]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
 					<Body><![CDATA[//set congestion tariff
-double lowPassFraction = min(1,1.2*eBuurtModel.main.dt_h);
-v_holonLoadLowPassed_kW += lowPassFraction * ( eBuurtModel.v_trafoVermogen_kW - v_holonLoadLowPassed_kW );
+double lowPassFraction = min(1,1.2*main.dt_h);
+v_holonLoadLowPassed_kW += lowPassFraction * ( holonCurrentPower_kW - v_holonLoadLowPassed_kW );
 
-if (eBuurtModel.cb_congestionMarket.isSelected()){
+if (p_energyMarket){
 	if ( v_holonLoadLowPassed_kW > p_congestionPowerTresh_kW ) {
 		// Maak afnemen duurder en terugleveren aantrekkelijker
 		v_incentiveCongestionTariff = p_congestionTariff_eurpkW * ( v_holonLoadLowPassed_kW - p_congestionPowerTresh_kW );
@@ -15538,9 +15664,9 @@ else{
 					<Body><![CDATA[//Creating price schedule to be added to basic fixed tariff schedule
 
 //zet de uurprijs o.b.v. de table function van de dayAheadTariff en delen door 1000 om van eurpMWh naar eurpkWh te gaann
-if( cb_dayAheadTariff.isSelected() ){ 
+if( p_hourlyPrices ){ 
 	for( int i = 0; i < v_incentiveLength; i++ ) {
-		v_incentiveDayAheadTariff_eurpkWh[i] = tf_dayAheadTariff_euroPerMWh(time(HOUR) + eBuurtModel.hourOfYearStart) / 1000;
+		v_incentiveDayAheadTariff_eurpkWh[i] = tf_dayAheadTariff_euroPerMWh(time(HOUR) + main.hourOfYearStart) / 1000;
 	}
 }
 else {
@@ -15562,7 +15688,7 @@ else {
 					<Body><![CDATA[// TODO: add switching logic to this function instead such that it is the only interface to all functionallity in this agent
 
 // kies tussen vast en variabel tarief als basis om incentives bij op te tellen, afhankelijk van de gekozen instelling.
-if( cb_dayAheadTariff.isSelected() ) {
+if( p_hourlyPrices ) {
 	for( int i = 0; i < v_incentiveLength; i++){ // Collect all incentive contributions
 		v_incentiveEuro[i] = v_incentiveDayAheadTariff_eurpkWh[i] + p_incentiveTaxRate_eur + v_incentiveEuroNetMetering[i] + v_incentiveEuroCapacityTariff[i] + v_incentiveCongestionTariff ;
 	}
@@ -15585,10 +15711,10 @@ for( int i = 0; i < v_incentiveLength; i++){
 
 //update plot
 //eBuurtModel.pl_incentives1.setFixedHorizontalScale(p_minHouseholdPowerKW, p_maxHouseholdPowerKW);
-eBuurtModel.pl_incentives1.updateData();
+//eBuurtModel.pl_incentives1.updateData();  //TODO: make generic
 
 //pl_incentives.setFixedHorizontalScale(p_minHouseholdPowerKW, p_maxHouseholdPowerKW);
-pl_incentives.updateData();
+pl_incentives.updateData(); 
 //eBuurtModel.t_congestietarief.setText(roundToInt(v_incentiveCongestionTariff*100.0)  + " ct/kWh congestietarief");]]></Body>
 				</Function>
 			</Functions>
@@ -15760,6 +15886,19 @@ pl_incentives.updateData();
 					<ActiveObjectClass>
 						<PackageName><![CDATA[ebuurt]]></PackageName>
 						<ClassName><![CDATA[Main]]></ClassName>
+					</ActiveObjectClass>
+				</ContainerLink>
+				<ContainerLink>
+					<Id>1653483303292</Id>
+					<Name><![CDATA[holonAgent]]></Name>
+					<X>250</X><Y>-100</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<ActiveObjectClass>
+						<PackageName><![CDATA[ebuurt]]></PackageName>
+						<ClassName><![CDATA[HolonAgent]]></ClassName>
 					</ActiveObjectClass>
 				</ContainerLink>
 			</ContainerLinks>
@@ -15953,7 +16092,7 @@ f_updateTariffs();]]></ActionCode>
 					<Name><![CDATA[text]]></Name>
 					<X>760</X><Y>80</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
+					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D</DrawMode>
@@ -15974,7 +16113,7 @@ f_updateTariffs();]]></ActionCode>
 					<Name><![CDATA[text1]]></Name>
 					<X>975</X><Y>229</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
+					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D</DrawMode>
@@ -16082,6 +16221,73 @@ f_updateIncentive();]]></ActionCode>
 						<LinkTo>false</LinkTo>
 	 				</ExtendedProperties>
 				</Control>
+    			<TimePlot>
+					<Id>1653490625520</Id>
+					<Name><![CDATA[Wijktrafo_vermogen_plot]]></Name>
+					<X>800</X><Y>320</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<AutoUpdate>true</AutoUpdate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1644307200000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
+					</RecurrenceCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Width>410</Width>
+					<Height>240</Height>
+					<BackgroundColor/>
+					<BorderColor/>
+					<ChartArea>
+						<XOffset>50</XOffset>
+						<YOffset>20</YOffset>
+						<Width>330</Width>
+						<Height>150</Height>
+						<BackgroundColor>-1</BackgroundColor>
+						<BorderColor>-16777216</BorderColor>
+						<GridColor>-12566464</GridColor>
+					</ChartArea>
+					<Legend>
+						<Place>SOUTH</Place>
+						<TextColor>-16777216</TextColor>
+						<Size>40</Size>
+					</Legend>
+					<Labels>
+						<HorLabelsPosition>DEFAULT</HorLabelsPosition>
+						<VerLabelsPosition>DEFAULT</VerLabelsPosition>
+						<TextColor>-12566464</TextColor>
+					</Labels>
+					<ShowLegend>true</ShowLegend>
+					<TimeWindowsMovementType>MOVEMENT_WITH_TIME</TimeWindowsMovementType>		
+					<TimeWindowUnits>HOUR</TimeWindowUnits>
+					<VerScaleFromExpression><![CDATA[-.5]]></VerScaleFromExpression>
+					<VerScaleToExpression><![CDATA[.5]]></VerScaleToExpression>
+					<VerScaleType>FIXED</VerScaleType>
+					<DrawLine>true</DrawLine>
+					<Interpolation>LINEAR</Interpolation>
+					<DatasetExpression>  
+						<Title><![CDATA[EnergyMarketTariff]]></Title>
+					<Id>1653490625517</Id>
+					<Expression><![CDATA[my_dataset]]></Expression>
+					<Color>-2354116</Color>
+					<Expression2><![CDATA[v_incentiveCongestionTariff]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>
+						<PointStyle>NONE</PointStyle>
+						<LineWidth>1.0</LineWidth>
+					</DatasetExpression>
+					<SamplesToKeep>10800</SamplesToKeep>
+					<TimeWindowExpression><![CDATA[72]]></TimeWindowExpression>
+					<FillAreaUnderLine>false</FillAreaUnderLine>
+					<LabelFormat>HH_mm</LabelFormat>
+    			</TimePlot>
 			</Presentation>
 
 				</Level>
@@ -31461,6 +31667,21 @@ traceln("Ebuurt "+this.getIndex()+" startup END | "+System.currentTimeMillis());
 						<Type><![CDATA[double]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1653485846450</Id>
+					<Name><![CDATA[v_localProduction_kW]]></Name>
+					<X>-1290</X><Y>520</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0.0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1652789519761</Id>
 					<Name><![CDATA[p_boot_woningen]]></Name>
@@ -33078,7 +33299,7 @@ p_gasPriceAfterTaxInitial_eurpm3 = (p_gasPriceBeforeTax_eurpm3 + p_energyTaxOnGa
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[// default is basic
-String mode = "basic";
+/*String mode = "basic";
 
 // only follows incentive if any of the boxes is selected
 boolean condition = cb_stopNetMetering.isSelected()
@@ -33093,8 +33314,9 @@ if (condition) {
 		mode = "incentive + V2G";
 	}
 }
-
-
+*/
+boolean condition=true;
+String mode = "incentive";
 // disable the v2g if no incentive is applied
 if (!condition) {
 	cb_enableV2G.setEnabled(false);
@@ -33548,7 +33770,7 @@ f_connectSuppliersToDistrictHeat();]]></Body>
 v_outsideTemp_degC = main.temperatuurFunctie( time(HOUR) + hourOfYearStart );
 
 // Incentives
-incentiveGenerator.f_setCongestionTariff(); // Dynamic incentives need to be updated every timestep
+incentiveGenerator.f_setCongestionTariff(v_trafoVermogen_kW); // Dynamic incentives need to be updated every timestep
 incentiveGenerator.f_setDayAheadTariff();
 incentiveGenerator.f_updateIncentive();
 	
@@ -34436,6 +34658,18 @@ TODO: data afleiden en corrigeren.
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_incentiveTaxRate_eur]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_hourlyPrices]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_capacityTariff]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_netMetering]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_energyMarket]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>false</ReplicationFlag>
@@ -38718,6 +38952,33 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 						</InitialValue>
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1653485918337</Id>
+					<Name><![CDATA[v_localProduction_kW]]></Name>
+					<X>360</X><Y>160</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0.0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1653489612093</Id>
+					<Name><![CDATA[v_holonPower_kW]]></Name>
+					<X>360</X><Y>140</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1653471189102</Id>
 					<Name><![CDATA[p_holonName]]></Name>
@@ -38790,9 +39051,30 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1653485348802</Id>
+					<Name><![CDATA[p_hourlyPrices]]></Name>
+					<X>210</X><Y>300</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[boolean]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1653485348800</Id>
+							<EditorContolType>CHECK_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1653471374648</Id>
-					<Name><![CDATA[c_connectedConsumers]]></Name>
+					<Name><![CDATA[c_connectedAgents]]></Name>
 					<X>360</X><Y>60</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -38810,7 +39092,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 				<Event>
 					<Id>1653471226869</Id>
 					<Name><![CDATA[e_joinRequest]]></Name>
-					<X>60</X><Y>130</Y>
+					<X>60</X><Y>90</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -38836,16 +39118,62 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 						</RecurrenceCode>
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
-					<Action><![CDATA[for ( EBuurtModel e : main.pop_buurtHolonen ) {
+					<Action><![CDATA[
+for ( EBuurtModel e : main.pop_buurtHolonen ) {
 	for ( Huishouden h : e.huishoudens ) {
 		send(OL_HolonMessages.JOIN_ME,h);
 	}
 }
-c_connectedConsumers.clear();
-c_connectedConsumers.addAll(holonConnections.getConnections());
-v_numberOfMembers = c_connectedConsumers.size();]]></Action>
+c_connectedAgents.clear();
+c_connectedAgents.addAll(holonConnections.getConnections());
+v_numberOfMembers = c_connectedAgents.size();
+
+for ( WindPark w : main.windParken ) {
+	send(OL_HolonMessages.JOIN_ME,w);
+}
+]]></Action>
 				</Event>
 			</Events>
+			<Functions>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1653485941913</Id>
+					<Name><![CDATA[f_updateEnergyBalance]]></Name>
+					<X>60</X><Y>140</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[v_holonPower_kW = 0.0;
+v_localProduction_kW = 0.0;
+
+for ( Agent a : holonConnections.getConnections() ) {
+	// haal vraag op van aangesloten huishoudens
+	if ( a instanceof Huishouden ) {
+		a = (Huishouden)a;
+		v_holonPower_kW += ((Huishouden) a).v_netVermogen_kW;
+	}
+	// haal productie van aangesloten duurzame assets op
+	else if ( a instanceof WindPark ) {
+		a = (WindPark)a;
+		v_localProduction_kW += ((WindPark) a).v_currentPower_kW;		
+		
+	}
+	else if ( a instanceof Zonnepanelen ) {
+		a = (Zonnepanelen)a;
+		v_localProduction_kW += ((Zonnepanelen) a).v_pvOpwek_kW;
+	}	
+}
+v_holonPower_kW -= v_localProduction_kW;
+
+// Incentives
+incentiveGenerator.f_setCongestionTariff(v_holonPower_kW); // Dynamic incentives need to be updated every timestep
+incentiveGenerator.f_setDayAheadTariff();
+incentiveGenerator.f_updateIncentive();
+]]></Body>
+				</Function>
+			</Functions>
 			<AgentLinks>
 				<AgentLink>
 					<Id>1653469816634</Id>
@@ -38876,9 +39204,7 @@ v_numberOfMembers = c_connectedConsumers.size();]]></Action>
 					<ShowLabel>true</ShowLabel>
 					<HandleReceiveInConnections>false</HandleReceiveInConnections>
 					<AgentLinkType>COLLECTION_OF_LINKS</AgentLinkType>
-					<AgentReferenceId>1641891521968</AgentReferenceId>
-					<AgentLinkBidirectional>true</AgentLinkBidirectional>
-					<BidirectionalPeerId>1653478777331</BidirectionalPeerId>
+					<AgentLinkBidirectional>false</AgentLinkBidirectional>
 					<MessageType><![CDATA[OL_HolonMessages]]></MessageType>
 					<LineStyle>SOLID</LineStyle>
 					<LineWidth>1</LineWidth>
@@ -38904,6 +39230,130 @@ v_numberOfMembers = c_connectedConsumers.size();]]></Action>
 					</ActiveObjectClass>
 				</ContainerLink>
 			</ContainerLinks>
+			<EmbeddedObjects>
+				<EmbeddedObject>
+					<Id>1653483303111</Id>
+					<Name><![CDATA[incentiveGenerator]]></Name>
+					<X>360</X><Y>210</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<PresentationId>1653483303261</PresentationId>
+					<ActiveObjectClass>
+						<PackageName><![CDATA[ebuurt]]></PackageName>
+						<ClassName><![CDATA[IncentiveGenerator]]></ClassName>
+					</ActiveObjectClass>
+					<GenericParameterSubstitute>
+						<GenericParameterSubstituteReference>
+							<PackageName><![CDATA[ebuurt]]></PackageName>
+							<ClassName><![CDATA[IncentiveGenerator]]></ClassName>
+							<ItemName><![CDATA[1644943240083]]></ItemName>
+						</GenericParameterSubstituteReference>
+					</GenericParameterSubstitute>
+					<Parameters>
+						<Parameter>
+							<Name><![CDATA[p_maxHouseholdPowerKW]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_minHouseholdPowerKW]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_fixedTariffEuroPerKWh]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_offPeakTariffEuroPerKWh]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_startHourOffPeakTariff]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_endHourOffPeakTariff]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_startHourAfternoonTariff]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_endHourAfternoonTariff]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_meteringSellBackTariff]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_capacityTariffMinCapacityKW]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_capacityTariffMaxCapacityKW]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_capacityTariffEuroPerKW]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_congestionPowerTresh_kW]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_congestionTariff_eurpkW]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_incentiveTaxRate_eur]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_hourlyPrices]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_capacityTariff]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_netMetering]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_energyMarket]]></Name>
+							<Value Class="CodeValue">
+								<Code><![CDATA[true]]></Code>
+							</Value>
+						</Parameter>
+					</Parameters>
+					<ReplicationFlag>false</ReplicationFlag>
+					<Replication Class="CodeValue">
+						<Code><![CDATA[100]]></Code>
+					</Replication>
+					<CollectionType>ARRAY_LIST_BASED</CollectionType>
+					<InEnvironment>true</InEnvironment>	
+					<InitialLocationType>AT_ANIMATION_POSITION</InitialLocationType>
+					<XCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</XCode>
+					<YCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</YCode>
+					<ZCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ZCode>
+					<ColumnCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ColumnCode>
+					<RowCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</RowCode>
+					<LatitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LatitudeCode>
+					<LongitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LongitudeCode>
+					<LocationNameCode Class="CodeValue">
+						<Code><![CDATA[""]]></Code>
+					</LocationNameCode>
+					<InitializationType>SPECIFIED_NUMBER</InitializationType>
+					<InitializationDatabaseTableQuery>
+						<TableReference>
+						</TableReference>
+					</InitializationDatabaseTableQuery>
+					<InitializationDatabaseType>ONE_AGENT_PER_DATABASE_RECORD</InitializationDatabaseType>
+					<QuantityColumn>
+					</QuantityColumn>
+				</EmbeddedObject>
+			</EmbeddedObjects>
 
 			<Presentation>
 				<Level>
@@ -39054,6 +39504,47 @@ v_numberOfMembers = c_connectedConsumers.size();]]></Action>
 			</Presentation>
 
 				</Group>
+				<EmbeddedObjectPresentation>
+					<Id>1653483303261</Id>
+					<Name><![CDATA[incentiveGenerator_presentation]]></Name>
+					<X>0</X><Y>0</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<DrawingMode>AGENT_CURRENT_POSITION</DrawingMode>
+					<ScaleType>AUTOMATICALLY_CALCULATED</ScaleType>
+					<GISScaleForRealEmbeddedObjectPresentationSize>1000</GISScaleForRealEmbeddedObjectPresentationSize>
+					<GISScaleForFixedEmbeddedObjectPresentationSize>1000000000</GISScaleForFixedEmbeddedObjectPresentationSize>
+					<Latitude>0.0</Latitude>
+					<Longitude>0.0</Longitude>
+				</EmbeddedObjectPresentation>
+				<Control Type="CheckBox">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1653485429347</Id>
+					<Name><![CDATA[hourlyPrices]]></Name>
+					<X>50</X><Y>290</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="220" Height="20">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<TextColor/>
+						<Enabled>true</Enabled>
+					</BasicProperties>
+					<ExtendedProperties>
+						<Font Name="Dialog" Size="11" Style="0"/>
+						<LabelText><![CDATA[Uurlijkse holon-prijzen]]></LabelText>
+						<LinkTo>true</LinkTo>
+						<Link>p_hourlyPrices</Link>
+	 				</ExtendedProperties>
+				</Control>
 			</Presentation>
 
 				</Level>
@@ -39240,6 +39731,27 @@ if ( normalizedWindSpeed < 0.1 ) {
 
 v_currentPower_kW = normalizedWindSpeed * peakPower_kW;]]></Body>
 				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1653489125950</Id>
+					<Name><![CDATA[f_evaluateHolonJoinRequest]]></Name>
+					<X>60</X><Y>170</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[sender_holon]]></Name>
+						<Type><![CDATA[HolonAgent]]></Type>
+					</Parameter>
+					<Body><![CDATA[// check and connect to holon
+this.holonConnections.connectTo(sender_holon);
+	sender_holon.holonConnections.connectTo(this);
+	
+
+]]></Body>
+				</Function>
 			</Functions>
 			<AgentLinks>
 				<AgentLink>
@@ -39250,9 +39762,32 @@ v_currentPower_kW = normalizedWindSpeed * peakPower_kW;]]></Body>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
+					<OnReceive><![CDATA[if (msg == OL_HolonMessages.JOIN_ME ) {
+	f_evaluateHolonJoinRequest((HolonAgent)sender);
+}]]></OnReceive>
 					<HandleReceiveInConnections>false</HandleReceiveInConnections>
 					<AgentLinkType>COLLECTION_OF_LINKS</AgentLinkType>
 					<AgentLinkBidirectional>true</AgentLinkBidirectional>
+					<MessageType><![CDATA[Object]]></MessageType>
+					<LineStyle>SOLID</LineStyle>
+					<LineWidth>1</LineWidth>
+					<LineColor>-16777216</LineColor>
+					<LineZOrder>UNDER_AGENTS</LineZOrder>
+					<LineArrow>NONE</LineArrow>
+					<LineArrowPosition>END</LineArrowPosition>
+				</AgentLink>
+				<AgentLink>
+					<Id>1653489332166</Id>
+					<Name><![CDATA[holonConnections]]></Name>
+					<X>170</X><Y>-50</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<HandleReceiveInConnections>false</HandleReceiveInConnections>
+					<AgentLinkType>COLLECTION_OF_LINKS</AgentLinkType>
+					<AgentReferenceId>1653469816639</AgentReferenceId>
+					<AgentLinkBidirectional>false</AgentLinkBidirectional>
 					<MessageType><![CDATA[Object]]></MessageType>
 					<LineStyle>SOLID</LineStyle>
 					<LineWidth>1</LineWidth>
