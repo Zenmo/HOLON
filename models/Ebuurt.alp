@@ -4,7 +4,7 @@
 	         AnyLogic Project File 
 *************************************************	         
 -->
-<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.11.202204111242" AlpVersion="8.7.3">
+<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.12.202205250418" AlpVersion="8.7.5">
 <Model>
 	<Id>1641891178629</Id>
 	<Name><![CDATA[Ebuurt]]></Name>
@@ -966,7 +966,9 @@ traceln("On Startup end main "+this.getName()+" | "+System.currentTimeMillis());
 						</RecurrenceCode>
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
-					<Action><![CDATA[f_updateHistogram();]]></Action>
+					<Action><![CDATA[f_updateHistogram();
+
+]]></Action>
 				</Event>
 				<Event>
 					<Id>1653470765928</Id>
@@ -997,29 +999,30 @@ traceln("On Startup end main "+this.getName()+" | "+System.currentTimeMillis());
 						</RecurrenceCode>
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
-					<Action><![CDATA[v_nodePower_kW = 0;
+					<Action><![CDATA[// Consumers/producers on this network node
+// Energy balance in 'sub-nodes'
 v_subNodesTotalPower_kW = 0;
-// Energy balance in low network branches
-for( EBuurtModel e : pop_buurtHolonen ){
+for( EBuurtModel e : pop_buurten ){
 	e.f_evaluateEnergyBalance(dt_h);
 	v_subNodesTotalPower_kW += e.v_trafoVermogen_kW;
 }
 
-// Consumers/producers on this network node
+// 'Central' power generation on this node
 v_centralPvPower_kW=0;
 v_centralWindPower_kW=0;
-double current_irradiance_kWpm2 = zonnestraling(time(HOUR) + hourOfYearStart) / 1000;
-v_currentIrradiance_kWpm2 = current_irradiance_kWpm2;
-zonnepanelen.forEach(z -> z.pvPowerFunction(current_irradiance_kWpm2));
-zonnepanelen.forEach(z -> v_centralPvPower_kW += z.v_pvOpwek_kW);
-double current_windspeed_mps = windspeed_mps(time(HOUR) + hourOfYearStart);
-v_currentWindspeed_mps = current_windspeed_mps;
-windParken.forEach(w -> w.windPowerFunction(current_windspeed_mps));
-windParken.forEach(w -> v_centralWindPower_kW += w.v_currentPower_kW);
 
-v_nodePower_kW = v_subNodesTotalPower_kW - v_centralPvPower_kW - v_centralWindPower_kW;
+v_currentIrradiance_kWpm2 = zonnestraling(time(HOUR) + hourOfYearStart) / 1000;
+zonnepanelen.forEach(z -> z.pvPowerFunction(v_currentIrradiance_kWpm2));
+zonnepanelen.forEach(z -> v_centralPvPower_kW -= z.v_currentPower_kW); // -= because positive power is power use, and solar panels provide power production
 
-// update holon energy balance and incentive generation
+v_currentWindspeed_mps = windspeed_mps(time(HOUR) + hourOfYearStart);
+windParken.forEach(w -> w.windPowerFunction(v_currentWindspeed_mps));
+windParken.forEach(w -> v_centralWindPower_kW -= w.v_currentPower_kW); // -= because positive power is power use, and wind parks provide power production
+
+// Evaluate total node power (can be seen as power drawn from 'context'; or national grid.
+v_nodePower_kW = v_subNodesTotalPower_kW + v_centralPvPower_kW + v_centralWindPower_kW;
+
+// update holon energy balance and incentive generation for next timestep
 holonAgent.forEach(h -> h.f_updateEnergyBalance());]]></Action>
 				</Event>
 			</Events>
@@ -1037,7 +1040,7 @@ holonAgent.forEach(h -> h.f_updateEnergyBalance());]]></Action>
 					<Body><![CDATA[chart_energiestroom.removeAll();
 int i = 0;
 
-for( EBuurtModel e : pop_buurtHolonen ){
+for( EBuurtModel e : pop_buurten ){
 	double trafovermogen = e.v_trafoVermogen_kW;
 	DataItem di = new DataItem();
 	di.setValue( trafovermogen );
@@ -1065,9 +1068,9 @@ chart_energiestroom.update();
 					<Body><![CDATA[double xBaseCoord = 400;
 double yBaseCoord = 400;
 double radius = 200;
-double offsetRadians = 2.0 / pop_buurtHolonen.size();
+double offsetRadians = 2.0 / pop_buurten.size();
 
-for( EBuurtModel e : pop_buurtHolonen ){
+for( EBuurtModel e : pop_buurten ){
 		double x = xBaseCoord + ( sin( e.getIndex()*offsetRadians*Math.PI ) * radius );
 		double y = yBaseCoord - ( cos( e.getIndex()*offsetRadians*Math.PI ) * radius );
 		e.setXY(x, y);
@@ -1212,7 +1215,7 @@ for( EBuurtModel e : pop_buurtHolonen ){
 			<EmbeddedObjects>
 				<EmbeddedObject>
 					<Id>1652793577990</Id>
-					<Name><![CDATA[pop_buurtHolonen]]></Name>
+					<Name><![CDATA[pop_buurten]]></Name>
 					<X>70</X><Y>100</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
@@ -1415,8 +1418,8 @@ for( EBuurtModel e : pop_buurtHolonen ){
 					</Replication>
 					<CollectionType>ARRAY_LIST_BASED</CollectionType>
 					<StatisticsItem>
-						<Id>1652799222807</Id>
-						<Name><![CDATA[average_selfConsumption_kWh]]></Name>
+						<Id>1653553912814</Id>
+						<Name><![CDATA[average_selfSufficiency_perc]]></Name>
 						<Type>average</Type>
 						<Expression><![CDATA[item.kpiVisuals.v_selfSufficiency_perc]]></Expression>
 						<Condition><![CDATA[]]></Condition>
@@ -2128,7 +2131,7 @@ for( EBuurtModel e : pop_buurtHolonen ){
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
 					<Text><![CDATA[... %]]></Text>
-					<TextCode><![CDATA[roundToInt(pop_buurtHolonen.average_selfConsumption_kWh())+" %"]]></TextCode>
+					<TextCode><![CDATA[roundToInt(pop_buurten.average_selfSufficiency_perc())+" %"]]></TextCode>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>16</Size>
@@ -2150,7 +2153,7 @@ for( EBuurtModel e : pop_buurtHolonen ){
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
 					<Text><![CDATA[Aantal buurten:]]></Text>
-					<TextCode><![CDATA["Aantal buurten: "+pop_buurtHolonen.size()]]></TextCode>
+					<TextCode><![CDATA["Aantal buurten: "+pop_buurten.size()]]></TextCode>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>14</Size>
@@ -2171,7 +2174,7 @@ for( EBuurtModel e : pop_buurtHolonen ){
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
-					<Text><![CDATA[Gemiddelde zelfconsumptie:]]></Text>
+					<Text><![CDATA[Gemiddelde zelfvoorziening]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>14</Size>
@@ -2283,7 +2286,7 @@ for( EBuurtModel e : pop_buurtHolonen ){
 				</Text>
 				<EmbeddedObjectPresentation>
 					<Id>1653300042301</Id>
-					<Name><![CDATA[pop_buurtHolonen_presentation]]></Name>
+					<Name><![CDATA[pop_buurten_presentation]]></Name>
 					<X>0</X><Y>0</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
@@ -2425,7 +2428,7 @@ for( EBuurtModel e : pop_buurtHolonen ){
     			<TimePlot>
 					<Id>1653474269809</Id>
 					<Name><![CDATA[Wijktrafo_vermogen_plot]]></Name>
-					<X>150</X><Y>530</Y>
+					<X>900</X><Y>480</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2475,7 +2478,7 @@ for( EBuurtModel e : pop_buurtHolonen ){
 					<DrawLine>true</DrawLine>
 					<Interpolation>LINEAR</Interpolation>
 					<DatasetExpression>  
-						<Title><![CDATA[Node Power]]></Title>
+						<Title><![CDATA[MS Node Power]]></Title>
 					<Id>1653474269803</Id>
 					<Expression><![CDATA[my_dataset1]]></Expression>
 					<Color>-16777216</Color>
@@ -2505,7 +2508,7 @@ for( EBuurtModel e : pop_buurtHolonen ){
 						<LineWidth>1.0</LineWidth>
 					</DatasetExpression>
 					<DatasetExpression>  
-						<Title><![CDATA[Sub-nodes Power]]></Title>
+						<Title><![CDATA[LS Sub-nodes Power]]></Title>
 					<Id>1653474269806</Id>
 					<Expression><![CDATA[my_dataset]]></Expression>
 					<Color>-2354116</Color>
@@ -4461,7 +4464,7 @@ double current_irradiance_Wpm2 = eBuurtModel.main.zonnestraling(time(HOUR) + eBu
 //zonnepanelen.forEach(z -> z.pvPowerFunction(current_irradiance_W),z -> v_pvOpwek_kW = z.v_pvOpwek_kW);
 for (Zonnepanelen z : zonnepanelen) {
 	z.pvPowerFunction(current_irradiance_Wpm2);
-	v_pvOpwek_kW = z.v_pvOpwek_kW;
+	v_pvOpwek_kW = z.v_currentPower_kW;
 	z.jaarlijksTotaalPVOpwekKWh += v_pvOpwek_kW * main.dt_h;
 }
 	
@@ -11733,7 +11736,7 @@ f_initializeSolarInstallation();
 			<Variables>
 				<Variable Class="PlainVariable">
 					<Id>1642001874973</Id>
-					<Name><![CDATA[v_pvOpwek_kW]]></Name>
+					<Name><![CDATA[v_currentPower_kW]]></Name>
 					<X>60</X><Y>430</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -12015,7 +12018,7 @@ if (aantalPanelen == 0) {
 						<Name><![CDATA[current_irradiance_kWpm2]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
-					<Body><![CDATA[v_pvOpwek_kW = current_irradiance_kWpm2 * piekVermogenPerPaneel_kW * capaciteitsFactor * aantalPanelen;
+					<Body><![CDATA[v_currentPower_kW = current_irradiance_kWpm2 * piekVermogenPerPaneel_kW * capaciteitsFactor * aantalPanelen;
 //traceln( time(HOUR) ); // Debug
 //capaciteitsfactor kan afhankelijk door temperatuur, hellingshoek, orientatie, schaduw, e.d. meer detail nodig
 //huishouden.v_pvOpwek_kW = pvOpwekKW;
@@ -12182,7 +12185,7 @@ plot_PVOpwek.updateData();
 					<Id>0</Id>
 					<Expression><![CDATA[my_dataset]]></Expression>
 					<Color>-10496</Color>
-					<Expression2><![CDATA[v_pvOpwek_kW]]></Expression2>
+					<Expression2><![CDATA[v_currentPower_kW]]></Expression2>
 					<Expression2Flag>true</Expression2Flag>
 						<PointStyle>NONE</PointStyle>
 						<LineWidth>1.0</LineWidth>
@@ -12747,7 +12750,7 @@ if ( elektrisch ){
 				<StatechartElement Class="EntryPoint" ParentState="ROOT_NODE">
 					<Id>1643556868363</Id>
 					<Name><![CDATA[statechart]]></Name>
-					<X>610</X><Y>80</Y>
+					<X>800</X><Y>80</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -12756,7 +12759,7 @@ if ( elektrisch ){
 						<Point><X>0</X><Y>0</Y></Point>
 						<Point><X>0</X><Y>65</Y></Point>
 					</Points>
-					<Properties Target="1643556868361">
+					<Properties Target="1643556868350">
 						<Action><![CDATA[//bepaalFlexibiliteit(); // Throws null-pointer exception; not yet linked to household/person/activity?
 //send("laden", this);]]></Action>
 					</Properties>	
@@ -14494,7 +14497,7 @@ f_setNetMetering();
 
 f_setCapacityTariff();
 
-f_setCongestionTariff(0);
+f_setEnergyMarketTariff(0);
 
 f_setDayAheadTariff();
 
@@ -15125,7 +15128,7 @@ f_updateIncentive();
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[0.002]]></Code>
+							<Code><![CDATA[0.001]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1645276000870</Id>
@@ -15580,7 +15583,7 @@ else{
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1645275453042</Id>
-					<Name><![CDATA[f_setCongestionTariff]]></Name>
+					<Name><![CDATA[f_setEnergyMarketTariff]]></Name>
 					<X>480</X><Y>400</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -15591,7 +15594,7 @@ else{
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
 					<Body><![CDATA[//set congestion tariff
-double lowPassFraction = min(1,1.2*main.dt_h);
+double lowPassFraction = min(1,0.5*1.2*main.dt_h); // smaller value results in more filtering
 v_holonLoadLowPassed_kW += lowPassFraction * ( holonCurrentPower_kW - v_holonLoadLowPassed_kW );
 
 if (p_energyMarket){
@@ -33770,7 +33773,7 @@ f_connectSuppliersToDistrictHeat();]]></Body>
 v_outsideTemp_degC = main.temperatuurFunctie( time(HOUR) + hourOfYearStart );
 
 // Incentives
-incentiveGenerator.f_setCongestionTariff(v_trafoVermogen_kW); // Dynamic incentives need to be updated every timestep
+incentiveGenerator.f_setEnergyMarketTariff(v_trafoVermogen_kW); // Dynamic incentives need to be updated every timestep
 incentiveGenerator.f_setDayAheadTariff();
 incentiveGenerator.f_updateIncentive();
 	
@@ -33809,7 +33812,7 @@ for (Huishouden h : huishoudens) {
 
 
 // Wijkvermogens
-v_neighborhoodSolarProduction_kW = sumWhere(huishoudens, x->x.zonnepanelen.get(0).v_pvOpwek_kW, x->x.zonnepanelen.size() > 0);
+v_neighborhoodSolarProduction_kW = sumWhere(huishoudens, x->x.zonnepanelen.get(0).v_currentPower_kW, x->x.zonnepanelen.size() > 0);
 v_neighborhoodApplianceConsumption_kW = sum(huishoudens, x->x.v_basislastElektriciteitsverbruik_kW);
 //v_neighborhoodDirectSolarConsumption_kW = sum(huishoudens, x->x.v_eigenConsumptie_kW); // Doesn't include power consumption in local heatpump/e-boiler!!
 v_totaalVermogenHuishoudens_kW = sum(huishoudens, x->x.v_netVermogen_kW); //basislastElektriciteitsverbruikHuishoudens_kW + autos.laadvraag() + warmtepompVerbruik_kW - pvOpwek_kW - autos.V2Gvermogen();
@@ -34667,6 +34670,9 @@ TODO: data afleiden en corrigeren.
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_netMetering]]></Name>
+							<Value Class="CodeValue">
+								<Code><![CDATA[true]]></Code>
+							</Value>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_energyMarket]]></Name>
@@ -39119,7 +39125,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
 					<Action><![CDATA[
-for ( EBuurtModel e : main.pop_buurtHolonen ) {
+for ( EBuurtModel e : main.pop_buurten ) {
 	for ( Huishouden h : e.huishoudens ) {
 		send(OL_HolonMessages.JOIN_ME,h);
 	}
@@ -39162,13 +39168,13 @@ for ( Agent a : holonConnections.getConnections() ) {
 	}
 	else if ( a instanceof Zonnepanelen ) {
 		a = (Zonnepanelen)a;
-		v_localProduction_kW += ((Zonnepanelen) a).v_pvOpwek_kW;
+		v_localProduction_kW += ((Zonnepanelen) a).v_currentPower_kW;
 	}	
 }
 v_holonPower_kW -= v_localProduction_kW;
 
 // Incentives
-incentiveGenerator.f_setCongestionTariff(v_holonPower_kW); // Dynamic incentives need to be updated every timestep
+incentiveGenerator.f_setEnergyMarketTariff(v_holonPower_kW); // Dynamic incentives need to be updated every timestep
 incentiveGenerator.f_setDayAheadTariff();
 incentiveGenerator.f_updateIncentive();
 ]]></Body>
@@ -43567,7 +43573,7 @@ else {
 				<FinalDate><![CDATA[1680307200000]]></FinalDate>	
 				<FinalTime><![CDATA[8760.0]]></FinalTime>	
 			</ModelTimeProperties>
-			<BypassInitialScreen>false</BypassInitialScreen>
+			<BypassInitialScreen>true</BypassInitialScreen>
 		</SimulationExperiment>	
 	</Experiments>
 	<JavaClasses>
