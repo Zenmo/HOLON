@@ -4,7 +4,7 @@
 	         AnyLogic Project File 
 *************************************************	         
 -->
-<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.12.202205250418" AlpVersion="8.7.5">
+<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.12.202205250339" AlpVersion="8.7.5">
 <Model>
 	<Id>1641891178629</Id>
 	<Name><![CDATA[Ebuurt]]></Name>
@@ -16647,7 +16647,7 @@ Bron: Vesta MAIS 5.0.
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1646232073109</Id>
-					<Name><![CDATA[v_totalCostsHOLON_eur]]></Name>
+					<Name><![CDATA[v_totalCostsEbuurt_eur]]></Name>
 					<X>100</X><Y>1300</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -16949,9 +16949,9 @@ v_totalEnergyDemand_MWh = 0.001 * (v_totalElectricityDemand_kWh + eBuurtModel.v_
 v_totalEnergyDemandVehicles_MWh = eBuurtModel.v_wijkTotaalBenzineVerbruik_l *.044*.74/3.6 + eBuurtModel.v_wijkTotaalDieselVerbruik_l*0.85*.0427/3.6 + .001* (eBuurtModel.v_evVerbruikJaartotaal_kWh - ( sum(eBuurtModel.autos, x->x.huidigBatterijCap_kWh) - eBuurtModel.v_initialTotalBatteryCharge_kWh));
 
 if ( eBuurtModel.v_householdsWIthDistricHeating == 0 ) {
-	v_totalCostsHOLON_eur = sum(eBuurtModel.huishoudens, x->x.v_electricityBill_eur) + sum(eBuurtModel.huishoudens, x->x.v_gasBill_eur) + max(v_verzwaringskostenWijktrafoLeveringEUR, v_verzwaringskostenWijktrafoTerugleveringEUR);
+	v_totalCostsEbuurt_eur = sum(eBuurtModel.huishoudens, x->x.v_electricityBill_eur) + sum(eBuurtModel.huishoudens, x->x.v_gasBill_eur) + max(v_verzwaringskostenWijktrafoLeveringEUR, v_verzwaringskostenWijktrafoTerugleveringEUR);
 } else {
-	v_totalCostsHOLON_eur = eBuurtModel.v_WijkTotaalStroomKosten_eur + eBuurtModel.v_gasBill_eur + max(v_verzwaringskostenWijktrafoLeveringEUR, v_verzwaringskostenWijktrafoTerugleveringEUR);
+	v_totalCostsEbuurt_eur = eBuurtModel.v_WijkTotaalStroomKosten_eur + eBuurtModel.v_gasBill_eur + max(v_verzwaringskostenWijktrafoLeveringEUR, v_verzwaringskostenWijktrafoTerugleveringEUR);
 }]]></Action>
 				</Event>
 				<Event>
@@ -17245,13 +17245,13 @@ else {
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[if (v_totalCostsHOLON_eur < 30000){
+					<Body><![CDATA[if (v_totalCostsEbuurt_eur < 30000){
 	return green;
 }
-else if (v_totalCostsHOLON_eur < 50000){
+else if (v_totalCostsEbuurt_eur < 50000){
 	return gold;
 }
-else if (v_totalCostsHOLON_eur < 70000){
+else if (v_totalCostsEbuurt_eur < 70000){
 	return orange;
 }
 else {
@@ -17754,7 +17754,7 @@ return null;]]></Body>
 					<Rotation>0.0</Rotation>
 					<Color>-1</Color>
 					<Text><![CDATA[140]]></Text>
-					<TextCode><![CDATA[roundToInt(v_totalCostsHOLON_eur) + "€"]]></TextCode>
+					<TextCode><![CDATA[roundToInt(v_totalCostsEbuurt_eur) + "€"]]></TextCode>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>20</Size>
@@ -30927,7 +30927,18 @@ v_initialTotalBatteryCharge_kWh = sum(autos, x->x.huidigBatterijCap_kWh);
 //Set trafo power based on number of households
 f_setTrafoMaxPower(p_connectionCapacityPerHousehold);
 f_setTrafoMinPower(p_connectionCapacityPerHousehold);
+
+//add instance to data export table for run comparison
+//insertInto ( db_kpi ).columns( db_kpi.ebuurt_id, db_kpi.ebuurt_name, db_kpi.ebuurt_fullname ) 
+//	.values( this.getIndex(), this.getName(), this.p_buurtName ).execute();
+
 traceln("Ebuurt "+this.getIndex()+" startup END | "+System.currentTimeMillis());]]></StartupCode>
+			<DestroyCode><![CDATA[Date currentDate = new Date(System.currentTimeMillis());
+//String dateAsString = currentDate.toString();
+
+insertInto ( db_kpi ).columns( db_kpi.ebuurt_id, db_kpi.db_timeofrun, db_kpi.ebuurt_name, db_kpi.ebuurt_fullname, db_kpi.ebuurt_totalcostholon_eur, db_kpi.ebuurt_co2emission_ton ) 
+	.values( this.getIndex(), currentDate, this.getName(), this.p_buurtName, this.kpiVisuals.v_totalCostsEbuurt_eur, roundToDecimal(.001 * this.v_WijkTotaalCO2_kg,2) ).execute();
+]]></DestroyCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1652789142363</Id>
@@ -40287,7 +40298,7 @@ this.holonConnections.connectTo(sender_holon);
 	</Frame>
 	<Database>
 		<Logging>false</Logging>
-		<AutoExport>false</AutoExport>
+		<AutoExport>true</AutoExport>
 		<ShutdownCompact>false</ShutdownCompact>
 		<ImportSettings>
 			<ExternalConnection>
@@ -40490,6 +40501,14 @@ this.holonConnections.connectTo(sender_holon);
 			</TableImportSettings>
 		</ImportSettings>
 		<ExportSettings>
+			<ExportExcelResourceReference>
+				<PackageName><![CDATA[ebuurt]]></PackageName>
+				<ClassName><![CDATA[D:/Users/HOUJ/Documents/GitHub/HOLON/Output/export_kpis.xlsx]]></ClassName>
+			</ExportExcelResourceReference>
+			<TableReference>
+				<PackageName><![CDATA[ebuurt]]></PackageName>
+				<ClassName><![CDATA[db_kpi]]></ClassName>
+			</TableReference>
 		</ExportSettings>
 	</Database>
 	
@@ -43570,8 +43589,8 @@ else {
 				<StopOption><![CDATA[Stop at specified time]]></StopOption>
 				<InitialDate><![CDATA[1648771200000]]></InitialDate>	
 				<InitialTime><![CDATA[0.0]]></InitialTime>	
-				<FinalDate><![CDATA[1680307200000]]></FinalDate>	
-				<FinalTime><![CDATA[8760.0]]></FinalTime>	
+				<FinalDate><![CDATA[1649376000000]]></FinalDate>	
+				<FinalTime><![CDATA[168.0]]></FinalTime>	
 			</ModelTimeProperties>
 			<BypassInitialScreen>true</BypassInitialScreen>
 		</SimulationExperiment>	
@@ -43695,6 +43714,10 @@ public class J_Building implements Serializable {
 		</Resource>
 		<Resource>
 			<Path><![CDATA[image8.png]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[D:/Users/HOUJ/Documents/GitHub/HOLON/Output/export_kpis.xlsx]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
