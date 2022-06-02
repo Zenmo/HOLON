@@ -143,7 +143,9 @@ c_motivationToScoring.put(OL_motivationOptions.HIGH_PRIORITY,2);
 
 f_PositionHolons();
 chart_energiestroom.update();
+f_retrieveMainKPIsPreviousRun();
 traceln("On Startup end main "+this.getName()+" | "+System.currentTimeMillis());]]></StartupCode>
+			<DestroyCode><![CDATA[f_exportMainKPIs();]]></DestroyCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1641891178633</Id>
@@ -964,6 +966,57 @@ traceln("On Startup end main "+this.getName()+" | "+System.currentTimeMillis());
 						</InitialValue>
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654185291150</Id>
+					<Name><![CDATA[v_ebuurtenTotalCO2Emission_kg]]></Name>
+					<X>340</X><Y>1000</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654185332582</Id>
+					<Name><![CDATA[v_totalNumberOfHouseholds]]></Name>
+					<X>340</X><Y>1020</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654185346416</Id>
+					<Name><![CDATA[v_nationalCO2Emission_Mton]]></Name>
+					<X>340</X><Y>1060</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654186254006</Id>
+					<Name><![CDATA[v_runID]]></Name>
+					<X>560</X><Y>1040</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1652790988351</Id>
 					<Name><![CDATA[p_DateFormat]]></Name>
@@ -1012,6 +1065,30 @@ traceln("On Startup end main "+this.getName()+" | "+System.currentTimeMillis());
 						<ParameterEditor>
 							<Id>1652790988352</Id>
 							<Label><![CDATA[dt_h]]></Label>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1654185375049</Id>
+					<Name><![CDATA[p_nationalNumberOfHouseholds]]></Name>
+					<X>340</X><Y>1040</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[8E6]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1654185375047</Id>
 							<EditorContolType>TEXT_BOX</EditorContolType>
 							<MinSliderValue><![CDATA[0]]></MinSliderValue>
 							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
@@ -1133,7 +1210,12 @@ v_selfConsumption_kWh = sum(pop_buurten, b->b.v_eigenConsumptieJaartotaal_kWh);
 v_totalProduction_kWh += ( sum(pop_buurten, b->b.v_neighborhoodSolarProduction_kW) - v_centralPvPower_kW - v_centralWindPower_kW ) * dt_h;
 
 v_selfSufficiency_perc = v_selfConsumption_kWh / v_totalConsumption_kWh * 100;
-v_selfConsumption_perc = v_selfConsumption_kWh / v_totalProduction_kWh * 100;]]></Action>
+v_selfConsumption_perc = v_selfConsumption_kWh / v_totalProduction_kWh * 100;
+
+// KPIs households, national
+v_ebuurtenTotalCO2Emission_kg = sum(pop_buurten,b->b.v_WijkTotaalCO2_kg);
+v_totalNumberOfHouseholds = (double)sum(pop_buurten,b->b.huishoudens.size());
+v_nationalCO2Emission_Mton = ( p_nationalNumberOfHouseholds / v_totalNumberOfHouseholds * v_ebuurtenTotalCO2Emission_kg ) / 1E9;]]></Action>
 				</Event>
 			</Events>
 			<Functions>
@@ -1185,6 +1267,68 @@ for( EBuurtModel e : pop_buurten ){
 		double y = yBaseCoord - ( cos( e.getIndex()*offsetRadians*Math.PI ) * radius );
 		e.setXY(x, y);
 }
+]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1654185805790</Id>
+					<Name><![CDATA[f_retrieveMainKPIsPreviousRun]]></Name>
+					<X>560</X><Y>1000</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[try {
+	Tuple tup = selectFrom( db_kpi ).where( db_kpi.main_name.eq( this.getName() ) ).orderBy(db_kpi.db_timeofrun.desc()).list().get(0);
+	
+	v_runID = tup.get( db_kpi.run_id ) + 1;
+	v_nationalCO2Emission_Mton = tup.get( db_kpi.main_nationalco2households_mton );
+	//v_selfConsumptionOld_perc = tup.get( db_kpi.holon_selfconsumption_pct );
+	//v_selfSufficiencyOld_perc = tup.get( db_kpi.holon_selfsufficiency_pct );
+}
+catch( Exception e ) {
+	traceln("no previous KPI-data found!");
+	v_runID = 1;
+	v_nationalCO2Emission_Mton = 0;
+	//v_selfConsumptionOld_perc = 0;
+	//v_selfSufficiencyOld_perc = 0;
+
+}]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1654185920335</Id>
+					<Name><![CDATA[f_exportMainKPIs]]></Name>
+					<X>560</X><Y>1020</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[traceln("Export main-KPI's");
+Date currentDate = new Date(System.currentTimeMillis());
+//String dateAsString = currentDate.toString();
+
+insertInto ( db_kpi ).columns( 
+		db_kpi.run_id,
+		db_kpi.db_timeofrun,
+		db_kpi.main_name,
+		
+		db_kpi.main_nationalco2households_mton)
+//		db_kpi.ebuurt_totalcostmonthly_delta_pct, 
+//		db_kpi.ebuurt_co2emission_delta_pct,
+//		db_kpi.ebuurt_selfconsumption_delta_pct ) 
+	.values( 
+		this.v_runID,
+		currentDate,
+		this.getName(),
+		
+		this.v_nationalCO2Emission_Mton).execute();
+//		this.kpiVisuals.v_totalCostsEbuurtChange_pct,
+//		this.kpiVisuals.v_WijkTotaalCO2Change_pct,
+//		this.kpiVisuals.v_eBuurtSelfconsumptionChange_pct)
+		
 ]]></Body>
 				</Function>
 			</Functions>
@@ -17830,6 +17974,18 @@ Geïnterpreteerd als: percentage woningen dat minimaal 1 keer tijdens de modelru
 						<Type><![CDATA[double]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654183200819</Id>
+					<Name><![CDATA[v_runid]]></Name>
+					<X>610</X><Y>1480</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[int]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1646215419977</Id>
 					<Name><![CDATA[p_SchuifKostenVerzwaringLSNet]]></Name>
@@ -18466,7 +18622,8 @@ Try-catch-gebruikt voor het geval er nog geen (of incompatibele) KPI-data beschi
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[try {
 	Tuple tup = selectFrom( db_kpi ).where( db_kpi.ebuurt_fullname.eq( this.eBuurtModel.p_buurtName ) ).orderBy(db_kpi.db_timeofrun.desc()).list().get(0);
-
+	
+	v_runid = tup.get( db_kpi.run_id ) + 1;
 	v_totalCostsEbuurtMonthlyOld_eurpm = tup.get( db_kpi.ebuurt_totalcostmonthly_eurpm );
 	v_WijkTotaalCO2Old_kg = tup.get( db_kpi.ebuurt_co2emission_ton ) * 1000;
 	v_eBuurtSelfconsumptionOld_pct = tup.get( db_kpi.ebuurt_selfconsumption_pct );
@@ -18475,6 +18632,7 @@ Try-catch-gebruikt voor het geval er nog geen (of incompatibele) KPI-data beschi
 }
 catch( Exception e ) {
 	traceln("no previous KPI-data found!");
+	v_runid = 1;
 	v_totalCostsEbuurtMonthlyOld_eurpm =0;
 	v_WijkTotaalCO2Old_kg = 0;
 	v_eBuurtSelfconsumptionOld_pct = 0;
@@ -36107,9 +36265,19 @@ Date currentDate = new Date(System.currentTimeMillis());
 //String dateAsString = currentDate.toString();
 
 insertInto ( db_kpi ).columns( db_kpi.ebuurt_id, 
+		db_kpi.run_id,
 		db_kpi.db_timeofrun, 
 		db_kpi.ebuurt_name, 
 		db_kpi.ebuurt_fullname,
+		db_kpi.ebuurt_numberofhouseholds,
+		db_kpi.ebuurt_zonnepanelen_pct,
+		db_kpi.ebuurt_ev_pct,
+		db_kpi.ebuurt_vrijstaand_pct,
+		db_kpi.ebuurt_2onder1kap_pct,
+		db_kpi.ebuurt_rijhoek_pct,
+		db_kpi.ebuurt_rijtussen_pct,
+		db_kpi.ebuurt_appartement_pct,
+		db_kpi.ebuurt_hoogbouw_pct,
 		db_kpi.ebuurt_averagetrafoload_pct, 
 		db_kpi.ebuurt_maxtrafoloadin_fr,
 		db_kpi.ebuurt_maxtrafoloadout_fr,
@@ -36120,9 +36288,19 @@ insertInto ( db_kpi ).columns( db_kpi.ebuurt_id,
 		db_kpi.ebuurt_co2emission_delta_pct,
 		db_kpi.ebuurt_selfconsumption_delta_pct ) 
 	.values( this.getIndex(), 
+		this.kpiVisuals.v_runid,
 		currentDate, 
 		this.getName(), 
 		this.p_buurtName, 
+		this.huishoudens.size(),
+		100.0 * count(this.huishoudens,h -> h.p_hasSolarPanels == true) / (double)this.huishoudens.size(),
+		100.0 * count(this.autos,a -> a.elektrisch == true) / (double)this.autos.size(),
+		100.0 * count(this.huishoudens, h -> h.p_houseTypeString.equals(DETACHED)) / (double)this.huishoudens.size(),
+		100.0 * count(this.huishoudens, h -> h.p_houseTypeString.equals(SEMIDETACHED)) / (double)this.huishoudens.size(),
+		100.0 * count(this.huishoudens, h -> h.p_houseTypeString.equals(CORNER)) / (double)this.huishoudens.size(),
+		100.0 * count(this.huishoudens, h -> h.p_houseTypeString.equals(TERRACED)) / (double)this.huishoudens.size(),
+		100.0 * count(this.huishoudens, h -> h.p_houseTypeString.equals(APPARTMENT)) / (double)this.huishoudens.size(),
+		100.0 * count(this.huishoudens, h -> h.p_houseTypeString.equals(HIGHRISE)) / (double)this.huishoudens.size(),
 		this.kpiVisuals.v_averageTrafoLoad_pct,
 		this.kpiVisuals.v_maximaleBelastingWijktrafoKWlevering / this.v_trafoMaxPower, 
 		this.kpiVisuals.v_maximaleBelastingWijktrafoKWteruglevering / this.v_trafoMinPower,
@@ -40322,6 +40500,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 			<Id>1653469816639</Id>
 			<Name><![CDATA[HolonAgent]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
+			<StartupCode><![CDATA[f_retrieveHolonKPIsOfPreviousRun();]]></StartupCode>
 			<DestroyCode><![CDATA[f_exportHolonKPIs();]]></DestroyCode>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -40557,6 +40736,86 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 						</InitialValue>
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654177983084</Id>
+					<Name><![CDATA[v_holonHouseholdOPEX_eur]]></Name>
+					<Description><![CDATA[Total sum of OPEX of households that are holon-member.
+
+@author: JorritvandenHouten
+@since: 02.06.2022]]></Description>
+					<X>870</X><Y>280</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654178513247</Id>
+					<Name><![CDATA[v_numberOfHouseholds]]></Name>
+					<X>360</X><Y>110</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654179235417</Id>
+					<Name><![CDATA[v_holonHouseholdOPEXAverage_eurphpm]]></Name>
+					<Description><![CDATA[Average OPEX per household (holon-member), per month of model time
+
+@author: JorritvandenHouten
+@since: 02.06.2022]]></Description>
+					<X>870</X><Y>300</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654183617807</Id>
+					<Name><![CDATA[v_runID]]></Name>
+					<X>1160</X><Y>280</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[int]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654183821803</Id>
+					<Name><![CDATA[v_selfConsumptionOld_perc]]></Name>
+					<X>1160</X><Y>310</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654183873666</Id>
+					<Name><![CDATA[v_selfSufficiencyOld_perc]]></Name>
+					<X>1160</X><Y>330</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1653471189102</Id>
 					<Name><![CDATA[p_holonName]]></Name>
@@ -40705,6 +40964,8 @@ for ( EBuurtModel e : main.pop_buurten ) {
 c_connectedAgents.clear();
 c_connectedAgents.addAll(holonConnections.getConnections());
 v_numberOfMembers = c_connectedAgents.size();
+List connectedHouseholds = filter( c_connectedAgents, p -> p instanceof Huishouden);
+v_numberOfHouseholds = connectedHouseholds.size();
 
 for ( WindPark w : main.windParken ) {
 	send(OL_HolonMessages.JOIN_ME,w);
@@ -40763,6 +41024,17 @@ v_selfConsumption_kWh += min(v_localProduction_kW,v_holonConsumption_kW) * dt_h;
 
 v_selfSufficiency_perc = v_selfConsumption_kWh / v_totalConsumption_kWh * 100;
 v_selfConsumption_perc = v_selfConsumption_kWh / v_totalProduction_kWh * 100;
+
+// KPIs costs
+v_holonHouseholdOPEX_eur = 0;
+for ( Agent h : holonConnections.getConnections() ) {
+	if( h instanceof Huishouden ) {
+		v_holonHouseholdOPEX_eur += ((Huishouden) h).v_OPEX_eur;
+	}
+}
+double monthsElapsed = time() / month();
+v_holonHouseholdOPEXAverage_eurphpm = v_holonHouseholdOPEX_eur / v_numberOfHouseholds / monthsElapsed;
+
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -40779,38 +41051,74 @@ v_selfConsumption_perc = v_selfConsumption_kWh / v_totalProduction_kWh * 100;
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[traceln("Export KPI's");
+					<Body><![CDATA[traceln("Export holon-KPI's");
 Date currentDate = new Date(System.currentTimeMillis());
 //String dateAsString = currentDate.toString();
 
-insertInto ( db_kpi ).columns( db_kpi.holon_id, 
+insertInto ( db_kpi ).columns( db_kpi.run_id,
+		db_kpi.holon_id, 
 		db_kpi.db_timeofrun, 
 		db_kpi.holon_name, 
 		db_kpi.holon_fullname,
+		db_kpi.holon_numberofmembers,
+		db_kpi.holon_numberofhouseholds,
+		db_kpi.holon_householdaveragemonthlyopex_eurphpm,
 //		db_kpi.ebuurt_averagetrafoload_pct, 
 //		db_kpi.ebuurt_maxtrafoloadin_fr,
 //		db_kpi.ebuurt_maxtrafoloadout_fr,
 //		db_kpi.ebuurt_totalcostmonthly_eurpm, 
 //		db_kpi.ebuurt_co2emission_ton, 
-		db_kpi.holon_selfconsumption_pct)
+		db_kpi.holon_selfconsumption_pct,
+		db_kpi.holon_selfsufficiency_pct)
 //		db_kpi.ebuurt_totalcostmonthly_delta_pct, 
 //		db_kpi.ebuurt_co2emission_delta_pct,
 //		db_kpi.ebuurt_selfconsumption_delta_pct ) 
-	.values( this.getIndex(), 
+	.values( 
+		this.v_runID,
+		this.getIndex(),
 		currentDate, 
 		this.getName(), 
 		this.p_holonName, 
+		this.v_numberOfMembers,
+		this.v_numberOfHouseholds,
+		this.v_holonHouseholdOPEXAverage_eurphpm,
 //		this.kpiVisuals.v_averageTrafoLoad_pct,
 //		this.kpiVisuals.v_maximaleBelastingWijktrafoKWlevering / this.v_trafoMaxPower, 
 //		this.kpiVisuals.v_maximaleBelastingWijktrafoKWteruglevering / this.v_trafoMinPower,
 //		roundToDecimal( this.kpiVisuals.v_totalCostsEbuurtMonthly_eurpm, -2 ), 
 //		roundToDecimal(.001 * this.v_WijkTotaalCO2_kg,2),
-		this.v_selfConsumption_perc).execute();
+		this.v_selfConsumption_perc,
+		this.v_selfSufficiency_perc).execute();
 //		this.kpiVisuals.v_totalCostsEbuurtChange_pct,
 //		this.kpiVisuals.v_WijkTotaalCO2Change_pct,
 //		this.kpiVisuals.v_eBuurtSelfconsumptionChange_pct)
 		
 ]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1654183639132</Id>
+					<Name><![CDATA[f_retrieveHolonKPIsOfPreviousRun]]></Name>
+					<X>1160</X><Y>260</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[try {
+	Tuple tup = selectFrom( db_kpi ).where( db_kpi.holon_fullname.eq( this.p_holonName ) ).orderBy(db_kpi.db_timeofrun.desc()).list().get(0);
+	
+	v_runID = tup.get( db_kpi.run_id ) + 1;
+	v_selfConsumptionOld_perc = tup.get( db_kpi.holon_selfconsumption_pct );
+	v_selfSufficiencyOld_perc = tup.get( db_kpi.holon_selfsufficiency_pct );
+}
+catch( Exception e ) {
+	traceln("no previous KPI-data found!");
+	v_runID = 1;
+	v_selfConsumptionOld_perc = 0;
+	v_selfSufficiencyOld_perc = 0;
+
+}]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -45546,6 +45854,9 @@ else {
 				</Parameter>
 				<Parameter>
 					<ParameterName><![CDATA[dt_h]]></ParameterName>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_nationalNumberOfHouseholds]]></ParameterName>
 				</Parameter>
 			</Parameters>			
 			<PresentationProperties>
