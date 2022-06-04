@@ -1032,6 +1032,42 @@ traceln("On Startup end main "+this.getName()+" | "+System.currentTimeMillis());
 						</InitialValue>
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654338329529</Id>
+					<Name><![CDATA[v_nationalReliability_pct]]></Name>
+					<X>340</X><Y>1110</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654338912408</Id>
+					<Name><![CDATA[v_nationalTotalEnergyUseHouseholds_TWh]]></Name>
+					<X>340</X><Y>1140</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654340513059</Id>
+					<Name><![CDATA[v_nationalPerHouseholdCost_eurphh]]></Name>
+					<X>340</X><Y>1160</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1652790988351</Id>
 					<Name><![CDATA[p_DateFormat]]></Name>
@@ -1193,10 +1229,28 @@ traceln("On Startup end main "+this.getName()+" | "+System.currentTimeMillis());
 					<Action><![CDATA[// Consumers/producers on this network node
 // Energy balance in 'sub-nodes'
 v_subNodesTotalPower_kW = 0;
+double weightedReliability_pct = 0;
+double totalHouseholds = 0;
+double totalHouseholdEnergyUse_MWh = 0;
+double CAPEX_perhhperBuurt = 0;
+double OPEX_perhhperBuurt = 0;
+double numberOfHouseholds = 0;
+v_nationalPerHouseholdCost_eurphh = 0;
+
 for( EBuurtModel e : pop_buurten ){
 	e.f_evaluateEnergyBalance(dt_h);
 	v_subNodesTotalPower_kW += e.v_trafoVermogen_kW;
+	weightedReliability_pct += ( 1 - e.kpiVisuals.v_WijktrafoOverschrijdingTijdfractie ) * e.huishoudens.size();
+	numberOfHouseholds = e.huishoudens.size();
+	totalHouseholds += numberOfHouseholds;
+	totalHouseholdEnergyUse_MWh += e.kpiVisuals.v_totalEnergyDemand_MWh;
+	
+	CAPEX_perhhperBuurt = (double)e.kpiVisuals.v_totalCAPEX_eur / numberOfHouseholds;
+	OPEX_perhhperBuurt = (double)e.kpiVisuals.v_totalOPEX_eur / numberOfHouseholds;
+	v_nationalPerHouseholdCost_eurphh += ( CAPEX_perhhperBuurt + OPEX_perhhperBuurt ) * numberOfHouseholds;
 }
+weightedReliability_pct = ( weightedReliability_pct / totalHouseholds ) * 100;
+v_nationalPerHouseholdCost_eurphh = v_nationalPerHouseholdCost_eurphh / totalHouseholds;
 
 // 'Central' power generation on this node
 v_centralPvPower_kW=0;
@@ -1231,7 +1285,11 @@ v_selfConsumption_perc = v_selfConsumption_kWh / v_totalProduction_kWh * 100;
 v_ebuurtenTotalCO2Emission_kg = sum(pop_buurten,b->b.v_WijkTotaalCO2_kg);
 v_totalNumberOfHouseholds = (double)sum(pop_buurten,b->b.huishoudens.size());
 v_nationalHouseholdCO2Emission_Mton = ( p_nationalNumberOfHouseholds / v_totalNumberOfHouseholds * v_ebuurtenTotalCO2Emission_kg ) / 1E9;
-v_nationalHouseholdElectricityConsumption_GWh = ( p_nationalNumberOfHouseholds / v_totalNumberOfHouseholds * v_totalConsumption_kWh ) / 1E6;]]></Action>
+v_nationalHouseholdElectricityConsumption_GWh = ( p_nationalNumberOfHouseholds / v_totalNumberOfHouseholds * v_totalConsumption_kWh ) / 1E6;
+v_nationalReliability_pct = weightedReliability_pct;
+v_nationalTotalEnergyUseHouseholds_TWh = totalHouseholdEnergyUse_MWh / v_totalNumberOfHouseholds * p_nationalNumberOfHouseholds / 1E6;
+
+]]></Action>
 				</Event>
 			</Events>
 			<Functions>
@@ -1275,12 +1333,13 @@ chart_energiestroom.update();
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[double xBaseCoord = 400;
 double yBaseCoord = 400;
-double radius = 200;
+double radiusx = 250;
+double radiusy = 150;
 double offsetRadians = 2.0 / pop_buurten.size();
 
 for( EBuurtModel e : pop_buurten ){
-		double x = xBaseCoord + ( sin( e.getIndex()*offsetRadians*Math.PI ) * radius );
-		double y = yBaseCoord - ( cos( e.getIndex()*offsetRadians*Math.PI ) * radius );
+		double x = xBaseCoord + ( sin( e.getIndex()*offsetRadians*Math.PI ) * radiusx );
+		double y = yBaseCoord - ( cos( e.getIndex()*offsetRadians*Math.PI ) * radiusy );
 		e.setXY(x, y);
 }
 ]]></Body>
@@ -1332,7 +1391,11 @@ insertInto ( db_kpi ).columns(
 		db_kpi.main_name,
 		
 		db_kpi.main_nationalco2households_mton,
-		db_kpi.main_nationalelhouseholdelectricityconsumption_gwh)
+		db_kpi.main_nationalhouseholdelectricityconsumption_gwh,
+		db_kpi.nationaal_betrouwbaarheid_pct,
+		db_kpi.nationaal_betaalbaarheid,
+		db_kpi.nationaal_energieverbruik_twh,
+		db_kpi.nationaal_zelfvoorzienendheid_pct)
 		
 //		db_kpi.ebuurt_totalcostmonthly_delta_pct, 
 //		db_kpi.ebuurt_co2emission_delta_pct,
@@ -1343,7 +1406,12 @@ insertInto ( db_kpi ).columns(
 		this.getName(),
 		
 		this.v_nationalHouseholdCO2Emission_Mton,
-		roundToInt(this.v_nationalHouseholdElectricityConsumption_GWh)).execute();
+		roundToInt(this.v_nationalHouseholdElectricityConsumption_GWh),
+		v_nationalReliability_pct,
+		v_nationalPerHouseholdCost_eurphh,
+		v_nationalTotalEnergyUseHouseholds_TWh,
+		-99
+		).execute();
 //		this.kpiVisuals.v_totalCostsEbuurtChange_pct,
 //		this.kpiVisuals.v_WijkTotaalCO2Change_pct,
 //		this.kpiVisuals.v_eBuurtSelfconsumptionChange_pct)
@@ -1937,6 +2005,15 @@ insertInto ( db_kpi ).columns(
 								<Code><![CDATA[true]]></Code>
 							</Value>
 						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_connect]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_activeIncentive]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[b_initialEvChargeRetrieved]]></Name>
+						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
 					<Replication Class="CodeValue">
@@ -1969,14 +2046,66 @@ insertInto ( db_kpi ).columns(
 					<LocationNameCode Class="CodeValue">
 						<Code><![CDATA[""]]></Code>
 					</LocationNameCode>
-					<InitializationType>SPECIFIED_NUMBER</InitializationType>
+					<InitializationType>LOAD_FROM_DATABASE</InitializationType>
 					<InitializationDatabaseTableQuery>
 						<TableReference>
+							<PackageName><![CDATA[ebuurt]]></PackageName>
+							<ClassName><![CDATA[db_holonconfig]]></ClassName>
 						</TableReference>
 					</InitializationDatabaseTableQuery>
 					<InitializationDatabaseType>ONE_AGENT_PER_DATABASE_RECORD</InitializationDatabaseType>
 					<QuantityColumn>
 					</QuantityColumn>
+					<ParameterToDatabaseColumnMapping>
+						<Item>
+							<Key>
+								<PackageName><![CDATA[ebuurt]]></PackageName>
+								<ClassName><![CDATA[HolonAgent]]></ClassName>
+								<ItemName><![CDATA[p_holonName]]></ItemName>
+							</Key>
+							<Value>
+								<PackageName><![CDATA[ebuurt]]></PackageName>
+								<ClassName><![CDATA[db_holonconfig]]></ClassName>
+								<ItemName><![CDATA[naam]]></ItemName>
+							</Value>
+						</Item>
+						<Item>
+							<Key>
+								<PackageName><![CDATA[ebuurt]]></PackageName>
+								<ClassName><![CDATA[HolonAgent]]></ClassName>
+								<ItemName><![CDATA[p_connect]]></ItemName>
+							</Key>
+							<Value>
+								<PackageName><![CDATA[ebuurt]]></PackageName>
+								<ClassName><![CDATA[db_holonconfig]]></ClassName>
+								<ItemName><![CDATA[holonexists]]></ItemName>
+							</Value>
+						</Item>
+						<Item>
+							<Key>
+								<PackageName><![CDATA[ebuurt]]></PackageName>
+								<ClassName><![CDATA[HolonAgent]]></ClassName>
+								<ItemName><![CDATA[p_hourlyPrices]]></ItemName>
+							</Key>
+							<Value>
+								<PackageName><![CDATA[ebuurt]]></PackageName>
+								<ClassName><![CDATA[db_holonconfig]]></ClassName>
+								<ItemName><![CDATA[s_hourlyprices]]></ItemName>
+							</Value>
+						</Item>
+						<Item>
+							<Key>
+								<PackageName><![CDATA[ebuurt]]></PackageName>
+								<ClassName><![CDATA[HolonAgent]]></ClassName>
+								<ItemName><![CDATA[p_activeIncentive]]></ItemName>
+							</Key>
+							<Value>
+								<PackageName><![CDATA[ebuurt]]></PackageName>
+								<ClassName><![CDATA[db_holonconfig]]></ClassName>
+								<ItemName><![CDATA[holonisactive]]></ItemName>
+							</Value>
+						</Item>	
+					</ParameterToDatabaseColumnMapping>
 				</EmbeddedObject>
 				<EmbeddedObject>
 					<Id>1653469949443</Id>
@@ -3070,7 +3199,7 @@ insertInto ( db_kpi ).columns(
 //traceln("Huishouden startup - GIS realized "+this.getEnvironment().getIndex()+"."+this.getIndex()+" | "+System.currentTimeMillis());
 
 // Kies een ID en haal data binnen vnauit Albatros DB
-id = eBuurtModel.huishoudensIDs.get(uniform_discr(1731)); //dit leidt tot dubbelingen in uitzonderlijke gevallen. Geen probleem maar wel aanpassen in toekosmt
+id = eBuurtModel.huishoudensIDs.get(uniform_discr(1730)); //dit leidt tot dubbelingen in uitzonderlijke gevallen. Geen probleem maar wel aanpassen in toekosmt
 initializeHousehold( this, id );
 //traceln("Huishouden startup initialized "+this.getEnvironment().getIndex()+"."+this.getIndex()+" | "+System.currentTimeMillis());
 // Creer bewoners
@@ -3689,6 +3818,72 @@ p_ventilationFlowrate_m3ph = p_specificVentilationFlowrate_mph * p_floorSurfaceA
 					<Id>1654013902338</Id>
 					<Name><![CDATA[v_CAPEX_eur]]></Name>
 					<X>350</X><Y>810</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654268035985</Id>
+					<Name><![CDATA[v_totalEnergyDemand_MWh]]></Name>
+					<X>350</X><Y>900</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654270798764</Id>
+					<Name><![CDATA[v_evTotalEnergyUse_kWh]]></Name>
+					<X>350</X><Y>850</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654271122219</Id>
+					<Name><![CDATA[v_evTotalEnergySupply_kWh]]></Name>
+					<X>350</X><Y>870</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654271132785</Id>
+					<Name><![CDATA[v_evTotalEnergyUse_kW]]></Name>
+					<X>190</X><Y>730</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654271142483</Id>
+					<Name><![CDATA[v_evTotalEnergySupply_kW]]></Name>
+					<X>190</X><Y>750</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -5126,30 +5321,41 @@ if ( p_heatingSystem instanceof HS_DistrictHeatingWBoiler ) {
 }
 */
 
-// Select incentive source - use holon incentives if you are a member! TODO: use in conjunction with local network tariff
+// Select incentive source - use holon incentives if you are a member, and holon is active! TODO: use in conjunction with local network tariff
 IncentiveGenerator incentiveSource = eBuurtModel.incentiveGenerator;
-if( holonConnections.size() > 0 ) {
-	incentiveSource = holonConnections.getConnectedAgent(0).incentiveGenerator;
+if ( this.holonConnections.size() > 0) {
+	HolonAgent connectedHolon = holonConnections.getConnectedAgent(0);
+	if( connectedHolon.p_activeIncentive == true ) {
+		incentiveSource = holonConnections.getConnectedAgent(0).incentiveGenerator;
+	}
 }
+
 
 // EV charging
 v_totaalVerbruik_kW = v_basislastElektriciteitsverbruik_kW + heatingSystem.v_ElectricityConsumption_kW;
+v_evTotalEnergyUse_kW = 0;
+v_evTotalEnergySupply_kW = 0;
 v_gridPowerBalAfterPV_kW = v_totaalVerbruik_kW - v_pvOpwek_kW;
 energyManager.manage(p_energyManagerMode,incentiveSource);
 
 double V2G_kW=0;
 if (nbVehicles > 0) {
 	if (auto1.isLaden) {
-		v_totaalVerbruik_kW += max(0,auto1.laadsnelheid_kW);
+		v_evTotalEnergyUse_kW += max(0,auto1.laadsnelheid_kW); 
+		v_totaalVerbruik_kW += max(0,auto1.laadsnelheid_kW); 
+		v_evTotalEnergySupply_kW += - min(0,auto1.laadsnelheid_kW);
 		V2G_kW += - min(0,auto1.laadsnelheid_kW);
 	}
 	if (nbVehicles > 1) {
 		if (nbVehicles > 1 & auto2.isLaden) {
+		v_evTotalEnergyUse_kW += max(0,auto2.laadsnelheid_kW);
 		v_totaalVerbruik_kW += max(0,auto2.laadsnelheid_kW);
+		v_evTotalEnergySupply_kW += - min(0,auto2.laadsnelheid_kW);
 		V2G_kW += - min(0,auto2.laadsnelheid_kW);
 		}
 	}
 }
+
 
 // Totals
 v_eigenConsumptie_kW = min(v_pvOpwek_kW + V2G_kW,v_totaalVerbruik_kW);
@@ -5193,6 +5399,8 @@ else if ( v_netVermogen_kW < 0 ) {
 //traceln(costCurrentTimestep_eur);
 v_electricityBill_eur += (costCurrentTimestep_eur * eBuurtModel.main.dt_h);
 v_totaalVerbruik_kWh += v_netVermogen_kW * eBuurtModel.main.dt_h;
+v_evTotalEnergyUse_kWh += v_evTotalEnergyUse_kW * eBuurtModel.main.dt_h;
+v_evTotalEnergySupply_kWh += v_evTotalEnergySupply_kW * eBuurtModel.main.dt_h;
 v_gemiddeldeStroomPrijs_eurpkWh = v_electricityBill_eur/v_totaalVerbruik_kWh;
 //traceln(eBuurtModel.incentiveGenerator.tf_incentivePowerCosts( 0 ));]]></Body>
 				</Function>
@@ -5486,8 +5694,10 @@ boolean hasOwnPV = this.zonnepanelen.size() > 0? true : false;
 if( hasOwnPV == false ) {
 	this.holonConnections.connectTo(sender_holon);
 	sender_holon.holonConnections.connectTo(this);
-	s_roof.setFillColor( blue);
-	s_wall.setFillColor( blue );
+	//s_roof.setFillColor( blue);
+	//s_wall.setFillColor( blue );
+	housered.setVisible(false);
+	houseblue.setVisible(true);
 	
 }
 ]]></Body>
@@ -5939,6 +6149,7 @@ if (msg == OL_HolonMessages.JOIN_ME ) {
 				<Rectangle>
 					<Id>1654007187415</Id>
 					<Name><![CDATA[s_wall]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>-70</X><Y>-50</Y>
 					<Label><X>10</X><Y>10</Y></Label>
 					<PublicFlag>true</PublicFlag>
@@ -5961,6 +6172,7 @@ if (msg == OL_HolonMessages.JOIN_ME ) {
 				<Polyline>
 					<Id>1654007187411</Id>
 					<Name><![CDATA[s_roof]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>-80</X><Y>-45</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
@@ -6888,6 +7100,588 @@ traceln("test");]]></ActionCode>
 					<FillAreaUnderLine>false</FillAreaUnderLine>
 					<LabelFormat>HH_mm</LabelFormat>
     			</TimePlot>
+				<Group>
+					<Id>1654263020538</Id>
+					<Name><![CDATA[houseblue]]></Name>
+					<X>-20</X><Y>-60</Y>
+					<Label><X>50</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+
+			<Presentation>
+				<Polyline>
+					<Id>1654263020540</Id>
+					<Name><![CDATA[_ps257]]></Name>
+					<X>-5</X><Y>50</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>-12490271</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>50</X><Y>-25</Y><Z>0</Z></Point>
+					   <Point><X>50</X><Y>-55</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>-30</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Polyline>
+				<Polyline>
+					<Id>1654263020542</Id>
+					<Name><![CDATA[_ps258]]></Name>
+					<X>-5</X><Y>20</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>-7876870</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>50</X><Y>-25</Y><Z>0</Z></Point>
+					   <Point><X>25</X><Y>-55</Y><Z>0</Z></Point>
+					   <Point><X>-25</X><Y>-30</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Polyline>
+				<Polyline>
+					<Id>1654263020544</Id>
+					<Name><![CDATA[_ps259]]></Name>
+					<X>-55</X><Y>25</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>-14774017</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>-30</Y><Z>0</Z></Point>
+					   <Point><X>25</X><Y>-35</Y><Z>0</Z></Point>
+					   <Point><X>50</X><Y>-5</Y><Z>0</Z></Point>
+					   <Point><X>50</X><Y>25</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Polyline>
+				<Polyline>
+					<Id>1654263020546</Id>
+					<Name><![CDATA[_ps260]]></Name>
+					<X>-55</X><Y>-5</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>-5576461</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>50</X><Y>-25</Y><Z>0</Z></Point>
+					   <Point><X>75</X><Y>-30</Y><Z>0</Z></Point>
+					   <Point><X>25</X><Y>-5</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Polyline>
+				<Polyline>
+					<Id>1654263020548</Id>
+					<Name><![CDATA[_ps261]]></Name>
+					<X>-5</X><Y>50</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor/>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>50</X><Y>-25</Y><Z>0</Z></Point>
+					   <Point><X>50</X><Y>-55</Y><Z>0</Z></Point>
+					   <Point><X>25</X><Y>-85</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>-80</Y><Z>0</Z></Point>
+					   <Point><X>-50</X><Y>-55</Y><Z>0</Z></Point>
+					   <Point><X>-50</X><Y>-25</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Polyline>
+				<Polyline>
+					<Id>1654263020550</Id>
+					<Name><![CDATA[_ps262]]></Name>
+					<X>-45</X><Y>20</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>-12823945</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>10</X><Y>5</Y><Z>0</Z></Point>
+					   <Point><X>10</X><Y>-10</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>-15</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Polyline>
+				<Polyline>
+					<Id>1654263020552</Id>
+					<Name><![CDATA[_ps263]]></Name>
+					<X>5</X><Y>35</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>-12823945</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>10</X><Y>-5</Y><Z>0</Z></Point>
+					   <Point><X>10</X><Y>-20</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>-15</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Polyline>
+				<Polyline>
+					<Id>1654263020554</Id>
+					<Name><![CDATA[_ps264]]></Name>
+					<X>-25</X><Y>30</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>-12823945</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>10</X><Y>5</Y><Z>0</Z></Point>
+					   <Point><X>10</X><Y>-10</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>-15</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Polyline>
+				<Polyline>
+					<Id>1654263020556</Id>
+					<Name><![CDATA[_ps265]]></Name>
+					<X>-5</X><Y>50</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>1342177280</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>20</X><Y>10</Y><Z>0</Z></Point>
+					   <Point><X>70</X><Y>-15</Y><Z>0</Z></Point>
+					   <Point><X>50</X><Y>-25</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Polyline>
+			</Presentation>
+
+				</Group>
+				<Group>
+					<Id>1654263088256</Id>
+					<Name><![CDATA[housered]]></Name>
+					<X>-20</X><Y>-60</Y>
+					<Label><X>50</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+
+			<Presentation>
+				<Polyline>
+					<Id>1654263088258</Id>
+					<Name><![CDATA[_ps266]]></Name>
+					<X>-5</X><Y>50</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>-5103070</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>50</X><Y>-25</Y><Z>0</Z></Point>
+					   <Point><X>50</X><Y>-55</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>-30</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Polyline>
+				<Polyline>
+					<Id>1654263088260</Id>
+					<Name><![CDATA[_ps267]]></Name>
+					<X>-5</X><Y>20</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>-360334</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>50</X><Y>-25</Y><Z>0</Z></Point>
+					   <Point><X>25</X><Y>-55</Y><Z>0</Z></Point>
+					   <Point><X>-25</X><Y>-30</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Polyline>
+				<Polyline>
+					<Id>1654263088262</Id>
+					<Name><![CDATA[_ps268]]></Name>
+					<X>-55</X><Y>25</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>-47872</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>-30</Y><Z>0</Z></Point>
+					   <Point><X>25</X><Y>-35</Y><Z>0</Z></Point>
+					   <Point><X>50</X><Y>-5</Y><Z>0</Z></Point>
+					   <Point><X>50</X><Y>25</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Polyline>
+				<Polyline>
+					<Id>1654263088264</Id>
+					<Name><![CDATA[_ps269]]></Name>
+					<X>-55</X><Y>-5</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>-18751</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>50</X><Y>-25</Y><Z>0</Z></Point>
+					   <Point><X>75</X><Y>-30</Y><Z>0</Z></Point>
+					   <Point><X>25</X><Y>-5</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Polyline>
+				<Polyline>
+					<Id>1654263088266</Id>
+					<Name><![CDATA[_ps270]]></Name>
+					<X>-5</X><Y>50</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor/>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>50</X><Y>-25</Y><Z>0</Z></Point>
+					   <Point><X>50</X><Y>-55</Y><Z>0</Z></Point>
+					   <Point><X>25</X><Y>-85</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>-80</Y><Z>0</Z></Point>
+					   <Point><X>-50</X><Y>-55</Y><Z>0</Z></Point>
+					   <Point><X>-50</X><Y>-25</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Polyline>
+				<Polyline>
+					<Id>1654263088268</Id>
+					<Name><![CDATA[_ps271]]></Name>
+					<X>-45</X><Y>20</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>-12823945</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>10</X><Y>5</Y><Z>0</Z></Point>
+					   <Point><X>10</X><Y>-10</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>-15</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Polyline>
+				<Polyline>
+					<Id>1654263088270</Id>
+					<Name><![CDATA[_ps272]]></Name>
+					<X>5</X><Y>35</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>-12823945</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>10</X><Y>-5</Y><Z>0</Z></Point>
+					   <Point><X>10</X><Y>-20</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>-15</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Polyline>
+				<Polyline>
+					<Id>1654263088272</Id>
+					<Name><![CDATA[_ps273]]></Name>
+					<X>-25</X><Y>30</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>-12823945</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>10</X><Y>5</Y><Z>0</Z></Point>
+					   <Point><X>10</X><Y>-10</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>-15</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Polyline>
+				<Polyline>
+					<Id>1654263088274</Id>
+					<Name><![CDATA[_ps274]]></Name>
+					<X>-5</X><Y>50</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>1342177280</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>20</X><Y>10</Y><Z>0</Z></Point>
+					   <Point><X>70</X><Y>-15</Y><Z>0</Z></Point>
+					   <Point><X>50</X><Y>-25</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Polyline>
+			</Presentation>
+
+				</Group>
 			</Presentation>
 
 				</Level>
@@ -18005,6 +18799,30 @@ Geïnterpreteerd als: percentage woningen dat minimaal 1 keer tijdens de modelru
 						<Type><![CDATA[int]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654263427762</Id>
+					<Name><![CDATA[v_totalCostsEbuurtPerHousehold_eurphh]]></Name>
+					<X>720</X><Y>1300</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654334672615</Id>
+					<Name><![CDATA[v_totalPerHouseholdEnergyDemand_kWhphh]]></Name>
+					<X>100</X><Y>1540</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1646215419977</Id>
 					<Name><![CDATA[p_SchuifKostenVerzwaringLSNet]]></Name>
@@ -18187,12 +19005,13 @@ v_totalElectricityDemand_kWh = eBuurtModel.v_wijkTotaalElektriciteitsVerbruik_kW
 v_renewableEnergy_perc = eBuurtModel.v_pvOpwekJaartotaal_kWh / v_totalElectricityDemand_kWh * 100;
 //TODO 
 v_selfGeneratedElectricity_perc = ( 1 - eBuurtModel.v_wijkEnergyAfname_kWh / eBuurtModel.v_wijkTotaalElektriciteitsVerbruik_kWh ) * 100;
-v_selfSufficiency_perc =  eBuurtModel.v_eigenConsumptieJaartotaal_kWh / 0.7 / ( eBuurtModel.v_wijkTotaalElektriciteitsVerbruik_kWh/0.7 + eBuurtModel.v_wijkTotaalGasVerbruik_m3 * eBuurtModel.p_energyDensityGas_kWhpm3) * 100;
+//v_selfSufficiency_perc =  eBuurtModel.v_eigenConsumptieJaartotaal_kWh / 0.7 / ( eBuurtModel.v_wijkTotaalElektriciteitsVerbruik_kWh/0.7 + eBuurtModel.v_wijkTotaalGasVerbruik_m3 * eBuurtModel.p_energyDensityGas_kWhpm3) * 100;
+v_selfSufficiency_perc = 100 * ( eBuurtModel.v_eigenConsumptieJaartotaal_kWh / 1000 ) / v_totalEnergyDemand_MWh;
 v_ownUsageGeneratedEnergy_perc = ( 1 - v_totalTrafoFeedIn_kWh / eBuurtModel.v_pvOpwekJaartotaal_kWh ) * 100;
 
 v_totalEnergyDemand_MWh = 0.001 * (v_totalElectricityDemand_kWh + eBuurtModel.v_wijkTotaalGasVerbruik_m3*9.769) + eBuurtModel.v_wijkTotaalBenzineVerbruik_l*.044*.74/3.6 + eBuurtModel.v_wijkTotaalDieselVerbruik_l * 0.85 * .0427 / 3.6;
 v_totalEnergyDemandVehicles_MWh = eBuurtModel.v_wijkTotaalBenzineVerbruik_l *.044*.74/3.6 + eBuurtModel.v_wijkTotaalDieselVerbruik_l*0.85*.0427/3.6 + .001* (eBuurtModel.v_evVerbruikJaartotaal_kWh - ( sum(eBuurtModel.autos, x->x.huidigBatterijCap_kWh) - eBuurtModel.v_initialTotalBatteryCharge_kWh));
-
+v_totalPerHouseholdEnergyDemand_kWhphh = 1000 * v_totalEnergyDemand_MWh / (double)this.eBuurtModel.huishoudens.size();
 
 // calculate costs
 f_calculateOPEX();
@@ -18773,6 +19592,7 @@ v_totalCAPEX_eur = v_CAPEXeNetwork_eur + v_CAPEXHouseholds_eur + v_CAPEXDHNetwor
 double monthsElapsed = time() / month();
 v_totalOPEXMonthly_eurpm = v_totalOPEX_eur / monthsElapsed;  
 //v_totalCAPEXMontly_eurpm =      //CAPEX apart, via respectievelijke afschrijvingstermijnen van investeringen
+v_totalCostsEbuurtPerHousehold_eurphh = v_totalCostsEbuurt_eur / (double)this.eBuurtModel.huishoudens.size();
 v_totalCostsEbuurtMonthly_eurpm = v_totalOPEXMonthly_eurpm + v_totalCAPEXMonthly_eurpm;]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -33465,7 +34285,7 @@ for ( int i = 0; i < p_boot_woningen; i++) {
        h.initializeAutos( i );
        h.f_initializeSolarPanels();
        f_connectTo3DShape(i, h);
-       h.setXY( 25 * cos( uniform(0, 2 * PI) ), 25 * cos( uniform(0, 2 * PI) ) );
+       h.setXY( 35 * cos( uniform(0, 2 * PI) ), 15 * cos( uniform(0, 2 * PI) ) );
 }
 
 double telapsed=System.currentTimeMillis()-t0;
@@ -36305,6 +37125,10 @@ insertInto ( db_kpi ).columns( db_kpi.ebuurt_id,
 		db_kpi.ebuurt_averagetrafoload_pct, 
 		db_kpi.ebuurt_maxtrafoloadin_fr,
 		db_kpi.ebuurt_maxtrafoloadout_fr,
+		db_kpi.wijk_betrouwbaarheid_pct,
+		db_kpi.wijk_betaalbaarheid_eurphh,
+		db_kpi.wijk_energieverbruik_mwh,
+		db_kpi.wijk_zelfvoorzienendheid_pct,
 		db_kpi.ebuurt_totalcostmonthly_eurpm, 
 		db_kpi.ebuurt_co2emission_ton, 
 		db_kpi.ebuurt_selfconsumption_pct,
@@ -36333,6 +37157,10 @@ insertInto ( db_kpi ).columns( db_kpi.ebuurt_id,
 		this.kpiVisuals.v_averageTrafoLoad_pct,
 		this.kpiVisuals.v_maximaleBelastingWijktrafoKWlevering / this.v_trafoMaxPower, 
 		this.kpiVisuals.v_maximaleBelastingWijktrafoKWteruglevering / this.v_trafoMinPower,
+		roundToInt( 100 - this.kpiVisuals.v_WijktrafoOverschrijdingTijdfractie * 100 ),
+		roundToInt( this.kpiVisuals.v_totalCostsEbuurtPerHousehold_eurphh ),
+		roundToInt( this.kpiVisuals.v_totalEnergyDemand_MWh ),
+		roundToInt( this.kpiVisuals.v_selfSufficiency_perc),
 		roundToDecimal( this.kpiVisuals.v_totalCostsEbuurtMonthly_eurpm, -2 ), 
 		roundToDecimal(.001 * this.v_WijkTotaalCO2_kg,2),
 		this.kpiVisuals.v_ownUsageGeneratedEnergy_perc, 
@@ -37783,85 +38611,6 @@ TODO: data afleiden en corrigeren.
 					<FillColor>-3851</FillColor>
 					<FillMaterial>null</FillMaterial>
 				</Rectangle>
-				<Group>
-					<Id>1653301025007</Id>
-					<Name><![CDATA[cloud]]></Name>
-					<X>-4</X><Y>-2</Y>
-					<Label><X>8.679</X><Y>0</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<Rotation>0.0</Rotation>
-
-			<Presentation>
-				<Curve ControlPoints="true">
-					<Id>1653301025009</Id>
-					<Name><![CDATA[_ps300]]></Name>
-					<X>-34.714</X><Y>-26.733</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<ZHeight>10</ZHeight>
-					<LineWidth>1</LineWidth>
-					<LineColor>-11702146</LineColor>
-					<LineMaterial>null</LineMaterial>
-					<LineStyle>SOLID</LineStyle>
-					<BeginArrowSize>1</BeginArrowSize>
-					<BeginArrowStyle>0</BeginArrowStyle>
-					<EndArrowSize>1</EndArrowSize>
-					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-5383962</FillColor>
-					<FillMaterial>null</FillMaterial>
-					<Points>
-					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
-					   <Point><X>9.547</X><Y>-8.624</Y><Z>0</Z></Point>
-					   <Point><X>19.96</X><Y>1.724</Y><Z>0</Z></Point>
-					   <Point><X>19.96</X><Y>1.724</Y><Z>0</Z></Point>
-					   <Point><X>19.96</X><Y>1.724</Y><Z>0</Z></Point>
-					   <Point><X>22.564</X><Y>-10.349</Y><Z>0</Z></Point>
-					   <Point><X>39.054</X><Y>-10.349</Y><Z>0</Z></Point>
-					   <Point><X>55.543</X><Y>-10.349</Y><Z>0</Z></Point>
-					   <Point><X>59.014</X><Y>5.175</Y><Z>0</Z></Point>
-					   <Point><X>59.014</X><Y>5.175</Y><Z>0</Z></Point>
-					   <Point><X>59.014</X><Y>5.175</Y><Z>0</Z></Point>
-					   <Point><X>71.163</X><Y>-1.724</Y><Z>0</Z></Point>
-					   <Point><X>77.24</X><Y>10.349</Y><Z>0</Z></Point>
-					   <Point><X>84.182</X><Y>22.421</Y><Z>0</Z></Point>
-					   <Point><X>72.031</X><Y>27.596</Y><Z>0</Z></Point>
-					   <Point><X>72.031</X><Y>27.596</Y><Z>0</Z></Point>
-					   <Point><X>72.031</X><Y>27.596</Y><Z>0</Z></Point>
-					   <Point><X>80.711</X><Y>36.221</Y><Z>0</Z></Point>
-					   <Point><X>73.767</X><Y>45.706</Y><Z>0</Z></Point>
-					   <Point><X>65.956</X><Y>55.193</Y><Z>0</Z></Point>
-					   <Point><X>51.203</X><Y>48.293</Y><Z>0</Z></Point>
-					   <Point><X>51.203</X><Y>48.293</Y><Z>0</Z></Point>
-					   <Point><X>51.203</X><Y>48.293</Y><Z>0</Z></Point>
-					   <Point><X>46.864</X><Y>60.365</Y><Z>0</Z></Point>
-					   <Point><X>32.111</X><Y>60.365</Y><Z>0</Z></Point>
-					   <Point><X>18.224</X><Y>60.365</Y><Z>0</Z></Point>
-					   <Point><X>14.753</X><Y>47.43</Y><Z>0</Z></Point>
-					   <Point><X>14.753</X><Y>47.43</Y><Z>0</Z></Point>
-					   <Point><X>14.753</X><Y>47.43</Y><Z>0</Z></Point>
-					   <Point><X>6.074</X><Y>52.605</Y><Z>0</Z></Point>
-					   <Point><X>-2.603</X><Y>43.982</Y><Z>0</Z></Point>
-					   <Point><X>-13.018</X><Y>30.183</Y><Z>0</Z></Point>
-					   <Point><X>0</X><Y>19.835</Y><Z>0</Z></Point>
-					   <Point><X>0</X><Y>19.835</Y><Z>0</Z></Point>
-					   <Point><X>0</X><Y>19.835</Y><Z>0</Z></Point>
-					   <Point><X>-9.547</X><Y>8.624</Y><Z>0</Z></Point>
-					</Points>
-					<Closed>true</Closed>
-				</Curve>
-			</Presentation>
-
-				</Group>
     			<TimeStackChart>
 					<Id>1652789519498</Id>
 					<Name><![CDATA[householdByThermostatModes]]></Name>
@@ -40499,6 +41248,29 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 						<LinkTo>false</LinkTo>
 					</ExtendedProperties>
 				</Control>
+				<Oval>
+					<Id>1654260493068</Id>
+					<Name><![CDATA[oval]]></Name>
+					<X>0</X><Y>0</Y>
+					<Label><X>0</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>0.2</LineWidth>
+					<LineColor>-16777216</LineColor>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<Circle>false</Circle>
+					<RadiusX>52.5</RadiusX>
+					<RadiusY>22.5</RadiusY>
+					<Rotation>0.0</Rotation>
+					<FillColor>-3939934</FillColor>
+					<FillMaterial>null</FillMaterial>
+				</Oval>
 				<EmbeddedObjectPresentation>
 					<Id>1654007266965</Id>
 					<Name><![CDATA[huishoudens_presentation]]></Name>
@@ -40800,7 +41572,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 
 @author: JorritvandenHouten
 @since: 02.06.2022]]></Description>
-					<X>870</X><Y>300</Y>
+					<X>870</X><Y>320</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -40837,6 +41609,120 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 					<Id>1654183873666</Id>
 					<Name><![CDATA[v_selfSufficiencyOld_perc]]></Name>
 					<X>1160</X><Y>330</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654266975773</Id>
+					<Name><![CDATA[v_holonHouseholdCAPEX_eur]]></Name>
+					<X>870</X><Y>220</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654267050356</Id>
+					<Name><![CDATA[v_holonPerHouseholdCAPEX_eurphh]]></Name>
+					<X>870</X><Y>240</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654267605682</Id>
+					<Name><![CDATA[v_holonPerHouseholdOPEX_eurphh]]></Name>
+					<X>870</X><Y>300</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654268731918</Id>
+					<Name><![CDATA[v_totalEnergyDemand_MWh]]></Name>
+					<X>710</X><Y>50</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654268893917</Id>
+					<Name><![CDATA[v_totalEnergyDemandVehiclesHolon_MWh]]></Name>
+					<X>710</X><Y>30</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654271443218</Id>
+					<Name><![CDATA[v_currentEvBatteryCharge_kWh]]></Name>
+					<X>360</X><Y>250</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654271470147</Id>
+					<Name><![CDATA[v_holonEVEnergyDemand_kWh]]></Name>
+					<X>360</X><Y>270</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654271859779</Id>
+					<Name><![CDATA[v_initialEvBatteryCharge_kWh]]></Name>
+					<X>360</X><Y>290</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654332533410</Id>
+					<Name><![CDATA[v_gasUsedHouseholds_m3]]></Name>
+					<X>360</X><Y>230</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -40938,6 +41824,82 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1654257901526</Id>
+					<Name><![CDATA[p_connect]]></Name>
+					<Description><![CDATA[exists joining and for KPI-purposes
+
+@author: JorritvandenHouten
+@since: 03.06.2022]]></Description>
+					<X>60</X><Y>30</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[boolean]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[true]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1654257901524</Id>
+							<EditorContolType>CHECK_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1654269689552</Id>
+					<Name><![CDATA[p_activeIncentive]]></Name>
+					<X>150</X><Y>30</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[boolean]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[true]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1654269689550</Id>
+							<EditorContolType>CHECK_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1654329888929</Id>
+					<Name><![CDATA[b_initialEvChargeRetrieved]]></Name>
+					<X>170</X><Y>90</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[boolean]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[false]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1654329888927</Id>
+							<EditorContolType>CHECK_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1653471374648</Id>
 					<Name><![CDATA[c_connectedAgents]]></Name>
@@ -40984,20 +41946,35 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 						</RecurrenceCode>
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
-					<Action><![CDATA[
-for ( EBuurtModel e : main.pop_buurten ) {
-	for ( Huishouden h : e.huishoudens ) {
-		send(OL_HolonMessages.JOIN_ME,h);
+					<Action><![CDATA[if ( p_connect ) {
+	for ( EBuurtModel e : main.pop_buurten ) {
+		for ( Huishouden h : e.huishoudens ) {
+			send(OL_HolonMessages.JOIN_ME,h);
+		}
 	}
-}
-c_connectedAgents.clear();
-c_connectedAgents.addAll(holonConnections.getConnections());
-v_numberOfMembers = c_connectedAgents.size();
-List connectedHouseholds = filter( c_connectedAgents, p -> p instanceof Huishouden);
-v_numberOfHouseholds = connectedHouseholds.size();
-
-for ( WindPark w : main.windParken ) {
-	send(OL_HolonMessages.JOIN_ME,w);
+	c_connectedAgents.clear();
+	c_connectedAgents.addAll(holonConnections.getConnections());
+	v_numberOfMembers = c_connectedAgents.size();
+	List connectedHouseholds = filter( c_connectedAgents, p -> p instanceof Huishouden);
+	v_numberOfHouseholds = connectedHouseholds.size();
+	
+	for ( WindPark w : main.windParken ) {
+		send(OL_HolonMessages.JOIN_ME,w);
+	}
+	
+	// retrieve ebuurt CAPEX only for households that are member of the holon
+	double CAPEX_perBuurt = 0;
+	double memberHouseholds = 0;
+	for ( EBuurtModel e : this.main.pop_buurten ) {
+		CAPEX_perBuurt = e.kpiVisuals.v_totalCAPEX_eur;
+		memberHouseholds = count ( e.huishoudens, h -> h.holonConnections.isConnectedTo(this));
+		v_holonHouseholdCAPEX_eur += CAPEX_perBuurt * memberHouseholds / (double)e.huishoudens.size();
+	}
+	v_holonPerHouseholdCAPEX_eurphh = v_holonHouseholdCAPEX_eur / v_numberOfHouseholds;    // to make it EUR/huishouden connected to holon.
+	
+	if ( !b_initialEvChargeRetrieved ) {
+		f_initialEVBatteryCharge();
+	}
 }
 ]]></Action>
 				</Event>
@@ -41054,17 +42031,34 @@ v_selfConsumption_kWh += min(v_localProduction_kW,v_holonConsumption_kW) * dt_h;
 v_selfSufficiency_perc = v_selfConsumption_kWh / v_totalConsumption_kWh * 100;
 v_selfConsumption_perc = v_selfConsumption_kWh / v_totalProduction_kWh * 100;
 
-// KPIs costs
+// Household KPIs costs and gas use 
 v_holonHouseholdOPEX_eur = 0;
+v_gasUsedHouseholds_m3 = 0;
 for ( Agent h : holonConnections.getConnections() ) {
 	if( h instanceof Huishouden ) {
 		v_holonHouseholdOPEX_eur += ((Huishouden) h).v_OPEX_eur;
+		v_gasUsedHouseholds_m3 += ((Huishouden) h).v_gasMeter_m3; 
 	}
 }
+v_holonPerHouseholdOPEX_eurphh = v_holonHouseholdOPEX_eur / v_numberOfHouseholds;
+
 double monthsElapsed = time() / month();
 v_holonHouseholdOPEXAverage_eurphpm = v_holonHouseholdOPEX_eur / v_numberOfHouseholds / monthsElapsed;
 
-]]></Body>
+// KPI energy use by mobility
+double v_holonTotaalBenzineVerbruik_l = 0;
+double v_holonTotaalDieselVerbruik_l = 0;
+v_currentEvBatteryCharge_kWh = 0;
+v_holonEVEnergyDemand_kWh = 0;
+
+for (EBuurtModel e : this.main.pop_buurten ) {
+	v_holonTotaalBenzineVerbruik_l += sumWhere(e.autos, x->x.v_fuelConsumed_l, x->x.p_fuelType==fuelType.petrol && !x.elektrisch && x.huishouden.holonConnections.size() > 0 );
+	v_holonTotaalDieselVerbruik_l += sumWhere(e.autos, x->x.v_fuelConsumed_l, x->x.p_fuelType==fuelType.diesel && !x.elektrisch && x.huishouden.holonConnections.size() > 0 );
+	v_currentEvBatteryCharge_kWh += sumWhere(e.autos, x->x.huidigBatterijCap_kWh, x->x.huishouden.holonConnections.size() > 0 );
+	v_holonEVEnergyDemand_kWh += sumWhere(e.huishoudens, h -> h.v_evTotalEnergyUse_kWh, h->h.holonConnections.size() > 0);
+}
+v_totalEnergyDemandVehiclesHolon_MWh = v_holonTotaalBenzineVerbruik_l *.044*.74/3.6 + v_holonTotaalDieselVerbruik_l*0.85*.0427/3.6 + .001 * (v_holonEVEnergyDemand_kWh - ( v_currentEvBatteryCharge_kWh - v_initialEvBatteryCharge_kWh));
+v_totalEnergyDemand_MWh = ( v_gasUsedHouseholds_m3 * 9.7694444 / 1000 ) + ( v_totalConsumption_kWh / 1000 ) + v_totalEnergyDemandVehiclesHolon_MWh;]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -41089,6 +42083,8 @@ insertInto ( db_kpi ).columns( db_kpi.run_id,
 		db_kpi.db_timeofrun, 
 		db_kpi.holon_name, 
 		db_kpi.holon_fullname,
+		db_kpi.holon_exists,
+		db_kpi.holon_hourlyprices,
 		db_kpi.holon_numberofmembers,
 		db_kpi.holon_numberofhouseholds,
 		db_kpi.holon_householdaveragemonthlyopex_eurphpm,
@@ -41098,7 +42094,12 @@ insertInto ( db_kpi ).columns( db_kpi.run_id,
 //		db_kpi.ebuurt_totalcostmonthly_eurpm, 
 //		db_kpi.ebuurt_co2emission_ton, 
 		db_kpi.holon_selfconsumption_pct,
-		db_kpi.holon_selfsufficiency_pct)
+		db_kpi.holon_selfsufficiency_pct,
+		
+		db_kpi.holon_betrouwbaarheid_pct,
+		db_kpi.holon_betaalbaarheid_eur,
+		db_kpi.holon_energieverbruik_mwh,
+		db_kpi.holon_zelfvoorzienendheid_pct)
 //		db_kpi.ebuurt_totalcostmonthly_delta_pct, 
 //		db_kpi.ebuurt_co2emission_delta_pct,
 //		db_kpi.ebuurt_selfconsumption_delta_pct ) 
@@ -41107,7 +42108,9 @@ insertInto ( db_kpi ).columns( db_kpi.run_id,
 		this.getIndex(),
 		currentDate, 
 		this.getName(), 
-		this.p_holonName, 
+		this.p_holonName,
+		this.p_connect,
+		this.p_hourlyPrices, 
 		this.v_numberOfMembers,
 		this.v_numberOfHouseholds,
 		this.v_holonHouseholdOPEXAverage_eurphpm,
@@ -41117,7 +42120,12 @@ insertInto ( db_kpi ).columns( db_kpi.run_id,
 //		roundToDecimal( this.kpiVisuals.v_totalCostsEbuurtMonthly_eurpm, -2 ), 
 //		roundToDecimal(.001 * this.v_WijkTotaalCO2_kg,2),
 		this.v_selfConsumption_perc,
-		this.v_selfSufficiency_perc).execute();
+		this.v_selfSufficiency_perc,
+		
+		null,
+		roundToInt( v_holonPerHouseholdCAPEX_eurphh + this.v_holonPerHouseholdOPEX_eurphh ),   // OPEX per huishouden het hele jaar
+		roundToInt( this.v_totalEnergyDemand_MWh ),  // ev state of charge winst toevoegen!
+		roundToInt( this.v_selfSufficiency_perc )).execute();
 //		this.kpiVisuals.v_totalCostsEbuurtChange_pct,
 //		this.kpiVisuals.v_WijkTotaalCO2Change_pct,
 //		this.kpiVisuals.v_eBuurtSelfconsumptionChange_pct)
@@ -41148,6 +42156,21 @@ catch( Exception e ) {
 	v_selfSufficiencyOld_perc = 0;
 
 }]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1654271974874</Id>
+					<Name><![CDATA[f_initialEVBatteryCharge]]></Name>
+					<X>60</X><Y>120</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[for (EBuurtModel e : this.main.pop_buurten ) {
+	v_initialEvBatteryCharge_kWh += sumWhere(e.autos, x->x.huidigBatterijCap_kWh, x->x.huishouden.holonConnections.size() > 0 );
+}
+b_initialEvChargeRetrieved = true;]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
