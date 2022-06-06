@@ -37058,7 +37058,7 @@ v_totaalVermogenHuishoudens_kW = sum(huishoudens, x->x.v_netVermogen_kW); //basi
 // Update district heating system, need to use trafoVermogen_kW to allow 'opportunity heating' in the neighbourhood.
 if (v_householdsWIthDistricHeating > 0) {
 	districtHeatingStorageAndHeatpump.f_heatManager(v_totaalVermogenHuishoudens_kW,v_trafoMaxPower, main.dt_h, (DistrictHeatingNetwork)districtHeatingStorageAndHeatpump.connections.getConnectedAgent(0),v_outsideTemp_degC);
-	districtHeatingNetwork.f_UpdateNetworkHeatBalance();
+	districtHeatingNetwork.f_UpdateNetworkHeatBalance(main.dt_h);
 	v_neighborhoodElectricityConsumptionForHeat_kW += districtHeatingStorageAndHeatpump.heatingSystem.v_ElectricityConsumption_kW;
 	v_trafoVermogen_kW = v_totaalVermogenHuishoudens_kW + districtHeatingStorageAndHeatpump.v_heatPumpPowerDraw_kW;
 } else {
@@ -38230,6 +38230,9 @@ TODO: data afleiden en corrigeren.
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_backupSystemMaxPower_kW]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_bufferStartTemp_degC]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>false</ReplicationFlag>
@@ -41779,7 +41782,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1654506922287</Id>
-					<Name><![CDATA[v_holonDistrictHeatingDemand_kWh]]></Name>
+					<Name><![CDATA[v_holonDistrictHeatingPrimaryEnergyUse_kWh]]></Name>
 					<X>360</X><Y>280</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -42142,18 +42145,20 @@ double v_holonTotaalBenzineVerbruik_l = 0;
 double v_holonTotaalDieselVerbruik_l = 0;
 v_currentEvBatteryCharge_kWh = 0;
 v_holonEVEnergyDemand_kWh = 0;
-v_holonDistrictHeatingDemand_kWh = 0;
+v_holonDistrictHeatingPrimaryEnergyUse_kWh = 0;
 
 for (EBuurtModel e : this.main.pop_buurten ) {
 	v_holonTotaalBenzineVerbruik_l += sumWhere(e.autos, x->x.v_fuelConsumed_l, x->x.p_fuelType==fuelType.petrol && !x.elektrisch && x.huishouden.holonConnections.size() > 0 );
 	v_holonTotaalDieselVerbruik_l += sumWhere(e.autos, x->x.v_fuelConsumed_l, x->x.p_fuelType==fuelType.diesel && !x.elektrisch && x.huishouden.holonConnections.size() > 0 );
 	v_currentEvBatteryCharge_kWh += sumWhere(e.autos, x->x.huidigBatterijCap_kWh, x->x.huishouden.holonConnections.size() > 0 );
 	v_holonEVEnergyDemand_kWh += sumWhere(e.huishoudens, h -> h.v_evTotalEnergyUse_kWh, h->h.holonConnections.size() > 0);
-	v_holonDistrictHeatingDemand_kWh += sumWhere(e.huishoudens, h -> h.heatingSystem.v_DistrictHeatingAbsorbed_kWh, h->h.holonConnections.size() > 0 && h.heatingSystem.p_HeatingType.equals(OL_HeatingTypes.DistrictHeating) );
+	double buurtDistrictHeatingEfficiency_pct = e.districtHeatingStorageAndHeatpump.v_energyEfficiency_pct * e.districtHeatingNetwork.v_networkEfficiency_pct / 100;
+	//traceln("Efficiency stadsverwarming " + roundToInt(buurtDistrictHeatingEfficiency_pct));
+	v_holonDistrictHeatingPrimaryEnergyUse_kWh += sumWhere(e.huishoudens, h -> h.heatingSystem.v_DistrictHeatingAbsorbed_kWh / (buurtDistrictHeatingEfficiency_pct/100), h->h.holonConnections.size() > 0 && h.heatingSystem.p_HeatingType.equals(OL_HeatingTypes.DistrictHeating) );
 	//traceln("District heating connections check " + sumWhere(e.huishoudens, h -> 1, h->h.holonConnections.size() > 0 && h.heatingSystem.p_HeatingType.equals(OL_HeatingTypes.DistrictHeating) ) );
 }
 v_totalEnergyDemandVehiclesHolon_MWh = v_holonTotaalBenzineVerbruik_l *.044*.74/3.6 + v_holonTotaalDieselVerbruik_l*0.85*.0427/3.6 + .001 * (v_holonEVEnergyDemand_kWh - ( v_currentEvBatteryCharge_kWh - v_initialEvBatteryCharge_kWh));
-v_totalEnergyDemand_MWh = ( v_gasUsedHouseholds_m3 * 9.7694444 / 1000 ) + ( v_totalConsumption_kWh / 1000 ) + v_totalEnergyDemandVehiclesHolon_MWh;
+v_totalEnergyDemand_MWh = ( v_gasUsedHouseholds_m3 * 9.7694444 / 1000 ) + ( v_totalConsumption_kWh / 1000 ) + v_totalEnergyDemandVehiclesHolon_MWh + v_holonDistrictHeatingPrimaryEnergyUse_kWh / 1E3;
 
 v_selfSufficiency_pct = v_selfConsumption_kWh / ( v_totalEnergyDemand_MWh * 1000 ) * 100;]]></Body>
 				</Function>
