@@ -4,7 +4,7 @@
 	         AnyLogic Project File 
 *************************************************	         
 -->
-<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.12.202205250339" AlpVersion="8.7.5">
+<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.12.202205250418" AlpVersion="8.7.5">
 <Model>
 	<Id>1648027099882</Id>
 	<Name><![CDATA[HeatingSystems]]></Name>
@@ -1308,6 +1308,7 @@ switch (p_HeatingType) {
 		v_hotWaterDelivery_kW += districtHeatingCon.deliverHotWater( v_HotWaterRequested_kW, true );
 		v_heatDelivery_kW += districtHeatingCon.deliverHeat( v_HeatRequested_kW, false );
 		v_DistrictHeatingAbsorption_kW = districtHeatingCon.getAbsorption();
+		
 	break;
 	
 	case DistrictHeating_w_Boiler:
@@ -1325,7 +1326,7 @@ switch (p_HeatingType) {
 }
 
 v_HotWaterDebt_kWh += (hotWaterRequest_kW - v_hotWaterDelivery_kW) * timeStep_HR;
-plot.updateData();
+//plot.updateData();
 
 //Bereken totalen van deze tijdstap
 v_HeatDelivered_kWh += v_heatDelivery_kW * timeStep_HR ;
@@ -1513,6 +1514,7 @@ v_DistrictHeatingAbsorbed_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]
 					<Name><![CDATA[plot]]></Name>
 					<Description><![CDATA[@author Peter Hogeveen
 @since 26-03-2022]]></Description>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>240</X><Y>350</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -2074,7 +2076,7 @@ v_DistrictHeatingAbsorbed_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[double]]></Type>        
 						<InitialValue Class="CodeValue">
-							<Code><![CDATA[(p_primarySystemMaxPower_kW > 0)? 55 : 50]]></Code>
+							<Code><![CDATA[(p_primarySystemMaxPower_kW > 0)? p_bufferStartTemp_degC : 50]]></Code>
 						</InitialValue>
 					</Properties>
 				</Variable>
@@ -2115,7 +2117,7 @@ v_DistrictHeatingAbsorbed_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]
 
 @author: Gillis Hommen, Jorrit van den Houten
 @since: 15/04/2022]]></Description>
-					<X>30</X><Y>300</Y>
+					<X>30</X><Y>320</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2167,6 +2169,53 @@ v_DistrictHeatingAbsorbed_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]
 						<InitialValue Class="CodeValue">
 							<Code><![CDATA[0]]></Code>
 						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654512400040</Id>
+					<Name><![CDATA[v_energyEfficiency_pct]]></Name>
+					<X>250</X><Y>300</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654514701723</Id>
+					<Name><![CDATA[v_heatDeliveredToNetwork_kWh]]></Name>
+					<Description><![CDATA[Source heat delivery to network, made explicit here to be usable in district heat network energy balance calculations.
+
+@author: Gillis Hommen, Jorrit van den Houten
+@since: 15/04/2022]]></Description>
+					<X>30</X><Y>340</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654515137741</Id>
+					<Name><![CDATA[v_heatDeliveryToBuffer_kW]]></Name>
+					<Description><![CDATA[Source heat delivery to network, made explicit here to be usable in district heat network energy balance calculations.
+
+@author: Gillis Hommen, Jorrit van den Houten
+@since: 15/04/2022]]></Description>
+					<X>30</X><Y>300</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
 					</Properties>
 				</Variable>
 				<Variable Class="Parameter">
@@ -2221,7 +2270,7 @@ v_DistrictHeatingAbsorbed_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]
 				<Variable Class="Parameter">
 					<Id>1650616556421</Id>
 					<Name><![CDATA[p_bufferHeatloss_kWpK]]></Name>
-					<X>30</X><Y>170</Y>
+					<X>250</X><Y>80</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2368,7 +2417,7 @@ v_DistrictHeatingAbsorbed_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]
 				<Variable Class="Parameter">
 					<Id>1650633790227</Id>
 					<Name><![CDATA[p_heatingType]]></Name>
-					<X>250</X><Y>110</Y>
+					<X>250</X><Y>60</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2389,7 +2438,7 @@ v_DistrictHeatingAbsorbed_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]
 				<Variable Class="Parameter">
 					<Id>1650637243563</Id>
 					<Name><![CDATA[v_hybridCOPThreshold]]></Name>
-					<X>250</X><Y>80</Y>
+					<X>250</X><Y>40</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2473,6 +2522,30 @@ v_DistrictHeatingAbsorbed_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1654515317484</Id>
+					<Name><![CDATA[p_bufferStartTemp_degC]]></Name>
+					<X>30</X><Y>170</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[55]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1654515317482</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 			</Variables>
 			<Functions>
 				<Function AccessType="default" StaticFunction="false">
@@ -2500,7 +2573,10 @@ v_DistrictHeatingAbsorbed_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]
 					<Body><![CDATA[double dQdt_kW = heatProduction_kW - p_bufferHeatloss_kWpK * (v_bufferTemp_degC - p_soilTemp_degC) - networkHeatDemand_kW;
 
 v_bufferTemp_degC += dQdt_kW * dt_h / p_bufferSpecificHeat_kWhpK;
-v_heatDeliveryToNetwork_kW = networkHeatDemand_kW;]]></Body>
+v_heatDeliveryToNetwork_kW = networkHeatDemand_kW;
+
+v_heatDeliveredToNetwork_kWh += networkHeatDemand_kW * dt_h;
+v_energyEfficiency_pct = v_heatDeliveredToNetwork_kWh / ( heatingSystem.v_CumElectricityConsumed_kWh + heatingSystem.v_CumGasConsumed_m3 * 9.769 + (p_bufferStartTemp_degC - v_bufferTemp_degC) * p_bufferSpecificHeat_kWhpK ) * 100;]]></Body>
 				</Function>
 				<Function AccessType="public" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -2581,7 +2657,7 @@ if (v_bufferTemp_degC < p_minTempBuffer_degC) { // If PTES temperature drops bel
 }	
 
 //traceln("primary + secondary "+roundToDecimal(v_primaryHeatProduction_kW+v_secondaryHeatProduction_kW,0)+", heat delivered: "+ roundToDecimal(heatingSystem.v_heatDelivery_kW,0));
-f_socUpdate(v_heatDeliveryToNetwork_kW, v_heatingNetworkDemand, dt_h); // 	]]></Body>
+f_socUpdate(v_heatDeliveryToBuffer_kW, v_heatingNetworkDemand, dt_h); // 	]]></Body>
 				</Function>
 				<Function AccessType="public" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -2674,16 +2750,13 @@ switch (p_heatingType) {
 		error("no correct heating system in place");
 }
 
-v_heatDeliveryToNetwork_kW = v_primaryHeatProduction_kW + v_secondaryHeatProduction_kW + v_backupHeatProduction_kW;
-
+v_heatDeliveryToBuffer_kW = v_primaryHeatProduction_kW + v_secondaryHeatProduction_kW + v_backupHeatProduction_kW;
 //Bereken totalen van deze tijdstap
 heatingSystem.v_HeatDelivered_kWh += heatingSystem.v_heatDelivery_kW * timeStep_HR ;
 //v_hotWaterDelivered_kWh += v_hotWaterDelivery_kW * timeStep_HR ;
 heatingSystem.v_CumGasConsumed_m3 += heatingSystem.v_GasConsumption_m3ph * timeStep_HR;
 heatingSystem.v_CumElectricityConsumed_kWh += heatingSystem.v_ElectricityConsumption_kW * timeStep_HR;
-//v_DistrictHeatingAbsorped_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;
-
-]]></Body>
+//v_DistrictHeatingAbsorped_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]></Body>
 				</Function>
 			</Functions>
 			<TableFunctions>
@@ -2875,7 +2948,7 @@ heatingSystem.v_CumElectricityConsumed_kWh += heatingSystem.v_ElectricityConsump
     			<TimePlot>
 					<Id>1650616556400</Id>
 					<Name><![CDATA[pl_avgSoC]]></Name>
-					<X>-10</X><Y>340</Y>
+					<X>-10</X><Y>350</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3133,7 +3206,7 @@ Value is not a known quantity (to heat producers), but is used in f_UpdateNetwor
 
 @author: JorritvandenHouten
 @since: 15/04/2022]]></Description>
-					<X>50</X><Y>190</Y>
+					<X>50</X><Y>200</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3154,7 +3227,7 @@ Updated in: f_UpdateNetworkHeatBalance().
 
 @author: JorritvandenHouten
 @since: 15/04/2022]]></Description>
-					<X>50</X><Y>280</Y>
+					<X>50</X><Y>260</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3251,6 +3324,69 @@ Used to calculate volume flows and power later (TODO: implement this)
 						<Type><![CDATA[double]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654512653220</Id>
+					<Name><![CDATA[v_networkHeatDelivered_kWh]]></Name>
+					<Description><![CDATA[Total heat supplied to the network by connected suppliers for use in the network energy balance.
+
+Updated in: f_UpdateNetworkHeatBalance().
+
+@author: JorritvandenHouten
+@since: 15/04/2022]]></Description>
+					<X>50</X><Y>300</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654512670148</Id>
+					<Name><![CDATA[v_networkHeatReceived_kWh]]></Name>
+					<Description><![CDATA[Total heat supplied to the network by connected suppliers for use in the network energy balance.
+
+Updated in: f_UpdateNetworkHeatBalance().
+
+@author: JorritvandenHouten
+@since: 15/04/2022]]></Description>
+					<X>50</X><Y>320</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1654513215188</Id>
+					<Name><![CDATA[v_networkEfficiency_pct]]></Name>
+					<Description><![CDATA[Total heat supplied to the network by connected suppliers for use in the network energy balance.
+
+Updated in: f_UpdateNetworkHeatBalance().
+
+@author: JorritvandenHouten
+@since: 15/04/2022]]></Description>
+					<X>50</X><Y>340</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1650616566457</Id>
 					<Name><![CDATA[v_networkWaterFlow_m3ph]]></Name>
@@ -3258,7 +3394,7 @@ Used to calculate volume flows and power later (TODO: implement this)
 
 @author: JorritvandenHouten
 @since: 15/04/2022]]></Description>
-					<X>50</X><Y>340</Y>
+					<X>50</X><Y>410</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3450,11 +3586,15 @@ TODO: make this a universal value together with HeatingSystems PTES_w_Heatpump
 
 @author: JorritvandenHouten
 @since: 15/04/2022]]></Description>
-					<X>50</X><Y>310</Y>
+					<X>50</X><Y>380</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[dt_h]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
 					<Body><![CDATA[/* v_numberOfConsumers = 0;
 for ( Huishouden h : main.huishoudens ) {
 	if ( h.heatingSystem.p_HeatingType.equals(OL_HeatingTypes.DistrictHeating) || h.heatingSystem.p_HeatingType.equals(OL_HeatingTypes.DistrictHeating_w_Boiler ) ) {
@@ -3504,7 +3644,10 @@ if ( d instanceof DH_PTESWithHeatPump ) {
 	v_networkSupplyTemp_degC = ((DH_PTESWithHeatPump) d).v_bufferTemp_degC;
 	v_networkReturnTemp_degC = v_networkSupplyTemp_degC - v_networkHeatDemand_kW / (cpWater_kJpkgK * 1000 * v_networkWaterFlow_m3ph/3600 ); // 
 }
-]]></Body>
+
+v_networkHeatDelivered_kWh += v_consumerHeatDemand_kW * dt_h;
+v_networkHeatReceived_kWh += v_networkHeatDemand_kW * dt_h;
+v_networkEfficiency_pct = v_networkHeatDelivered_kWh / v_networkHeatReceived_kWh * 100;]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -4088,10 +4231,10 @@ public class J_GasHeater extends J_HeatingSystem implements Serializable {
     	this.efficiency = 0.95;
     	this.depreciationPeriod_yr = 15;
     	if ( power > 100 ) {
-    		this.CAPEX_EUR = 5000 + (200 * maxPower_kW);
+    		this.CAPEX_EUR = (( 800 + 1800 ) / 2 * maxPower_kW);
     	}
     	else {
-    		this.CAPEX_EUR = 1750;
+    		this.CAPEX_EUR = (1692 + 1859)/2 + (80 * maxPower_kW);
     	}
     	
     	//esdlObject = EsdlFactory.eINSTANCE.createGasHeater();
@@ -4177,11 +4320,11 @@ public class J_Heatpump extends J_HeatingSystem implements Serializable {
     	this.myHeatingSystem = HS;
     	this.etaHeatPump = efficiency;
     	this.depreciationPeriod_yr = 15;
-    	if ( power > 100 ) {
-    		this.CAPEX_EUR = 4500;
+    	if ( power < 100 ) {
+    		this.CAPEX_EUR = ( 5359 + 4637 ) / 2 + ( ( 320 + 500 ) / 2 * maxPower_kW );
     	}
     	else {
-    		this.CAPEX_EUR = 10000 + 200 *maxPower_kW;
+    		this.CAPEX_EUR = ( 153857 + 256428 ) / 2 + ( ( 293+488 ) / 2 * maxPower_kW );
     	}
 //    	HS.t_COPHeat.setVisible(true);
 //    	HS.t_COPWater.setVisible(true);
@@ -4312,7 +4455,7 @@ public class J_Boiler extends J_HeatingSystem implements Serializable {
 public class J_DHNetworkMT extends J_DistrictHeatingNetwork implements Serializable {
 
 //	public String tempLevel = "MT";
-//	public double CAPEX_EURpm = 1000;
+//	public double CAPEX_EURpm = 750;
 //	public double networkLength_m;
 //	public double networkDiameter_m = 0.2;
 //	public double networkHeatloss_Wpm2K = 0.03;
@@ -4376,7 +4519,7 @@ public class J_DHNetworkMT extends J_DistrictHeatingNetwork implements Serializa
 public class J_DHNetworkHT extends J_DistrictHeatingNetwork implements Serializable {
 	
 //	public String tempLevel = "HT";
-//	public double CAPEX_EURpm = 1000;
+//	public double CAPEX_EURpm = 800;
 //	public double networkLength_m;
 //	public double networkDiameter_m = 0.2;
 //	public double networkHeatloss_Wpm2K = 0.03;
@@ -4439,7 +4582,7 @@ public class J_DHNetworkHT extends J_DistrictHeatingNetwork implements Serializa
 public class J_DHNetworkLT extends J_DistrictHeatingNetwork implements Serializable {
 
 //	public String tempLevel = "LT";
-//	public double CAPEX_EURpm = 800;
+//	public double CAPEX_EURpm = 500;
 //	public double networkLength_m;
 //	public double networkDiameter_m = 0.2;
 //	public double networkHeatloss_Wpm2K = 0.05;
