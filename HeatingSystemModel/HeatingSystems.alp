@@ -2806,18 +2806,16 @@ v_energyEfficiency_pct = v_heatDeliveredToNetwork_kWh / ( heatingSystem.v_CumEle
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
 					<Parameter>
-						<Name><![CDATA[connectednetwork]]></Name>
-						<Type><![CDATA[DistrictHeatingNetwork]]></Type>
-					</Parameter>
-					<Parameter>
 						<Name><![CDATA[baseTemp_degC]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
 					<Body><![CDATA[// Leid benodigd vermogen warmtelevering uit buffer af uit delta T in warmtenet
+DistrictHeatingNetwork connectednetwork = (DistrictHeatingNetwork)getConnectedAgent(0);
 double networkSupplyTemperature = connectednetwork.v_networkSupplyTemp_degC;
 double networkReturnTemperature = connectednetwork.v_networkReturnTemp_degC;
 double networkVolumeFlow = connectednetwork.v_networkWaterFlow_m3ph;
 double networkHeatDemand = (cpWater_kJpkgK * 1000 * networkVolumeFlow/3600 ) * (networkSupplyTemperature - networkReturnTemperature);
+
 //double networkHeatDemand = connectednetwork.v_networkHeatDemand_kW;  // alternative approach, more direct but less realistic wrt available information.
 
 v_heatingNetworkDemand = networkHeatDemand;
@@ -2862,7 +2860,8 @@ if (v_bufferTemp_degC < p_minTempBuffer_degC) { // If PTES temperature drops bel
 }	
 
 //traceln("primary + secondary "+roundToDecimal(v_primaryHeatProduction_kW+v_secondaryHeatProduction_kW,0)+", heat delivered: "+ roundToDecimal(heatingSystem.v_heatDelivery_kW,0));
-f_socUpdate(v_heatDeliveryToBuffer_kW, v_heatingNetworkDemand, dt_h); // 	]]></Body>
+f_socUpdate(v_heatDeliveryToBuffer_kW, v_heatingNetworkDemand, dt_h); // Calc buffertemp
+connectednetwork.f_UpdateNetworkHeatBalance(dt_h); // Update network heatbalance]]></Body>
 				</Function>
 				<Function AccessType="public" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -4108,6 +4107,7 @@ Connections managed in f_UpdateNetworkHeatBalance().
     			<TimePlot>
 					<Id>1650616566449</Id>
 					<Name><![CDATA[plot]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>270</X><Y>230</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -4712,7 +4712,7 @@ public class J_DHNetworkMT extends J_DistrictHeatingNetwork implements Serializa
 		this.networkDiameter_m = Diameter_m;
 		this.tempLevel = "MT";
 		this.CAPEX_EURpm = 1000;
-		this.networkHeatloss_Wpm2K = 0.03;
+		this.networkHeatloss_Wpm2K = 0.4;
 		this.minOperatingTemp_degC = 50;
 		this.maxOperatingTemp_degC = 65;
 		this.deprecationPeriod_yr = 30;
@@ -4776,7 +4776,7 @@ public class J_DHNetworkHT extends J_DistrictHeatingNetwork implements Serializa
 		this.networkDiameter_m = networkDiameter_m;
 		tempLevel = "HT";
 		CAPEX_EURpm = 1000;
-		networkHeatloss_Wpm2K = 0.03;
+		networkHeatloss_Wpm2K = 0.3;
 		minOperatingTemp_degC = 90;
 		maxOperatingTemp_degC = 110;
 		deprecationPeriod_yr = 30;
@@ -4839,7 +4839,7 @@ public class J_DHNetworkLT extends J_DistrictHeatingNetwork implements Serializa
 		this.networkDiameter_m = networkDiameter_m;
 		this.tempLevel = "LT";
 		this.CAPEX_EURpm = 800;
-		this.networkHeatloss_Wpm2K = 0.05;
+		this.networkHeatloss_Wpm2K = 0.5;
 		this.minOperatingTemp_degC = 10;
 		this.maxOperatingTemp_degC = 40;
 		this.deprecationPeriod_yr = 30;

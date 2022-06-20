@@ -1351,7 +1351,8 @@ Uses:
 						</RecurrenceCode>
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
-					<Action><![CDATA[// Consumers/producers on this network node
+					<Action><![CDATA[double v_outsideTemp_degC = temperatuurFunctie( time(HOUR) + hourOfYearStart );
+// Consumers/producers on this network node
 // Energy balance in 'sub-nodes'
 v_subNodesTotalPower_kW = 0;
 v_weightedReliability_pct = 0;
@@ -1375,6 +1376,7 @@ for( EBuurtModel e : pop_buurten ){
 	OPEX_perhhperBuurt = (double)e.kpiVisuals.v_totalOPEX_eur / numberOfHouseholds;
 	v_nationalPerHouseholdCost_eurphh += ( CAPEX_perhhperBuurt + OPEX_perhhperBuurt ) * numberOfHouseholds;
 }
+
 v_weightedReliability_pct = ( v_weightedReliability_pct / totalHouseholds ) * 100;
 v_nationalPerHouseholdCost_eurphh = v_nationalPerHouseholdCost_eurphh / totalHouseholds;
 
@@ -1390,8 +1392,14 @@ v_currentWindspeed_mps = windspeed_mps(time(HOUR) + hourOfYearStart);
 windParken.forEach(w -> w.windPowerFunction(v_currentWindspeed_mps));
 windParken.forEach(w -> v_centralWindPower_kW -= w.v_currentPower_kW); // -= because positive power is power use, and wind parks provide power production
 
+double v_districtHeatingPower_kW=0;
+for( DH_PTESWithHeatPump d : pop_DH_PTESWithHeatPump) {
+	d.f_heatManager(v_subNodesTotalPower_kW + v_centralPvPower_kW + v_centralWindPower_kW, 200, dt_h, v_outsideTemp_degC); // heatManager stuurt nu aan de hand van excess stroom in de wijk. Dat excess kan ook ergens anders zijn?
+	v_districtHeatingPower_kW+=d.heatingSystem.v_ElectricityConsumption_kW;
+}
+
 // Evaluate total node power (can be seen as power drawn from 'context'; or national grid.
-v_nodePower_kW = v_subNodesTotalPower_kW + v_centralPvPower_kW + v_centralWindPower_kW;
+v_nodePower_kW = v_subNodesTotalPower_kW + v_centralPvPower_kW + v_centralWindPower_kW + v_districtHeatingPower_kW;
 
 // update holon energy balance and incentive generation for next timestep
 holonAgent.forEach(h -> h.f_updateEnergyBalance(dt_h));
@@ -1542,7 +1550,7 @@ insertInto ( db_kpi ).columns(
 v_exportedElectricity_kWh -= min(v_nodePower_kW,0) * dt_h;
 v_importedElectricity_kWh += max(v_nodePower_kW,0) * dt_h;
 
-double v_totalElectricityConsumption_MWh = sum(pop_buurten, b->b.v_wijkTotaalElektriciteitsVerbruik_kWh / 1E3 ); 
+double v_totalElectricityConsumption_MWh = sum(pop_buurten, b->b.v_wijkTotaalElektriciteitsVerbruik_kWh / 1E3 ) + sum(pop_DH_PTESWithHeatPump, p->p.heatingSystem.v_CumElectricityConsumed_kWh); 
 v_totalConsumption_MWh = v_totalHouseholdEnergyUse_MWh; //sum(pop_buurten, b->b.kpiVisuals.v_totalEnergyDemand_MWh); 
 //v_selfConsumption_kWh = sum(pop_buurten, b->b.v_eigenConsumptieJaartotaal_kWh); // Op 'nationaal' niveau mist hier de invloed van centraal opgewekte windenergie!
 v_totalProduction_MWh += ( sum(pop_buurten, b->b.v_neighborhoodSolarProduction_kW) - v_centralPvPower_kW - v_centralWindPower_kW ) * dt_h / 1E3;
@@ -2400,7 +2408,7 @@ for ( Huishouden h : huishoudens ) {
 						<Parameter>
 							<Name><![CDATA[peakPower_kW]]></Name>
 							<Value Class="CodeValue">
-								<Code><![CDATA[200]]></Code>
+								<Code><![CDATA[150]]></Code>
 							</Value>
 						</Parameter>
 					</Parameters>
@@ -13027,6 +13035,18 @@ Geïnterpreteerd als: percentage woningen dat minimaal 1 keer tijdens de modelru
 						<Type><![CDATA[double]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1655740782367</Id>
+					<Name><![CDATA[v_buurtDistrictHeatingPrimaryEnergyUse_kWh]]></Name>
+					<X>100</X><Y>1340</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1646215419977</Id>
 					<Name><![CDATA[p_SchuifKostenVerzwaringLSNet]]></Name>
@@ -13213,7 +13233,9 @@ v_selfGeneratedElectricity_perc = ( 1 - eBuurtModel.v_wijkEnergyAfname_kWh / eBu
 v_selfSufficiency_perc = 100 * ( eBuurtModel.v_eigenConsumptieJaartotaal_kWh / 1000 ) / v_totalEnergyDemand_MWh;
 v_ownUsageGeneratedEnergy_perc = ( 1 - v_totalTrafoFeedIn_kWh / eBuurtModel.v_pvOpwekJaartotaal_kWh ) * 100;
 
-v_totalEnergyDemand_MWh = 0.001 * (v_totalElectricityDemand_kWh + eBuurtModel.v_wijkTotaalGasVerbruik_m3*9.769) + eBuurtModel.v_wijkTotaalBenzineVerbruik_l*.044*.74/3.6 + eBuurtModel.v_wijkTotaalDieselVerbruik_l * 0.85 * .0427 / 3.6;
+double districtHeatingEfficiency_pct = main.pop_DH_PTESWithHeatPump.get(0).v_energyEfficiency_pct * main.pop_districtHeatingNetwork.get(0).v_networkEfficiency_pct / 100;
+v_buurtDistrictHeatingPrimaryEnergyUse_kWh = sumWhere(eBuurtModel.huishoudens, h -> h.heatingSystem.v_DistrictHeatingAbsorbed_kWh / (districtHeatingEfficiency_pct/100), h -> h.heatingSystem.p_HeatingType.equals(OL_HeatingTypes.DistrictHeating) );
+v_totalEnergyDemand_MWh = 0.001 * (v_totalElectricityDemand_kWh + eBuurtModel.v_wijkTotaalGasVerbruik_m3*9.769 + v_buurtDistrictHeatingPrimaryEnergyUse_kWh) + eBuurtModel.v_wijkTotaalBenzineVerbruik_l*.044*.74/3.6 + eBuurtModel.v_wijkTotaalDieselVerbruik_l * 0.85 * .0427 / 3.6;
 v_totalEnergyDemandVehicles_MWh = eBuurtModel.v_wijkTotaalBenzineVerbruik_l *.044*.74/3.6 + eBuurtModel.v_wijkTotaalDieselVerbruik_l*0.85*.0427/3.6 + .001* (eBuurtModel.v_evVerbruikJaartotaal_kWh - ( sum(eBuurtModel.autos, x->x.huidigBatterijCap_kWh) - eBuurtModel.v_initialTotalBatteryCharge_kWh));
 v_totalPerHouseholdEnergyDemand_kWhphh = 1000 * v_totalEnergyDemand_MWh / (double)this.eBuurtModel.huishoudens.size();
 
@@ -31206,17 +31228,16 @@ v_neighborhoodApplianceConsumption_kW = sum(huishoudens, x->x.v_basislastElektri
 //v_neighborhoodDirectSolarConsumption_kW = sum(huishoudens, x->x.v_eigenConsumptie_kW); // Doesn't include power consumption in local heatpump/e-boiler!!
 v_totaalVermogenHuishoudens_kW = sum(huishoudens, x->x.v_netVermogen_kW); //basislastElektriciteitsverbruikHuishoudens_kW + autos.laadvraag() + warmtepompVerbruik_kW - pvOpwek_kW - autos.V2Gvermogen();
 
-// Update district heating system, need to use trafoVermogen_kW to allow 'opportunity heating' in the neighbourhood.
-if (v_householdsWIthDistricHeating > 0) {
-	DH_PTESWithHeatPump districtHeatingStorageAndHeatpump = main.pop_DH_PTESWithHeatPump.get(0);
- 	DistrictHeatingNetwork districtHeatingNetwork = main.pop_districtHeatingNetwork.get(0);
-	districtHeatingStorageAndHeatpump.f_heatManager(v_totaalVermogenHuishoudens_kW,v_trafoMaxPower, dt_h, (DistrictHeatingNetwork)districtHeatingStorageAndHeatpump.connections.getConnectedAgent(0),v_outsideTemp_degC);
-	districtHeatingNetwork.f_UpdateNetworkHeatBalance(dt_h);
-	v_neighborhoodElectricityConsumptionForHeat_kW += districtHeatingStorageAndHeatpump.heatingSystem.v_ElectricityConsumption_kW;
-	v_trafoVermogen_kW = v_totaalVermogenHuishoudens_kW + districtHeatingStorageAndHeatpump.v_heatPumpPowerDraw_kW;
-} else {
+// Update district heating system, need to use trafoVermogen_kW to allow 'opportunity heating' in the neighbourhood. -> TODO: needs update, now that district heating is no longer strictly linked to eBuurt!
+// f_heatManager should not be triggered here, as multiple eBuurt agents may do the same thing. Also, how to allocate electric power of district heating system? Depends on where it is connected to... LS grid of eBuurt, of MS grid 'above' that? 
+// if (v_householdsWIthDistricHeating > 0) {
+//	DH_PTESWithHeatPump districtHeatingStorageAndHeatpump = main.pop_DH_PTESWithHeatPump.get(0); // TODO: Werkt alleen nog als er maar één warmtenet is in het model.
+	// districtHeatingStorageAndHeatpump.f_heatManager(v_totaalVermogenHuishoudens_kW,v_trafoMaxPower, dt_h, (DistrictHeatingNetwork)districtHeatingStorageAndHeatpump.connections.getConnectedAgent(0),v_outsideTemp_degC); // heatManager stuurt nu aan de hand van excess stroom in de wijk. Dat excess kan ook ergens anders zijn?
+//	v_neighborhoodElectricityConsumptionForHeat_kW += districtHeatingStorageAndHeatpump.heatingSystem.v_ElectricityConsumption_kW;
+//	v_trafoVermogen_kW = v_totaalVermogenHuishoudens_kW + districtHeatingStorageAndHeatpump.v_heatPumpPowerDraw_kW;
+// } else {
 	v_trafoVermogen_kW = v_totaalVermogenHuishoudens_kW;
-}
+// }
 v_neighborhoodDirectSolarConsumption_kW = v_neighborhoodSolarProduction_kW + min(0,v_trafoVermogen_kW); 
 
 wijkVerbruik_kW = v_neighborhoodApplianceConsumption_kW + autos.laadvraag() + v_neighborhoodElectricityConsumptionForHeat_kW - autos.V2Gvermogen(); // Alle 'final' elektriciteitsverbruik in de wijk
@@ -31230,8 +31251,8 @@ if (autos.autosElektrisch() >  0) {
 pvOpwekChart.updateData();
 elektriciteitsVerbruikChart.updateData();
 Wijktrafo_vermogen_plot.updateData();
-heatingDemand_kWhpm2.updateData();
-householdByThermostatModes.updateData();
+//heatingDemand_kWhpm2.updateData();
+//householdByThermostatModes.updateData();
 
 // WijkTotalen
 v_pvOpwekJaartotaal_kWh += v_neighborhoodSolarProduction_kW * dt_h;
@@ -31241,7 +31262,7 @@ basislastElektriciteitsverbruikHuishoudensJaartotaal += v_neighborhoodApplianceC
 v_eigenConsumptieJaartotaal_kWh += v_neighborhoodDirectSolarConsumption_kW * dt_h;
 v_wijkNettoElectriciteitsVerbruik_kWh += v_trafoVermogen_kW * dt_h; // Includes negative contribution from PV
 v_wijkEnergyAfname_kWh += max(0,v_trafoVermogen_kW * dt_h);
-v_wijkTotaalElektriciteitsVerbruik_kWh += wijkVerbruik_kW * dt_h; // Excludes negative contribution from PV
+v_wijkTotaalElektriciteitsVerbruik_kWh += wijkVerbruik_kW * dt_h; // Total consumption, also 'achter de meter' in households and electricity used by district heating
 v_wijkTotaalBenzineVerbruik_l = sumWhere(autos, x->x.v_fuelConsumed_l, x->x.p_fuelType==fuelType.petrol && !x.elektrisch);
 v_wijkTotaalDieselVerbruik_l = sumWhere(autos, x->x.v_fuelConsumed_l, x->x.p_fuelType==fuelType.diesel && !x.elektrisch);
 
@@ -32807,6 +32828,7 @@ TODO: data afleiden en corrigeren.
     			<TimeStackChart>
 					<Id>1652789519498</Id>
 					<Name><![CDATA[householdByThermostatModes]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>-1040</X><Y>1700</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -33617,6 +33639,7 @@ als we willen dat ze tijdens het moidel worden aangepast.
     			<BarChart>
 					<Id>1652789519600</Id>
 					<Name><![CDATA[heatingDemand_kWhpm2]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>-1960</X><Y>1400</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
