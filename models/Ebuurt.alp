@@ -1416,9 +1416,10 @@ v_currentWindspeed_mps = windspeed_mps(time(HOUR) + hourOfYearStart);
 windParken.forEach(w -> w.windPowerFunction(v_currentWindspeed_mps));
 windParken.forEach(w -> v_centralWindPower_kW -= w.v_currentPower_kW); // -= because positive power is power use, and wind parks provide power production
 
+holonAgent.forEach(h -> h.f_updateEnergyBalance(dt_h));
+
 double v_districtHeatingPower_kW=0;
 for( DH_PTESWithHeatPump d : pop_DH_PTESWithHeatPump) {
-	d.f_heatManager(v_subNodesTotalPower_kW + v_centralPvPower_kW + v_centralWindPower_kW, p_HSMScapacity_kW, dt_h, v_outsideTemp_degC); // heatManager stuurt nu aan de hand van excess stroom in de wijk. Dat excess kan ook ergens anders zijn?
 	v_districtHeatingPower_kW+=d.heatingSystem.v_ElectricityConsumption_kW;
 }
 
@@ -1426,7 +1427,6 @@ for( DH_PTESWithHeatPump d : pop_DH_PTESWithHeatPump) {
 v_nodePower_kW = v_subNodesTotalPower_kW + v_centralPvPower_kW + v_centralWindPower_kW + v_districtHeatingPower_kW;
 
 // update holon energy balance and incentive generation for next timestep
-holonAgent.forEach(h -> h.f_updateEnergyBalance(dt_h));
 
 f_updateHistogram();
 f_nationaleKPIs();]]></Action>
@@ -5789,7 +5789,7 @@ f_heatingCooling();
 // Heating
 f_smartThermostatEvent();
 
-/**
+/*
 double heatingElectricPower_kW = 0;
 
 if ( p_heatingSystem instanceof HS_Heatpump ) {
@@ -6180,16 +6180,25 @@ boolean hasOwnPV = this.zonnepanelen.size() > 0? true : false;
 //  - holon goal is ook sustainability
 //  - relatieve match qua kosten preference. (holon mag niet lager?)
 //  - ??? doel? functionaliteit? eigen PV verhandelen met de holon? Holon-pv aantrekken?
-if( hasOwnPV == false ) {
+if (heatingSystem.p_HeatingType.equals(OL_HeatingTypes.DistrictHeating) && sender_holon.p_holonName.equals("WarmteHolon")) {
+	//traceln("Connect to WarmteHolon!");
+	this.holonConnections.connectTo(sender_holon);
+	sender_holon.holonConnections.connectTo(this);
+	//s_roof.setFillColor( blue);
+	//s_wall.setFillColor( blue );
+	housered.setVisible(false);
+	houseblue.setVisible(false);
+	houseyellow.setVisible(true);
+} else if( hasOwnPV == false  && sender_holon.p_holonName.equals("WindHolon") ) {
+	//traceln("Connect to WindHolon!");
 	this.holonConnections.connectTo(sender_holon);
 	sender_holon.holonConnections.connectTo(this);
 	//s_roof.setFillColor( blue);
 	//s_wall.setFillColor( blue );
 	housered.setVisible(false);
 	houseblue.setVisible(true);
-	
-}
-]]></Body>
+	houseyellow.setVisible(false);
+}]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>RETURNS_VALUE</ReturnModificator>
@@ -6652,7 +6661,7 @@ if (msg == OL_HolonMessages.JOIN_ME ) {
 					<LineColor/>
 					<LineMaterial>null</LineMaterial>
 					<LineStyle>SOLID</LineStyle>
-					<Width>75</Width>
+					<Width>70</Width>
 					<Height>50</Height>
 					<Rotation>0.0</Rotation>
 					<FillColor>-5952982</FillColor>
@@ -7595,7 +7604,7 @@ traceln("test");]]></ActionCode>
 					<X>-20</X><Y>-60</Y>
 					<Label><X>50</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
+					<PresentationFlag>false</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D</DrawMode>
 					<EmbeddedIcon>false</EmbeddedIcon>
@@ -8141,6 +8150,297 @@ traceln("test");]]></ActionCode>
 				<Polyline>
 					<Id>1654263088274</Id>
 					<Name><![CDATA[_ps274]]></Name>
+					<X>-5</X><Y>50</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>1342177280</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>20</X><Y>10</Y><Z>0</Z></Point>
+					   <Point><X>70</X><Y>-15</Y><Z>0</Z></Point>
+					   <Point><X>50</X><Y>-25</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Polyline>
+			</Presentation>
+
+				</Group>
+				<Group>
+					<Id>1655884805891</Id>
+					<Name><![CDATA[houseyellow]]></Name>
+					<X>-20</X><Y>-60</Y>
+					<Label><X>50</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>false</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+
+			<Presentation>
+				<Polyline>
+					<Id>1655884805893</Id>
+					<Name><![CDATA[_ps275]]></Name>
+					<X>-5</X><Y>50</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>-256</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>50</X><Y>-25</Y><Z>0</Z></Point>
+					   <Point><X>50</X><Y>-55</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>-30</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Polyline>
+				<Polyline>
+					<Id>1655884805895</Id>
+					<Name><![CDATA[_ps276]]></Name>
+					<X>-5</X><Y>20</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>-256</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>50</X><Y>-25</Y><Z>0</Z></Point>
+					   <Point><X>25</X><Y>-55</Y><Z>0</Z></Point>
+					   <Point><X>-25</X><Y>-30</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Polyline>
+				<Polyline>
+					<Id>1655884805897</Id>
+					<Name><![CDATA[_ps277]]></Name>
+					<X>-55</X><Y>25</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>-256</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>-30</Y><Z>0</Z></Point>
+					   <Point><X>25</X><Y>-35</Y><Z>0</Z></Point>
+					   <Point><X>50</X><Y>-5</Y><Z>0</Z></Point>
+					   <Point><X>50</X><Y>25</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Polyline>
+				<Polyline>
+					<Id>1655884805899</Id>
+					<Name><![CDATA[_ps278]]></Name>
+					<X>-55</X><Y>-5</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>-256</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>50</X><Y>-25</Y><Z>0</Z></Point>
+					   <Point><X>75</X><Y>-30</Y><Z>0</Z></Point>
+					   <Point><X>25</X><Y>-5</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Polyline>
+				<Polyline>
+					<Id>1655884805901</Id>
+					<Name><![CDATA[_ps279]]></Name>
+					<X>-5</X><Y>50</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor/>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>50</X><Y>-25</Y><Z>0</Z></Point>
+					   <Point><X>50</X><Y>-55</Y><Z>0</Z></Point>
+					   <Point><X>25</X><Y>-85</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>-80</Y><Z>0</Z></Point>
+					   <Point><X>-50</X><Y>-55</Y><Z>0</Z></Point>
+					   <Point><X>-50</X><Y>-25</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Polyline>
+				<Polyline>
+					<Id>1655884805903</Id>
+					<Name><![CDATA[_ps280]]></Name>
+					<X>-45</X><Y>20</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>-12823945</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>10</X><Y>5</Y><Z>0</Z></Point>
+					   <Point><X>10</X><Y>-10</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>-15</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Polyline>
+				<Polyline>
+					<Id>1655884805905</Id>
+					<Name><![CDATA[_ps281]]></Name>
+					<X>5</X><Y>35</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>-12823945</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>10</X><Y>-5</Y><Z>0</Z></Point>
+					   <Point><X>10</X><Y>-20</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>-15</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Polyline>
+				<Polyline>
+					<Id>1655884805907</Id>
+					<Name><![CDATA[_ps282]]></Name>
+					<X>-25</X><Y>30</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>-12823945</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>10</X><Y>5</Y><Z>0</Z></Point>
+					   <Point><X>10</X><Y>-10</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>-15</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Polyline>
+				<Polyline>
+					<Id>1655884805909</Id>
+					<Name><![CDATA[_ps283]]></Name>
 					<X>-5</X><Y>50</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
@@ -36028,7 +36328,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 				<Variable Class="Parameter">
 					<Id>1653478369099</Id>
 					<Name><![CDATA[p_motivationSustainability]]></Name>
-					<X>60</X><Y>180</Y>
+					<X>-250</X><Y>460</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36052,7 +36352,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 				<Variable Class="Parameter">
 					<Id>1653478381526</Id>
 					<Name><![CDATA[p_motivationCosts]]></Name>
-					<X>60</X><Y>210</Y>
+					<X>-250</X><Y>490</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -36228,10 +36528,11 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 	List connectedHouseholds = filter( c_connectedAgents, p -> p instanceof Huishouden);
 	v_numberOfHouseholds = connectedHouseholds.size();
 	
-	for ( WindPark w : main.windParken ) {
-		send(OL_HolonMessages.JOIN_ME,w);
+	if (p_holonName.equals("WindHolon")) {
+		for ( WindPark w : main.windParken ) {
+			send(OL_HolonMessages.JOIN_ME,w);
+		}
 	}
-	
 	// retrieve ebuurt CAPEX only for households that are member of the holon
 	double CAPEX_perBuurt = 0;
 	double memberHouseholds = 0;
@@ -36295,7 +36596,15 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 						<Name><![CDATA[dt_h]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
-					<Body><![CDATA[v_holonPower_kW = 0.0;
+					<Body><![CDATA[// Select which HOLON-functionality to run based on HOLON name
+
+if (p_holonName.equals("WarmteHolon")) {
+	f_EnergyBalanceWarmteHolon(dt_h);
+} else if (p_holonName.equals("WindHolon")) {
+	f_EnergyBalanceWindHolon(dt_h);
+}
+
+/*v_holonPower_kW = 0.0;
 v_localProduction_kW = 0.0;
 double v_holonConsumption_kW=0;
 for ( Agent a : holonConnections.getConnections() ) {
@@ -36315,12 +36624,17 @@ for ( Agent a : holonConnections.getConnections() ) {
 		v_localProduction_kW += ((Zonnepanelen) a).v_currentPower_kW;
 	}	
 }
-v_holonPower_kW = v_holonConsumption_kW - v_localProduction_kW;
+d.f_heatManager(v_holonConsumption_kW - v_localProduction_kW, main.p_HSMScapacity_kW, dt_h, main.v_outsideTemp_degC); // heatManager stuurt nu aan de hand van excess stroom in de wijk. Dat excess kan ook ergens anders zijn?
+	
+
+v_holonPower_kW = v_holonConsumption_kW - v_localProduction_kW + main.pop_DH_PTESWithHeatPump.get(0).heatingSystem.v_ElectricityConsumption_kW;
 
 // Incentives
-incentiveGenerator.f_setEnergyMarketTariff(v_holonPower_kW); // Dynamic incentives need to be updated every timestep
-incentiveGenerator.f_setDayAheadTariff();
-incentiveGenerator.f_updateIncentive();
+if (p_activeIncentive) {
+	incentiveGenerator.f_setEnergyMarketTariff(v_holonPower_kW); // Dynamic incentives need to be updated every timestep
+	incentiveGenerator.f_setDayAheadTariff();
+	incentiveGenerator.f_updateIncentive();
+}
 
 // KPIs total electricity use, selfsufficiency and self consumption
 v_exportedEnergy_kWh -= min(v_holonPower_kW,0) * dt_h;
@@ -36367,7 +36681,8 @@ for (EBuurtModel e : this.main.pop_buurten ) {
 v_totalEnergyDemandVehiclesHolon_MWh = v_holonTotaalBenzineVerbruik_l *.044*.74/3.6 + v_holonTotaalDieselVerbruik_l*0.85*.0427/3.6 + .001 * (v_holonEVEnergyDemand_kWh - ( v_currentEvBatteryCharge_kWh - v_initialEvBatteryCharge_kWh));
 v_totalEnergyDemand_MWh = ( v_gasUsedHouseholds_m3 * 9.7694444 / 1000 ) + ( v_totalConsumption_kWh / 1000 ) + v_totalEnergyDemandVehiclesHolon_MWh + v_holonDistrictHeatingPrimaryEnergyUse_kWh / 1E3;
 
-v_selfSufficiency_pct = v_selfConsumption_kWh / ( v_totalEnergyDemand_MWh * 1000 ) * 100;]]></Body>
+v_selfSufficiency_pct = v_selfConsumption_kWh / ( v_totalEnergyDemand_MWh * 1000 ) * 100;
+*/]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -36482,6 +36797,204 @@ for (EBuurtModel e : this.main.pop_buurten ) {
 //									sumWhere(e.autos, x->x.huidigBatterijCap_kWh, x->x.huishouden.holonConnections.size() > 0 );
 }
 b_initialEvChargeRetrieved = true;]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1655910105209</Id>
+					<Name><![CDATA[f_EnergyBalanceWindHolon]]></Name>
+					<X>60</X><Y>170</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[dt_h]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
+					<Body><![CDATA[v_holonPower_kW = 0.0;
+v_localProduction_kW = 0.0;
+double v_holonConsumption_kW=0;
+for ( Agent a : holonConnections.getConnections() ) {
+	// haal vraag op van aangesloten huishoudens
+	if ( a instanceof Huishouden ) {
+		a = (Huishouden)a;
+		v_holonConsumption_kW += ((Huishouden) a).v_netVermogen_kW;
+		
+		//v_holonConsumption_kW += max(0,((Huishouden) a).v_netVermogen_kW);
+		//v_localProduction_kW += -min(0,((Huishouden) a).v_netVermogen_kW);
+	}
+	// haal productie van aangesloten duurzame assets op
+	else if ( a instanceof WindPark ) {
+		a = (WindPark)a;
+		v_localProduction_kW += ((WindPark) a).v_currentPower_kW;		
+		
+	}
+	else if ( a instanceof Zonnepanelen ) {
+		a = (Zonnepanelen)a;
+		v_localProduction_kW += ((Zonnepanelen) a).v_currentPower_kW;
+	}	
+}
+
+v_holonPower_kW = v_holonConsumption_kW - v_localProduction_kW;
+
+// Incentives
+if (p_activeIncentive) {
+	incentiveGenerator.f_setEnergyMarketTariff(v_holonPower_kW); // Dynamic incentives need to be updated every timestep
+	incentiveGenerator.f_setDayAheadTariff();
+	incentiveGenerator.f_updateIncentive();
+}
+
+// KPIs total electricity use, selfsufficiency and self consumption
+v_exportedEnergy_kWh -= min(v_holonPower_kW,0) * dt_h;
+v_importedEnergy_kWh += max(v_holonPower_kW,0) * dt_h;
+v_totalConsumption_kWh += v_holonConsumption_kW * dt_h;
+v_totalProduction_kWh += v_localProduction_kW * dt_h;
+v_selfConsumption_kWh += min(v_localProduction_kW,v_holonConsumption_kW) * dt_h;
+
+v_electricSelfSufficiency_pct = v_selfConsumption_kWh / v_totalConsumption_kWh * 100;
+v_selfConsumption_pct = v_selfConsumption_kWh / v_totalProduction_kWh * 100;
+
+// Household KPIs costs and gas use 
+v_holonHouseholdOPEX_eur = 0;
+v_gasUsedHouseholds_m3 = 0;
+for ( Agent h : holonConnections.getConnections() ) {
+	if( h instanceof Huishouden ) {
+		v_holonHouseholdOPEX_eur += ((Huishouden) h).v_OPEX_eur;
+		v_gasUsedHouseholds_m3 += ((Huishouden) h).v_gasMeter_m3; 
+	}
+}
+v_holonPerHouseholdOPEX_eurphh = v_holonHouseholdOPEX_eur / v_numberOfHouseholds;
+
+double monthsElapsed = time() / month();
+v_holonHouseholdOPEXAverage_eurphpm = v_holonHouseholdOPEX_eur / v_numberOfHouseholds / monthsElapsed;
+
+// KPI energy use by mobility
+double v_holonTotaalBenzineVerbruik_l = 0;
+double v_holonTotaalDieselVerbruik_l = 0;
+v_currentEvBatteryCharge_kWh = 0;
+v_holonEVEnergyDemand_kWh = 0;
+v_holonDistrictHeatingPrimaryEnergyUse_kWh = 0;
+
+double buurtDistrictHeatingEfficiency_pct = main.pop_DH_PTESWithHeatPump.get(0).v_energyEfficiency_pct * main.pop_districtHeatingNetwork.get(0).v_networkEfficiency_pct / 100;
+for (EBuurtModel e : this.main.pop_buurten ) {
+	v_holonTotaalBenzineVerbruik_l += sumWhere(e.autos, x->x.v_fuelConsumed_l, x->x.p_fuelType==fuelType.petrol && !x.elektrisch && x.huishouden.holonConnections.size() > 0 );
+	v_holonTotaalDieselVerbruik_l += sumWhere(e.autos, x->x.v_fuelConsumed_l, x->x.p_fuelType==fuelType.diesel && !x.elektrisch && x.huishouden.holonConnections.size() > 0 );
+	v_currentEvBatteryCharge_kWh += sumWhere(e.autos, x->x.huidigBatterijCap_kWh, x->x.huishouden.holonConnections.size() > 0 );
+	v_holonEVEnergyDemand_kWh += sumWhere(e.huishoudens, h -> h.v_evTotalEnergyUse_kWh, h->h.holonConnections.size() > 0);
+	
+	//traceln("Efficiency stadsverwarming " + roundToInt(buurtDistrictHeatingEfficiency_pct));
+	v_holonDistrictHeatingPrimaryEnergyUse_kWh += sumWhere(e.huishoudens, h -> h.heatingSystem.v_DistrictHeatingAbsorbed_kWh / (buurtDistrictHeatingEfficiency_pct/100), h->h.holonConnections.size() > 0 && h.heatingSystem.p_HeatingType.equals(OL_HeatingTypes.DistrictHeating) );
+	//traceln("District heating connections check " + sumWhere(e.huishoudens, h -> 1, h->h.holonConnections.size() > 0 && h.heatingSystem.p_HeatingType.equals(OL_HeatingTypes.DistrictHeating) ) );
+}
+v_totalEnergyDemandVehiclesHolon_MWh = v_holonTotaalBenzineVerbruik_l *.044*.74/3.6 + v_holonTotaalDieselVerbruik_l*0.85*.0427/3.6 + .001 * (v_holonEVEnergyDemand_kWh - ( v_currentEvBatteryCharge_kWh - v_initialEvBatteryCharge_kWh));
+v_totalEnergyDemand_MWh = ( v_gasUsedHouseholds_m3 * 9.7694444 / 1000 ) + ( v_totalConsumption_kWh / 1000 ) + v_totalEnergyDemandVehiclesHolon_MWh + v_holonDistrictHeatingPrimaryEnergyUse_kWh / 1E3;
+
+v_selfSufficiency_pct = v_selfConsumption_kWh / ( v_totalEnergyDemand_MWh * 1000 ) * 100;]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1655910127510</Id>
+					<Name><![CDATA[f_EnergyBalanceWarmteHolon]]></Name>
+					<X>60</X><Y>200</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[dt_h]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
+					<Body><![CDATA[v_holonPower_kW = 0.0;
+v_localProduction_kW = 0.0;
+double v_holonConsumption_kW=0;
+for ( Agent a : holonConnections.getConnections() ) {
+	// haal vraag op van aangesloten huishoudens
+	if ( a instanceof Huishouden ) {
+		a = (Huishouden)a;
+		v_holonConsumption_kW += ((Huishouden) a).v_netVermogen_kW;
+		//v_localProduction_kW += -min(0,((Huishouden) a).v_netVermogen_kW);
+	}
+	// haal productie van aangesloten duurzame assets op
+	else if ( a instanceof WindPark ) {
+		a = (WindPark)a;
+		v_localProduction_kW += ((WindPark) a).v_currentPower_kW;		
+		
+	}
+	else if ( a instanceof Zonnepanelen ) {
+		a = (Zonnepanelen)a;
+		v_localProduction_kW += ((Zonnepanelen) a).v_currentPower_kW;
+	}	
+}
+if (v_holonConsumption_kW < 0) {
+	v_localProduction_kW += -v_holonConsumption_kW;
+	v_holonConsumption_kW = 0;	
+}
+
+// Very crude 'super-holon' behavior; excess power of the WindHolon is accounted in the WarmteHolon as 'local production', so it can be used for heating
+v_localProduction_kW += -min(0,main.holonAgent.get(0).v_holonPower_kW); 
+// TODO: Make an additional HOLON agent to 'properly' arrange this!
+
+double v_outsideTemp_degC = main.temperatuurFunctie( time(HOUR) + main.hourOfYearStart );
+main.pop_DH_PTESWithHeatPump.get(0).f_heatManager(v_holonConsumption_kW - v_localProduction_kW, main.p_HSMScapacity_kW, dt_h, v_outsideTemp_degC); // Run district heating system
+
+v_holonConsumption_kW += main.pop_DH_PTESWithHeatPump.get(0).heatingSystem.v_ElectricityConsumption_kW;
+v_holonPower_kW = v_holonConsumption_kW - v_localProduction_kW; // HOLON energy balance
+
+// Incentives
+if (p_activeIncentive) {
+	incentiveGenerator.f_setEnergyMarketTariff(v_holonPower_kW); // Dynamic incentives need to be updated every timestep
+	incentiveGenerator.f_setDayAheadTariff();
+	incentiveGenerator.f_updateIncentive();
+}
+
+// KPIs total electricity use, selfsufficiency and self consumption
+v_exportedEnergy_kWh -= min(v_holonPower_kW,0) * dt_h;
+v_importedEnergy_kWh += max(v_holonPower_kW,0) * dt_h;
+v_totalConsumption_kWh += v_holonConsumption_kW * dt_h;
+v_totalProduction_kWh += v_localProduction_kW * dt_h;
+v_selfConsumption_kWh += min(v_localProduction_kW,v_holonConsumption_kW) * dt_h;
+
+v_electricSelfSufficiency_pct = v_selfConsumption_kWh / v_totalConsumption_kWh * 100;
+v_selfConsumption_pct = v_selfConsumption_kWh / v_totalProduction_kWh * 100;
+
+// Household KPIs costs and gas use 
+v_holonHouseholdOPEX_eur = 0;
+v_gasUsedHouseholds_m3 = 0;
+for ( Agent h : holonConnections.getConnections() ) {
+	if( h instanceof Huishouden ) {
+		v_holonHouseholdOPEX_eur += ((Huishouden) h).v_OPEX_eur;
+		v_gasUsedHouseholds_m3 += ((Huishouden) h).v_gasMeter_m3; 
+	}
+}
+v_holonPerHouseholdOPEX_eurphh = v_holonHouseholdOPEX_eur / v_numberOfHouseholds;
+
+double monthsElapsed = time() / month();
+v_holonHouseholdOPEXAverage_eurphpm = v_holonHouseholdOPEX_eur / v_numberOfHouseholds / monthsElapsed;
+
+// KPI energy use by mobility
+double v_holonTotaalBenzineVerbruik_l = 0;
+double v_holonTotaalDieselVerbruik_l = 0;
+v_currentEvBatteryCharge_kWh = 0;
+v_holonEVEnergyDemand_kWh = 0;
+v_holonDistrictHeatingPrimaryEnergyUse_kWh = 0;
+
+double buurtDistrictHeatingEfficiency_pct = main.pop_DH_PTESWithHeatPump.get(0).v_energyEfficiency_pct * main.pop_districtHeatingNetwork.get(0).v_networkEfficiency_pct / 100;
+for (EBuurtModel e : this.main.pop_buurten ) {
+	v_holonTotaalBenzineVerbruik_l += sumWhere(e.autos, x->x.v_fuelConsumed_l, x->x.p_fuelType==fuelType.petrol && !x.elektrisch && x.huishouden.holonConnections.size() > 0 );
+	v_holonTotaalDieselVerbruik_l += sumWhere(e.autos, x->x.v_fuelConsumed_l, x->x.p_fuelType==fuelType.diesel && !x.elektrisch && x.huishouden.holonConnections.size() > 0 );
+	v_currentEvBatteryCharge_kWh += sumWhere(e.autos, x->x.huidigBatterijCap_kWh, x->x.huishouden.holonConnections.size() > 0 );
+	v_holonEVEnergyDemand_kWh += sumWhere(e.huishoudens, h -> h.v_evTotalEnergyUse_kWh, h->h.holonConnections.size() > 0);
+	
+	//traceln("Efficiency stadsverwarming " + roundToInt(buurtDistrictHeatingEfficiency_pct));
+	v_holonDistrictHeatingPrimaryEnergyUse_kWh += sumWhere(e.huishoudens, h -> h.heatingSystem.v_DistrictHeatingAbsorbed_kWh / (buurtDistrictHeatingEfficiency_pct/100), h->h.holonConnections.size() > 0 && h.heatingSystem.p_HeatingType.equals(OL_HeatingTypes.DistrictHeating) );
+	//traceln("District heating connections check " + sumWhere(e.huishoudens, h -> 1, h->h.holonConnections.size() > 0 && h.heatingSystem.p_HeatingType.equals(OL_HeatingTypes.DistrictHeating) ) );
+}
+v_totalEnergyDemandVehiclesHolon_MWh = v_holonTotaalBenzineVerbruik_l *.044*.74/3.6 + v_holonTotaalDieselVerbruik_l*0.85*.0427/3.6 + .001 * (v_holonEVEnergyDemand_kWh - ( v_currentEvBatteryCharge_kWh - v_initialEvBatteryCharge_kWh));
+v_totalEnergyDemand_MWh = ( v_gasUsedHouseholds_m3 * 9.7694444 / 1000 ) + ( v_totalConsumption_kWh / 1000 ) + v_totalEnergyDemandVehiclesHolon_MWh + v_holonDistrictHeatingPrimaryEnergyUse_kWh / 1E3;
+
+v_selfSufficiency_pct = v_selfConsumption_kWh / ( v_totalEnergyDemand_MWh * 1000 ) * 100;]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
