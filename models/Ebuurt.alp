@@ -1329,6 +1329,30 @@ Uses:
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1655972623723</Id>
+					<Name><![CDATA[p_carTripDistMultiplier]]></Name>
+					<X>-440</X><Y>410</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>false</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[3]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1655972623721</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1653479152579</Id>
 					<Name><![CDATA[c_motivationToScoring]]></Name>
@@ -1394,7 +1418,7 @@ for( EBuurtModel e : pop_buurten ){
 	v_weightedReliability_pct += ( 1 - e.kpiVisuals.v_WijktrafoOverschrijdingTijdfractie ) * e.huishoudens.size();
 	numberOfHouseholds = e.huishoudens.size();
 	totalHouseholds += numberOfHouseholds;
-	v_totalHouseholdEnergyUse_MWh += e.kpiVisuals.v_totalEnergyDemand_MWh; // Includes district heating energy use, gas use and ICEVs energy use
+	v_totalHouseholdEnergyUse_MWh += e.kpiVisuals.v_totalEnergyDemand_MWh; // Includes district heating primary energy use, gas use and ICEVs energy use
 	
 	CAPEX_perhhperBuurt = (double)e.kpiVisuals.v_totalCAPEX_eur / numberOfHouseholds;
 	OPEX_perhhperBuurt = (double)e.kpiVisuals.v_totalOPEX_eur / numberOfHouseholds;
@@ -3051,7 +3075,7 @@ for ( Huishouden h : huishoudens ) {
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
-					<Text><![CDATA[Energievraag wijktrafo per buurtHolon]]></Text>
+					<Text><![CDATA[Stroomvraag per wijk (LS-trafo)]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>14</Size>
@@ -6174,13 +6198,14 @@ auto2.setLocation( parkeerplaatsPoint2 );
 					<Body><![CDATA[//int holonCostPrio = sender_holon.p_motivationCosts;
 //int holonSustainabilityPrio = sender_holon.p_motivationSustainability;
 boolean hasOwnPV = this.zonnepanelen.size() > 0? true : false;
+boolean districtHeating = heatingSystem.p_HeatingType.equals(OL_HeatingTypes.DistrictHeating);
 
 // huishouden connect met holon, mits:
 // 	- sustainability is boven threshold?
 //  - holon goal is ook sustainability
 //  - relatieve match qua kosten preference. (holon mag niet lager?)
 //  - ??? doel? functionaliteit? eigen PV verhandelen met de holon? Holon-pv aantrekken?
-if (heatingSystem.p_HeatingType.equals(OL_HeatingTypes.DistrictHeating) && sender_holon.p_holonName.equals("WarmteHolon")) {
+if ( districtHeating && sender_holon.p_holonName.equals("WarmteHolon")) {
 	//traceln("Connect to WarmteHolon!");
 	this.holonConnections.connectTo(sender_holon);
 	sender_holon.holonConnections.connectTo(this);
@@ -6189,7 +6214,7 @@ if (heatingSystem.p_HeatingType.equals(OL_HeatingTypes.DistrictHeating) && sende
 	housered.setVisible(false);
 	houseblue.setVisible(false);
 	houseyellow.setVisible(true);
-} else if( hasOwnPV == false  && sender_holon.p_holonName.equals("WindHolon") ) {
+} else if( districtHeating == false && hasOwnPV == false  && sender_holon.p_holonName.equals("WindHolon") ) {
 	//traceln("Connect to WindHolon!");
 	this.holonConnections.connectTo(sender_holon);
 	sender_holon.holonConnections.connectTo(this);
@@ -6198,7 +6223,8 @@ if (heatingSystem.p_HeatingType.equals(OL_HeatingTypes.DistrictHeating) && sende
 	housered.setVisible(false);
 	houseblue.setVisible(true);
 	houseyellow.setVisible(false);
-}]]></Body>
+}
+]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>RETURNS_VALUE</ReturnModificator>
@@ -9999,7 +10025,7 @@ int nbTrips = roundToInt(main.tripsExcel.getCellNumericValue("sheet1", rowIndex 
 for (int i = 0; i < nbTrips; i++){
 	starttimes.add(main.tripsExcel.getCellNumericValue("sheet1", rowIndex + 2, 3 + i * 3));
 	endtimes.add(main.tripsExcel.getCellNumericValue("sheet1", rowIndex + 2, 4 + i * 3));
-	distances.add(main.tripsExcel.getCellNumericValue("sheet1", rowIndex + 2, 5 + i * 3));
+	distances.add(main.p_carTripDistMultiplier*main.tripsExcel.getCellNumericValue("sheet1", rowIndex + 2, 5 + i * 3));
 }
 
 tripDistance_km = distances.get(0);
@@ -11795,7 +11821,7 @@ v_holonLoadLowPassed_kW += lowPassFraction * ( holonCurrentPower_kW - v_holonLoa
 if (p_energyMarket){
 	if ( v_holonLoadLowPassed_kW > p_congestionPowerTresh_kW ) {
 		// Maak afnemen duurder en terugleveren aantrekkelijker
-		v_incentiveCongestionTariff = p_congestionTariff_eurpkW * ( v_holonLoadLowPassed_kW - p_congestionPowerTresh_kW );
+		v_incentiveCongestionTariff = 0;//p_congestionTariff_eurpkW * ( v_holonLoadLowPassed_kW - p_congestionPowerTresh_kW );
 	}
 	else if ( v_holonLoadLowPassed_kW < -p_congestionPowerTresh_kW ) {
 		// Maak terugleveren stroom duurder, want trafo zit bijna aan max teruglevering
@@ -36495,7 +36521,7 @@ f_autoEnergyManagerModeonIncentive();]]></ActionCode>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Properties TriggerType="timeout" Mode="cyclic">
+					<Properties TriggerType="timeout" Mode="occuresOnce">
 						<Timeout Class="CodeUnitValue">
 							<Code><![CDATA[1]]></Code>
 							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
@@ -36836,6 +36862,7 @@ for ( Agent a : holonConnections.getConnections() ) {
 	}	
 }
 
+// Energy balance wind HOLON
 v_holonPower_kW = v_holonConsumption_kW - v_localProduction_kW;
 
 // Incentives
@@ -41724,6 +41751,9 @@ else {
 				</Parameter>
 				<Parameter>
 					<ParameterName><![CDATA[p_HSMScapacity_kW]]></ParameterName>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_carTripDistMultiplier]]></ParameterName>
 				</Parameter>
 			</Parameters>			
 			<PresentationProperties>
