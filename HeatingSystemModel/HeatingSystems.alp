@@ -4583,6 +4583,16 @@ public class J_Heatpump extends J_HeatingSystem implements Serializable {
 		}
 		hotWaterDelivery_kW = min( hotWaterRequest_kW, ( maxPower_kW - currentPower_kW ) * COPwater ) ;
 		currentPower_kW += hotWaterDelivery_kW / COPwater;
+		
+		//dit is om heating systeem te testen op negatieve waarden
+		if( false && currentPower_kW < 0 ) {
+			traceln(" ");
+			traceln("water request" + hotWaterRequest_kW);
+			traceln("current power [kW] = " + currentPower_kW);
+			traceln("hot water delivery = " + hotWaterDelivery_kW);
+			traceln("cop = " + COPwater);
+			traceln("negative power from heatpump, buiten temp " + baseTemperature + " gewenste temp: " + destinationTemperature);
+		}
 		//myHeatingSystem.v_hotWaterDelivery_kW = hotWaterDelivery_kW;
 		return hotWaterDelivery_kW;
 	}
@@ -4590,13 +4600,15 @@ public class J_Heatpump extends J_HeatingSystem implements Serializable {
 	//public void produceHeat( double heatRequest_kW, double COPheating, boolean heatFirst ){
 	public double produceHeat( double heatRequest_kW, double baseTemperature, double destinationTemperature, boolean heatFirst ){
 		double COPheating = etaHeatPump * ( 273.15 + destinationTemperature ) / (destinationTemperature - baseTemperature);
-		
 		if (heatFirst) {
 			currentPower_kW = 0;
 			hotWaterDelivery_kW = 0;
 		}
 		heatDelivery_kW = min( heatRequest_kW, (maxPower_kW - currentPower_kW ) * COPheating) ; // Hot water gets priority
 		currentPower_kW += heatDelivery_kW / COPheating; 
+		if( currentPower_kW < - 0.5 ) {
+			traceln("household met currentpower from heatpump: " + currentPower_kW);
+		}
 		//myHeatingSystem.v_heatDelivery_kW = heatDelivery_kW;
 		return heatDelivery_kW;
 	}

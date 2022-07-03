@@ -118,7 +118,7 @@ f_createDistrictHeatingSystem();
 
 chart_energiestroom.update();
 f_retrieveMainKPIsPreviousRun();
-traceln("On Startup end main "+this.getName()+" | "+System.currentTimeMillis());]]></StartupCode>
+traceln("On Startup end main " + this.getName()+" | "+System.currentTimeMillis());]]></StartupCode>
 			<DestroyCode><![CDATA[f_exportMainKPIs();]]></DestroyCode>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -1084,6 +1084,24 @@ traceln("On Startup end main "+this.getName()+" | "+System.currentTimeMillis());
 						</InitialValue>
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1656861481825</Id>
+					<Name><![CDATA[v_energyCostInNeighborhood]]></Name>
+					<Description><![CDATA[Simple calculation of the total energy cost of the neighborhood with:
+- gasoline = 2.5 euro/L
+- gas = 95 ct/m3
+- local electricity = 7 ct / kWh
+- electricity from grid = 30 ct / kWh
+]]></Description>
+					<X>1280</X><Y>940</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1652790988351</Id>
 					<Name><![CDATA[p_DateFormat]]></Name>
@@ -1730,8 +1748,11 @@ v_nationalHouseholdElectricityConsumption_GWh = ( p_nationalNumberOfHouseholds /
 v_nationalReliability_pct = v_weightedReliability_pct;
 v_nationalTotalEnergyUseHouseholds_TWh = v_totalHouseholdEnergyUse_MWh / v_totalNumberOfHouseholds * p_nationalNumberOfHouseholds / 1E6;
 
-v_modelTotalCO2Emission_ton = 1E-6 * ((v_importedElectricity_kWh - v_exportedElectricity_kWh) * p_GridPowerCO2_gpkWh + sum(pop_buurten, b->b.v_wijkTotaalBenzineVerbruik_l) * p_petrolWTWCO2_gpl + sum(pop_buurten, b->b.v_wijkTotaalDieselVerbruik_l) * p_dieselWTWCO2_gpl + (sum(pop_buurten, b->b.v_wijkTotaalGasVerbruik_m3)) + sum(pop_DH_PTESWithHeatPump, p->p.heatingSystem.v_CumGasConsumed_m3) * p_GasCO2_gpm3);
+v_modelTotalCO2Emission_ton = 1E-6 * ((v_importedElectricity_kWh ) * p_GridPowerCO2_gpkWh + sum(pop_buurten, b->b.v_wijkTotaalBenzineVerbruik_l) * p_petrolWTWCO2_gpl + sum(pop_buurten, b->b.v_wijkTotaalDieselVerbruik_l) * p_dieselWTWCO2_gpl + sum(pop_buurten, b->b.v_wijkTotaalGasVerbruik_m3) * p_GasCO2_gpm3);
 v_nationalHouseholdCO2Emission_Mton = ( p_nationalNumberOfHouseholds / v_totalNumberOfHouseholds * v_modelTotalCO2Emission_ton ) / 1E9;
+
+f_CalcTotalEnergyCosts();
+
 /*
 
 v_totalElectricityDemand_kWh = eBuurtModel.v_wijkTotaalElektriciteitsVerbruik_kWh - ( sum(eBuurtModel.autos, x->x.huidigBatterijCap_kWh) - eBuurtModel.v_initialTotalBatteryCharge_kWh); //eBuurtModel.evVerbruikJaartotaal + eBuurtModel.basislastElektriciteitsverbruikHuishoudensJaartotaal + eBuurtModel.warmtepompVerbruikJaartotaal;
@@ -1835,6 +1856,33 @@ for ( Huishouden h : huishoudens ) {
 		districtHeatingNetwork_HS.v_numberOfConsumers ++;
 	}
 }*/]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1656861770086</Id>
+					<Name><![CDATA[f_CalcTotalEnergyCosts]]></Name>
+					<X>1280</X><Y>970</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[double gasConsumption_m3 = sum(pop_buurten, x -> x.v_wijkTotaalGasVerbruik_m3);
+double benzineConsumption_L =  sum(pop_buurten, x -> x.v_wijkTotaalBenzineVerbruik_l);
+double dieselConsumption_L =  sum(pop_buurten, x -> x.v_wijkTotaalDieselVerbruik_l);
+double localElectricityConsumption_MWh= v_selfConsumption_MWh;
+double importedElectricityConsumption_MWh = v_importedElectricity_kWh / 1000;
+double exportedElectriicty_MWh = v_exportedElectricity_kWh / 1000;
+
+double totalCosts = 
+gasConsumption_m3 * 0.95 + 
+benzineConsumption_L * 2.5 + 
+dieselConsumption_L * 2.3 + 
+localElectricityConsumption_MWh * 60 +
+importedElectricityConsumption_MWh * 300 -
+exportedElectriicty_MWh * 0.06;
+
+v_energyCostInNeighborhood = totalCosts / sum(pop_buurten, x -> x.huishoudens.size());]]></Body>
 				</Function>
 			</Functions>
 			<TableFunctions>
@@ -3975,7 +4023,7 @@ for ( Huishouden h : huishoudens ) {
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
-					<Text><![CDATA[verbruik eigen energie]]></Text>
+					<Text><![CDATA[van productie lokaal geconsumeerd]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>14</Size>
@@ -3996,7 +4044,7 @@ for ( Huishouden h : huishoudens ) {
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
-					<Text><![CDATA[Energieverbruik huishoudens nationaal]]></Text>
+					<Text><![CDATA[MWh / huishouden]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>14</Size>
@@ -4060,7 +4108,7 @@ for ( Huishouden h : huishoudens ) {
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
-					<Text><![CDATA[eigen opgewekte energie]]></Text>
+					<Text><![CDATA[van verbruik lokaal opgewekt]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>14</Size>
@@ -4093,7 +4141,7 @@ for ( Huishouden h : huishoudens ) {
 				<Text>
 					<Id>1654064313629</Id>
 					<Name><![CDATA[text29]]></Name>
-					<X>370</X><Y>795</Y>
+					<X>370</X><Y>801</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -4107,7 +4155,7 @@ for ( Huishouden h : huishoudens ) {
 					<TextCode><![CDATA[roundToInt(v_selfSufficiency_pct) + "%"]]></TextCode>
 					<Font>
 						<Name>SansSerif</Name>
-						<Size>26</Size>
+						<Size>16</Size>
 						<Style>0</Style>
 					</Font>
 					<Alignment>CENTER</Alignment>
@@ -4137,7 +4185,7 @@ for ( Huishouden h : huishoudens ) {
 				<Text>
 					<Id>1654064342404</Id>
 					<Name><![CDATA[text20]]></Name>
-					<X>150</X><Y>800</Y>
+					<X>150</X><Y>801</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -4148,10 +4196,10 @@ for ( Huishouden h : huishoudens ) {
 					<Rotation>0.0</Rotation>
 					<Color>-1</Color>
 					<Text><![CDATA[20%]]></Text>
-					<TextCode><![CDATA[roundToInt(v_nationalTotalEnergyUseHouseholds_TWh) + "TWh"]]></TextCode>
+					<TextCode><![CDATA[roundToDecimal(v_totalConsumption_MWh / sum(pop_buurten, x -> x.huishoudens.size()), 1) + "MWh"]]></TextCode>
 					<Font>
 						<Name>SansSerif</Name>
-						<Size>20</Size>
+						<Size>16</Size>
 						<Style>0</Style>
 					</Font>
 					<Alignment>CENTER</Alignment>
@@ -4159,7 +4207,7 @@ for ( Huishouden h : huishoudens ) {
 				<Text>
 					<Id>1654064342408</Id>
 					<Name><![CDATA[text32]]></Name>
-					<X>600</X><Y>797</Y>
+					<X>600</X><Y>803</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -4173,7 +4221,7 @@ for ( Huishouden h : huishoudens ) {
 					<TextCode><![CDATA[roundToInt(v_selfConsumption_pct) + "%"]]></TextCode>
 					<Font>
 						<Name>SansSerif</Name>
-						<Size>26</Size>
+						<Size>16</Size>
 						<Style>0</Style>
 					</Font>
 					<Alignment>CENTER</Alignment>
@@ -4203,7 +4251,7 @@ for ( Huishouden h : huishoudens ) {
 				<Text>
 					<Id>1655992709266</Id>
 					<Name><![CDATA[text34]]></Name>
-					<X>824</X><Y>797</Y>
+					<X>824</X><Y>803</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -4214,10 +4262,10 @@ for ( Huishouden h : huishoudens ) {
 					<Rotation>0.0</Rotation>
 					<Color>-1</Color>
 					<Text><![CDATA[20%]]></Text>
-					<TextCode><![CDATA[roundToInt(v_modelTotalCO2Emission_ton) + "ton"]]></TextCode>
+					<TextCode><![CDATA[roundToDecimal(v_modelTotalCO2Emission_ton / sum(pop_buurten, x -> x.huishoudens.size()), 2) + " ton"]]></TextCode>
 					<Font>
 						<Name>SansSerif</Name>
-						<Size>26</Size>
+						<Size>16</Size>
 						<Style>0</Style>
 					</Font>
 					<Alignment>CENTER</Alignment>
@@ -4256,7 +4304,7 @@ for ( Huishouden h : huishoudens ) {
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
-					<Text><![CDATA[uitstoot binnen de gemeente]]></Text>
+					<Text><![CDATA[ton CO2 / huishouden]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>14</Size>
@@ -4277,7 +4325,7 @@ for ( Huishouden h : huishoudens ) {
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
-					<Text><![CDATA[Aandeel duurzame energie]]></Text>
+					<Text><![CDATA[van energieconsumptie is duurzaam]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>14</Size>
@@ -4331,7 +4379,7 @@ for ( Huishouden h : huishoudens ) {
 				<Text>
 					<Id>1655993578384</Id>
 					<Name><![CDATA[text36]]></Name>
-					<X>1041</X><Y>795</Y>
+					<X>1041</X><Y>801</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -4345,7 +4393,7 @@ for ( Huishouden h : huishoudens ) {
 					<TextCode><![CDATA[roundToInt(v_sustainability_pct) + "%"]]></TextCode>
 					<Font>
 						<Name>SansSerif</Name>
-						<Size>26</Size>
+						<Size>16</Size>
 						<Style>0</Style>
 					</Font>
 					<Alignment>CENTER</Alignment>
@@ -4369,6 +4417,93 @@ for ( Huishouden h : huishoudens ) {
 					<Latitude>0.0</Latitude>
 					<Longitude>0.0</Longitude>
 				</EmbeddedObjectPresentation>
+				<Text>
+					<Id>1656861112018</Id>
+					<Name><![CDATA[text43]]></Name>
+					<X>1260</X><Y>728</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Kosten]]></Text>
+					<Font>
+						<Name>Calibri Light</Name>
+						<Size>24</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>CENTER</Alignment>
+				</Text>
+				<Text>
+					<Id>1656861112020</Id>
+					<Name><![CDATA[text44]]></Name>
+					<X>1270</X><Y>865</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[energiekosten per huishouden
+(LCOE)]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>14</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>CENTER</Alignment>
+				</Text>
+				<Oval>
+					<Id>1656861112022</Id>
+					<Name><![CDATA[oval23]]></Name>
+					<X>1260</X><Y>810</Y>
+					<Label><X>0</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<RadiusX>45</RadiusX>
+					<RadiusY>40</RadiusY>
+					<Rotation>0.0</Rotation>
+					<FillColor>-6632142</FillColor>
+					<FillMaterial>null</FillMaterial>
+				</Oval>
+				<Text>
+					<Id>1656861112024</Id>
+					<Name><![CDATA[text45]]></Name>
+					<X>1262</X><Y>799</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-1</Color>
+					<Text><![CDATA[20%]]></Text>
+					<TextCode><![CDATA[roundToInt (v_energyCostInNeighborhood ) + " euro"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>16</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>CENTER</Alignment>
+				</Text>
 			</Presentation>
 
 				</Level>
@@ -6922,7 +7057,7 @@ auto2.setLocation( parkeerplaatsPoint2 );
 					</Parameter>
 					<Body><![CDATA[//int holonCostPrio = sender_holon.p_motivationCosts;
 //int holonSustainabilityPrio = sender_holon.p_motivationSustainability;
-boolean hasOwnPV = this.zonnepanelen.size() > 0? true : false;
+
 boolean districtHeating = heatingSystem.p_HeatingType.equals(OL_HeatingTypes.DistrictHeating);
 
 // huishouden connect met holon, mits:
@@ -6939,7 +7074,7 @@ if ( districtHeating && sender_holon.p_holonName.equals("WarmteHolon")) {
 	housered.setVisible(false);
 	houseblue.setVisible(false);
 	houseyellow.setVisible(true);
-} else if( districtHeating == false && hasOwnPV == false  && sender_holon.p_holonName.equals("WindHolon") ) {
+} else if( districtHeating == false && p_hasSolarPanels == false && sender_holon.p_holonName.equals("WindHolon") ) {
 	//traceln("Connect to WindHolon!");
 	this.holonConnections.connectTo(sender_holon);
 	sender_holon.holonConnections.connectTo(this);
@@ -10173,6 +10308,20 @@ f_loadCarRides();]]></StartupCode>
 						<Type><![CDATA[double]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1656851076788</Id>
+					<Name><![CDATA[v_chargeDecisionAfterTrip]]></Name>
+					<Description><![CDATA[@author Peter Hogeveen
+]]></Description>
+					<X>50</X><Y>530</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[boolean]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1643370687907</Id>
 					<Name><![CDATA[autoID]]></Name>
@@ -10785,10 +10934,22 @@ if (elektrisch) {
 	if (huidigBatterijCap_kWh == 0) {
 		huidigBatterijCap_kWh = 0;
 		v_TimesArriveEmpty ++;
-		traceln("!! Elektrische auto komt leeg thuis !! auto " + this.getIndex() + " in buurt " + eBuurtModel.getIndex());	
+		//traceln("!! Elektrische auto komt leeg thuis !! auto " + this.getIndex() + " in buurt " + eBuurtModel.getIndex());	
 	}
 	huidigBereik_km = huidigBatterijCap_kWh / energieverbruik_kWhpkm;
+	
+	// Determine if this car will wants to charge in basic charging sceanrio (used by reference case in stprint 6)
+	if ( huidigBereik_km < 150 ) {
+		v_chargeDecisionAfterTrip = true;
+	}
+	else if ( huidigBereik_km < 250 && randomTrue( 0.5 ) ) {
+		v_chargeDecisionAfterTrip = true;
+	}
+	else if ( huidigBereik_km > 250 && huidigBereik_km < 400 && randomTrue( 0.1 ) ) {
+		v_chargeDecisionAfterTrip = true;
+	}
 } 
+
 else {
 	v_fuelConsumed_l += tripDistance_km * p_fuelConsumption_lpkm;
 }
@@ -10813,6 +10974,8 @@ else {
 	else{
 		huidigBatterijCap_kWh = huidigBatterijCap_kWh + laadsnelheid_kW * eBuurtModel.main.dt_h;
 	}
+	huidigBereik_km = huidigBatterijCap_kWh / energieverbruik_kWhpkm;
+	
 }]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -11224,19 +11387,19 @@ nextActivityEndTimer.restart( endtimes.get(0) - starttimes.get(0) - time( MINUTE
 ArrayList<Auto> carArray = huishouden.autos;
 String mode = eBuurtModel.combo_energyManagerMode.getValue();
 
-if (mode.equals("basic")) {
+//Simple chargign if no solar panels or if in simple mode
+if (mode.equals("basic") || (mode.equals("on solar") && !huishouden.p_hasSolarPanels) ) {
 	basicCharging(carArray);
-//	traceln("dumb charging!");
 }
 else if (mode.equals("on solar")) {
-	chargingTracksSolarProduction(carArray);
+	//chargingTracksSolarProduction(carArray);
+	chargeOnRoofPV(carArray);
 }
 else if (mode.equals("incentive")) {
-	threeStageFinancial(carArray,incentiveSource);
-//		traceln("smart charging!");
+	threeStageFinancial(carArray, incentiveSource);
 }
 else if (mode.equals("incentive + V2G")) {
-	threeStageFinancialV2G(carArray,incentiveSource);
+	threeStageFinancialV2G(carArray, incentiveSource);
 }
 
 for (int i = 0 ; i < carArray.size() ; i++){
@@ -11259,8 +11422,6 @@ for (int i = 0 ; i < carArray.size() ; i++){
 					</Parameter>
 					<Body><![CDATA[// Loop over all vehicles (can become; loop over all smart devices later)
 for (int i = 0 ; i< huishouden.nbVehicles; i++) {
-		// Bepaal SOC en huidig bereik
-		carArray.get(i).huidigBereik_km = carArray.get(i).huidigBatterijCap_kWh / carArray.get(i).energieverbruik_kWhpkm;
 
 		if ( huishouden.v_gridPowerBalAfterPV_kW < 0 && carArray.get(i).huidigBatterijCap_kWh < carArray.get(i).maxBatterijCap_kWh ) {
 			carArray.get(i).laadsnelheid_kW = min( -huishouden.v_gridPowerBalAfterPV_kW, carArray.get(i).maxLaadsnelheid_kW );
@@ -11356,7 +11517,10 @@ for (int i = 0 ; i< huishouden.nbVehicles; i++) {
 					</Parameter>
 					<Body><![CDATA[// Loop over all vehicles and set the charging speed at 5 kW (the car itself will cap the actual power when the battery is full)
 for (int i = 0 ; i< huishouden.nbVehicles; i++) {
-		carArray.get(i).laadsnelheid_kW = 5;
+		Auto car = carArray.get(i);
+		if ( car.v_chargeDecisionAfterTrip ) {
+			car.laadsnelheid_kW = 5;
+		}
 }]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -11425,6 +11589,40 @@ for (int i = 0 ; i< huishouden.nbVehicles; i++) {
 		huishouden.v_gridPowerBalAfterPV_kW += car.laadsnelheid_kW; // To ensure the 2nd EV in the household has the correct cost-curve
 	} // cars loop
 } // are there any cars?]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1656850606133</Id>
+					<Name><![CDATA[chargeOnRoofPV]]></Name>
+					<Description><![CDATA[@author Peter Hogeveen
+@since 03-07-2022
+
+New charging mode that is simple solar charging. Used for the reference case of sprint 6]]></Description>
+					<X>190</X><Y>140</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[carArray]]></Name>
+						<Type><![CDATA[ArrayList<Auto>]]></Type>
+					</Parameter>
+					<Body><![CDATA[// Loop over all vehicles (can become; loop over all smart devices later)
+for (int i = 0 ; i< huishouden.nbVehicles; i++) {
+	Auto car = carArray.get(i);
+	
+	if ( car.huidigBereik_km < 150 ) {
+		car.laadsnelheid_kW = 5;
+	}
+	else {
+		car.laadsnelheid_kW = 0;
+	}
+	if (huishouden.v_pvOpwek_kW > 1 ){
+		car.laadsnelheid_kW = 5; //als auto vol is, dan capped auto op 0 kW
+	}
+}
+]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -15321,12 +15519,12 @@ return roundToDecimal(monthlyPayment,2);]]></Body>
 					<EmbeddedIcon>false</EmbeddedIcon>
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
-					<Color>-1</Color>
-					<Text><![CDATA[20%]]></Text>
-					<TextCode><![CDATA[roundToInt(v_totalEnergyDemand_MWh) + "MWh"]]></TextCode>
+					<Color>-1644806</Color>
+					<Text><![CDATA[20]]></Text>
+					<TextCode><![CDATA[roundToDecimal(v_totalEnergyDemand_MWh / eBuurtModel.huishoudens.size(), 1) + "MWh / hh"]]></TextCode>
 					<Font>
 						<Name>SansSerif</Name>
-						<Size>20</Size>
+						<Size>16</Size>
 						<Style>0</Style>
 					</Font>
 					<Alignment>CENTER</Alignment>
@@ -26494,7 +26692,7 @@ E-Boiler]]></Text>
 			<Id>1652524466070</Id>
 			<Name><![CDATA[UI_Neighborhood3D]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
-			<StartupCode><![CDATA[traceln("UI_Neighboorhood3D agent startup "+System.currentTimeMillis());
+			<StartupCode><![CDATA[//traceln("UI_Neighboorhood3D agent startup "+System.currentTimeMillis());
 createBuildingAgents();]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -31013,7 +31211,7 @@ traceln("");]]></StartupCode>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[2.0]]></Code>
+							<Code><![CDATA[1.5]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1652789519834</Id>
@@ -32007,7 +32205,7 @@ p_gasPriceAfterTaxInitial_eurpm3 = (p_gasPriceBeforeTax_eurpm3 + p_energyTaxOnGa
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1652789519622</Id>
 					<Name><![CDATA[f_autoEnergyManagerModeonIncentive]]></Name>
-					<X>-1370</X><Y>1220</Y>
+					<X>-1310</X><Y>1230</Y>
 					<Label><X>15</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -32040,7 +32238,7 @@ if (!condition) {
 }
 
 // push the mode to the energymanager combo
-combo_energyManagerMode.setValue(mode);
+//combo_energyManagerMode.setValue(mode);
 
 // if incentive mode is applied then make sure all cars are "hooked up" to charge (based on the state chart)
 if ( !mode.equals("basic") ) {
@@ -32048,7 +32246,6 @@ if ( !mode.equals("basic") ) {
 } else {
 		autos.forEach(a -> send("stop laden",a)); //TODO: if flipped between incentive-basic before run messages are handled lifo; thus a charging peak directly after start. Unexpected behaviour.
 }
-
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -32367,6 +32564,9 @@ for (Huishouden h : huishoudens) {
 		break;
 		
 		case HeatPump:
+		if ( hs.v_ElectricityConsumption_kW < 0 ){
+			//traceln("negative e consumption of heatpump");
+		}
 		v_neighborhoodElectricityConsumptionForHeat_kW += hs.v_ElectricityConsumption_kW;
 		break;
 		
@@ -32408,6 +32608,11 @@ if (autos.autosElektrisch() >  0) {
 
 //Grafieken updaten
 pvOpwekChart.updateData();
+if (v_neighborhoodElectricityConsumptionForHeat_kW < 0) {
+	traceln( "heatconsumption is negatief: " + v_neighborhoodElectricityConsumptionForHeat_kW);
+	traceln(" ");
+	v_neighborhoodElectricityConsumptionForHeat_kW = 0;
+}
 elektriciteitsVerbruikChart.updateData();
 Wijktrafo_vermogen_plot.updateData();
 //heatingDemand_kWhpm2.updateData();
@@ -32451,7 +32656,8 @@ kpiVisuals.f_calculateHouseholdKPIs();
 kpiVisuals.f_eGridLoadKPICalculations();
 
 v_expectedChangeDemandGas_pct = v_gasPriceChange_pct * huishoudens.avgPriceElasticityGas();
-f_energyBilling();]]></Body>
+f_energyBilling();
+]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -32568,11 +32774,11 @@ else if ( i < neighborhood3D.c_houseBlockEast.size() + neighborhood3D.c_houseBlo
 }
 else {
 	h.p_my3DShape = neighborhood3D.polyline7;
-	traceln("-----");
-	traceln("Care, the number of houses created is larger than the number of single houses in the 3D enviroment.");
-	traceln("The surplus is connected to the appartment block. Which should not house more than a 100 houses");
-	traceln("The model should still run withouth problems");
-	traceln("-----");
+	//traceln("-----");
+	//traceln("Care, the number of houses created is larger than the number of single houses in the 3D enviroment.");
+	//traceln("The surplus is connected to the appartment block. Which should not house more than a 100 houses");
+	//traceln("The model should still run withouth problems");
+	//traceln("-----");
 }]]></Body>
 				</Function>
 			</Functions>
@@ -34175,7 +34381,7 @@ als we willen dat ze tijdens het moidel worden aangepast.
 				<Text>
 					<Id>1652789519531</Id>
 					<Name><![CDATA[text47]]></Name>
-					<X>-1305</X><Y>1160</Y>
+					<X>-1320</X><Y>1150</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -34188,7 +34394,7 @@ als we willen dat ze tijdens het moidel worden aangepast.
 					<Text><![CDATA[Laadgedrag]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
-						<Size>10</Size>
+						<Size>16</Size>
 						<Style>0</Style>
 					</Font>
 					<Alignment>LEFT</Alignment>
