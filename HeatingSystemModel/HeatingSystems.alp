@@ -4,7 +4,7 @@
 	         AnyLogic Project File 
 *************************************************	         
 -->
-<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.12.202205250339" AlpVersion="8.7.5">
+<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.12.202205250418" AlpVersion="8.7.5">
 <Model>
 	<Id>1648027099882</Id>
 	<Name><![CDATA[HeatingSystems]]></Name>
@@ -2485,7 +2485,7 @@ v_DistrictHeatingAbsorbed_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[0.01]]></Code>
+							<Code><![CDATA[0.02]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1650616556419</Id>
@@ -2608,7 +2608,7 @@ v_DistrictHeatingAbsorbed_kWh += v_DistrictHeatingAbsorption_kW * timeStep_HR;]]
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[60]]></Code>
+							<Code><![CDATA[62]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1650616556437</Id>
@@ -2834,7 +2834,7 @@ if (v_bufferTemp_degC < p_minTempBuffer_degC) { // If PTES temperature drops bel
 	t_incentiveMode.setText("power mode");
 	double availablePower_kW = max(0,v_trafoMaxPower-trafoVermogen_kW);
 	double heatPumpPowerSetpoint = COP*min(availablePower_kW,p_primarySystemMaxPower_kW);
-	double boilerSetpoint_kW = max(0,-trafoVermogen_kW - p_primarySystemMaxPower_kW); // Only when more than p_primarySystemMaxPower_kW power is available)
+	double boilerSetpoint_kW = min(p_backupSystemMaxPower_kW,max(0,-trafoVermogen_kW - p_primarySystemMaxPower_kW)); // Only when more than p_primarySystemMaxPower_kW power is available)
 	f_CalculateHeatProduction(heatPumpPowerSetpoint, p_secondarySystemMaxPower_kW, boilerSetpoint_kW, baseTemp_degC, v_bufferTemp_degC, dt_h);
 } else if (v_bufferTemp_degC < p_bufferTempHeatingTreshold_degC && v_bufferTemp_degC >= p_minTempBuffer_degC) { // If PTES temperature drops below heating treshold, gradually start heating with HP
 	//traceln("normal heating");
@@ -2842,12 +2842,12 @@ if (v_bufferTemp_degC < p_minTempBuffer_degC) { // If PTES temperature drops bel
 	t_incentiveMode.setText("normal");
 	double availablePower_kW = max(0,v_trafoMaxPower-trafoVermogen_kW);
 	double heatPumpPowerSetpoint = COP*min(availablePower_kW,min(p_primarySystemMaxPower_kW,max((p_bufferTempHeatingTreshold_degC - v_bufferTemp_degC) / (p_bufferTempHeatingTreshold_degC - p_minTempBuffer_degC) * p_primarySystemMaxPower_kW, -trafoVermogen_kW)));
-	double boilerSetpoint = max(0,-trafoVermogen_kW - heatPumpPowerSetpoint/COP);
+	double boilerSetpoint = min(p_backupSystemMaxPower_kW,max(0,-trafoVermogen_kW - heatPumpPowerSetpoint/COP));
 	f_CalculateHeatProduction(heatPumpPowerSetpoint,0,boilerSetpoint, baseTemp_degC, v_bufferTemp_degC, dt_h);
 } else if ( trafoVermogen_kW < 0 & heatingSystem.p_MyPrimaryHeatingSystem instanceof J_Heatpump & v_bufferTemp_degC < p_maxTempBuffer_degC) { // Overvloed aan stroom in de wijk, zet het in om de PTES op te warmen
 	//traceln("opportunity heating");
 	double heatPumpPowerSetpoint = COP*min(p_primarySystemMaxPower_kW, -trafoVermogen_kW);
-	double boilerSetpoint = max(0,-trafoVermogen_kW - heatPumpPowerSetpoint/COP);
+	double boilerSetpoint = min(p_backupSystemMaxPower_kW,max(0,-trafoVermogen_kW - heatPumpPowerSetpoint/COP));
 	f_CalculateHeatProduction(heatPumpPowerSetpoint,0,boilerSetpoint, baseTemp_degC, v_bufferTemp_degC, dt_h);
 //	f_CalculateHeatProduction(min(-trafoVermogen_kW,p_primarySystemMaxPower_kW) * COP, p_soilTemp_degC, v_bufferTemp_degC, dt_h);
 	t_incentiveMode.setColor(green);
@@ -4604,8 +4604,14 @@ public class J_Heatpump extends J_HeatingSystem implements Serializable {
 			currentPower_kW = 0;
 			hotWaterDelivery_kW = 0;
 		}
-		heatDelivery_kW = min( heatRequest_kW, (maxPower_kW - currentPower_kW ) * COPheating) ; // Hot water gets priority
-		currentPower_kW += heatDelivery_kW / COPheating; 
+		if ( COPheating > 0 ) {
+			heatDelivery_kW = min( heatRequest_kW, (maxPower_kW - currentPower_kW ) * COPheating) ; // Hot water gets priority
+			currentPower_kW += heatDelivery_kW / COPheating; 
+		} else { // Prevent negative heatDelivery and Power when base temp is above destination temp
+			heatDelivery_kW = 0;
+			currentPower_kW = 0;
+		}
+			
 		if( currentPower_kW < - 0.5 ) {
 			traceln("household met currentpower from heatpump: " + currentPower_kW);
 		}
@@ -4726,7 +4732,7 @@ public class J_DHNetworkMT extends J_DistrictHeatingNetwork implements Serializa
 		this.networkDiameter_m = Diameter_m;
 		this.tempLevel = "MT";
 		this.CAPEX_EURpm = 1000;
-		this.networkHeatloss_Wpm2K = 0.4;
+		this.networkHeatloss_Wpm2K = 0.5;
 		this.minOperatingTemp_degC = 50;
 		this.maxOperatingTemp_degC = 65;
 		this.deprecationPeriod_yr = 30;
@@ -4853,7 +4859,7 @@ public class J_DHNetworkLT extends J_DistrictHeatingNetwork implements Serializa
 		this.networkDiameter_m = networkDiameter_m;
 		this.tempLevel = "LT";
 		this.CAPEX_EURpm = 800;
-		this.networkHeatloss_Wpm2K = 0.5;
+		this.networkHeatloss_Wpm2K = 0.6;
 		this.minOperatingTemp_degC = 10;
 		this.maxOperatingTemp_degC = 40;
 		this.deprecationPeriod_yr = 30;
