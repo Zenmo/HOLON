@@ -4,7 +4,7 @@
 	         AnyLogic Project File 
 *************************************************	         
 -->
-<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.12.202205250339" AlpVersion="8.7.5">
+<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.12.202205250418" AlpVersion="8.7.5">
 <Model>
 	<Id>1641891178629</Id>
 	<Name><![CDATA[Ebuurt]]></Name>
@@ -1307,7 +1307,7 @@ traceln("On Startup end main " + this.getName()+" | "+System.currentTimeMillis()
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[15/60.0]]></Code>
+							<Code><![CDATA[60/60.0]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1652790988352</Id>
@@ -1356,7 +1356,7 @@ traceln("On Startup end main " + this.getName()+" | "+System.currentTimeMillis()
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[120]]></Code>
+							<Code><![CDATA[150]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1655393315502</Id>
@@ -1537,7 +1537,7 @@ Uses:
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[3]]></Code>
+							<Code><![CDATA[2]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1655972623721</Id>
@@ -10162,6 +10162,7 @@ jaarlijksTotaalPVOpwekKWh += pvOpwekKW;]]></Action>
 				<Event>
 					<Id>1642002847867</Id>
 					<Name><![CDATA[jaarlijksTotaal]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>60</X><Y>500</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -11269,8 +11270,8 @@ else {
 	// Peter zegt: Waarom is dit nodig? Er kunnen toch geen duplicates in voorkomen?
 		if (p_tripIndex + 1 < starttimes.size()) {
 			p_tripIndex++;
-		}
-		//traceln("!! Ride with duplicate starttime skipped!! auto " + this.getIndex() + " in buurt " + eBuurtModel.getIndex());			
+			traceln("!! Ride with duplicate starttime skipped!! auto " + this.getIndex() + " in buurt " + eBuurtModel.getIndex());			
+		}		
 	}	
 	tripDistance_km = min(distances.get(p_tripIndex), maxBatterijCap_kWh / energieverbruik_kWhpkm);
 	//Peter zegt: waarom min(), er kan toch worden snellgeladen als er niet genoeg kwh is?	
@@ -11295,6 +11296,21 @@ else {
 	
 	v_chargingTarget_kWh = min( maxBatterijCap_kWh, energyRequired_kWh + energyMargin_kWh);
 	v_minChargingTime_min = max( 0 , ( v_chargingTarget_kWh - huidigBatterijCap_kWh ) / maxLaadsnelheid_kW * 60 );
+
+	if ( ( v_chargingTarget_kWh - huidigBatterijCap_kWh ) / maxLaadsnelheid_kW * 60 > starttimes.get(p_tripIndex) - time( MINUTE )) {
+		traceln("Not enough time to charge for next trip!");
+	}
+	
+	// check if enough time to charge for the next trip! If not, raise charging target
+	double timebetweentrips_min = starttimes.get(p_tripIndex+1)-endtimes.get(p_tripIndex);
+	double energyReqNextTrip_kWh = min(distances.get(p_tripIndex+1) * energieverbruik_kWhpkm, maxBatterijCap_kWh);
+	if ( ( v_chargingTarget_kWh - distances.get(p_tripIndex) * energieverbruik_kWhpkm + timebetweentrips_min/60.0 * maxLaadsnelheid_kW ) < energyReqNextTrip_kWh) {
+		v_chargingTarget_kWh = energyReqNextTrip_kWh - timebetweentrips_min/60.0 * maxLaadsnelheid_kW + (distances.get(p_tripIndex) * energieverbruik_kWhpkm);
+		traceln("Increasing chargingTarget for next trip! Distance next trip is " + distances.get(p_tripIndex+1) + " km, charging time between trips is " + roundToInt(timebetweentrips_min) + " minutes");
+		if (v_chargingTarget_kWh > maxBatterijCap_kWh) {
+			traceln("Infeasible trip-set for this EV! Cannot charge enough between trips");
+		}
+	}
 }
 
 // Determine if this car will wants to charge in basic charging sceanrio (used by reference case in stprint 6)
@@ -11320,13 +11336,13 @@ else if ( huidigBereik_km > 250 && huidigBereik_km < 400 && randomTrue( 0.1 ) ) 
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[// Bepaal SOC en huidig bereik
 if (elektrisch) {
-	huidigBatterijCap_kWh = max( 0, huidigBatterijCap_kWh - tripDistance_km * energieverbruik_kWhpkm );
-	if (huidigBatterijCap_kWh == 0) {
-		huidigBatterijCap_kWh = 0;
+	huidigBatterijCap_kWh = huidigBatterijCap_kWh - tripDistance_km * energieverbruik_kWhpkm; // laat negatieve batterijlading toe, zodat de gebruikte energie alsnog bijgeladen moet worden
+	if (huidigBatterijCap_kWh < 0) {
+		//huidigBatterijCap_kWh = 0;
 		v_TimesArriveEmpty ++;
 		traceln("!! Elektrische auto komt leeg thuis !! auto " + this.getIndex() + " in buurt " + eBuurtModel.getIndex());	
 	}
-	huidigBereik_km = huidigBatterijCap_kWh / energieverbruik_kWhpkm;
+	huidigBereik_km = max(0,huidigBatterijCap_kWh / energieverbruik_kWhpkm);
 	
 } 
 
@@ -43467,7 +43483,7 @@ else {
 			</Parameters>			
 			<PresentationProperties>
 				<EnableZoomAndPanning>true</EnableZoomAndPanning>
-				<ExecutionMode><![CDATA[realTimeScaled]]></ExecutionMode>
+				<ExecutionMode><![CDATA[virtualTime]]></ExecutionMode>
 				<Title><![CDATA[Ebuurt : Simulation]]></Title>	
 				<EnableDeveloperPanel>true</EnableDeveloperPanel>
 				<ShowDeveloperPanelOnStart>true</ShowDeveloperPanelOnStart>
