@@ -40,7 +40,8 @@ f_readConfig();
 f_configureBackBone();
 
 // add optional KpiVisuals-agent for model monitoring, checks and debugging
-f_addKpiVisuals();]]></StartupCode>
+f_addKpiVisuals();
+]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1658477103138</Id>
@@ -171,7 +172,7 @@ f_addKpiVisuals();]]></StartupCode>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[false]]></Code>
+							<Code><![CDATA[true]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1658752734131</Id>
@@ -226,6 +227,7 @@ loop netNodes:
 for(Building b : buildings) {
 	b.f_calculateEnergyBalance();
 }
+
 for(NetNode n : netNodes) {
 	n.f_calculateEnergyBalance();
 }
@@ -1070,6 +1072,13 @@ for( Agent a : subConnections.getConnections() )
 		a = (EnergyAsset)a;
 		c_electricityFlows.put(a, ((EnergyAsset) a).v_currentPower_kW);
 		v_currentPower_kW += ((EnergyAsset) a).v_currentPower_kW;
+	}
+	else if( a instanceof NetNode )
+	{
+		traceln("NetNode!");
+		a = (NetNode)a;
+		c_electricityFlows.put(a,((NetNode) a).v_currentPower_kW);
+		v_currentPower_kW += ((NetNode) a).v_currentPower_kW;
 	}
 }
 
@@ -2011,6 +2020,39 @@ if( myParentNode instanceof NetNode ) {
 			</ScaleRuler>
 			<CurrentLevel>1658752695710</CurrentLevel>
 			<ConnectionsId>1658752695706</ConnectionsId>
+			<Events>
+				<Event>
+					<Id>1658762748110</Id>
+					<Name><![CDATA[e_updateVisuals]]></Name>
+					<X>-160</X><Y>20</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties TriggerType="timeout" Mode="cyclic">
+						<Timeout Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+						</Timeout>
+						<Rate Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="RateUnits"><![CDATA[PER_HOUR]]></Unit>
+						</Rate>
+						<OccurrenceAtTime>true</OccurrenceAtTime>
+						<OccurrenceDate>1658822400000</OccurrenceDate>
+						<OccurrenceTime Class="CodeUnitValue">
+							<Code><![CDATA[0]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+						</OccurrenceTime>
+						<RecurrenceCode Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+						</RecurrenceCode>
+						<Condition><![CDATA[false]]></Condition>
+					</Properties>
+					<Action><![CDATA[f_gatherEnergyFlows();]]></Action>
+				</Event>
+			</Events>
 			<Functions>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -2022,6 +2064,12 @@ if( myParentNode instanceof NetNode ) {
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[//
+for( UI_NetNode n : uI_NetNodes )  
+{
+	NetNode realAgent = n.realAgent.getConnectedAgent(0);
+	n.t_loadtext.setText( realAgent.v_currentPower_kW );
+}]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -2041,8 +2089,8 @@ double maxx = minx + 800;
 List<NetNode> HSNetnodes = filter( main.netNodes, n -> n.p_nodeTypeString.equals("HSMS") );
 List<NetNode> MSNetnodes = filter( main.netNodes, n -> n.p_nodeTypeString.equals("MSLS") );
 
-traceln("HS "+HSNetnodes+" -> "+HSNetnodes.size());
-traceln("MS "+MSNetnodes+" -> "+MSNetnodes.size());
+//traceln("HS "+HSNetnodes+" -> "+HSNetnodes.size());
+//traceln("MS "+MSNetnodes+" -> "+MSNetnodes.size());
 
 // draw upper level HS stations
 double ylevel = 100;
@@ -2052,10 +2100,17 @@ int index = 0;
 for (Iterator<NetNode> it = HSNetnodes.iterator(); it.hasNext(); index++)
 {
     NetNode netnode = it.next();
-    traceln(netnode + ":" + index);
+//    traceln(netnode + ":" + index);
     String nodeName = netnode.p_nodeID;
-	UI_NetNode n = add_uI_NetNode(nodeName);
+    String parent = netnode.p_parentNodeID;
+    String nodeType = netnode.p_nodeTypeString;
+	UI_NetNode n = add_uI_NetNodes(nodeName, nodeType);
 	n.setXY( ( minx + ( index * xinterval ) ) , ylevel);
+	n.realAgent.connectTo(netnode);
+	if(parent!=null){
+		UI_NetNode p = filter( uI_NetNodes, o -> o.p_nodeID.equals(parent) ).get(0);
+		n.connectTo(p);
+	}
 }
 
 ylevel = 200;
@@ -2064,32 +2119,20 @@ index = 0;
 for (Iterator<NetNode> it = MSNetnodes.iterator(); it.hasNext(); index++)
 {
     NetNode netnode = it.next();
-    traceln(netnode + ":" + index);
+//    traceln(netnode + ":" + index);
 	String nodeName = netnode.p_nodeID;
-	UI_NetNode n = add_uI_NetNode(nodeName);
+	String nodeType = netnode.p_nodeTypeString;
+    String parent = netnode.p_parentNodeID;
+	UI_NetNode n = add_uI_NetNodes(nodeName, nodeType);
 	n.setXY( ( minx + ( index * xinterval ) ) , ylevel);
+	n.realAgent.connectTo(netnode);
+	if(parent!=null){
+		UI_NetNode p = filter( uI_NetNodes, o -> o.p_nodeID.equals(parent) ).get(0);
+		n.connectTo(p);
+	}
 }
 
-/*
-for(int i = 0; i < HSNetnodes.size(); i++) {
-	traceln("i: "+i);
-	NetNode currentNode = (NetNode)HSNetnodes.get(i);
-	String nodeName = currentNode.p_nodeID;
-	UI_NetNode n = add_uI_NetNode(nodeName);
-	n.setXY( ( minx + ( i * xinterval ) ) , ylevel);
-}
-
-// draw second level MS stations
-ylevel = 200;
-xinterval = ( maxx - minx ) / MSNetnodes.size();
-for(int j = 0; j < MSNetnodes.size(); j++) {
-	traceln("j: "+j);
-	NetNode currentNode = (NetNode)HSNetnodes.get(j);
-	String nodeName = currentNode.p_nodeID;
-	UI_NetNode n = add_uI_NetNode(nodeName);
-	n.setXY( ( minx + ( j * xinterval ) ) , ylevel);
-}
-*/]]></Body>
+]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -2105,6 +2148,7 @@ for(int j = 0; j < MSNetnodes.size(); j++) {
 					<AgentLinkType>COLLECTION_OF_LINKS</AgentLinkType>
 					<AgentLinkBidirectional>true</AgentLinkBidirectional>
 					<MessageType><![CDATA[Object]]></MessageType>
+					<DrawLine>true</DrawLine>
 					<LineStyle>SOLID</LineStyle>
 					<LineWidth>1</LineWidth>
 					<LineColor>-16777216</LineColor>
@@ -2132,8 +2176,8 @@ for(int j = 0; j < MSNetnodes.size(); j++) {
 			<EmbeddedObjects>
 				<EmbeddedObject>
 					<Id>1658753298441</Id>
-					<Name><![CDATA[uI_NetNode]]></Name>
-					<X>-130</X><Y>50</Y>
+					<Name><![CDATA[uI_NetNodes]]></Name>
+					<X>-120</X><Y>70</Y>
 					<Label><X>15</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2154,6 +2198,70 @@ for(int j = 0; j < MSNetnodes.size(); j++) {
 						<Parameter>
 							<Name><![CDATA[p_nodeID]]></Name>
 						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_nodeType]]></Name>
+						</Parameter>
+					</Parameters>
+					<ReplicationFlag>true</ReplicationFlag>
+					<Replication Class="CodeValue">
+						<Code><![CDATA[100]]></Code>
+					</Replication>
+					<CollectionType>ARRAY_LIST_BASED</CollectionType>
+					<InEnvironment>true</InEnvironment>	
+					<InitialLocationType>AT_ANIMATION_POSITION</InitialLocationType>
+					<XCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</XCode>
+					<YCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</YCode>
+					<ZCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ZCode>
+					<ColumnCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ColumnCode>
+					<RowCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</RowCode>
+					<LatitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LatitudeCode>
+					<LongitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LongitudeCode>
+					<LocationNameCode Class="CodeValue">
+						<Code><![CDATA[""]]></Code>
+					</LocationNameCode>
+					<InitializationType>EMPTY</InitializationType>
+					<InitializationDatabaseTableQuery>
+						<TableReference>
+						</TableReference>
+					</InitializationDatabaseTableQuery>
+					<InitializationDatabaseType>ONE_AGENT_PER_DATABASE_RECORD</InitializationDatabaseType>
+					<QuantityColumn>
+					</QuantityColumn>
+				</EmbeddedObject>
+				<EmbeddedObject>
+					<Id>1658764981278</Id>
+					<Name><![CDATA[uI_Buildings]]></Name>
+					<X>-120</X><Y>100</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<ActiveObjectClass>
+						<PackageName><![CDATA[base]]></PackageName>
+						<ClassName><![CDATA[UI_Buildings]]></ClassName>
+					</ActiveObjectClass>
+					<GenericParameterSubstitute>
+						<GenericParameterSubstituteReference>
+							<PackageName><![CDATA[base]]></PackageName>
+							<ClassName><![CDATA[UI_Buildings]]></ClassName>
+							<ItemName><![CDATA[1658764971885]]></ItemName>
+						</GenericParameterSubstituteReference>
+					</GenericParameterSubstitute>
+					<Parameters>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
 					<Replication Class="CodeValue">
@@ -2213,7 +2321,7 @@ for(int j = 0; j < MSNetnodes.size(); j++) {
 			<Presentation>
 				<EmbeddedObjectPresentation>
 					<Id>1658753301607</Id>
-					<Name><![CDATA[uI_NetNode_presentation]]></Name>
+					<Name><![CDATA[uI_NetNodes_presentation]]></Name>
 					<X>0</X><Y>0</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
@@ -2356,6 +2464,27 @@ for(int j = 0; j < MSNetnodes.size(); j++) {
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1658759460529</Id>
+					<Name><![CDATA[p_nodeType]]></Name>
+					<X>60</X><Y>80</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[String]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1658759460527</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 			</Variables>
 			<Functions>
 				<Function AccessType="default" StaticFunction="false">
@@ -2363,12 +2492,13 @@ for(int j = 0; j < MSNetnodes.size(); j++) {
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1658753874720</Id>
 					<Name><![CDATA[f_setNodeVisual]]></Name>
-					<X>60</X><Y>80</Y>
+					<X>60</X><Y>100</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[t_nodeID.setText(p_nodeID);]]></Body>
+					<Body><![CDATA[t_nodeID.setText(p_nodeID);
+t_nodetype.setText(p_nodeType);]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -2383,6 +2513,27 @@ for(int j = 0; j < MSNetnodes.size(); j++) {
 					<HandleReceiveInConnections>false</HandleReceiveInConnections>
 					<AgentLinkType>COLLECTION_OF_LINKS</AgentLinkType>
 					<AgentLinkBidirectional>true</AgentLinkBidirectional>
+					<MessageType><![CDATA[Object]]></MessageType>
+					<DrawLine>true</DrawLine>
+					<LineStyle>SOLID</LineStyle>
+					<LineWidth>1</LineWidth>
+					<LineColor>-16777216</LineColor>
+					<LineZOrder>UNDER_AGENTS</LineZOrder>
+					<LineArrow>NONE</LineArrow>
+					<LineArrowPosition>END</LineArrowPosition>
+				</AgentLink>
+				<AgentLink>
+					<Id>1658760368568</Id>
+					<Name><![CDATA[realAgent]]></Name>
+					<X>200</X><Y>-40</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<HandleReceiveInConnections>false</HandleReceiveInConnections>
+					<AgentLinkType>COLLECTION_OF_LINKS</AgentLinkType>
+					<AgentReferenceId>1658477288308</AgentReferenceId>
+					<AgentLinkBidirectional>false</AgentLinkBidirectional>
 					<MessageType><![CDATA[Object]]></MessageType>
 					<LineStyle>SOLID</LineStyle>
 					<LineWidth>1</LineWidth>
@@ -2461,7 +2612,7 @@ for(int j = 0; j < MSNetnodes.size(); j++) {
 				<Text>
 					<Id>1658753927156</Id>
 					<Name><![CDATA[t_nodeID]]></Name>
-					<X>0</X><Y>0</Y>
+					<X>0</X><Y>-10</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2500,7 +2651,236 @@ for(int j = 0; j < MSNetnodes.size(); j++) {
 					</Font>
 					<Alignment>CENTER</Alignment>
 				</Text>
+				<Text>
+					<Id>1658759394610</Id>
+					<Name><![CDATA[t_nodetype]]></Name>
+					<X>0</X><Y>5</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[type]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>10</Size>
+						<Style>2</Style>
+					</Font>
+					<Alignment>CENTER</Alignment>
+				</Text>
+				<Text>
+					<Id>1658762845688</Id>
+					<Name><![CDATA[text]]></Name>
+					<X>-40</X><Y>40</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[load (kW):]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>10</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1658762845695</Id>
+					<Name><![CDATA[t_loadtext]]></Name>
+					<X>10</X><Y>40</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[0 kW]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>10</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
 			</Presentation>
+
+				</Level>
+			</Presentation>
+
+		</ActiveObjectClass>
+		<!--   =========   Active Object Class   ========  -->
+		<ActiveObjectClass>
+			<Id>1658764971887</Id>
+			<Name><![CDATA[UI_Buildings]]></Name>
+			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
+			<Generic>false</Generic>
+			<GenericParameter>
+				<Id>1658764971885</Id>
+				<Name><![CDATA[1658764971885]]></Name>
+				<GenericParameterValue Class="CodeValue">
+					<Code><![CDATA[T extends Agent]]></Code>
+				</GenericParameterValue>
+				<GenericParameterLabel><![CDATA[Generic parameter:]]></GenericParameterLabel>
+			</GenericParameter>
+			<FlowChartsUsage>ENTITY</FlowChartsUsage>
+			<SamplesToKeep>100</SamplesToKeep>
+			<LimitNumberOfArrayElements>false</LimitNumberOfArrayElements>
+			<ElementsLimitValue>100</ElementsLimitValue>
+			<MakeDefaultViewArea>true</MakeDefaultViewArea>
+			<SceneGridColor/>
+			<SceneBackgroundColor/>
+			<SceneSkybox>null</SceneSkybox>
+			<AgentProperties>
+	 			<SpaceType>CONTINUOUS</SpaceType>			
+				<EnvironmentDefinesInitialLocation>true</EnvironmentDefinesInitialLocation>
+				<RotateAnimationTowardsMovement>true</RotateAnimationTowardsMovement>
+				<RotateAnimationVertically>false</RotateAnimationVertically>
+				<VelocityCode Class="CodeUnitValue">
+					<Code><![CDATA[10]]></Code>
+					<Unit Class="SpeedUnits"><![CDATA[MPS]]></Unit>
+				</VelocityCode>
+				<PhysicalLength Class="CodeUnitValue">
+					<Code><![CDATA[1]]></Code>
+					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
+				</PhysicalLength>
+				<PhysicalWidth Class="CodeUnitValue">
+					<Code><![CDATA[1]]></Code>
+					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
+				</PhysicalWidth>
+				<PhysicalHeight Class="CodeUnitValue">
+					<Code><![CDATA[1]]></Code>
+					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
+				</PhysicalHeight>
+			</AgentProperties>
+			<EnvironmentProperties>
+					<EnableSteps>false</EnableSteps>
+					<StepDurationCode Class="CodeUnitValue">
+						<Code><![CDATA[1.0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[SECOND]]></Unit>
+					</StepDurationCode>
+					<SpaceType>CONTINUOUS</SpaceType>
+					<WidthCode><![CDATA[500]]></WidthCode>
+					<HeightCode><![CDATA[500]]></HeightCode>
+					<ZHeightCode><![CDATA[0]]></ZHeightCode>
+					<ColumnsCountCode><![CDATA[100]]></ColumnsCountCode>
+					<RowsCountCode><![CDATA[100]]></RowsCountCode>
+					<NeigborhoodType>MOORE</NeigborhoodType>
+					<LayoutType>USER_DEF</LayoutType>
+					<LayoutTypeApplyOnStartup>true</LayoutTypeApplyOnStartup>
+					<NetworkType>USER_DEF</NetworkType>
+					<NetworkTypeApplyOnStartup>true</NetworkTypeApplyOnStartup>
+					<ConnectionsPerAgentCode><![CDATA[2]]></ConnectionsPerAgentCode>
+					<ConnectionsRangeCode><![CDATA[50]]></ConnectionsRangeCode>
+					<NeighborLinkFractionCode><![CDATA[0.95]]></NeighborLinkFractionCode>
+					<MCode><![CDATA[10]]></MCode>
+			</EnvironmentProperties>
+			<DatasetsCreationProperties>
+				<AutoCreate>true</AutoCreate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1658822400000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</RecurrenceCode>
+			</DatasetsCreationProperties>
+			<ScaleRuler>
+				<Id>1658764971883</Id>
+				<Name><![CDATA[scale]]></Name>
+				<X>0</X><Y>-150</Y>
+				<PublicFlag>false</PublicFlag>
+				<PresentationFlag>false</PresentationFlag>
+				<ShowLabel>false</ShowLabel>
+				<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+				<Length>100</Length>
+				<Rotation>0</Rotation>
+				<ScaleType>BASED_ON_LENGTH</ScaleType>
+				<ModelLength>10</ModelLength>
+				<LengthUnits>METER</LengthUnits>
+				<Scale>10</Scale>
+				<InheritedFromParentAgentType>true</InheritedFromParentAgentType>
+			</ScaleRuler>
+			<CurrentLevel>1658764971886</CurrentLevel>
+			<ConnectionsId>1658764971882</ConnectionsId>
+			<AgentLinks>
+				<AgentLink>
+					<Id>1658764971882</Id>
+					<Name><![CDATA[connections]]></Name>
+					<X>50</X><Y>-50</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<HandleReceiveInConnections>false</HandleReceiveInConnections>
+					<AgentLinkType>COLLECTION_OF_LINKS</AgentLinkType>
+					<AgentLinkBidirectional>true</AgentLinkBidirectional>
+					<MessageType><![CDATA[Object]]></MessageType>
+					<LineStyle>SOLID</LineStyle>
+					<LineWidth>1</LineWidth>
+					<LineColor>-16777216</LineColor>
+					<LineZOrder>UNDER_AGENTS</LineZOrder>
+					<LineArrow>NONE</LineArrow>
+					<LineArrowPosition>END</LineArrowPosition>
+				</AgentLink>
+			</AgentLinks>
+
+			<ContainerLinks>
+				<ContainerLink>
+					<Id>1658764984405</Id>
+					<Name><![CDATA[kpiVisuals]]></Name>
+					<X>50</X><Y>-100</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<ActiveObjectClass>
+						<PackageName><![CDATA[base]]></PackageName>
+						<ClassName><![CDATA[KpiVisuals]]></ClassName>
+					</ActiveObjectClass>
+				</ContainerLink>
+				<ContainerLink>
+					<Id>1658764984411</Id>
+					<Name><![CDATA[main]]></Name>
+					<X>150</X><Y>-100</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<ActiveObjectClass>
+						<PackageName><![CDATA[base]]></PackageName>
+						<ClassName><![CDATA[Main]]></ClassName>
+					</ActiveObjectClass>
+				</ContainerLink>
+			</ContainerLinks>
+
+			<Presentation>
+				<Level>
+					<Id>1658764971886</Id>
+					<Name><![CDATA[level]]></Name>
+					<X>0</X><Y>0</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<Z>0</Z>
+					<LevelVisibility>DIM_NON_CURRENT</LevelVisibility>
+
 
 				</Level>
 			</Presentation>
