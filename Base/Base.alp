@@ -41,6 +41,7 @@ f_readConfig();
 // populate the model agent type populations
 //f_configureBackBone_txt();
 f_configureBackBone();
+f_addEnergyAssets();
 
 // add optional KpiVisuals-agent for model monitoring, checks and debugging
 f_addKpiVisuals();
@@ -300,7 +301,7 @@ for (Tuple netConnection : netConnections) {
 }
 
 // *** EnergyAsset agents ***
-// add EnergyAsset agents to population
+// add EnergyAsset agents from configuration excel to population
 List<Tuple> energyAssets = selectFrom(config)
 	.where(config.agenttype.eq("energyAsset"))
 	.list();
@@ -318,7 +319,9 @@ for (Tuple energyAsset : energyAssets) {
     energyAssetcapacity = roundToDecimal(energyAsset.get( config.capacity_kw ),2);
     
     EnergyAsset EnergyAsset = add_energyAssets(energyAssetcapacity, energyAssetparent, energyAssettype, energyAssetcategory);  // let op: andere volgorde van argumenten. Nog fixen?
+    EnergyAsset.f_connectToParentNode(null);
 }
+
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -388,6 +391,77 @@ sheet1.importFromExternalDB(sourceConnection, "params", "params", true, true);
 {
 	add_kpiVisuals();
 }]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1659085548820</Id>
+					<Name><![CDATA[f_addEnergyAssets]]></Name>
+					<X>230</X><Y>80</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[// add standard EnergyAsset agents from NetConnection agent subtypes automatically
+List<NetConnection> NetConnectionList = filter( netConnections, b -> true );
+
+for (NetConnection n : NetConnectionList) {
+	traceln("NetConnection for AssetConfiguration: "+n.p_netConnectionID);
+	String netConnectionCategory = n.p_netConnectionCategoryString;
+	String netConnectionType = n.p_netConnectionTypeString;
+	
+	if( netConnectionCategory.equals("house") ) {
+		traceln("house for configuration ");
+		f_addBasicHouseEnergyAssets(n);
+	}
+	
+	if( netConnectionCategory.equals("building") ) {
+		traceln("building for configuration ");
+		f_addBasicBuildingEnergyAssets(n);
+	}
+}
+
+	]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1659086217386</Id>
+					<Name><![CDATA[f_addBasicHouseEnergyAssets]]></Name>
+					<X>250</X><Y>100</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[ParentNetConnection]]></Name>
+						<Type><![CDATA[NetConnection]]></Type>
+					</Parameter>
+					<Body><![CDATA[// add default energyAssets for netConnection type "House"
+
+// add electricity consumption profile
+EnergyAsset e = add_energyAssets(11, ParentNetConnection.p_netConnectionID, "electricity", "consumption");
+e.f_connectToParentNode(ParentNetConnection);]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1659087281796</Id>
+					<Name><![CDATA[f_addBasicBuildingEnergyAssets]]></Name>
+					<X>250</X><Y>120</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[ParentNetConnection]]></Name>
+						<Type><![CDATA[NetConnection]]></Type>
+					</Parameter>
+					<Body><![CDATA[// add default energyAssets for netConnection category Building
+
+// add electricity consumption profile
+EnergyAsset e = add_energyAssets(11, ParentNetConnection.p_netConnectionID, "electricity", "consumption");
+e.f_connectToParentNode(ParentNetConnection);]]></Body>
 				</Function>
 			</Functions>
 			<Connectivity>
@@ -1600,7 +1674,7 @@ traceln( "total load: "+v_currentPower_kW );]]></Body>
 			<Id>1658499506320</Id>
 			<Name><![CDATA[EnergyAsset]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
-			<StartupCode><![CDATA[f_connectToParentNode();]]></StartupCode>
+			<StartupCode><![CDATA[// f_connectToParentNode() --> ]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1658499506318</Id>
@@ -1817,7 +1891,18 @@ traceln( "total load: "+v_currentPower_kW );]]></Body>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[NetConnection myParentNetConnection = findFirst(main.netConnections, p->p.p_netConnectionID.equals(p_parentNodeID));
+					<Parameter>
+						<Name><![CDATA[ProvidedParentConnection]]></Name>
+						<Type><![CDATA[NetConnection]]></Type>
+					</Parameter>
+					<Body><![CDATA[NetConnection myParentNetConnection;
+if(ProvidedParentConnection != null) {
+	myParentNetConnection = ProvidedParentConnection;	
+}
+else {
+	myParentNetConnection = findFirst(main.netConnections, p->p.p_netConnectionID.equals(p_parentNodeID));
+}	
+
 if( myParentNetConnection instanceof NetConnection ) {
 	superConnection.connectTo(myParentNetConnection);
 	myParentNetConnection.f_connectToChild(this);
@@ -1828,6 +1913,7 @@ if( myParentNode instanceof NetNode ) {
 	superConnection.connectTo(myParentNode);
 	myParentNode.f_connectToChild(this);
 }
+
 ]]></Body>
 				</Function>
 			</Functions>
