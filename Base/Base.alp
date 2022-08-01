@@ -167,6 +167,7 @@ f_loadParameters();
 //f_configureBackBone_txt();
 f_configureBackBone();
 f_addDefaultEnergyAssets();
+f_addEnergyManagers();
 
 // add optional KpiVisuals-agent for model monitoring, checks and debugging
 f_addKpiVisuals();
@@ -267,7 +268,7 @@ traceln("*** main end *** "+System.currentTimeMillis());]]></StartupCode>
 				<Variable Class="Parameter">
 					<Id>1658496701675</Id>
 					<Name><![CDATA[p_timeStep_h]]></Name>
-					<X>60</X><Y>240</Y>
+					<X>60</X><Y>300</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -411,7 +412,7 @@ traceln("*** main end *** "+System.currentTimeMillis());]]></StartupCode>
 				<Event>
 					<Id>1658497469833</Id>
 					<Name><![CDATA[e_calculateEnergyBalance]]></Name>
-					<X>60</X><Y>280</Y>
+					<X>60</X><Y>340</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -533,7 +534,7 @@ for (Tuple energyAsset : energyAssets) {
     energyAssetparentID = energyAsset.get( config.parent );
     energyAssetcapacity = roundToDecimal(energyAsset.get( config.capacity_kw ),2);
     
-    EnergyAsset EnergyAsset = add_energyAssets(energyAssetcapacity, energyAssetparentID, null);  // let op: andere volgorde van argumenten. Nog fixen?
+    EnergyAsset EnergyAsset = add_energyAssets(energyAssetcapacity, energyAssetparentID, null, energyAssettype);  // let op: andere volgorde van argumenten. Nog fixen?
     EnergyAsset.f_connectToParentNode(null);
     EnergyAsset.f_instantiateAsset(energyAssetcategory, energyAssettype);  
 }
@@ -579,7 +580,7 @@ sheet1.importFromExternalDB(sourceConnection, "params", "params", true, true);
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1658501897769</Id>
 					<Name><![CDATA[f_calcEnergy]]></Name>
-					<X>60</X><Y>320</Y>
+					<X>60</X><Y>380</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -626,6 +627,7 @@ for (NetConnection n : NetConnectionList) {
 	String netConnectionCategory = n.p_netConnectionCategoryString;
 	String netConnectionType = n.p_netConnectionTypeString;
 	Double capacityElectricity_kW = 0.0;
+	Double capacityHeat_kW = 0.0;
 	
 	if( netConnectionCategory.equals("house") ) {
 		//traceln("house for configuration ");
@@ -648,59 +650,12 @@ for (NetConnection n : NetConnectionList) {
 	
 	if( netConnectionCategory.equals("house") || netConnectionCategory.equals("building")  ) {
 		traceln("adding NetConnection basic EnergyAsset...");
-		EnergyAsset e = add_energyAssets(capacityElectricity_kW, n.p_netConnectionID, null);
+		EnergyAsset e = add_energyAssets(capacityElectricity_kW, n.p_netConnectionID, null, "other electricity consumption");
 		e.f_connectToParentNode(n);
 		e.f_instantiateAsset("consumption", "other electricity consumption");
-		e.p_energyAssetInstance = (J_EAOtherElectricityConsumption)e.p_energyAssetInstance;	
+		e.p_energyAssetInstance = (J_EAConsumption)e.p_energyAssetInstance;	
 	}
 }]]></Body>
-				</Function>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1659086217386</Id>
-					<Name><![CDATA[f_addBasicHouseEnergyAssets]]></Name>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>250</X><Y>100</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Parameter>
-						<Name><![CDATA[ParentNetConnection]]></Name>
-						<Type><![CDATA[NetConnection]]></Type>
-					</Parameter>
-					<Body><![CDATA[// add default energyAssets for netConnection type "House"
-//assetCategory = ParentNetConnection.p_netConnectionCategoryString;
-//assetType = ParentNetConnection.p_netConnectionTypeString;
-//NetConnectionType.
-
-// add electricity consumption profile
-EnergyAsset e = add_energyAssets(11, ParentNetConnection.p_netConnectionID, null);
-e.f_connectToParentNode(ParentNetConnection);
-//e.f_instantiateAsset(, assetType, NetConnectionType);
-]]></Body>
-				</Function>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1659087281796</Id>
-					<Name><![CDATA[f_addBasicBuildingEnergyAssets]]></Name>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>250</X><Y>120</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Parameter>
-						<Name><![CDATA[ParentNetConnection]]></Name>
-						<Type><![CDATA[NetConnection]]></Type>
-					</Parameter>
-					<Body><![CDATA[// add default energyAssets for netConnection category Building
-
-// add electricity consumption profile
-EnergyAsset e = add_energyAssets(11.0, ParentNetConnection.p_netConnectionID, null);
-e.f_connectToParentNode(ParentNetConnection);]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -733,6 +688,27 @@ p_houseGasBurnerThermalCapacity_kW = (double) selectFrom(params)
 	.where(params.parameter.eq("p_houseGasBurnerThermalCapacity_kW"))
 	.firstResult(params.value);
 ]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1659341562018</Id>
+					<Name><![CDATA[f_addEnergyManagers]]></Name>
+					<X>250</X><Y>110</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[// add standard EnergyAsset agents from NetConnection agent subtypes automatically
+List<NetConnection> NetConnectionList = filter( netConnections, b -> true );
+
+for (NetConnection n : NetConnectionList) {
+	String netConnectionID = n.p_netConnectionID;
+	String netConnectionCategory = n.p_netConnectionCategoryString;
+	String netConnectionType = n.p_netConnectionTypeString;
+	EnergyManager e = add_energyManagers(netConnectionID, netConnectionCategory, netConnectionType);
+	e.f_connectToParentNode(n);
+}]]></Body>
 				</Function>
 			</Functions>
 			<TableFunctions>
@@ -1090,6 +1066,9 @@ p_houseGasBurnerThermalCapacity_kW = (double) selectFrom(params)
 						<Parameter>
 							<Name><![CDATA[p_energyAssetInstance]]></Name>
 						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_EnergyAssetTypeString]]></Name>
+						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
 					<Replication Class="CodeValue">
@@ -1151,6 +1130,76 @@ p_houseGasBurnerThermalCapacity_kW = (double) selectFrom(params)
 						</GenericParameterSubstituteReference>
 					</GenericParameterSubstitute>
 					<Parameters>
+					</Parameters>
+					<ReplicationFlag>true</ReplicationFlag>
+					<Replication Class="CodeValue">
+						<Code><![CDATA[100]]></Code>
+					</Replication>
+					<CollectionType>ARRAY_LIST_BASED</CollectionType>
+					<InEnvironment>true</InEnvironment>	
+					<InitialLocationType>AT_ANIMATION_POSITION</InitialLocationType>
+					<XCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</XCode>
+					<YCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</YCode>
+					<ZCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ZCode>
+					<ColumnCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ColumnCode>
+					<RowCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</RowCode>
+					<LatitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LatitudeCode>
+					<LongitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LongitudeCode>
+					<LocationNameCode Class="CodeValue">
+						<Code><![CDATA[""]]></Code>
+					</LocationNameCode>
+					<InitializationType>EMPTY</InitializationType>
+					<InitializationDatabaseTableQuery>
+						<TableReference>
+						</TableReference>
+					</InitializationDatabaseTableQuery>
+					<InitializationDatabaseType>ONE_AGENT_PER_DATABASE_RECORD</InitializationDatabaseType>
+					<QuantityColumn>
+					</QuantityColumn>
+				</EmbeddedObject>
+				<EmbeddedObject>
+					<Id>1659341409476</Id>
+					<Name><![CDATA[energyManagers]]></Name>
+					<X>60</X><Y>220</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<ActiveObjectClass>
+						<PackageName><![CDATA[base]]></PackageName>
+						<ClassName><![CDATA[EnergyManager]]></ClassName>
+					</ActiveObjectClass>
+					<GenericParameterSubstitute>
+						<GenericParameterSubstituteReference>
+							<PackageName><![CDATA[base]]></PackageName>
+							<ClassName><![CDATA[EnergyManager]]></ClassName>
+							<ItemName><![CDATA[1659341392955]]></ItemName>
+						</GenericParameterSubstituteReference>
+					</GenericParameterSubstitute>
+					<Parameters>
+						<Parameter>
+							<Name><![CDATA[p_netConnectionID]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_netConnectionCategory]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_netConnectionType]]></Name>
+						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
 					<Replication Class="CodeValue">
@@ -1522,8 +1571,8 @@ for( Agent a : subConnections.getConnections() )
 	{
 		//traceln("EnergyAsset!");
 		a = (EnergyAsset)a;
-		c_electricityFlows.put(a, ((EnergyAsset) a).v_currentProductionElectric_kW);
-		v_currentPower_kW += ((EnergyAsset) a).v_currentProductionElectric_kW;
+		c_electricityFlows.put(a, ((EnergyAsset) a).v_currentProductionElectricity_kW);
+		v_currentPower_kW += ((EnergyAsset) a).v_currentProductionElectricity_kW;
 	}
 	else if( a instanceof NetNode )
 	{
@@ -1938,7 +1987,7 @@ for( Agent a : subConnections.getConnections() )
 	{
 		a = (EnergyAsset)a;
 		((EnergyAsset) a).f_updateEnergyAssetFlows();
-		double assetElectricityProduction_kW = ((EnergyAsset) a).v_currentProductionElectric_kW;
+		double assetElectricityProduction_kW = ((EnergyAsset) a).v_currentProductionElectricity_kW;
 		double assetElectricityConsumption_kW = ((EnergyAsset) a).v_currentConsumptionElectricity_kW;
 //		double assetHeatProduction_kW = ((EnergyAsset) a).v_currentProductionThermal_kW;
 //		double assetHeatConsumption_kW = 
@@ -2163,8 +2212,8 @@ for( Agent a : subConnections.getConnections() )
 			<Variables>
 				<Variable Class="PlainVariable">
 					<Id>1658750229384</Id>
-					<Name><![CDATA[v_currentProductionElectric_kW]]></Name>
-					<X>80</X><Y>270</Y>
+					<Name><![CDATA[v_currentProductionElectricity_kW]]></Name>
+					<X>80</X><Y>250</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2191,7 +2240,7 @@ for( Agent a : subConnections.getConnections() )
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1659092523267</Id>
-					<Name><![CDATA[v_currentProductionThermal_kW]]></Name>
+					<Name><![CDATA[v_currentProductionHeat_kW]]></Name>
 					<X>80</X><Y>290</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -2229,6 +2278,33 @@ for( Agent a : subConnections.getConnections() )
 					<Id>1659092615449</Id>
 					<Name><![CDATA[v_currentConsumptionGas_kW]]></Name>
 					<X>80</X><Y>350</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1659342082106</Id>
+					<Name><![CDATA[v_powerFraction_fr]]></Name>
+					<X>340</X><Y>240</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[1]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1659345815346</Id>
+					<Name><![CDATA[v_currentProductionGas_kW]]></Name>
+					<X>80</X><Y>270</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2344,6 +2420,27 @@ for( Agent a : subConnections.getConnections() )
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1659347079551</Id>
+					<Name><![CDATA[p_EnergyAssetTypeString]]></Name>
+					<X>230</X><Y>140</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[String]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1659347079549</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 			</Variables>
 			<Functions>
 				<Function AccessType="default" StaticFunction="false">
@@ -2401,18 +2498,8 @@ if( myParentNode instanceof NetNode ) {
 					</Parameter>
 					<Body><![CDATA[// choose the right energy asset configuration: production, consumption, conversion, storage.
 if( assetCategory.equals("production") ) {
-	switch(assetType) {
-		case "windmill":
-			traceln("instantiating asset as windmill! ...");
-			p_energyAssetInstance = new J_EAWindmill(this,p_capacity_kW);
-		break;
-		case "solarpanel":
-			traceln("instantiating asset as solarpanels! ...");
-			p_energyAssetInstance = new J_EAPhotoVoltaic(this,p_capacity_kW);
-		break;
-		default:
-			traceln("exception: not a valid production asset! ");
-		break;
+	if( assetType.equals("windmill") || assetType.equals("solarpanel") ) {
+		p_energyAssetInstance = new J_EAProduction(this,p_capacity_kW,0);
 	}
 }
 
@@ -2420,7 +2507,7 @@ if( assetCategory.equals("consumption") ) {
 	switch(assetType) {
 		case "other electricity consumption":
 			traceln("instantiating asset as OtherElectricityConsumption");
-			p_energyAssetInstance = new J_EAOtherElectricityConsumption(this,p_capacity_kW);
+			p_energyAssetInstance = new J_EAConsumption(this,p_capacity_kW,0);
 		break;
 		default:
 			traceln("exception: not a valid consumption asset! ");
@@ -2440,23 +2527,35 @@ if( assetCategory.equals("consumption") ) {
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[v_currentProductionElectric_kW=0;
-v_currentProductionThermal_kW=0;
+					<Body><![CDATA[v_currentProductionElectricity_kW=0;
+v_currentProductionHeat_kW=0;
 
 v_currentConsumptionElectricity_kW=0;
 v_currentConsumptionGas_kW=0;
 v_currentConsumptionHeat_kW=0;
 
+double[] arr = p_energyAssetInstance.operate(v_powerFraction_fr);
+//traceln("arr "+arr);
+v_currentProductionElectricity_kW=arr[0];
+v_currentProductionGas_kW=arr[1];
+v_currentProductionHeat_kW=arr[2];
+
+v_currentConsumptionElectricity_kW=arr[3];
+v_currentConsumptionGas_kW=arr[4];
+v_currentConsumptionHeat_kW=arr[5];
+
+
+/*
 if(p_energyAssetInstance instanceof J_EAProduction) {
-	v_currentProductionElectric_kW+=p_energyAssetInstance.produceElectricity(1.0);
-	v_currentProductionThermal_kW+=p_energyAssetInstance.produceHeat(1.0);
+	v_currentProductionElectric_kW+=p_energyAssetInstance.produceElectricity(v_powerFraction_fr);
+	v_currentProductionHeat_kW+=p_energyAssetInstance.produceHeat(v_powerFraction_fr);
 }
 
 if(p_energyAssetInstance instanceof J_EAConsumption) {
-	v_currentConsumptionElectricity_kW+=p_energyAssetInstance.consumeElectricity(1.0);
+	v_currentConsumptionElectricity_kW+=p_energyAssetInstance.consumeElectricity(v_powerFraction_fr);
 }
 
-]]></Body>
+*/]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -4480,6 +4579,318 @@ t_nodetype.setText(p_nodeType);]]></Body>
 			</Presentation>
 
 		</ActiveObjectClass>
+		<!--   =========   Active Object Class   ========  -->
+		<ActiveObjectClass>
+			<Id>1659341392957</Id>
+			<Name><![CDATA[EnergyManager]]></Name>
+			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
+			<Generic>false</Generic>
+			<GenericParameter>
+				<Id>1659341392955</Id>
+				<Name><![CDATA[1659341392955]]></Name>
+				<GenericParameterValue Class="CodeValue">
+					<Code><![CDATA[T extends Agent]]></Code>
+				</GenericParameterValue>
+				<GenericParameterLabel><![CDATA[Generic parameter:]]></GenericParameterLabel>
+			</GenericParameter>
+			<FlowChartsUsage>ENTITY</FlowChartsUsage>
+			<SamplesToKeep>100</SamplesToKeep>
+			<LimitNumberOfArrayElements>false</LimitNumberOfArrayElements>
+			<ElementsLimitValue>100</ElementsLimitValue>
+			<MakeDefaultViewArea>true</MakeDefaultViewArea>
+			<SceneGridColor/>
+			<SceneBackgroundColor/>
+			<SceneSkybox>null</SceneSkybox>
+			<AgentProperties>
+	 			<SpaceType>CONTINUOUS</SpaceType>			
+				<EnvironmentDefinesInitialLocation>true</EnvironmentDefinesInitialLocation>
+				<RotateAnimationTowardsMovement>true</RotateAnimationTowardsMovement>
+				<RotateAnimationVertically>false</RotateAnimationVertically>
+				<VelocityCode Class="CodeUnitValue">
+					<Code><![CDATA[10]]></Code>
+					<Unit Class="SpeedUnits"><![CDATA[MPS]]></Unit>
+				</VelocityCode>
+				<PhysicalLength Class="CodeUnitValue">
+					<Code><![CDATA[1]]></Code>
+					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
+				</PhysicalLength>
+				<PhysicalWidth Class="CodeUnitValue">
+					<Code><![CDATA[1]]></Code>
+					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
+				</PhysicalWidth>
+				<PhysicalHeight Class="CodeUnitValue">
+					<Code><![CDATA[1]]></Code>
+					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
+				</PhysicalHeight>
+			</AgentProperties>
+			<EnvironmentProperties>
+					<EnableSteps>false</EnableSteps>
+					<StepDurationCode Class="CodeUnitValue">
+						<Code><![CDATA[1.0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[SECOND]]></Unit>
+					</StepDurationCode>
+					<SpaceType>CONTINUOUS</SpaceType>
+					<WidthCode><![CDATA[500]]></WidthCode>
+					<HeightCode><![CDATA[500]]></HeightCode>
+					<ZHeightCode><![CDATA[0]]></ZHeightCode>
+					<ColumnsCountCode><![CDATA[100]]></ColumnsCountCode>
+					<RowsCountCode><![CDATA[100]]></RowsCountCode>
+					<NeigborhoodType>MOORE</NeigborhoodType>
+					<LayoutType>USER_DEF</LayoutType>
+					<LayoutTypeApplyOnStartup>true</LayoutTypeApplyOnStartup>
+					<NetworkType>USER_DEF</NetworkType>
+					<NetworkTypeApplyOnStartup>true</NetworkTypeApplyOnStartup>
+					<ConnectionsPerAgentCode><![CDATA[2]]></ConnectionsPerAgentCode>
+					<ConnectionsRangeCode><![CDATA[50]]></ConnectionsRangeCode>
+					<NeighborLinkFractionCode><![CDATA[0.95]]></NeighborLinkFractionCode>
+					<MCode><![CDATA[10]]></MCode>
+			</EnvironmentProperties>
+			<DatasetsCreationProperties>
+				<AutoCreate>true</AutoCreate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1659427200000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</RecurrenceCode>
+			</DatasetsCreationProperties>
+			<ScaleRuler>
+				<Id>1659341392953</Id>
+				<Name><![CDATA[scale]]></Name>
+				<X>0</X><Y>-150</Y>
+				<PublicFlag>false</PublicFlag>
+				<PresentationFlag>false</PresentationFlag>
+				<ShowLabel>false</ShowLabel>
+				<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+				<Length>100</Length>
+				<Rotation>0</Rotation>
+				<ScaleType>BASED_ON_LENGTH</ScaleType>
+				<ModelLength>10</ModelLength>
+				<LengthUnits>METER</LengthUnits>
+				<Scale>10</Scale>
+				<InheritedFromParentAgentType>true</InheritedFromParentAgentType>
+			</ScaleRuler>
+			<CurrentLevel>1659341392956</CurrentLevel>
+			<ConnectionsId>1659341392952</ConnectionsId>
+			<Variables>
+				<Variable Class="Parameter">
+					<Id>1659341392958</Id>
+					<Name><![CDATA[p_netConnectionID]]></Name>
+					<X>50</X><Y>50</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[String]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>0</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1659341932802</Id>
+					<Name><![CDATA[p_netConnectionCategory]]></Name>
+					<X>60</X><Y>80</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[String]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1659341932800</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1659341943393</Id>
+					<Name><![CDATA[p_netConnectionType]]></Name>
+					<X>60</X><Y>100</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[String]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1659341943391</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1659342195782</Id>
+					<Name><![CDATA[c_connectedEnergyAssets]]></Name>
+					<X>60</X><Y>180</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
+						<ElementClass><![CDATA[EnergyAsset]]></ElementClass>
+						<ValueElementClass><![CDATA[String]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
+			</Variables>
+			<Functions>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1659341738313</Id>
+					<Name><![CDATA[f_connectToParentNode]]></Name>
+					<X>60</X><Y>140</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[ProvidedParentConnection]]></Name>
+						<Type><![CDATA[NetConnection]]></Type>
+					</Parameter>
+					<Body><![CDATA[NetConnection myParentNetConnection;
+if(ProvidedParentConnection != null) {
+	myParentNetConnection = ProvidedParentConnection;	
+}
+else {
+	myParentNetConnection = findFirst(main.netConnections, p->p.p_netConnectionID.equals(p_netConnectionID));
+}	
+
+if( myParentNetConnection instanceof NetConnection ) {
+	con_netConnectionAgent.connectTo(myParentNetConnection);
+	myParentNetConnection.f_connectToChild(this);
+}
+
+// create a local list of energyAssets connected to its netConnection Agent for easy reference
+List<EnergyAsset> connectedEnergyAssets = myParentNetConnection.subConnections.getConnections();
+
+int numberOfEnergyAssets = connectedEnergyAssets.size();
+for( int i = 0; i < numberOfEnergyAssets; i++ ) {
+	if( connectedEnergyAssets.get(i) instanceof EnergyAsset ) {
+		c_connectedEnergyAssets.add(connectedEnergyAssets.get(i));
+	}
+}
+]]></Body>
+				</Function>
+			</Functions>
+			<AgentLinks>
+				<AgentLink>
+					<Id>1659341392952</Id>
+					<Name><![CDATA[connections]]></Name>
+					<X>50</X><Y>-50</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<HandleReceiveInConnections>false</HandleReceiveInConnections>
+					<AgentLinkType>COLLECTION_OF_LINKS</AgentLinkType>
+					<AgentLinkBidirectional>true</AgentLinkBidirectional>
+					<MessageType><![CDATA[Object]]></MessageType>
+					<LineStyle>SOLID</LineStyle>
+					<LineWidth>1</LineWidth>
+					<LineColor>-16777216</LineColor>
+					<LineZOrder>UNDER_AGENTS</LineZOrder>
+					<LineArrow>NONE</LineArrow>
+					<LineArrowPosition>END</LineArrowPosition>
+				</AgentLink>
+				<AgentLink>
+					<Id>1659341474552</Id>
+					<Name><![CDATA[con_netConnectionAgent]]></Name>
+					<X>240</X><Y>-50</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<HandleReceiveInConnections>false</HandleReceiveInConnections>
+					<AgentLinkType>SINGLE_LINK</AgentLinkType>
+					<AgentReferenceId>1658499438203</AgentReferenceId>
+					<AgentLinkBidirectional>false</AgentLinkBidirectional>
+					<MessageType><![CDATA[Object]]></MessageType>
+					<LineStyle>SOLID</LineStyle>
+					<LineWidth>1</LineWidth>
+					<LineColor>-16777216</LineColor>
+					<LineZOrder>UNDER_AGENTS</LineZOrder>
+					<LineArrow>NONE</LineArrow>
+					<LineArrowPosition>END</LineArrowPosition>
+				</AgentLink>
+				<AgentLink>
+					<Id>1659341499806</Id>
+					<Name><![CDATA[con_holonAgent]]></Name>
+					<X>240</X><Y>-20</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<HandleReceiveInConnections>false</HandleReceiveInConnections>
+					<AgentLinkType>COLLECTION_OF_LINKS</AgentLinkType>
+					<AgentLinkBidirectional>false</AgentLinkBidirectional>
+					<MessageType><![CDATA[Object]]></MessageType>
+					<LineStyle>SOLID</LineStyle>
+					<LineWidth>1</LineWidth>
+					<LineColor>-16777216</LineColor>
+					<LineZOrder>UNDER_AGENTS</LineZOrder>
+					<LineArrow>NONE</LineArrow>
+					<LineArrowPosition>END</LineArrowPosition>
+				</AgentLink>
+			</AgentLinks>
+
+			<ContainerLinks>
+				<ContainerLink>
+					<Id>1659341410741</Id>
+					<Name><![CDATA[main]]></Name>
+					<X>50</X><Y>-100</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<ActiveObjectClass>
+						<PackageName><![CDATA[base]]></PackageName>
+						<ClassName><![CDATA[Main]]></ClassName>
+					</ActiveObjectClass>
+				</ContainerLink>
+			</ContainerLinks>
+
+			<Presentation>
+				<Level>
+					<Id>1659341392956</Id>
+					<Name><![CDATA[level]]></Name>
+					<X>0</X><Y>0</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<Z>0</Z>
+					<LevelVisibility>DIM_NON_CURRENT</LevelVisibility>
+
+
+				</Level>
+			</Presentation>
+
+		</ActiveObjectClass>
 	</ActiveObjectClasses>	
 	<DifferentialEquationsMethod>EULER</DifferentialEquationsMethod>
 	<MixedEquationsMethod>RK45_NEWTON</MixedEquationsMethod>
@@ -4724,15 +5135,17 @@ public class J_EAProduction extends base.J_EA implements Serializable {
 	}
 	
 	@Override
-	public double produceElectricity(double ratioOfCapacity) {
-		traceln("I produce electricity now! @ " + (ratioOfCapacity * 100) + " %");
-		traceln(capacityElectricity_kW);
-		return (ratioOfCapacity * capacityElectricity_kW);	
-	}
-	@Override
-	public double produceHeat(double ratioOfCapacity) {
-		traceln("I produce heat now! @ " + (ratioOfCapacity * 100) + " %");
-		return (ratioOfCapacity * capacityHeat_kW);
+    public double[] operate(double ratioOfCapacity) { 
+    	double electricityProduction = ratioOfCapacity * capacityElectricity_kW;
+    	double heatProduction = ratioOfCapacity * capacityHeat_kW;
+    	double gasProduction = 0.0;
+    	double electricityConsumption = 0.0;
+    	double heatConsumption = 0.0;
+    	double gasConsumption = 0.0;
+    	
+    	double[] arr = {electricityProduction, gasProduction, heatProduction, electricityConsumption, gasConsumption, heatConsumption};
+    	//traceln("arr(0):"+arr[0]);
+    	return arr;
 	}
 	
 	@Override
@@ -4836,6 +5249,7 @@ public class J_EAConversion extends base.J_EA implements Serializable {
 		<JavaClass>
 			<Id>1659091515352</Id>
 			<Name><![CDATA[J_EAPhotoVoltaic]]></Name>
+			<ExcludeFromBuild>true</ExcludeFromBuild>
 			<Text><![CDATA[/**
  * J_EASolarpanels
  */	
@@ -4887,6 +5301,7 @@ public class J_EAPhotoVoltaic extends base.J_EAProduction implements Serializabl
 		<JavaClass>
 			<Id>1659094172861</Id>
 			<Name><![CDATA[J_EAWindmill]]></Name>
+			<ExcludeFromBuild>true</ExcludeFromBuild>
 			<Text><![CDATA[/**
  * J_EAWindmill
  */	
@@ -4937,6 +5352,7 @@ public class J_EAWindmill extends base.J_EAProduction implements Serializable {
 		<JavaClass>
 			<Id>1659104338597</Id>
 			<Name><![CDATA[J_EAOtherElectricityConsumption]]></Name>
+			<ExcludeFromBuild>true</ExcludeFromBuild>
 			<Text><![CDATA[/**
  * J_EAOtherElectricityConsumption
  */	
@@ -4944,6 +5360,7 @@ public class J_EAOtherElectricityConsumption extends base.J_EAConsumption implem
 
 	private EnergyAsset ownerAsset;
 	private double capacityElectricity_kW;
+	private double capacityHeat_kW = 0;
 	
     /**
      * Default constructor
@@ -4990,7 +5407,7 @@ public class J_EAConsumption extends base.J_EA implements Serializable {
 
 	private EnergyAsset ownerAsset;
 	private double capacityElectricity_kW;
-	private double capacityHeat_kW;
+	private double capacityHeat_kW = 0;
 	
     /**
      * Default constructor
@@ -5008,13 +5425,6 @@ public class J_EAConsumption extends base.J_EA implements Serializable {
 		traceln("I am instantiated! "+this+" owned by "+ownerAsset);
     }
     
-    public J_EAConsumption(EnergyAsset ownerAsset, double capacityElectricity_kW) {
-		this.ownerAsset = ownerAsset;
-		this.capacityElectricity_kW = capacityElectricity_kW;
-		traceln("I am instantiated! "+this+" owned by "+ownerAsset);
-    }
-    
-
 	@Override
 	public String toString() {
 		return  
@@ -5023,9 +5433,17 @@ public class J_EAConsumption extends base.J_EA implements Serializable {
 			"capacityHeat_kW = " + capacityHeat_kW +" ";
 	}
 	@Override
-	public double consumeElectricity(double ratioOfCapacity) {
-		traceln("I consume now! ConsumptionClass @ " + (ratioOfCapacity * 100) + " %");
-		return (capacityElectricity_kW * ratioOfCapacity);		
+    public double[] operate(double ratioOfCapacity) { 
+    	double electricityProduction = 0.0;
+    	double heatProduction = 0.0;
+    	double gasProduction = 0.0;
+    	double electricityConsumption = ratioOfCapacity * capacityElectricity_kW;
+    	double heatConsumption = ratioOfCapacity * capacityHeat_kW;
+    	double gasConsumption = 0.0;
+    	
+    	double[] arr = {electricityProduction, gasProduction, heatProduction, electricityConsumption, gasConsumption, heatConsumption};
+    	//traceln("arr(0):"+arr[0]);
+    	return arr;
 	}
 	/**
 	 * This number is here for model snapshot storing purpose<br>
@@ -5039,6 +5457,7 @@ public class J_EAConsumption extends base.J_EA implements Serializable {
 		<JavaClass>
 			<Id>1659105650125</Id>
 			<Name><![CDATA[J_EAPhotoThermal]]></Name>
+			<ExcludeFromBuild>true</ExcludeFromBuild>
 			<Text><![CDATA[/**
  * J_EAPhotoThermal
  */	
@@ -5098,8 +5517,10 @@ public class J_EA {
     /**
      * Constructor initializing the fields
      */
-    public J_EA(EnergyAsset ownerAsset) {
+    public J_EA(EnergyAsset ownerAsset, double capacityElectricity_kW, double capacityHeat_kW) {
 		this.ownerAsset = ownerAsset;
+		this.capacityElectricity_kW = capacityElectricity_kW;
+		this.capacityHeat_kW = capacityHeat_kW;
     }
     
 	public double produceElectricity(double ratioOfCapacity) {
@@ -5121,6 +5542,19 @@ public class J_EA {
 		traceln("I convert now! @ " + (ratioOfCapacity * 100) + " %");
 		return (capacityHeat_kW * ratioOfCapacity);    }
     
+    public double[] operate(double ratioOfCapacity) { 
+    	traceln("parent operate! ");
+    	//double[] arr={0.0,0.0,0.0,0.0,0.0}; //initializing array 
+    	double electricityProduction = ratioOfCapacity * capacityElectricity_kW;
+    	double heatProduction = ratioOfCapacity * capacityHeat_kW;
+    	double gasProduction = 0;
+    	double electricityConsumption = 0;
+    	double heatConsumption = 0;
+    	double gasConsumption = 0;
+    	
+    	double[] arr = {electricityConsumption, gasConsumption, heatConsumption, electricityProduction, gasProduction, heatProduction};
+    	return arr;
+    }
     
 	@Override
 	public String toString() {
@@ -5134,6 +5568,7 @@ public class J_EA {
 		<JavaClass>
 			<Id>1659117174456</Id>
 			<Name><![CDATA[J_EAGasBurner]]></Name>
+			<ExcludeFromBuild>true</ExcludeFromBuild>
 			<Text><![CDATA[/**
  * J_EAGasBurner
  */	
