@@ -147,6 +147,18 @@
 				<Id>1659118532364</Id>
 				<Name><![CDATA[GASBURNER]]></Name>
 			</Option>
+			<Option>
+				<Id>1659454936646</Id>
+				<Name><![CDATA[HEATPUMP_AIR]]></Name>
+			</Option>
+			<Option>
+				<Id>1659454948025</Id>
+				<Name><![CDATA[HEATPUMP_GROUND]]></Name>
+			</Option>
+			<Option>
+				<Id>1659454952726</Id>
+				<Name><![CDATA[STORAGE_HEAT]]></Name>
+			</Option>
 		</OptionList>
 	</OptionLists>
 	<ActiveObjectClasses>
@@ -576,6 +588,9 @@ v_currentWindPowerNormalized_r = tf_p_wind_e_normalized(time(HOUR));
 v_currentSolarPowerNormalized_r = tf_p_solar_e_normalized(time(HOUR));
 v_currentAmbientTemperature_degC = tf_ambientTemperature_degC(time(HOUR));
 
+for(EnergyAsset e : energyAssets) {
+	e.p_energyAssetInstance.updateAmbientTemperature(v_currentAmbientTemperature_degC);
+}
 // Calculate loads from bottom nodes up
 
 /*
@@ -584,8 +599,8 @@ loop netNodes:
 	-subconnections > 0?
 		-loop subconnections
 			-subconnections > 0?
-	
 */
+
 for(EnergyManager e : energyManagers) {
 	e.f_operateAssets();
 }
@@ -809,10 +824,17 @@ for (NetConnection n : NetConnectionList) {
 		e.p_energyAssetInstance = (J_EAConversion)e.p_energyAssetInstance;	
 		
 		// ** add test battery to all houses! **
-		EnergyAsset s = add_energyAssets(10000,n.p_netConnectionID, null, "electric battery");
+		EnergyAsset s = add_energyAssets(10000, n.p_netConnectionID, null, "electric battery");
 		s.f_connectToParentNode(n);
 		s.f_instantiateAsset("storage","electric battery");
-		s.p_energyAssetInstance = (J_EAStorage)s.p_energyAssetInstance;
+		s.p_energyAssetInstance = (J_EAStorageElectric)s.p_energyAssetInstance;
+		
+		// ** add test heatStorage to all houses **
+		EnergyAsset h = add_energyAssets(10000, n.p_netConnectionID, null, "heat buffer");
+		h.f_connectToParentNode(n);
+		h.f_instantiateAsset("storage","heat buffer");
+		h.p_energyAssetInstance = (J_EAStorageHeat)h.p_energyAssetInstance;
+				
 	}
 }
 
@@ -2806,7 +2828,13 @@ if( assetCategory.equals("storage") ) {
 		case "electric battery":
 		traceln("instantiating asset as electrical battery");
 		// EnergyAsset ownerAsset, double chargeCapacityElectricity_kW, double chargeCapacityHeat_kW, OL_EnergyCarrierType storageMedium, double capacity, double stateOfCharge, double lossFactor, double timestep_h
-		p_energyAssetInstance = new J_EAStorage(this, 30, 0, OL_EnergyCarrierType.ELECTRICITY, 10000, 0.5, 0, main.p_timeStep_h);
+		p_energyAssetInstance = new J_EAStorageElectric(this, 30, 10000, 0.5, main.p_timeStep_h);   // (EnergyAsset ownerAsset, double capacityElectricity_kW, double storageCapacity_kWh, double stateOfCharge_r, double timestep_h)
+		break;
+		case "heat buffer":
+		traceln("instantiating asset as heat buffer");
+		
+		//EnergyAsset ownerAsset, double capacityHeat_kW, double lossFactor_WpK, double timestep_h, double initialTemperature_degC, double minTemperature_degC, double maxTemperature_degC, double heatCapacity_JpK
+		p_energyAssetInstance = new J_EAStorageHeat(this, 30, 1, main.p_timeStep_h, 40, 10, 90, 4000*1000);
 		break;
 		default:
 			traceln("exception: not a valid storage medium!");
@@ -2831,6 +2859,7 @@ v_currentConsumptionElectricity_kW=0;
 v_currentConsumptionGas_kW=0;
 v_currentConsumptionHeat_kW=0;
 
+
 double[] arr = p_energyAssetInstance.operate(v_powerFraction_fr);
 //traceln("arr "+arr);
 v_currentProductionElectricity_kW=arr[0];
@@ -2842,6 +2871,9 @@ v_currentConsumptionGas_kW=arr[4];
 v_currentConsumptionHeat_kW=arr[5];
 
 v_currentStateOfCharge_r = (p_energyAssetInstance.getCurrentStateOfCharge());
+if(p_energyAssetInstance instanceof J_EAStorageHeat) {
+	traceln("current temperature "+p_energyAssetInstance.getCurrentTemperature());
+}
 /*
 if(p_energyAssetInstance instanceof J_EAProduction) {
 	v_currentProductionElectric_kW+=p_energyAssetInstance.produceElectricity(v_powerFraction_fr);
@@ -5184,8 +5216,12 @@ for(EnergyAsset e : c_connectedProductionAssets) {
 // storage operation
 for(EnergyAsset s : c_connectedStorageAssets) {
 	if(s.p_EnergyAssetTypeString.equals("electric battery")) {
-		s.v_powerFraction_fr = -0.5;  // discharge value
+		s.v_powerFraction_fr = -0.1;  // discharge value
 	}
+	if(s.p_EnergyAssetTypeString.equals("heat buffer")) {
+		s.v_powerFraction_fr = 0.1;  // discharge value
+	}
+		
 //	if(e.p_EnergyAssetTypeString.equals("windmill")) {
 //		e.v_powerFraction_fr = main.v_currentWindPowerNormalized_r;
 //	}
@@ -5624,10 +5660,11 @@ public class J_EAStorage extends J_EA implements Serializable {
 	private double capacityElectricity_kW;
 	private double capacityHeat_kW;
 	public OL_EnergyCarrierType storageMedium;
-	private double capacity_kWh;
+	private double storageCapacity_kWh;
 	private double stateOfCharge_r;
 	private double lossFactor_r;
 	private double timestep_h;
+	private double ambientTemperature_degC;
 		 
     /**
      * Default constructor
@@ -5638,15 +5675,19 @@ public class J_EAStorage extends J_EA implements Serializable {
     /**
      * Constructor initializing the fields
      */
-    public J_EAStorage(EnergyAsset ownerAsset, double chargeCapacityElectricity_kW, double chargeCapacityHeat_kW, OL_EnergyCarrierType storageMedium, double capacity_kWh, double stateOfCharge, double lossFactor, double timestep_h) {
+    public J_EAStorage(EnergyAsset ownerAsset, double chargeCapacityElectricity_kW, double chargeCapacityHeat_kW, OL_EnergyCarrierType storageMedium, double storageCapacity_kWh, double stateOfCharge, double lossFactor, double timestep_h) {
 		this.ownerAsset = ownerAsset;
 		this.capacityElectricity_kW = chargeCapacityElectricity_kW;  // capacity for charging/discharging in kW
 		this.capacityHeat_kW = chargeCapacityHeat_kW;				// capacity for charging/discharging in kW
 		this.storageMedium = storageMedium;
-		this.capacity_kWh = capacity_kWh;
+		this.storageCapacity_kWh = storageCapacity_kWh;
 		this.stateOfCharge_r = stateOfCharge;
 		this.lossFactor_r = lossFactor;
 		this.timestep_h = timestep_h;
+    }
+    
+    public void calculateLoss() {
+    	//
     }
     
     public double[] operate(double ratioOfChargeCapacity_r) { 
@@ -5662,51 +5703,30 @@ public class J_EAStorage extends J_EA implements Serializable {
     	double energy = 0;   // to check the request with the energy currently in storage
     	double sign = ratioOfChargeCapacity_r / abs( ratioOfChargeCapacity_r ); // charge or discharge
 		
-    	switch( storageMedium ) {
-    		case ELECTRICITY:
-    			energy = abs( ratioOfChargeCapacity_r * capacityElectricity_kW * timestep_h ) ;
-    			energy = min( energy, (stateOfCharge_r * capacity_kWh) );
-    			energy = min(energy, (1 - stateOfCharge_r) * capacity_kWh );
-  			
-    			discharge = sign * energy / timestep_h;
-  
-    			electricityProduction = max(discharge, 0);
-    			electricityConsumption = max(-discharge, 0);
-    			break;
-    		case NATURAL_GAS:
-    			gasProduction = max(discharge, 0);
-    			gasConsumption = max(-discharge, 0);
-    			break;
-    		case HEAT:
-    			energy = abs( ratioOfChargeCapacity_r * capacityHeat_kW * timestep_h ) ;
-    			energy = min( energy, (stateOfCharge_r * capacity_kWh) );
-    			energy = min(energy, (1 - stateOfCharge_r) * capacity_kWh );
-    			
-    			discharge = sign * energy / timestep_h;
-    			
-    			heatProduction = max(discharge, 0);
-    			heatConsumption = max(-discharge, 0);
-    			break;
-    		default:
-    			traceln("exception: no valid storagemedium");
-    			break;
-    		}
-    	
-    	stateOfCharge_r = ( (stateOfCharge_r * capacity_kWh) - discharge * timestep_h ) / capacity_kWh;
+    	updateStateOfCharge( discharge );
     	
     	double[] arr = {electricityProduction, gasProduction, heatProduction, electricityConsumption, gasConsumption, heatConsumption };
     	return arr;
     }    
     
-    //public void calculateLoss(double referenceTemperature_degC) {
-    //	double energyLoss = ( stateOfCharge_r - referenceTemperature_degC ) * lossFactor_r;
-    //	stateOfCharge_r = ( (stateOfCharge_r * capacity) - energyLoss ) / capacity;
-    //}
-    
+    public void updateStateOfCharge( double flow_kW ) {
+		stateOfCharge_r = ( (stateOfCharge_r * storageCapacity_kWh) - flow_kW * timestep_h ) / storageCapacity_kWh;
+	}
+   
 	// acces current state of charge
 	@Override
 	public double getCurrentStateOfCharge() {
     	return stateOfCharge_r;
+	}
+	
+	@Override
+	public double getCurrentTemperature() {
+		return 0;
+	}
+	
+	@Override
+	public void updateAmbientTemperature(double currentAmbientTemperature_degC) {
+		//
 	}
 	
     @Override
@@ -6125,6 +6145,14 @@ public class J_EA {
     	return 0;
     }
     
+    public double getCurrentTemperature() {
+    	return 0;
+    }
+    
+    public void updateAmbientTemperature(double currentAmbientTemperature_degC) {
+    	// only for storage agents
+    }
+    
 	@Override
 	public String toString() {
 		return  
@@ -6175,6 +6203,205 @@ public class J_EAGasBurner extends base.J_EAConversion implements Serializable {
 		return super.toString();
 	}
 
+	/**
+	 * This number is here for model snapshot storing purpose<br>
+	 * It needs to be changed when this class gets changed
+	 */ 
+	private static final long serialVersionUID = 1L;
+
+}]]></Text>
+		</JavaClass>
+		<!--   =========   Java Class   ========  -->
+		<JavaClass>
+			<Id>1659446215929</Id>
+			<Name><![CDATA[J_EAStorageElectric]]></Name>
+			<Text><![CDATA[/**
+ * J_EAStorageElectric
+ */	
+public class J_EAStorageElectric extends base.J_EAStorage implements Serializable {
+	
+	EnergyAsset ownerAsset;
+	private double capacityElectricity_kW;
+	private double capacityHeat_kW = 0;
+	public OL_EnergyCarrierType storageMedium = OL_EnergyCarrierType.ELECTRICITY;
+	private double storageCapacity_kWh;
+	private double stateOfCharge_r;
+	private double lossFactor_r = 0;
+	private double timestep_h;
+
+    /**
+     * Default constructor
+     */
+    public J_EAStorageElectric() {
+    }
+
+    /**
+     * Constructor initializing the fields
+     */
+    public J_EAStorageElectric(EnergyAsset ownerAsset, double capacityElectricity_kW, double storageCapacity_kWh, double stateOfCharge_r, double timestep_h ) {
+		this.ownerAsset = ownerAsset;
+		this.capacityElectricity_kW = capacityElectricity_kW;
+		this.storageCapacity_kWh = storageCapacity_kWh;
+		this.stateOfCharge_r = stateOfCharge_r;
+		this.timestep_h = timestep_h;
+    }
+
+	@Override
+	public void calculateLoss() {
+		//no loss for electric batteries modeled.
+	}
+	
+	@Override
+	public double[] operate(double ratioOfChargeCapacity_r) { 
+		double electricityProduction = 0; //ratioOfCapacity * capacityElectricity_kW;
+    	double heatProduction = 0; //ratioOfCapacity * capacityHeat_kW;
+    	double gasProduction = 0;
+    	double electricityConsumption = 0;
+    	double heatConsumption = 0;
+    	double gasConsumption = 0;
+    	
+    	double discharge = 0;
+    	double energy = 0;   // to check the request with the energy currently in storage
+    	double sign = ratioOfChargeCapacity_r / abs( ratioOfChargeCapacity_r ); // charge or discharge
+		
+    	energy = abs( ratioOfChargeCapacity_r * capacityElectricity_kW * timestep_h ) ;
+		energy = min( energy, (stateOfCharge_r * storageCapacity_kWh) );
+		energy = min(energy, (1 - stateOfCharge_r) * storageCapacity_kWh );
+		
+		discharge = sign * energy / timestep_h;
+
+		electricityProduction = max(discharge, 0);
+		electricityConsumption = max(-discharge, 0);
+		
+		updateStateOfCharge( discharge );
+		
+    	double[] arr = {electricityProduction, gasProduction, heatProduction, electricityConsumption, gasConsumption, heatConsumption };
+    	return arr;		
+	}
+	@Override
+	public void updateStateOfCharge( double flow_kW ) {
+		stateOfCharge_r = ( (stateOfCharge_r * storageCapacity_kWh) - flow_kW * timestep_h ) / storageCapacity_kWh;
+	}
+	
+	@Override
+	public double getCurrentStateOfCharge() {
+    	return stateOfCharge_r;
+	}
+	
+	/**
+	 * This number is here for model snapshot storing purpose<br>
+	 * It needs to be changed when this class gets changed
+	 */ 
+	private static final long serialVersionUID = 1L;
+
+}]]></Text>
+		</JavaClass>
+		<!--   =========   Java Class   ========  -->
+		<JavaClass>
+			<Id>1659447107390</Id>
+			<Name><![CDATA[J_EAStorageHeat]]></Name>
+			<Text><![CDATA[/**
+ * J_EAStorageHeat
+ */	
+public class J_EAStorageHeat extends base.J_EAStorage implements Serializable {
+	
+	EnergyAsset ownerAsset;
+	private double capacityElectricity_kW = 0;
+	private double capacityHeat_kW;
+	public OL_EnergyCarrierType storageMedium = OL_EnergyCarrierType.HEAT;
+	//private double storageCapacity_kWh;
+	private double stateOfCharge_r;
+	private double lossFactor_WpK;
+	private double timestep_h;
+	private double temperature_degC;
+	private double minTemperature_degC;
+	private double maxTemperature_degC;
+	private double heatCapacity_JpK;
+	private double ambientTemperature_degC;
+
+    /**
+     * Default constructor
+     */
+    public J_EAStorageHeat() {
+    }
+
+    /**
+     * Constructor initializing the fields
+     */
+    public J_EAStorageHeat(EnergyAsset ownerAsset, double capacityHeat_kW, double lossFactor_WpK, double timestep_h, double initialTemperature_degC, double minTemperature_degC, double maxTemperature_degC, double heatCapacity_JpK ) {
+		this.ownerAsset = ownerAsset;
+		this.capacityHeat_kW = capacityHeat_kW;
+		this.lossFactor_WpK = lossFactor_WpK;
+		this.timestep_h = timestep_h;
+		this.temperature_degC = initialTemperature_degC;
+		this.minTemperature_degC = minTemperature_degC;
+		this.maxTemperature_degC = maxTemperature_degC;
+		this.heatCapacity_JpK = heatCapacity_JpK;
+		
+		//this.storageCapacity_kWh = ( maxTemperature_degC - minTemperature_degC ) * mass_kg * heatCapacity_JpkgK * 3.6e+6;
+		this.stateOfCharge_r = (( initialTemperature_degC - minTemperature_degC ) / (maxTemperature_degC - minTemperature_degC ) );
+    }
+
+	@Override
+	public void calculateLoss() {
+		double heatLoss_W = lossFactor_WpK * ( temperature_degC - ambientTemperature_degC );
+		double tempDelta = - ( heatLoss_W / 1000 ) * timestep_h / (heatCapacity_JpK / 3.6E6 );
+		traceln("tempdelta "+tempDelta);
+		updateStateOfCharge( tempDelta );	
+	}
+	
+	@Override
+	public double[] operate(double ratioOfChargeCapacity_r) { 
+		calculateLoss();
+		double electricityProduction = 0; //ratioOfCapacity * capacityElectricity_kW;
+    	double heatProduction = 0; //ratioOfCapacity * capacityHeat_kW;
+    	double gasProduction = 0;
+    	double electricityConsumption = 0;
+    	double heatConsumption = 0;
+    	double gasConsumption = 0;
+    	
+    	double discharge = 0;
+    	double energy = 0;   // to check the request with the energy currently in storage
+    	double sign = ratioOfChargeCapacity_r / abs( ratioOfChargeCapacity_r ); // charge or discharge
+		
+    	energy = abs( ratioOfChargeCapacity_r * capacityHeat_kW * timestep_h );
+    	energy = energy / (heatCapacity_JpK / 3.6E6 );
+		energy = min( energy, temperature_degC - minTemperature_degC );
+		energy = min( energy, (maxTemperature_degC - temperature_degC ) );
+		
+		double tempDelta = - energy;   // positieve energielevering verlaagt buffertemperatuur!
+		energy = energy * (heatCapacity_JpK / 3.6E6 );
+		discharge = sign * energy / timestep_h;
+		
+		heatProduction = max(discharge, 0);
+		heatConsumption = max(-discharge, 0);
+		traceln("tempdelta 2: "+tempDelta);
+		updateStateOfCharge( tempDelta );
+    	
+    	double[] arr = {electricityProduction, gasProduction, heatProduction, electricityConsumption, gasConsumption, heatConsumption };
+    	return arr;	
+	}
+
+	@Override
+	public void updateStateOfCharge( double tempDelta_degC ) {
+		temperature_degC = temperature_degC + tempDelta_degC; 
+		stateOfCharge_r = ( temperature_degC - minTemperature_degC) / (maxTemperature_degC - minTemperature_degC);
+	}
+	
+	@Override
+	public double getCurrentStateOfCharge() {
+    	return stateOfCharge_r;
+	}
+	
+	@Override
+	public double getCurrentTemperature() {
+		return temperature_degC;
+	}
+	
+	@Override
+	public void updateAmbientTemperature(double currentAmbientTemperature_degC) {
+		ambientTemperature_degC = currentAmbientTemperature_degC;
+	}
 	/**
 	 * This number is here for model snapshot storing purpose<br>
 	 * It needs to be changed when this class gets changed
