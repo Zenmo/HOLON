@@ -107,6 +107,7 @@
 		<OptionList>
 			<Id>1659118392107</Id>
 			<Name><![CDATA[OL_EnergyAssetCategory]]></Name>
+			<ExcludeFromBuild>true</ExcludeFromBuild>
 			<Option>
 				<Id>1659118392486</Id>
 				<Name><![CDATA[PRODUCTION]]></Name>
@@ -127,6 +128,7 @@
 		<OptionList>
 			<Id>1659118426374</Id>
 			<Name><![CDATA[OL_EnergyAssetType]]></Name>
+			<ExcludeFromBuild>true</ExcludeFromBuild>
 			<Option>
 				<Id>1659118426728</Id>
 				<Name><![CDATA[WINDMILL]]></Name>
@@ -158,6 +160,86 @@
 			<Option>
 				<Id>1659454952726</Id>
 				<Name><![CDATA[STORAGE_HEAT]]></Name>
+			</Option>
+		</OptionList>
+		<OptionList>
+			<Id>1659525715752</Id>
+			<Name><![CDATA[OL_EAConversionTypes]]></Name>
+			<Option>
+				<Id>1659535854305</Id>
+				<Name><![CDATA[HEATPUMP]]></Name>
+			</Option>
+			<Option>
+				<Id>1659535860604</Id>
+				<Name><![CDATA[GASBURNER]]></Name>
+			</Option>
+			<Option>
+				<Id>1659535864564</Id>
+				<Name><![CDATA[ELECTROLYSER]]></Name>
+			</Option>
+			<Option>
+				<Id>1659535868209</Id>
+				<Name><![CDATA[EBOILER]]></Name>
+			</Option>
+		</OptionList>
+		<OptionList>
+			<Id>1659525726440</Id>
+			<Name><![CDATA[OL_EAProductionTypes]]></Name>
+			<Option>
+				<Id>1659535893345</Id>
+				<Name><![CDATA[PHOTOVOLTAIC]]></Name>
+			</Option>
+			<Option>
+				<Id>1659535901330</Id>
+				<Name><![CDATA[PHOTOTHERMAL]]></Name>
+			</Option>
+		</OptionList>
+		<OptionList>
+			<Id>1659525736586</Id>
+			<Name><![CDATA[OL_EAConsumptionTypes]]></Name>
+			<Option>
+				<Id>1659535824593</Id>
+				<Name><![CDATA[ELECTRICITY]]></Name>
+			</Option>
+			<Option>
+				<Id>1659535830792</Id>
+				<Name><![CDATA[HEAT]]></Name>
+			</Option>
+		</OptionList>
+		<OptionList>
+			<Id>1659525748543</Id>
+			<Name><![CDATA[OL_EAStorageTypes]]></Name>
+			<Option>
+				<Id>1659535943908</Id>
+				<Name><![CDATA[ELECTRIC_BATTERY]]></Name>
+			</Option>
+			<Option>
+				<Id>1659535950717</Id>
+				<Name><![CDATA[ELECTRIC_VEHICLE]]></Name>
+			</Option>
+			<Option>
+				<Id>1659535949187</Id>
+				<Name><![CDATA[HEAT]]></Name>
+			</Option>
+		</OptionList>
+		<OptionList>
+			<Id>1659535485693</Id>
+			<Name><![CDATA[OL_EACategories]]></Name>
+			<Option>
+				<Id>1659535486263</Id>
+				<Name><![CDATA[CONSUMPTION]]></Name>
+			</Option>
+			<Option>
+				<Id>1659535492572</Id>
+				<Name><![CDATA[CONVERSION]]></Name>
+			</Option>
+			<Option>
+				<Id>1659535495564</Id>
+				<Name><![CDATA[PRODUCTION]]></Name>
+			</Option>
+			<Option>
+				<Id>1659535498309</Id>
+				<Name><![CDATA[STORAGE]]></Name>
 			</Option>
 		</OptionList>
 	</OptionLists>
@@ -551,6 +633,27 @@ traceln("*** main end *** "+System.currentTimeMillis());]]></StartupCode>
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1659521098545</Id>
+					<Name><![CDATA[p_undergroundTemperature_degC]]></Name>
+					<X>-280</X><Y>380</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1659521098543</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 			</Variables>
 			<Events>
 				<Event>
@@ -588,9 +691,6 @@ v_currentWindPowerNormalized_r = tf_p_wind_e_normalized(time(HOUR));
 v_currentSolarPowerNormalized_r = tf_p_solar_e_normalized(time(HOUR));
 v_currentAmbientTemperature_degC = tf_ambientTemperature_degC(time(HOUR));
 
-for(EnergyAsset e : energyAssets) {
-	e.p_energyAssetInstance.updateAmbientTemperature(v_currentAmbientTemperature_degC);
-}
 // Calculate loads from bottom nodes up
 
 /*
@@ -882,7 +982,10 @@ p_houseHeatPumpElectricCapacity_kW = (double) selectFrom(params)
 p_houseHeatPumpEfficiency_r = (double) selectFrom(params)
 	.where(params.parameter.eq("p_houseHeatPumpEfficiency_r"))
 	.firstResult(params.value);
-]]></Body>
+
+p_undergroundTemperature_degC = (double) selectFrom(params)
+	.where(params.parameter.eq("p_undergroundTemperature_degC"))
+	.firstResult(params.value);]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -2036,7 +2139,7 @@ for( Agent a : subConnections.getConnections() )
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1659355078476</Id>
-					<Name><![CDATA[v_currentPowerNaturalGas_kW]]></Name>
+					<Name><![CDATA[v_currentPowerMethane_kW]]></Name>
 					<X>50</X><Y>250</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -2049,6 +2152,18 @@ for( Agent a : subConnections.getConnections() )
 				<Variable Class="PlainVariable">
 					<Id>1659355091165</Id>
 					<Name><![CDATA[v_currentPowerHeat_kW]]></Name>
+					<X>50</X><Y>290</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1659513167233</Id>
+					<Name><![CDATA[v_currentPowerHydrogen_kW]]></Name>
 					<X>50</X><Y>270</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -2166,7 +2281,7 @@ for( Agent a : subConnections.getConnections() )
 				<Variable Class="CollectionVariable">
 					<Id>1658751085004</Id>
 					<Name><![CDATA[c_electricityFlows]]></Name>
-					<X>50</X><Y>320</Y>
+					<X>50</X><Y>340</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2181,7 +2296,7 @@ for( Agent a : subConnections.getConnections() )
 				<Variable Class="CollectionVariable">
 					<Id>1659115755266</Id>
 					<Name><![CDATA[c_heatFlows]]></Name>
-					<X>50</X><Y>360</Y>
+					<X>50</X><Y>400</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2195,8 +2310,23 @@ for( Agent a : subConnections.getConnections() )
 				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1659355047955</Id>
-					<Name><![CDATA[c_naturalgasFlows]]></Name>
-					<X>50</X><Y>340</Y>
+					<Name><![CDATA[c_methaneFlows]]></Name>
+					<X>50</X><Y>360</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[LinkedHashMap]]></CollectionClass>
+						<ElementClass><![CDATA[Object]]></ElementClass>
+						<ValueElementClass><![CDATA[Double]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1659513190843</Id>
+					<Name><![CDATA[c_hydrogenFlows]]></Name>
+					<X>50</X><Y>380</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2232,17 +2362,17 @@ if( myParentNode instanceof NetNode ) {
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1658751062480</Id>
 					<Name><![CDATA[f_calculateEnergyBalance]]></Name>
-					<X>50</X><Y>300</Y>
+					<X>50</X><Y>320</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[// clear energy-balance for the next timestep
 c_electricityFlows.clear();
-c_naturalgasFlows.clear();
+c_methaneFlows.clear();
 c_heatFlows.clear();
 v_currentPowerElectricity_kW = 0;
-v_currentPowerNaturalGas_kW = 0;
+v_currentPowerMethane_kW = 0;
 v_currentPowerHeat_kW = 0;
 
 
@@ -2262,21 +2392,26 @@ for( Agent a : subConnections.getConnections() )
 		a = (EnergyAsset)a;
 		((EnergyAsset) a).f_updateEnergyAssetFlows();
 		double assetElectricityProduction_kW = ((EnergyAsset) a).v_currentProductionElectricity_kW;
-		double assetGasProduction_kW = ((EnergyAsset) a).v_currentProductionGas_kW;
+		double assetMethaneProduction_kW = ((EnergyAsset) a).v_currentProductionMethane_kW;
+		double assetHydrogenProduction_kW = ((EnergyAsset) a).v_currentProductionHydrogen_kW;
 		double assetHeatProduction_kW = ((EnergyAsset) a).v_currentProductionHeat_kW;
 		
 		double assetElectricityConsumption_kW = ((EnergyAsset) a).v_currentConsumptionElectricity_kW;
-		double assetGasConsumption_kW = ((EnergyAsset) a).v_currentConsumptionGas_kW;
+		double assetMethaneConsumption_kW = ((EnergyAsset) a).v_currentConsumptionMethane_kW;
+		double assetHydrogenConsumption_kW = ((EnergyAsset) a).v_currentConsumptionHydrogen_kW;
 		double assetHeatConsumption_kW = ((EnergyAsset) a).v_currentConsumptionHeat_kW;
 
 		c_electricityFlows.put(a, -assetElectricityProduction_kW);
 		c_electricityFlows.put(a, assetElectricityConsumption_kW);
-		c_naturalgasFlows.put(a, -assetGasProduction_kW);
-		c_naturalgasFlows.put(a, assetGasConsumption_kW);
+		c_methaneFlows.put(a, -assetMethaneProduction_kW);
+		c_methaneFlows.put(a, assetMethaneConsumption_kW);
+		c_hydrogenFlows.put(a, -assetHydrogenProduction_kW);
+		c_hydrogenFlows.put(a, -assetHydrogenConsumption_kW);
 		c_heatFlows.put(a, -assetHeatProduction_kW);
 		c_heatFlows.put(a, assetHeatConsumption_kW);
 		v_currentPowerElectricity_kW += assetElectricityConsumption_kW - assetElectricityProduction_kW;
-		v_currentPowerNaturalGas_kW += assetGasConsumption_kW - assetGasProduction_kW;
+		v_currentPowerMethane_kW += assetMethaneConsumption_kW - assetMethaneProduction_kW;
+		v_currentPowerHydrogen_kW += assetHydrogenConsumption_kW - assetHydrogenProduction_kW;
 		v_currentPowerHeat_kW += assetHeatConsumption_kW - assetHeatProduction_kW;
 	}
 }]]></Body>
@@ -2523,7 +2658,7 @@ for( Agent a : subConnections.getConnections() )
 				<Variable Class="PlainVariable">
 					<Id>1659092523267</Id>
 					<Name><![CDATA[v_currentProductionHeat_kW]]></Name>
-					<X>80</X><Y>290</Y>
+					<X>80</X><Y>310</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2535,7 +2670,7 @@ for( Agent a : subConnections.getConnections() )
 				<Variable Class="PlainVariable">
 					<Id>1659092541428</Id>
 					<Name><![CDATA[v_currentConsumptionElectricity_kW]]></Name>
-					<X>80</X><Y>330</Y>
+					<X>80</X><Y>360</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2547,7 +2682,7 @@ for( Agent a : subConnections.getConnections() )
 				<Variable Class="PlainVariable">
 					<Id>1659092596831</Id>
 					<Name><![CDATA[v_currentConsumptionHeat_kW]]></Name>
-					<X>80</X><Y>370</Y>
+					<X>80</X><Y>420</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2558,8 +2693,8 @@ for( Agent a : subConnections.getConnections() )
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1659092615449</Id>
-					<Name><![CDATA[v_currentConsumptionGas_kW]]></Name>
-					<X>80</X><Y>350</Y>
+					<Name><![CDATA[v_currentConsumptionMethane_kW]]></Name>
+					<X>80</X><Y>380</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2585,7 +2720,7 @@ for( Agent a : subConnections.getConnections() )
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1659345815346</Id>
-					<Name><![CDATA[v_currentProductionGas_kW]]></Name>
+					<Name><![CDATA[v_currentProductionMethane_kW]]></Name>
 					<X>80</X><Y>270</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -2598,7 +2733,31 @@ for( Agent a : subConnections.getConnections() )
 				<Variable Class="PlainVariable">
 					<Id>1659365919790</Id>
 					<Name><![CDATA[v_currentStateOfCharge_r]]></Name>
-					<X>80</X><Y>420</Y>
+					<X>80</X><Y>450</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1659513282177</Id>
+					<Name><![CDATA[v_currentProductionHydrogen_kW]]></Name>
+					<X>80</X><Y>290</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1659513295338</Id>
+					<Name><![CDATA[v_currentConsumptionHydrogen_kW]]></Name>
+					<X>80</X><Y>400</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2853,22 +3012,26 @@ if( assetCategory.equals("storage") ) {
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[v_currentProductionElectricity_kW=0;
+v_currentProductionMethane_kW=0;
+v_currentProductionHydrogen_kW=0;
 v_currentProductionHeat_kW=0;
 
 v_currentConsumptionElectricity_kW=0;
-v_currentConsumptionGas_kW=0;
+v_currentConsumptionMethane_kW=0;
+v_currentProductionHydrogen_kW=0;
 v_currentConsumptionHeat_kW=0;
-
 
 double[] arr = p_energyAssetInstance.operate(v_powerFraction_fr);
 //traceln("arr "+arr);
 v_currentProductionElectricity_kW=arr[0];
-v_currentProductionGas_kW=arr[1];
-v_currentProductionHeat_kW=arr[2];
+v_currentProductionMethane_kW=arr[1];
+v_currentProductionHydrogen_kW=arr[2];
+v_currentProductionHeat_kW=arr[3];
 
-v_currentConsumptionElectricity_kW=arr[3];
-v_currentConsumptionGas_kW=arr[4];
-v_currentConsumptionHeat_kW=arr[5];
+v_currentConsumptionElectricity_kW=arr[4];
+v_currentConsumptionMethane_kW=arr[5];
+v_currentConsumptionHydrogen_kW=arr[6];
+v_currentConsumptionHeat_kW=arr[7];
 
 v_currentStateOfCharge_r = (p_energyAssetInstance.getCurrentStateOfCharge());
 if(p_energyAssetInstance instanceof J_EAStorageHeat) {
@@ -5219,19 +5382,19 @@ for(EnergyAsset s : c_connectedStorageAssets) {
 		s.v_powerFraction_fr = -0.1;  // discharge value
 	}
 	if(s.p_EnergyAssetTypeString.equals("heat buffer")) {
+		//s.p_energyAssetInstance.updateParameters(main.v_currentAmbientTemperature_degC);
 		s.v_powerFraction_fr = 0.1;  // discharge value
 	}
-		
-//	if(e.p_EnergyAssetTypeString.equals("windmill")) {
-//		e.v_powerFraction_fr = main.v_currentWindPowerNormalized_r;
-//	}
-//	else if(e.p_EnergyAssetTypeString.equals("solarpanel")) {
-//		e.v_powerFraction_fr = main.v_currentSolarPowerNormalized_r;
-//	}
 }
 
-
-
+// Conversion operation
+for(EnergyAsset s : c_connectedConversionAssets) {
+	if(s.p_EnergyAssetTypeString.equals("heatpump")) {
+		s.p_EnergyAssetTypeString.updateParameters();
+		s.v_powerFraction_fr = 1;  // conversion value
+	}
+	
+}
 
 ]]></Body>
 				</Function>
@@ -5399,6 +5562,27 @@ for(int i = 0; i < conversionAssets.size(); i++) {
 				<Password><![CDATA[]]></Password>
 			</ExternalConnection>
 			<ExternalConnection>
+				<Id>1659535432855</Id>
+				<Name><![CDATA[database]]></Name>
+				<X>0</X><Y>0</Y>
+				<Label><X>10</X><Y>0</Y></Label>
+				<PublicFlag>false</PublicFlag>
+				<PresentationFlag>true</PresentationFlag>
+				<ShowLabel>true</ShowLabel>
+				<DatabaseType>EXCEL_ACCESS</DatabaseType>
+				<ConnectionURL><![CDATA[]]></ConnectionURL>
+				<ConnectOnStartup>true</ConnectOnStartup>
+				<DatabaseName><![CDATA[]]></DatabaseName>
+				<ResourceReference>
+					<PackageName><![CDATA[base]]></PackageName>
+					<ClassName><![CDATA[db_defaultEnergyAssets.xlsx]]></ClassName>
+				</ResourceReference>
+				<Host><![CDATA[localhost]]></Host>
+				<JdbcDriverClassName><![CDATA[net.sourceforge.jtds.jdbc.Driver]]></JdbcDriverClassName>
+				<Login><![CDATA[]]></Login>
+				<Password><![CDATA[]]></Password>
+			</ExternalConnection>
+			<ExternalConnection>
 				<Id>1659337777421</Id>
 				<Name><![CDATA[database]]></Name>
 				<X>0</X><Y>0</Y>
@@ -5452,9 +5636,45 @@ for(int i = 0; i < conversionAssets.size(); i++) {
 			<TableImportSettings>
 				<TableReference>
 					<PackageName><![CDATA[base]]></PackageName>
-					<ClassName><![CDATA[profiles]]></ClassName>
+					<ClassName><![CDATA[storage_assets]]></ClassName>
 				</TableReference>
 				<ConnectionIndex>1</ConnectionIndex>
+				<ExternalTableName><![CDATA["storageAssets"]]></ExternalTableName>
+				<AutoImport>true</AutoImport>
+			</TableImportSettings>
+			<TableImportSettings>
+				<TableReference>
+					<PackageName><![CDATA[base]]></PackageName>
+					<ClassName><![CDATA[consumption_assets]]></ClassName>
+				</TableReference>
+				<ConnectionIndex>1</ConnectionIndex>
+				<ExternalTableName><![CDATA["consumptionAssets"]]></ExternalTableName>
+				<AutoImport>true</AutoImport>
+			</TableImportSettings>
+			<TableImportSettings>
+				<TableReference>
+					<PackageName><![CDATA[base]]></PackageName>
+					<ClassName><![CDATA[conversion_assets]]></ClassName>
+				</TableReference>
+				<ConnectionIndex>1</ConnectionIndex>
+				<ExternalTableName><![CDATA["conversionAssets"]]></ExternalTableName>
+				<AutoImport>true</AutoImport>
+			</TableImportSettings>
+			<TableImportSettings>
+				<TableReference>
+					<PackageName><![CDATA[base]]></PackageName>
+					<ClassName><![CDATA[production_assets]]></ClassName>
+				</TableReference>
+				<ConnectionIndex>1</ConnectionIndex>
+				<ExternalTableName><![CDATA["productionAssets"]]></ExternalTableName>
+				<AutoImport>true</AutoImport>
+			</TableImportSettings>
+			<TableImportSettings>
+				<TableReference>
+					<PackageName><![CDATA[base]]></PackageName>
+					<ClassName><![CDATA[profiles]]></ClassName>
+				</TableReference>
+				<ConnectionIndex>2</ConnectionIndex>
 				<ExternalTableName><![CDATA["profiles"]]></ExternalTableName>
 				<AutoImport>true</AutoImport>
 			</TableImportSettings>
@@ -5463,7 +5683,7 @@ for(int i = 0; i < conversionAssets.size(); i++) {
 					<PackageName><![CDATA[base]]></PackageName>
 					<ClassName><![CDATA[params]]></ClassName>
 				</TableReference>
-				<ConnectionIndex>2</ConnectionIndex>
+				<ConnectionIndex>3</ConnectionIndex>
 				<ExternalTableName><![CDATA["params"]]></ExternalTableName>
 				<AutoImport>true</AutoImport>
 			</TableImportSettings>
@@ -5565,6 +5785,9 @@ for(int i = 0; i < conversionAssets.size(); i++) {
 				</Parameter>
 				<Parameter>
 					<ParameterName><![CDATA[p_houseThermalMass]]></ParameterName>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_undergroundTemperature_degC]]></ParameterName>
 				</Parameter>
 			</Parameters>			
 			<PresentationProperties>
@@ -5692,21 +5915,23 @@ public class J_EAStorage extends J_EA implements Serializable {
     
     public double[] operate(double ratioOfChargeCapacity_r) { 
     	// traceln("storage operate! ");
-    	double electricityProduction = 0; //ratioOfCapacity * capacityElectricity_kW;
-    	double heatProduction = 0; //ratioOfCapacity * capacityHeat_kW;
-    	double gasProduction = 0;
-    	double electricityConsumption = 0;
-    	double heatConsumption = 0;
-    	double gasConsumption = 0;
+    	double electricityProduction_kW = 0; //ratioOfCapacity * capacityElectricity_kW;
+    	double heatProduction_kW = 0; //ratioOfCapacity * capacityHeat_kW;
+    	double methaneProduction_kW = 0;
+    	double hydrogenProduction_kW = 0;
+    	double electricityConsumption_kW = 0;
+    	double heatConsumption_kW = 0;
+    	double methaneConsumption_kW = 0;
+    	double hydrogenConsumption_kW = 0;
     	
-    	double discharge = 0;
-    	double energy = 0;   // to check the request with the energy currently in storage
+    	double discharge_kW = 0;
+    	double energy_kWh = 0;   // to check the request with the energy currently in storage
     	double sign = ratioOfChargeCapacity_r / abs( ratioOfChargeCapacity_r ); // charge or discharge
 		
-    	updateStateOfCharge( discharge );
+    	updateStateOfCharge( discharge_kW );
     	
-    	double[] arr = {electricityProduction, gasProduction, heatProduction, electricityConsumption, gasConsumption, heatConsumption };
-    	return arr;
+    	double[] arr = {electricityProduction_kW, methaneProduction_kW, hydrogenProduction_kW, heatProduction_kW, electricityConsumption_kW, methaneConsumption_kW, hydrogenConsumption_kW, heatConsumption_kW };
+    	return arr;	
     }    
     
     public void updateStateOfCharge( double flow_kW ) {
@@ -5784,36 +6009,22 @@ public class J_EAConversion extends base.J_EA implements Serializable {
    
 	@Override
 	public double[] operate(double ratioOfCapacity) { 
-    	double electricityProduction = 0; 
-    	double heatProduction = 0; 
-    	double gasProduction = 0.0;
-    	double electricityConsumption = 0.0;
-    	double heatConsumption = 0.0;
-    	double gasConsumption = 0.0;
+    	double electricityProduction_kW = 0.0; 
+    	double heatProduction_kW = 0.0; 
+    	double methaneProduction_kW = 0.0;
+    	double hydrogenProduction_kW = 0.0;
+    	double electricityConsumption_kW = 0.0;
+    	double methaneConsumption_kW = 0.0;
+    	double hydrogenConsumption_kW = 0.0;
+    	double heatConsumption_kW = 0.0;
     	
-    	switch( energyCarrierConsumed ) {
-    	case ELECTRICITY:
-    		heatProduction = capacityElectricity_kW * ratioOfCapacity * efficiency_r;
-    		electricityConsumption = capacityElectricity_kW * ratioOfCapacity;
-    	break;
-    	case NATURAL_GAS:
-    		heatProduction = capacityHeat_kW * ratioOfCapacity * efficiency_r;
-    		gasConsumption = capacityHeat_kW * ratioOfCapacity;
-    	break;
-    	case HEAT:
-    		heatProduction = capacityHeat_kW * ratioOfCapacity * efficiency_r;
-    		heatConsumption = capacityHeat_kW * ratioOfCapacity;
-    	break;
-		default:
-			traceln("exception: no valid energycarrier");
-		break;
-    	}
     	
-    	double[] arr = {electricityProduction, gasProduction, heatProduction, electricityConsumption, gasConsumption, heatConsumption};
-    	//traceln("arr(0):"+arr[0]);
-    	return arr;
+    	
+    	double[] arr = {electricityProduction_kW, methaneProduction_kW, hydrogenProduction_kW, heatProduction_kW, electricityConsumption_kW, methaneConsumption_kW, hydrogenConsumption_kW, heatConsumption_kW };
+    	return arr;	
 	}
     
+	
     @Override
 	public String toString() {
 		return super.toString();
@@ -6132,13 +6343,16 @@ public class J_EA {
     	//double[] arr={0.0,0.0,0.0,0.0,0.0}; //initializing array 
     	double electricityProduction = ratioOfCapacity * capacityElectricity_kW;
     	double heatProduction = ratioOfCapacity * capacityHeat_kW;
-    	double gasProduction = 0;
+    	double methaneProduction = 0;
+    	double hydrogenProduction = 0;
     	double electricityConsumption = 0;
+    	double methaneConsumption = 0;
+    	double hydrogenConsumption = 0;
     	double heatConsumption = 0;
-    	double gasConsumption = 0;
     	
-    	double[] arr = {electricityConsumption, gasConsumption, heatConsumption, electricityProduction, gasProduction, heatProduction};
-    	return arr;
+    	
+    	double[] arr = {electricityProduction, methaneProduction, hydrogenProduction, heatProduction, electricityConsumption, methaneConsumption, hydrogenConsumption, heatConsumption };
+    	return arr;	
     }
     
     public double getCurrentStateOfCharge() {
@@ -6253,39 +6467,46 @@ public class J_EAStorageElectric extends base.J_EAStorage implements Serializabl
 	
 	@Override
 	public double[] operate(double ratioOfChargeCapacity_r) { 
-		double electricityProduction = 0; //ratioOfCapacity * capacityElectricity_kW;
-    	double heatProduction = 0; //ratioOfCapacity * capacityHeat_kW;
-    	double gasProduction = 0;
-    	double electricityConsumption = 0;
-    	double heatConsumption = 0;
-    	double gasConsumption = 0;
+		double electricityProduction_kW = 0; //ratioOfCapacity * capacityElectricity_kW;
+    	double heatProduction_kW = 0; //ratioOfCapacity * capacityHeat_kW;
+    	double methaneProduction_kW = 0;
+    	double hydrogenProduction_kW = 0;
+    	double electricityConsumption_kW = 0;
+    	double heatConsumption_kW = 0;
+    	double methaneConsumption_kW = 0;
+    	double hydrogenConsumption_kW = 0;
     	
-    	double discharge = 0;
-    	double energy = 0;   // to check the request with the energy currently in storage
-    	double sign = ratioOfChargeCapacity_r / abs( ratioOfChargeCapacity_r ); // charge or discharge
+    	double discharge_kW = 0;
+    	double deltaEnergy_kWh;   // to check the request with the energy currently in storage
+    	//double sign = ratioOfChargeCapacity_r / abs( ratioOfChargeCapacity_r ); // charge or discharge
 		
-    	energy = abs( ratioOfChargeCapacity_r * capacityElectricity_kW * timestep_h ) ;
-		energy = min( energy, (stateOfCharge_r * storageCapacity_kWh) );
-		energy = min(energy, (1 - stateOfCharge_r) * storageCapacity_kWh );
+    	deltaEnergy_kWh = ( ratioOfChargeCapacity_r * capacityElectricity_kW * timestep_h ) ;
+    	deltaEnergy_kWh = - min( -deltaEnergy_kWh, (stateOfCharge_r * storageCapacity_kWh) ); // Prevent negative charge
+    	deltaEnergy_kWh = min(deltaEnergy_kWh, (1 - stateOfCharge_r) * storageCapacity_kWh ); // Prevent overcharge
 		
-		discharge = sign * energy / timestep_h;
+		discharge_kW = -deltaEnergy_kWh / timestep_h;
 
-		electricityProduction = max(discharge, 0);
-		electricityConsumption = max(-discharge, 0);
+		electricityProduction_kW = max(discharge_kW, 0);
+		electricityConsumption_kW = max(-discharge_kW, 0);
 		
-		updateStateOfCharge( discharge );
+		updateStateOfCharge( discharge_kW );		
 		
-    	double[] arr = {electricityProduction, gasProduction, heatProduction, electricityConsumption, gasConsumption, heatConsumption };
+    	double[] arr = {electricityProduction_kW, methaneProduction_kW, hydrogenProduction_kW, heatProduction_kW, electricityConsumption_kW, methaneConsumption_kW, hydrogenConsumption_kW, heatConsumption_kW };
     	return arr;		
 	}
+	
 	@Override
-	public void updateStateOfCharge( double flow_kW ) {
-		stateOfCharge_r = ( (stateOfCharge_r * storageCapacity_kWh) - flow_kW * timestep_h ) / storageCapacity_kWh;
+	public void updateStateOfCharge( double discharge_kW ) {
+		stateOfCharge_r -= ( discharge_kW * timestep_h ) / storageCapacity_kWh;
 	}
 	
 	@Override
 	public double getCurrentStateOfCharge() {
     	return stateOfCharge_r;
+	}
+	
+	public double getStorageCapacity() {
+		return storageCapacity_kWh;
 	}
 	
 	/**
@@ -6309,7 +6530,7 @@ public class J_EAStorageHeat extends base.J_EAStorage implements Serializable {
 	private double capacityElectricity_kW = 0;
 	private double capacityHeat_kW;
 	public OL_EnergyCarrierType storageMedium = OL_EnergyCarrierType.HEAT;
-	//private double storageCapacity_kWh;
+	private double storageCapacity_kWh;
 	private double stateOfCharge_r;
 	private double lossFactor_WpK;
 	private double timestep_h;
@@ -6338,7 +6559,7 @@ public class J_EAStorageHeat extends base.J_EAStorage implements Serializable {
 		this.maxTemperature_degC = maxTemperature_degC;
 		this.heatCapacity_JpK = heatCapacity_JpK;
 		
-		//this.storageCapacity_kWh = ( maxTemperature_degC - minTemperature_degC ) * mass_kg * heatCapacity_JpkgK * 3.6e+6;
+		this.storageCapacity_kWh = ( maxTemperature_degC - minTemperature_degC ) * heatCapacity_JpK / 3.6e+6;
 		this.stateOfCharge_r = (( initialTemperature_degC - minTemperature_degC ) / (maxTemperature_degC - minTemperature_degC ) );
     }
 
@@ -6346,45 +6567,51 @@ public class J_EAStorageHeat extends base.J_EAStorage implements Serializable {
 	public void calculateLoss() {
 		double heatLoss_W = lossFactor_WpK * ( temperature_degC - ambientTemperature_degC );
 		double tempDelta = - ( heatLoss_W / 1000 ) * timestep_h / (heatCapacity_JpK / 3.6E6 );
-		traceln("tempdelta "+tempDelta);
+		//traceln("tempdelta loss"+tempDelta);
 		updateStateOfCharge( tempDelta );	
 	}
 	
 	@Override
 	public double[] operate(double ratioOfChargeCapacity_r) { 
-		calculateLoss();
-		double electricityProduction = 0; //ratioOfCapacity * capacityElectricity_kW;
-    	double heatProduction = 0; //ratioOfCapacity * capacityHeat_kW;
-    	double gasProduction = 0;
-    	double electricityConsumption = 0;
-    	double heatConsumption = 0;
-    	double gasConsumption = 0;
+		calculateLoss(); // Updates 
+
+		double electricityProduction_kW = 0; //ratioOfCapacity * capacityElectricity_kW;
+    	double heatProduction_kW = 0; //ratioOfCapacity * capacityHeat_kW;
+    	double methaneProduction_kW = 0;
+    	double hydrogenProduction_kW = 0;
+    	double electricityConsumption_kW = 0;
+    	double heatConsumption_kW = 0;
+    	double methaneConsumption_kW = 0;
+    	double hydrogenConsumption_kW = 0;
     	
-    	double discharge = 0;
-    	double energy = 0;   // to check the request with the energy currently in storage
-    	double sign = ratioOfChargeCapacity_r / abs( ratioOfChargeCapacity_r ); // charge or discharge
+    	double discharge_kW = 0;
+    	double energyDelta_kWh = 0;   // to check the request with the energy currently in storage
+    	double deltaTemp_degC;
+    	//double sign = ratioOfChargeCapacity_r / abs( ratioOfChargeCapacity_r ); // charge or discharge
 		
-    	energy = abs( ratioOfChargeCapacity_r * capacityHeat_kW * timestep_h );
-    	energy = energy / (heatCapacity_JpK / 3.6E6 );
-		energy = min( energy, temperature_degC - minTemperature_degC );
-		energy = min( energy, (maxTemperature_degC - temperature_degC ) );
+    	energyDelta_kWh = ( ratioOfChargeCapacity_r * capacityHeat_kW * timestep_h ); 
+		//traceln("energyDelta " + energyDelta_kWh);
+    	deltaTemp_degC = energyDelta_kWh / (heatCapacity_JpK / 3.6E6 );
+    	//traceln("tempdelta charge uncapped: "+deltaTemp_degC);
+    	deltaTemp_degC = max( deltaTemp_degC, minTemperature_degC - temperature_degC ); // Is deze functionaliteit nodig in de heatbuffer? Kan op zich geen kwaad... zal als het goed is niet aangesproken worden
+    	deltaTemp_degC = min( deltaTemp_degC, (maxTemperature_degC - temperature_degC ) ); // Is deze functionaliteit nodig in de heatbuffer? 
 		
-		double tempDelta = - energy;   // positieve energielevering verlaagt buffertemperatuur!
-		energy = energy * (heatCapacity_JpK / 3.6E6 );
-		discharge = sign * energy / timestep_h;
+		//double tempDelta = - energy;   // positieve energielevering verlaagt buffertemperatuur!
+		//energy = energy * (heatCapacity_JpK / 3.6E6 );
+		discharge_kW = - deltaTemp_degC *  (heatCapacity_JpK / 3.6E6) / timestep_h; // positieve energielevering verlaagt buffertemperatuur!
 		
-		heatProduction = max(discharge, 0);
-		heatConsumption = max(-discharge, 0);
-		traceln("tempdelta 2: "+tempDelta);
-		updateStateOfCharge( tempDelta );
+		heatProduction_kW = max(discharge_kW, 0);
+		heatConsumption_kW = max(-discharge_kW, 0);
+		//traceln("tempdelta charge: "+deltaTemp_degC);
+		updateStateOfCharge( deltaTemp_degC );
     	
-    	double[] arr = {electricityProduction, gasProduction, heatProduction, electricityConsumption, gasConsumption, heatConsumption };
+    	double[] arr = {electricityProduction_kW, methaneProduction_kW, hydrogenProduction_kW, heatProduction_kW, electricityConsumption_kW, methaneConsumption_kW, hydrogenConsumption_kW, heatConsumption_kW };
     	return arr;	
 	}
 
 	@Override
 	public void updateStateOfCharge( double tempDelta_degC ) {
-		temperature_degC = temperature_degC + tempDelta_degC; 
+		temperature_degC += tempDelta_degC; 
 		stateOfCharge_r = ( temperature_degC - minTemperature_degC) / (maxTemperature_degC - minTemperature_degC);
 	}
 	
@@ -6398,9 +6625,218 @@ public class J_EAStorageHeat extends base.J_EAStorage implements Serializable {
 		return temperature_degC;
 	}
 	
+	public double getStorageCapacity() {
+		return storageCapacity_kWh;
+	}
+	
 	@Override
-	public void updateAmbientTemperature(double currentAmbientTemperature_degC) {
+	public void updateAmbientTemperature(double currentAmbientTemperature_degC) { // TODO: Hoe zorgen we dat we deze niet vergeten aan te roepen??
 		ambientTemperature_degC = currentAmbientTemperature_degC;
+	}
+	/**
+	 * This number is here for model snapshot storing purpose<br>
+	 * It needs to be changed when this class gets changed
+	 */ 
+	private static final long serialVersionUID = 1L;
+
+}]]></Text>
+		</JavaClass>
+		<!--   =========   Java Class   ========  -->
+		<JavaClass>
+			<Id>1659513814164</Id>
+			<Name><![CDATA[J_EAConversionHeatPump]]></Name>
+			<Text><![CDATA[/**
+ * J_EAConversionHeatPump
+ */	
+public class J_EAConversionHeatPump extends base.J_EAConversion implements Serializable {
+	private EnergyAsset ownerAsset;
+	private double capacityElectricity_kW;
+	private double capacityHeat_kW = 0;
+	private double efficiency_r;
+	private OL_EnergyCarrierType energyCarrierProduced = OL_EnergyCarrierType.HEAT;
+	private OL_EnergyCarrierType energyCarrierConsumed = OL_EnergyCarrierType.ELECTRICITY;
+	private double eta_r;
+	private double outputTemperature_degC;
+	private double baseTemperature_degC;
+	
+    /**
+     * Default constructor
+     */
+    public J_EAConversionHeatPump() {
+    }
+
+    /**
+     * Constructor initializing the fields
+     */
+    public J_EAConversionHeatPump(EnergyAsset ownerAssetAgent, double capacityElectricity_kW, double eta_r, double baseTemperature_degC, double outputTemperature_degC) {
+	    this.ownerAsset = ownerAssetAgent;
+	    this.capacityElectricity_kW = capacityElectricity_kW;
+	    this.eta_r = eta_r;
+	    this.baseTemperature_degC = baseTemperature_degC;
+	    this.outputTemperature_degC = outputTemperature_degC;
+	    
+	    traceln("I am instantiated! "+this+" owned by "+ownerAsset);
+	    
+	}
+
+	public void updateParameters(double baseTemperature_degC, double outputTemperature_degC) {
+		// 
+		efficiency_r = eta_r * ( 273.15 + outputTemperature_degC ) / ( outputTemperature_degC - baseTemperature_degC );
+	}
+	
+	@Override
+	public double[] operate(double ratioOfCapacity) { 
+    	double electricityProduction_kW = 0.0; 
+    	double heatProduction_kW = 0.0; 
+    	double methaneProduction_kW = 0.0;
+    	double hydrogenProduction_kW = 0.0;
+    	double electricityConsumption_kW = 0.0;
+    	double methaneConsumption_kW = 0.0;
+    	double hydrogenConsumption_kW = 0.0;
+    	double heatConsumption_kW = 0.0;
+    	
+    	electricityConsumption_kW = ratioOfCapacity * capacityElectricity_kW;
+    	heatProduction_kW = electricityConsumption_kW * efficiency_r;
+    	    	
+    	double[] arr = {electricityProduction_kW, methaneProduction_kW, hydrogenProduction_kW, heatProduction_kW, electricityConsumption_kW, methaneConsumption_kW, hydrogenConsumption_kW, heatConsumption_kW };
+    	return arr;	
+	}
+	
+	@Override
+	public String toString() {
+		return super.toString();
+	}
+	
+	/**
+	 * This number is here for model snapshot storing purpose<br>
+	 * It needs to be changed when this class gets changed
+	 */ 
+	private static final long serialVersionUID = 1L;
+
+}]]></Text>
+		</JavaClass>
+		<!--   =========   Java Class   ========  -->
+		<JavaClass>
+			<Id>1659534704067</Id>
+			<Name><![CDATA[J_EAEV]]></Name>
+			<Text><![CDATA[/**
+ * J_EAEV
+ */	
+public class J_EAEV extends base.J_EAStorage implements Serializable {
+	
+	EnergyAsset ownerAsset;
+	private double capacityElectricity_kW;
+	private double capacityHeat_kW = 0;
+	public OL_EnergyCarrierType storageMedium = OL_EnergyCarrierType.ELECTRICITY;
+	private double storageCapacity_kWh;
+	private double stateOfCharge_r;
+	private double lossFactor_r = 0;
+	private double timestep_h;
+	private double energyConsumption_kWhpmk = 0.2;
+	private boolean availability = true;
+	private double energyUsed_kWh=0;
+
+    /**
+     * Default constructor
+     */
+    public J_EAEV() {
+    }
+
+    /**
+     * Constructor initializing the fields
+     */
+    public J_EAEV(EnergyAsset ownerAsset, double capacityElectricity_kW, double storageCapacity_kWh, double stateOfCharge_r, double timestep_h, double energyConsumption_kWhpmk ) {
+		this.ownerAsset = ownerAsset;
+		this.capacityElectricity_kW = capacityElectricity_kW; // for EV, this is max charging power. 
+		this.storageCapacity_kWh = storageCapacity_kWh;
+		this.stateOfCharge_r = stateOfCharge_r;
+		this.timestep_h = timestep_h;
+		this.energyConsumption_kWhpmk = energyConsumption_kWhpmk;
+    }
+
+	@Override
+	public void calculateLoss() {
+		//no loss for electric batteries modeled.
+	}
+	
+	@Override
+	public double[] operate(double ratioOfChargeCapacity_r) { 
+		
+		double electricityProduction_kW = 0; //ratioOfCapacity * capacityElectricity_kW;
+    	double heatProduction_kW = 0; //ratioOfCapacity * capacityHeat_kW;
+    	double gasProduction_kW = 0;
+    	double electricityConsumption_kW = 0;
+    	double heatConsumption_kW = 0;
+    	double gasConsumption_kW = 0;
+    	
+		if (availability) {
+			
+	    	double discharge_kW = 0;
+	    	double deltaEnergy_kWh;   // to check the request with the energy currently in storage
+	    	//double sign = ratioOfChargeCapacity_r / abs( ratioOfChargeCapacity_r ); // charge or discharge
+			
+	    	deltaEnergy_kWh = ( ratioOfChargeCapacity_r * capacityElectricity_kW * timestep_h ) ;
+	    	deltaEnergy_kWh = - min( -deltaEnergy_kWh, (stateOfCharge_r * storageCapacity_kWh) ); // Prevent negative charge
+	    	deltaEnergy_kWh = min(deltaEnergy_kWh, (1 - stateOfCharge_r) * storageCapacity_kWh ); // Prevent overcharge
+			
+			discharge_kW = -deltaEnergy_kWh / timestep_h;
+	
+			electricityProduction_kW = max(discharge_kW, 0);
+			electricityConsumption_kW = max(-discharge_kW, 0);
+			
+			updateStateOfCharge( discharge_kW );
+		}
+    	double[] arr = {electricityProduction_kW, gasProduction_kW, heatProduction_kW, electricityConsumption_kW, gasConsumption_kW, heatConsumption_kW };
+    	return arr;		
+	}
+	@Override
+	public void updateStateOfCharge( double discharge_kW ) {
+		stateOfCharge_r -= ( discharge_kW * timestep_h ) / storageCapacity_kWh;
+		traceln("EV SOC Change: " + 100* ( -discharge_kW * timestep_h ) / storageCapacity_kWh + "%");
+		traceln("EV SOC: " + 100*stateOfCharge_r + "%");
+	}
+	
+	@Override
+	public double getCurrentStateOfCharge() {
+    	return stateOfCharge_r;
+	}
+	
+	public boolean startTrip() {
+		if (availability) {
+			availability = false;
+			return true;
+		} else {
+			traceln("Trip not started because EV not available!");
+			return false; // Trip not started because EV not available!
+		}
+	}
+	
+	public boolean endTrip(double tripDist_km) {
+		if(availability) {
+			traceln("Trip not ended because EV never left!");
+			return false;
+		} else {
+			stateOfCharge_r -= (tripDist_km * energyConsumption_kWhpmk) / storageCapacity_kWh;
+			energyUsed_kWh += tripDist_km * energyConsumption_kWhpmk; 
+			if (stateOfCharge_r < 0) {
+				traceln("EV arrived home with negative SOC! Leaving negative SOC to compensate with extra charging later");				
+			}
+			availability = true;
+			return true;
+		}
+			
+	}
+	
+	public double getEnergyUsed() {
+		return energyUsed_kWh;		
+	}
+	
+	public double getStorageCapacity() {
+		return storageCapacity_kWh;
+	}
+	
+	public boolean getAvailability() {
+		return availability;
 	}
 	/**
 	 * This number is here for model snapshot storing purpose<br>
@@ -6430,6 +6866,10 @@ public class J_EAStorageHeat extends base.J_EAStorage implements Serializable {
 		</Resource>
 		<Resource>
 			<Path><![CDATA[db_profiles.xlsx]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[db_defaultEnergyAssets.xlsx]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
