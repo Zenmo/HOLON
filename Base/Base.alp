@@ -123,7 +123,6 @@
 		<OptionList>
 			<Id>1659118392107</Id>
 			<Name><![CDATA[OL_EnergyAssetCategory]]></Name>
-			<ExcludeFromBuild>true</ExcludeFromBuild>
 			<Option>
 				<Id>1659118392486</Id>
 				<Name><![CDATA[PRODUCTION]]></Name>
@@ -252,6 +251,7 @@
 		<OptionList>
 			<Id>1659535485693</Id>
 			<Name><![CDATA[OL_EACategories]]></Name>
+			<ExcludeFromBuild>true</ExcludeFromBuild>
 			<Option>
 				<Id>1659535486263</Id>
 				<Name><![CDATA[CONSUMPTION]]></Name>
@@ -1252,7 +1252,8 @@ for( Tuple tup : data ) {
 
 EnergyAsset e = add_energyAssets( parentAgentID, null, assetType );
 e.f_instantiateProducerAsset( assetType, capacityElectricity_kW, capacityHeat_kW  );
-e.f_connectToParentNode( ownerAgent );]]></Body>
+e.f_connectToParentNode( ownerAgent );
+]]></Body>
 				</Function>
 			</Functions>
 			<TableFunctions>
@@ -3250,24 +3251,11 @@ for( Agent a : subConnections.getConnections() )
 						<Name><![CDATA[ProvidedParentConnection]]></Name>
 						<Type><![CDATA[Agent]]></Type>
 					</Parameter>
-					<Body><![CDATA[Agent myParentAgent= null;
-if(ProvidedParentConnection != null) {
-	myParentAgent = ProvidedParentConnection;	
-}
-else if( myParentAgent instanceof NetConnection ) {
-	myParentAgent = findFirst(main.netConnections, p->p.p_agentID.equals(p_parentAgentID));
-	myParentAgent = (NetConnection)myParentAgent;
-	superConnection.connectTo(myParentAgent);
-	((NetConnection) myParentAgent).f_connectToChild(this);
-}
-else {  // must be NetNode then
-	myParentAgent = findFirst(main.netNodes, p->p.p_agentID.equals(p_parentAgentID));
-	myParentAgent = (NetNode)myParentAgent;
-	superConnection.connectTo(myParentAgent);
-	((NetNode) myParentAgent).f_connectToChild(this);
-}
-
-]]></Body>
+					<Body><![CDATA[NetConnection myParentNetConnection = findFirst(main.netConnections, p->p.p_agentID.equals(p_parentAgentID));
+if( myParentNetConnection instanceof NetConnection ) {
+	superConnection.connectTo(myParentNetConnection);
+	myParentNetConnection.f_connectToChild(this);
+}]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -3284,17 +3272,16 @@ else {  // must be NetNode then
 						<Type><![CDATA[OL_EnergyAssetType]]></Type>
 					</Parameter>
 					<Parameter>
-						<Name><![CDATA[capacityElectricity_kW]]></Name>
+						<Name><![CDATA[capacityElectric_kW]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
 					<Parameter>
 						<Name><![CDATA[capacityHeat_kW]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
-					<Body><![CDATA[p_energyAssetInstance = new J_EAConsumption( this, capacityElectricity_kW, capacityHeat_kW );
-p_energyAssetInstance = (J_EAConsumption)p_energyAssetInstance;
-p_energyAssetType = assetType;
-traceln("assettype:2 "+assetType);]]></Body>
+					<Body><![CDATA[p_energyAssetInstance = (J_EAConsumption)p_energyAssetInstance;
+p_energyAssetInstance = new J_EAConsumption( this, capacityElectric_kW, capacityHeat_kW );
+p_energyAssetType = assetType;]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -3317,9 +3304,9 @@ v_currentProductionHydrogen_kW=0;
 v_currentConsumptionHeat_kW=0;
 
 p_energyAssetInstance.setAsset();
-p_energyAssetInstance.operate(v_powerFraction_fr);
+double[] arr = p_energyAssetInstance.operate(v_powerFraction_fr);
 
-double[] arr = p_energyAssetInstance.returnEnergyFlows();
+//double[] arr = p_energyAssetInstance.returnEnergyFlows();
 
 //traceln("arr "+arr);
 v_currentProductionElectricity_kW=arr[0];
@@ -3370,7 +3357,8 @@ if(p_energyAssetInstance instanceof J_EAConsumption) {
 						<Name><![CDATA[capacityHeat_kW]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
-					<Body><![CDATA[p_energyAssetInstance = new J_EAProduction( this, capacityElectric_kW, capacityHeat_kW );
+					<Body><![CDATA[p_energyAssetInstance = (J_EAProduction)p_energyAssetInstance;
+p_energyAssetInstance = new J_EAProduction( this, capacityElectric_kW, capacityHeat_kW );
 p_energyAssetType = assetType;]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -3402,10 +3390,12 @@ p_energyAssetType = assetType;]]></Body>
 					<Body><![CDATA[switch(assetType) {
 	case GAS_BURNER:
 		traceln("instantiating asset as GasBurner"); 
-		p_energyAssetInstance = new J_EAConversionGasBurner(this, capacityHeat_kW, eta_r);
+		p_energyAssetInstance = (J_EAConversionGasBurner)p_energyAssetInstance;
+		p_energyAssetInstance = new J_EAConversionGasBurner( this, capacityHeat_kW, eta_r );
 	break;
 	case HEATPUMP_AIR: //EnergyAsset ownerAssetAgent, double capacityElectricity_kW, double eta_r, double baseTemperature_degC, double outputTemperature_degC
-		//p_energyAssetInstance = new J_EAConversionHeatPump(this, capacityElectric_kW, eta_r,main.v_currentAmbientTemperature_degC,);
+		p_energyAssetInstance = (J_EAConversionHeatPump)p_energyAssetInstance;
+		p_energyAssetInstance = new J_EAConversionHeatPump( this, capacityElectric_kW, eta_r,main.v_currentAmbientTemperature_degC,60 );
 	default:
 		traceln("exception: not a valid conversion asset!");
 	break;
@@ -3418,7 +3408,6 @@ p_energyAssetType = assetType;]]></Body>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1659711250184</Id>
 					<Name><![CDATA[f_instantiateStorageAsset]]></Name>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>80</X><Y>280</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -6270,11 +6259,14 @@ public class J_EAProduction extends base.J_EA implements Serializable {
 	}
 	
 	@Override
-    public void operate(double ratioOfCapacity) { 
+    public double[] operate(double ratioOfCapacity) { 
     	electricityProduction_kW = ratioOfCapacity * capacityElectricity_kW;
     	heatProduction_kW = ratioOfCapacity * capacityHeat_kW;
     	methaneProduction_kW = 0.0;
     	hydrogenProduction_kW = 0.0;
+    	
+    	double[] arr = {electricityProduction_kW, methaneProduction_kW, hydrogenProduction_kW, heatProduction_kW, electricityConsumption_kW, methaneConsumption_kW, hydrogenConsumption_kW, heatConsumption_kW };
+    	return arr;	
     	    	
 	}
 	
@@ -6339,8 +6331,10 @@ public class J_EAStorage extends J_EA implements Serializable {
     	//
     }
     
-    public void operate(double ratioOfChargeCapacity_r) { 
-    	// traceln("storage operate! ");    	
+    public double[] operate(double ratioOfChargeCapacity_r) { 
+    	// traceln("storage operate! ");   
+    	double[] arr = {0,0,0,0,0,0,0,0};
+    	return arr;
     }    
     
     public void updateStateOfCharge( double flow_kW ) {
@@ -6412,8 +6406,10 @@ public class J_EAConversion extends base.J_EA implements Serializable {
 	}
       
 	@Override
-	public void operate(double ratioOfCapacity) { 
+	public double[] operate(double ratioOfCapacity) { 
 		//
+		double[] arr = {0,0,0,0,0,0,0,0 };
+    	return arr;	
 	}
     	
     @Override
@@ -6620,9 +6616,12 @@ public class J_EAConsumption extends base.J_EA implements Serializable {
 			"capacityHeat_kW = " + capacityHeat_kW +" ";
 	}
 	@Override
-    public void operate(double ratioOfCapacity) { 
-    	electricityConsumption_kW = ratioOfCapacity * capacityElectricity_kW;
-    	heatConsumption_kW = ratioOfCapacity * capacityHeat_kW;
+    public double[] operate(double ratioOfCapacity) { 
+    	this.electricityConsumption_kW = ratioOfCapacity * capacityElectricity_kW;
+    	this.heatConsumption_kW = ratioOfCapacity * capacityHeat_kW;
+    	
+    	double[] arr = {this.electricityProduction_kW, this.methaneProduction_kW, this.hydrogenProduction_kW, this.heatProduction_kW, this.electricityConsumption_kW, this.methaneConsumption_kW, this.hydrogenConsumption_kW, this.heatConsumption_kW };
+    	return arr;	
    	}
 
 	
@@ -6725,9 +6724,10 @@ public class J_EA {
     	double heatConsumption_kW = 0;
     }
     
-    public void operate(double ratioOfCapacity) { 
+    public double[] operate(double ratioOfCapacity) { 
     	traceln("parent energyAsset operate! ");
-    	
+    	double[] arr = {electricityProduction_kW, methaneProduction_kW, hydrogenProduction_kW, heatProduction_kW, electricityConsumption_kW, methaneConsumption_kW, hydrogenConsumption_kW, heatConsumption_kW };
+    	return arr;	
     }
     
     public double[] returnEnergyFlows() {
@@ -6787,11 +6787,13 @@ public class J_EAConversionGasBurner extends base.J_EAConversion implements Seri
 	}
     
     @Override
-    public void operate(double ratioOfCapacity) {
+    public double[] operate(double ratioOfCapacity) {
 		//traceln("I convert now! GasBurner @ " + (ratioOfCapacity * 100) + " %");
 		heatProduction_kW = capacityHeat_kW * ratioOfCapacity;    
 		methaneConsumption_kW = heatProduction_kW / efficiency_r;
 	
+		double[] arr = {electricityProduction_kW, methaneProduction_kW, hydrogenProduction_kW, heatProduction_kW, electricityConsumption_kW, methaneConsumption_kW, hydrogenConsumption_kW, heatConsumption_kW };
+    	return arr;	
     }
     
 	@Override
@@ -6848,7 +6850,7 @@ public class J_EAStorageElectric extends base.J_EAStorage implements Serializabl
 	}
 	
 	@Override
-	public void operate(double ratioOfChargeCapacity_r) { 
+	public double[] operate(double ratioOfChargeCapacity_r) { 
     	double discharge_kW = 0;
     	double deltaEnergy_kWh;   // to check the request with the energy currently in storage
     	//double sign = ratioOfChargeCapacity_r / abs( ratioOfChargeCapacity_r ); // charge or discharge
@@ -6862,7 +6864,9 @@ public class J_EAStorageElectric extends base.J_EAStorage implements Serializabl
 		electricityProduction_kW = max(discharge_kW, 0);
 		electricityConsumption_kW = max(-discharge_kW, 0);
 		
-		updateStateOfCharge( discharge_kW );		
+		updateStateOfCharge( discharge_kW );
+		double[] arr = {electricityProduction_kW, methaneProduction_kW, hydrogenProduction_kW, heatProduction_kW, electricityConsumption_kW, methaneConsumption_kW, hydrogenConsumption_kW, heatConsumption_kW };
+    	return arr;	
 	}
 	
 	@Override
@@ -6942,7 +6946,7 @@ public class J_EAStorageHeat extends base.J_EAStorage implements Serializable {
 	}
 	
 	@Override
-	public void operate(double ratioOfChargeCapacity_r) { 
+	public double[] operate(double ratioOfChargeCapacity_r) { 
 		calculateLoss(); // Updates 
 
 		double discharge_kW = 0;
@@ -6966,6 +6970,8 @@ public class J_EAStorageHeat extends base.J_EAStorage implements Serializable {
 		//traceln("tempdelta charge: "+deltaTemp_degC);
 		updateStateOfCharge( deltaTemp_degC );
     	
+		double[] arr = {electricityProduction_kW, methaneProduction_kW, hydrogenProduction_kW, heatProduction_kW, electricityConsumption_kW, methaneConsumption_kW, hydrogenConsumption_kW, heatConsumption_kW };
+    	return arr;			
 	}
 
 	@Override
@@ -7044,11 +7050,12 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
 	}
 	
 	@Override
-	public void operate(double ratioOfCapacity) { 
+	public double[] operate(double ratioOfCapacity) { 
     	   	
     	electricityConsumption_kW = ratioOfCapacity * capacityElectricity_kW;
     	heatProduction_kW = electricityConsumption_kW * efficiency_r;
-    	
+    	double[] arr = {electricityProduction_kW, methaneProduction_kW, hydrogenProduction_kW, heatProduction_kW, electricityConsumption_kW, methaneConsumption_kW, hydrogenConsumption_kW, heatConsumption_kW };
+    	return arr;	
 	}
 	
 	@Override
@@ -7109,7 +7116,7 @@ public class J_EAEV extends base.J_EAStorage implements Serializable {
 	}
 	
 	@Override
-	public void operate(double ratioOfChargeCapacity_r) { 
+	public double[] operate(double ratioOfChargeCapacity_r) { 
 		if (availability) {
 			
 	    	double discharge_kW = 0;
@@ -7126,7 +7133,11 @@ public class J_EAEV extends base.J_EAStorage implements Serializable {
 			electricityConsumption_kW = max(-discharge_kW, 0);
 			
 			updateStateOfCharge( discharge_kW );
+			
+			
 		}
+		double[] arr = {electricityProduction_kW, methaneProduction_kW, hydrogenProduction_kW, heatProduction_kW, electricityConsumption_kW, methaneConsumption_kW, hydrogenConsumption_kW, heatConsumption_kW };
+    	return arr;	
 	}
 	
 	@Override
