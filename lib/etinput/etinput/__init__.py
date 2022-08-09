@@ -15,6 +15,8 @@ def retrieve_results_and_write():
     data_requests.ready(batches)
     batches.send()
 
+    data_requests.convert()
+
     destination = Path(Config().output_folder).resolve()
     destination.mkdir(exist_ok=True)
     data_requests.write_to(destination)

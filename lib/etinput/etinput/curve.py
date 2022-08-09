@@ -19,13 +19,6 @@ class Curve(Value):
         '''Updates the value'''
         self._value = np.array(array)
 
-    def divide_by(self, other):
-        '''Divides itself by the other Value, validates this Value is not zero'''
-        if other._value == 0:
-            return
-
-        self._value = self._value / other._value
-
     def sum(self):
         '''Only used for validation'''
         return self._value.sum()

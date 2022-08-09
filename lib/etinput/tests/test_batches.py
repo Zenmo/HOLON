@@ -21,6 +21,6 @@ def test_add_values(values):
 
     # Is there something in them?
     for batch in batches.each():
-        if batch.endpoint == 'nodes': continue # Not yet implemented
+        if batch.endpoint == 'nodes' or batch.endpoint == 'inputs': continue # Not yet in the test
 
         assert not batch.is_empty()

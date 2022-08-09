@@ -24,6 +24,7 @@ def test_ready_batches(config_path):
 
     # Is there something in them now?
     for batch in batches.each():
-        if batch.endpoint == 'nodes' or batch.endpoint == 'curves': continue # Not yet implemented
+        if batch.endpoint == 'nodes' or batch.endpoint == 'curves' or batch.endpoint == 'inputs':
+            continue # Not yet implemented in the test
 
         assert not batch.is_empty()

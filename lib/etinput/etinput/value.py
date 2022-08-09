@@ -22,6 +22,21 @@ class Value:
         '''Updates the value'''
         self._value = float(value)
 
+    ## Conversions
+
+    def multiply(self, other):
+        '''Multiplies itself with the other Value'''
+        self._value = self._value * other._value
+
+    def divide_by(self, other):
+        '''Divides itself by the other Value, validates this Value is not zero'''
+        if other._value == 0:
+            return
+
+        self._value = self._value / other._value
+
+    ##
+
     def _value_as_np(self):
         return np.array([self._value])
 

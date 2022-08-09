@@ -56,6 +56,11 @@ class RequestConverter:
                 main_value,
                 self._as_value(converter_config.pop('convert_with_value'))
             )
+        if conversion == 'multiply' and 'convert_with_value' in converter_config:
+            return converters.Multiply(
+                main_value,
+                self._as_value(converter_config.pop('convert_with_value'))
+            )
         if not conversion:
             return converters.Empty(main_value)
 
