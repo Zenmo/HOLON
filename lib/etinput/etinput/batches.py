@@ -5,11 +5,13 @@ class Batches:
         self._curves = Batch('curves')
         self._nodes = Batch('nodes')
         self._queries = Batch('queries')
+        self._inputs = Batch('inputs')
 
     def each(self):
         yield self._curves
         yield self._nodes
         yield self._queries
+        yield self._inputs
 
     def add(self, value):
         '''Adds a Value to the correct Batch'''
@@ -19,6 +21,8 @@ class Batches:
             self._queries.add(value)
         elif value.endpoint == 'node_property':
             self._nodes.add(value)
+        elif value.endpoint == 'input':
+            self._inputs.add(value)
         else:
             raise UnknownValueType(f'{value} could not be added to a batch')
 

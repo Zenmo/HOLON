@@ -1,3 +1,4 @@
+from .inputs import ETMInputsSession
 from .queries import ETMQuerySession
 from .curves import ETMCurvesSession
 from .nodes import ETMNodesSession
@@ -20,6 +21,8 @@ class ETMConnection:
             self._session == ETMCurvesSession()
         elif endpoint_key == 'nodes':
             self._session = ETMNodesSession()
+        elif endpoint_key == 'inputs':
+            self._session = ETMInputsSession()
         else:
             raise InvalidEndpoint(endpoint_key)
 
