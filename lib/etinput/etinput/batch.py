@@ -35,12 +35,16 @@ class Batch():
     def _inject_results(self, results):
         '''Update the Values in the batch with the results from the response'''
         for key, new_value in results:
-            self._search(key).update(new_value)
+            for value in self._search(key):
+                value.update(new_value)
 
     def _search(self, key):
         '''Search for a Value in the batch, used for updating'''
+        found = False
         for value in self._batch:
             if value.key == key:
-                return value
+                found = True
+                yield value
 
-        raise KeyError(f'Could not find {key} in batch {self.endpoint}')
+        if not found:
+            raise KeyError(f'Could not find {key} in batch {self.endpoint}')
