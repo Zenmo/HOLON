@@ -599,7 +599,7 @@ traceln("*** main end *** "+System.currentTimeMillis());]]></StartupCode>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[false]]></Code>
+							<Code><![CDATA[true]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1658752734131</Id>
@@ -923,30 +923,40 @@ for (Tuple netConnection : netConnections) {
     
     NetConnection NetConnection = add_netConnections( netConnectionCategory, netConnectionType, netConnectionCapacity, netConnectionParentElectric, netConnectionID, netConnectionParentHeat );
 }
-/*
+
 // 3. add agents to population from database: EnergyAssets
 List<Tuple> energyAssets = selectFrom(config_energyassets)
 	.list();
 	
 //String energyAssetID;
-OL_EnergyAssetCategory energyAssetcategory;
-OL_EnergyAssetType energyAssettype;
-String energyAssetparentID;
-Double energyAssetcapacity;
+OL_EnergyAssetCategory assetCategory;
+OL_EnergyAssetType assetType;
+String assetParentID;
+double capacityElectric_kW;
+double capacityHeat_kW;
 
 for (Tuple energyAsset : energyAssets) {
-    energyAssetcategory = energyAsset.get( config_energyassets.type );
-    energyAssettype = energyAsset.get( config_energyassets.type2 );
-    energyAssetparentID = energyAsset.get( config_energyassets.parent );
-    energyAssetcapacity = roundToDecimal(energyAsset.get( config_energyassets.capacity_kw ),2);
+    assetCategory = energyAsset.get( config_energyassets.type );
+    assetType = energyAsset.get( config_energyassets.type2 );
+    assetParentID = energyAsset.get( config_energyassets.parent );
+    capacityElectric_kW = roundToDecimal(energyAsset.get( config_energyassets.capacity_electric_kw ),2);
+    capacityHeat_kW = roundToDecimal(energyAsset.get( config_energyassets.capacity_heat_kw ),2);
     
-    EnergyAsset EnergyAsset = add_energyAssets(energyAssetparentID, null, energyAssettype);  // let op: andere volgorde van argumenten. Nog fixen?
-    EnergyAsset.f_connectToParentNode(null);
-///    switch(energyAssetCategory) {
-//      EnergyAsset.f_instantiateAsset(energyAssetcategory, energyAssettype);  
+    EnergyAsset EnergyAsset = add_energyAssets(assetParentID, null, assetType);  // let op: andere volgorde van argumenten. Nog fixen?
+    //EnergyAsset.f_connectToParentNode(null);
     
+	switch(assetCategory) {
+		case PRODUCTION:
+	    	EnergyAsset.f_instantiateProducerAsset(assetType, capacityElectric_kW, capacityHeat_kW);
+	    	EnergyAsset.f_connectToParentNode(null);
+	    	
+    	break;
+    	default:
+    		traceln("f_configureBackbone: no energy asset of this instantiated yet!");
+    	break;
+    }
     
-}*/]]></Body>
+}]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -2866,11 +2876,18 @@ for( Agent a : subConnections.getConnections() )
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[NetNode myParentNode = findFirst(main.netNodes, p->p.p_agentID.equals(p_parentNodeElectricID) ;
-if( myParentNode instanceof NetNode ) {
-	superConnection.connectTo(myParentNode);
-	myParentNode.f_connectToChild(this);
+					<Body><![CDATA[NetNode myParentNodeElectric = findFirst(main.netNodes, p->p.p_agentID.equals(p_parentNodeElectricID)) ;
+if( myParentNodeElectric instanceof NetNode ) {
+	superConnection.connectTo(myParentNodeElectric);
+	myParentNodeElectric.f_connectToChild(this);
 }
+
+NetNode myParentNodeHeat = findFirst(main.netNodes, p->p.p_agentID.equals(p_parentNodeHeatID)) ;
+if( myParentNodeHeat instanceof NetNode ) {
+	superConnection.connectTo(myParentNodeHeat);
+	myParentNodeHeat.f_connectToChild(this);
+}
+
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -2886,7 +2903,9 @@ if( myParentNode instanceof NetNode ) {
 					<Body><![CDATA[// clear energy-balance for the next timestep
 c_electricityFlows.clear();
 c_methaneFlows.clear();
+c_hydrogenFlows.clear();
 c_heatFlows.clear();
+
 v_currentPowerElectricity_kW = 0;
 v_currentPowerMethane_kW = 0;
 v_currentPowerHeat_kW = 0;
@@ -2959,7 +2978,7 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 } else if (EA.p_energyAssetInstance instanceof J_EAConversion) {
 	c_connectedConversionAssets.add(EA);
 } else {
-	traceln("Exception! EnergyAsset " + ConnectingParentNode.getId() + " is of unknown type!");
+	traceln("f_connectToChild in EnergyAsset: Exception! EnergyAsset " + ConnectingParentNode.getId() + " is of unknown type or null! ");
 }
 
 
@@ -3564,10 +3583,11 @@ if(ProvidedParentConnection != null) {
 		superConnection.connectTo(myParentAgent);
 		((NetConnection) myParentAgent).f_connectToChild(this);
 	}
-	else {  // must be NetNode then
-		myParentAgent = (NetNode)myParentAgent;
-		superConnection.connectTo(myParentAgent);
-		((NetNode) myParentAgent).f_connectToChild(this);
+	else {  // all energy assets should connect to netconnections only!
+	//	myParentAgent = (NetNode)myParentAgent;
+	//	superConnection.connectTo(myParentAgent);
+	//	((NetNode) myParentAgent).f_connectToChild(this);
+	traceln("f_connectToParentNode in EnergyAsset: no parent to connect to!");
 	}
 }
 ]]></Body>
@@ -4089,6 +4109,9 @@ for ( Iterator<NetNode> it = MSNetnodes.iterator(); it.hasNext(); index++ )
 		ms.connectTo(p);
 	}
 }
+
+// draw heat nodes
+// ***
 
 // draw buildings
 ylevel = 400;
@@ -4930,6 +4953,10 @@ t_nodetype.setText(p_nodeType);]]></Body>
   solarfarm.setVisible(true);
   solarfarm.setPos(0, 0, 0);
   this.setXY( this.getX() + normal(20, 75), this.getY() + normal(20, -100) );
+  break;
+  case DISTRICTHEATING:
+  districtheating.setVisible(true);
+  districtheating.setPos(0, 0, 0);
   break;
   default:
   error( "Invalid netConnection category: " + p_netConnectionCategory );
@@ -5792,6 +5819,439 @@ t_nodetype.setText(p_nodeType);]]></Body>
 					<Dy>2</Dy>
 					<Dz>0</Dz>
 				</Line>
+			</Presentation>
+
+				</Group>
+				<Group>
+					<Id>1660062204092</Id>
+					<Name><![CDATA[districtheating]]></Name>
+					<X>-25</X><Y>60</Y>
+					<Label><X>6.963</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>false</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+
+			<Presentation>
+				<Polyline>
+					<Id>1660062204094</Id>
+					<Name><![CDATA[_ps287]]></Name>
+					<X>0</X><Y>10.286</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>1342177280</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>4.177</X><Y>-0.685</Y><Z>0</Z></Point>
+					   <Point><X>2.785</X><Y>-1.371</Y><Z>0</Z></Point>
+					   <Point><X>6.963</X><Y>-2.056</Y><Z>0</Z></Point>
+					   <Point><X>5.569</X><Y>-2.743</Y><Z>0</Z></Point>
+					   <Point><X>9.748</X><Y>-3.429</Y><Z>0</Z></Point>
+					   <Point><X>8.355</X><Y>-4.114</Y><Z>0</Z></Point>
+					   <Point><X>9.748</X><Y>-4.114</Y><Z>0</Z></Point>
+					   <Point><X>11.14</X><Y>-3.429</Y><Z>0</Z></Point>
+					   <Point><X>12.532</X><Y>-4.114</Y><Z>0</Z></Point>
+					   <Point><X>11.14</X><Y>-4.8</Y><Z>0</Z></Point>
+					   <Point><X>11.14</X><Y>-5.485</Y><Z>0</Z></Point>
+					   <Point><X>8.355</X><Y>-6.856</Y><Z>0</Z></Point>
+					   <Point><X>-2.785</X><Y>-1.371</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Polyline>
+				<Polyline>
+					<Id>1660062204096</Id>
+					<Name><![CDATA[_ps288]]></Name>
+					<X>-11.14</X><Y>4.8</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>-3065088</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>-4.114</Y><Z>0</Z></Point>
+					   <Point><X>8.355</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>8.355</X><Y>4.115</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Polyline>
+				<Polyline>
+					<Id>1660062204098</Id>
+					<Name><![CDATA[_ps289]]></Name>
+					<X>8.355</X><Y>-0.686</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>-507904</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>-2.785</X><Y>-1.371</Y><Z>0</Z></Point>
+					   <Point><X>-2.785</X><Y>1.371</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Polyline>
+				<Curve ControlPoints="true">
+					<Id>1660062204100</Id>
+					<Name><![CDATA[_ps290]]></Name>
+					<X>1.392</X><Y>-2.743</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>-4447488</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>1.371</Y><Z>0</Z></Point>
+					   <Point><X>-2.785</X><Y>1.371</Y><Z>0</Z></Point>
+					   <Point><X>-2.785</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>-2.785</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>-2.785</X><Y>-6.856</Y><Z>0</Z></Point>
+					   <Point><X>-2.785</X><Y>-7.543</Y><Z>0</Z></Point>
+					   <Point><X>-2.785</X><Y>-8.229</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>-8.229</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>-7.543</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>-7.543</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Curve>
+				<Curve ControlPoints="true">
+					<Id>1660062204102</Id>
+					<Name><![CDATA[_ps291]]></Name>
+					<X>5.569</X><Y>-0.686</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>-4447488</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>1.371</Y><Z>0</Z></Point>
+					   <Point><X>-2.785</X><Y>1.371</Y><Z>0</Z></Point>
+					   <Point><X>-2.785</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>-2.785</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>-2.785</X><Y>-6.856</Y><Z>0</Z></Point>
+					   <Point><X>-2.785</X><Y>-7.543</Y><Z>0</Z></Point>
+					   <Point><X>-2.785</X><Y>-8.229</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>-8.229</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>-7.543</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>-7.543</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Curve>
+				<Polyline>
+					<Id>1660062204104</Id>
+					<Name><![CDATA[_ps292]]></Name>
+					<X>-2.785</X><Y>4.8</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>-507904</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>-8.354</X><Y>-4.114</Y><Z>0</Z></Point>
+					   <Point><X>-5.568</X><Y>-8.229</Y><Z>0</Z></Point>
+					   <Point><X>-4.177</X><Y>-7.543</Y><Z>0</Z></Point>
+					   <Point><X>-2.785</X><Y>-9.6</Y><Z>0</Z></Point>
+					   <Point><X>-1.392</X><Y>-8.914</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>-10.971</Y><Z>0</Z></Point>
+					   <Point><X>8.355</X><Y>-6.856</Y><Z>0</Z></Point>
+					   <Point><X>8.355</X><Y>-4.114</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Polyline>
+				<Polyline>
+					<Id>1660062204106</Id>
+					<Name><![CDATA[_ps293]]></Name>
+					<X>-2.785</X><Y>8.915</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>-4447488</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>11.14</X><Y>-5.485</Y><Z>0</Z></Point>
+					   <Point><X>11.14</X><Y>-9.6</Y><Z>0</Z></Point>
+					   <Point><X>8.355</X><Y>-8.229</Y><Z>0</Z></Point>
+					   <Point><X>8.355</X><Y>-10.971</Y><Z>0</Z></Point>
+					   <Point><X>5.569</X><Y>-6.856</Y><Z>0</Z></Point>
+					   <Point><X>5.569</X><Y>-9.6</Y><Z>0</Z></Point>
+					   <Point><X>2.785</X><Y>-5.485</Y><Z>0</Z></Point>
+					   <Point><X>2.785</X><Y>-8.229</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>-4.114</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Polyline>
+				<Polyline>
+					<Id>1660062204108</Id>
+					<Name><![CDATA[_ps294]]></Name>
+					<X>0</X><Y>7.544</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>-9039360</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>1.392</X><Y>-0.685</Y><Z>0</Z></Point>
+					   <Point><X>1.392</X><Y>-2.743</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>-2.056</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Polyline>
+				<Polyline>
+					<Id>1660062204110</Id>
+					<Name><![CDATA[_ps295]]></Name>
+					<X>2.785</X><Y>6.171</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>-9039360</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>1.392</X><Y>-0.685</Y><Z>0</Z></Point>
+					   <Point><X>1.392</X><Y>-2.743</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>-2.056</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Polyline>
+				<Polyline>
+					<Id>1660062204112</Id>
+					<Name><![CDATA[_ps296]]></Name>
+					<X>5.569</X><Y>4.8</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>-9039360</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>1.392</X><Y>-0.685</Y><Z>0</Z></Point>
+					   <Point><X>1.392</X><Y>-2.743</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>-2.056</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Polyline>
+				<Curve ControlPoints="true">
+					<Id>1660062204114</Id>
+					<Name><![CDATA[_ps297]]></Name>
+					<X>8.355</X><Y>-0.686</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor>-12187648</LineColor>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor/>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>4.115</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>4.115</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>4.115</Y><Z>0</Z></Point>
+					   <Point><X>-11.14</X><Y>9.6</Y><Z>0</Z></Point>
+					   <Point><X>-11.14</X><Y>9.6</Y><Z>0</Z></Point>
+					   <Point><X>-11.14</X><Y>9.6</Y><Z>0</Z></Point>
+					   <Point><X>-19.495</X><Y>5.486</Y><Z>0</Z></Point>
+					   <Point><X>-19.495</X><Y>5.486</Y><Z>0</Z></Point>
+					   <Point><X>-19.495</X><Y>5.486</Y><Z>0</Z></Point>
+					   <Point><X>-19.495</X><Y>1.371</Y><Z>0</Z></Point>
+					   <Point><X>-19.495</X><Y>1.371</Y><Z>0</Z></Point>
+					   <Point><X>-19.495</X><Y>1.371</Y><Z>0</Z></Point>
+					   <Point><X>-16.709</X><Y>-2.743</Y><Z>0</Z></Point>
+					   <Point><X>-16.709</X><Y>-2.743</Y><Z>0</Z></Point>
+					   <Point><X>-16.709</X><Y>-2.743</Y><Z>0</Z></Point>
+					   <Point><X>-15.317</X><Y>-2.056</Y><Z>0</Z></Point>
+					   <Point><X>-15.317</X><Y>-2.056</Y><Z>0</Z></Point>
+					   <Point><X>-15.317</X><Y>-2.056</Y><Z>0</Z></Point>
+					   <Point><X>-13.925</X><Y>-4.114</Y><Z>0</Z></Point>
+					   <Point><X>-13.925</X><Y>-4.114</Y><Z>0</Z></Point>
+					   <Point><X>-13.925</X><Y>-4.114</Y><Z>0</Z></Point>
+					   <Point><X>-12.532</X><Y>-3.429</Y><Z>0</Z></Point>
+					   <Point><X>-12.532</X><Y>-3.429</Y><Z>0</Z></Point>
+					   <Point><X>-12.532</X><Y>-3.429</Y><Z>0</Z></Point>
+					   <Point><X>-11.14</X><Y>-5.485</Y><Z>0</Z></Point>
+					   <Point><X>-11.14</X><Y>-5.485</Y><Z>0</Z></Point>
+					   <Point><X>-11.14</X><Y>-5.485</Y><Z>0</Z></Point>
+					   <Point><X>-9.747</X><Y>-4.8</Y><Z>0</Z></Point>
+					   <Point><X>-9.747</X><Y>-4.8</Y><Z>0</Z></Point>
+					   <Point><X>-9.747</X><Y>-4.8</Y><Z>0</Z></Point>
+					   <Point><X>-9.747</X><Y>-8.914</Y><Z>0</Z></Point>
+					   <Point><X>-9.747</X><Y>-9.6</Y><Z>0</Z></Point>
+					   <Point><X>-9.747</X><Y>-10.285</Y><Z>0</Z></Point>
+					   <Point><X>-6.963</X><Y>-10.285</Y><Z>0</Z></Point>
+					   <Point><X>-6.963</X><Y>-9.6</Y><Z>0</Z></Point>
+					   <Point><X>-6.963</X><Y>-8.914</Y><Z>0</Z></Point>
+					   <Point><X>-6.963</X><Y>-3.429</Y><Z>0</Z></Point>
+					   <Point><X>-6.963</X><Y>-3.429</Y><Z>0</Z></Point>
+					   <Point><X>-6.963</X><Y>-3.429</Y><Z>0</Z></Point>
+					   <Point><X>-5.568</X><Y>-2.743</Y><Z>0</Z></Point>
+					   <Point><X>-5.568</X><Y>-2.743</Y><Z>0</Z></Point>
+					   <Point><X>-5.568</X><Y>-2.743</Y><Z>0</Z></Point>
+					   <Point><X>-5.568</X><Y>-6.856</Y><Z>0</Z></Point>
+					   <Point><X>-5.568</X><Y>-7.543</Y><Z>0</Z></Point>
+					   <Point><X>-5.568</X><Y>-8.229</Y><Z>0</Z></Point>
+					   <Point><X>-2.785</X><Y>-8.229</Y><Z>0</Z></Point>
+					   <Point><X>-2.785</X><Y>-7.543</Y><Z>0</Z></Point>
+					   <Point><X>-2.785</X><Y>-6.856</Y><Z>0</Z></Point>
+					   <Point><X>-2.785</X><Y>-1.371</Y><Z>0</Z></Point>
+					   <Point><X>-2.785</X><Y>-1.371</Y><Z>0</Z></Point>
+					   <Point><X>-2.785</X><Y>-1.371</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Curve>
 			</Presentation>
 
 				</Group>
@@ -7075,7 +7535,7 @@ public class J_EA {
     }
     
     public double[] returnEnergyFlows() {
-    	traceln("returning energy flows from superclass");
+    	//traceln("returning energy flows from superclass");
     	double[] arr = {electricityProduction_kW, methaneProduction_kW, hydrogenProduction_kW, heatProduction_kW, electricityConsumption_kW, methaneConsumption_kW, hydrogenConsumption_kW, heatConsumption_kW };
     	return arr;	
     }
@@ -7169,7 +7629,7 @@ public class J_EAConversionGasBurner extends base.J_EAConversion implements Seri
 public class J_EAStorageElectric extends base.J_EAStorage implements Serializable {
 	
 	EnergyAsset ownerAsset;
-	private double capacityElectricity_kW;
+	private double capacityElectric_kW;
 	private double capacityHeat_kW = 0;
 	public OL_EnergyCarrierType storageMedium = OL_EnergyCarrierType.ELECTRICITY;
 	private double storageCapacity_kWh;
@@ -7186,9 +7646,9 @@ public class J_EAStorageElectric extends base.J_EAStorage implements Serializabl
     /**
      * Constructor initializing the fields
      */
-    public J_EAStorageElectric(EnergyAsset ownerAsset, double capacityElectricity_kW, double storageCapacity_kWh, double stateOfCharge_r, double timestep_h ) {
+    public J_EAStorageElectric(EnergyAsset ownerAsset, double capacityElectric_kW, double storageCapacity_kWh, double stateOfCharge_r, double timestep_h ) {
 		this.ownerAsset = ownerAsset;
-		this.capacityElectricity_kW = capacityElectricity_kW;
+		this.capacityElectric_kW = capacityElectric_kW;
 		this.storageCapacity_kWh = storageCapacity_kWh;
 		this.stateOfCharge_r = stateOfCharge_r;
 		this.timestep_h = timestep_h;
@@ -7205,7 +7665,7 @@ public class J_EAStorageElectric extends base.J_EAStorage implements Serializabl
     	double deltaEnergy_kWh;   // to check the request with the energy currently in storage
     	//double sign = ratioOfChargeCapacity_r / abs( ratioOfChargeCapacity_r ); // charge or discharge
 		
-    	deltaEnergy_kWh = ( ratioOfChargeCapacity_r * capacityElectricity_kW * timestep_h ) ;
+    	deltaEnergy_kWh = ( ratioOfChargeCapacity_r * capacityElectric_kW * timestep_h ) ;
     	deltaEnergy_kWh = - min( -deltaEnergy_kWh, (stateOfCharge_r * storageCapacity_kWh) ); // Prevent negative charge
     	deltaEnergy_kWh = min(deltaEnergy_kWh, (1 - stateOfCharge_r) * storageCapacity_kWh ); // Prevent overcharge
 		
@@ -7218,6 +7678,16 @@ public class J_EAStorageElectric extends base.J_EAStorage implements Serializabl
 		//double[] arr = {electricityProduction_kW, methaneProduction_kW, hydrogenProduction_kW, heatProduction_kW, electricityConsumption_kW, methaneConsumption_kW, hydrogenConsumption_kW, heatConsumption_kW };
     	//return arr;
 		return returnEnergyFlows();
+	}
+	
+	@Override
+	public String toString() {
+		return  
+			"type = " + this.getClass().toString() + " " +
+			"ownerAsset = " + ownerAsset +" " +
+			"capacityElectric_kW = " + this.capacityElectric_kW +" "+
+			"capacityHeat_kW = " + this.capacityHeat_kW +" "+
+			"stateOfCharge_r = " + this.stateOfCharge_r+" ";
 	}
 	
 	@Override
@@ -7252,7 +7722,7 @@ public class J_EAStorageElectric extends base.J_EAStorage implements Serializabl
 public class J_EAStorageHeat extends base.J_EAStorage implements Serializable {
 	
 	EnergyAsset ownerAsset;
-	private double capacityElectricity_kW = 0;
+	private double capacityElectric_kW = 0;
 	private double capacityHeat_kW;
 	public OL_EnergyCarrierType storageMedium = OL_EnergyCarrierType.HEAT;
 	private double storageCapacity_kWh;
@@ -7325,7 +7795,17 @@ public class J_EAStorageHeat extends base.J_EAStorage implements Serializable {
     	//return arr;
 		return returnEnergyFlows();
 	}
-
+	
+	@Override
+	public String toString() {
+		return  
+			"type = " + this.getClass().toString() + " " +
+			"ownerAsset = " + ownerAsset +" " +
+			"capacityElectric_kW = " + this.capacityElectric_kW +" "+
+			"capacityHeat_kW = " + this.capacityHeat_kW +" "+
+			"stateOfCharge_r = " + this.stateOfCharge_r+" ";
+	}
+	
 	@Override
 	public void updateStateOfCharge( double tempDelta_degC ) {
 		temperature_degC += tempDelta_degC; 
