@@ -167,6 +167,10 @@
 				<Id>1659954815659</Id>
 				<Name><![CDATA[HOT_WATER_CONSUMPTION]]></Name>
 			</Option>
+			<Option>
+				<Id>1660134509899</Id>
+				<Name><![CDATA[HEAT_DELIVERY_SET]]></Name>
+			</Option>
 		</OptionList>
 		<OptionList>
 			<Id>1659525715752</Id>
@@ -305,7 +309,7 @@
 			</Option>
 			<Option>
 				<Id>1660131437985</Id>
-				<Name><![CDATA[DH_House_heatdeliveryset]]></Name>
+				<Name><![CDATA[House_DH_heatdeliveryset]]></Name>
 			</Option>
 		</OptionList>
 		<OptionList>
@@ -847,7 +851,10 @@ loop netNodes:
 	e.f_operateAssets();
 }*/
 
-for(NetConnection b : netConnections) {
+for(NetConnection b : filter( netConnections, n -> n.p_netConnectionCategory != OL_NetConnectionCategory.DISTRICTHEATING )) {
+	b.f_calculateEnergyBalance();
+}
+for(NetConnection b : filter( netConnections, n -> n.p_netConnectionCategory == OL_NetConnectionCategory.DISTRICTHEATING )) {
 	b.f_calculateEnergyBalance();
 }
 
@@ -1058,7 +1065,13 @@ for (NetConnection n : NetConnectionList) {
 		f_addPresetProductionAsset( n, OL_EAPresetProductionAssets.House_solarpanels_M);
 		f_addPresetStorageAsset( n, OL_EAPresetStorageAssets.House_battery);
 		f_addPresetStorageAsset( n, OL_EAPresetStorageAssets.House_heatmodel_A);
-		f_addPresetConversionAsset( n, OL_EAPresetConversionAssets.House_gas_burner);
+		if( n.p_parentNodeHeatID != null ) {
+			f_addPresetConversionAsset( n, OL_EAPresetConversionAssets.House_DH_heatdeliveryset );
+		}
+		else {
+			f_addPresetConversionAsset( n, OL_EAPresetConversionAssets.House_gas_burner);
+		}
+		
 	}
 
 	if( netConnectionCategory == OL_NetConnectionCategory.BUILDING ) {
@@ -2289,21 +2302,6 @@ e.f_connectToParentNode( ownerAgent );]]></Body>
 				<Variable Class="CollectionVariable">
 					<Id>1658751320739</Id>
 					<Name><![CDATA[c_electricityFlows]]></Name>
-					<X>290</X><Y>400</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
-						<CollectionClass><![CDATA[LinkedHashMap]]></CollectionClass>
-						<ElementClass><![CDATA[Object]]></ElementClass>
-						<ValueElementClass><![CDATA[Double]]></ValueElementClass>
-					</Properties>
-
-				</Variable>
-				<Variable Class="CollectionVariable">
-					<Id>1660122738695</Id>
-					<Name><![CDATA[c_electricityFlows1]]></Name>
 					<X>50</X><Y>450</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -2451,7 +2449,7 @@ for( Agent a : subConnections.getConnections() )
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[// clear energy-balance for the next timestep
-c_electricityFlows1.clear();
+c_electricityFlows.clear();
 c_methaneFlows.clear();
 c_hydrogenFlows.clear();
 c_heatFlows.clear();
@@ -2466,30 +2464,51 @@ v_currentLoadHeat_kW = 0;
 for( Agent a : subConnections.getConnections() )
 {
 	if( a instanceof NetNode ) {
-		c_electricityFlows.put(a, ((NetNode) a).v_currentLoadElectricity_kW);
-		c_methaneFlows.put(a, ((NetNode) a).v_currentLoadMethane_kW);
-		c_hydrogenFlows.put(a, ((NetNode) a).v_currentLoadHydrogen_kW);
-		c_heatFlows.put(a, ((NetNode) a).v_currentLoadHeat_kW);
-
-		v_currentLoadElectricity_kW += ((NetNode) a).v_currentLoadElectricity_kW;
-		v_currentLoadMethane_kW += ((NetNode) a).v_currentLoadMethane_kW;
-		v_currentLoadHydrogen_kW += ((NetNode) a).v_currentLoadHydrogen_kW;
-		v_currentLoadHeat_kW += ((NetNode) a).v_currentLoadHeat_kW;
+		switch(p_energyType) {
+			case ELECTRICITY:
+				c_electricityFlows.put(a, ((NetNode) a).v_currentLoadElectricity_kW);
+				v_currentLoadElectricity_kW += ((NetNode) a).v_currentLoadElectricity_kW;
+			break;
+			case METHANE:
+				c_methaneFlows.put(a, ((NetNode) a).v_currentLoadMethane_kW);
+				v_currentLoadMethane_kW += ((NetNode) a).v_currentLoadMethane_kW;
+			break;
+			case HYDROGEN:
+				c_hydrogenFlows.put(a, ((NetNode) a).v_currentLoadHydrogen_kW);
+				v_currentLoadHydrogen_kW += ((NetNode) a).v_currentLoadHydrogen_kW;
+			break;
+			case HEAT:
+				c_heatFlows.put(a, ((NetNode) a).v_currentLoadHeat_kW);
+				v_currentLoadHeat_kW += ((NetNode) a).v_currentLoadHeat_kW;
+			break;
+			default:
+				//
+			break;
+		}
 	}
 
-	if( a instanceof NetConnection )
-	{
-		//traceln("NetConnection!");
-		a = (NetConnection)a;
-		c_electricityFlows.put(a, ((NetConnection) a).v_currentPowerElectricity_kW);
-		c_methaneFlows.put(a, ((NetConnection) a).v_currentPowerMethane_kW);
-		c_hydrogenFlows.put(a, ((NetConnection) a).v_currentPowerHydrogen_kW);
-		c_heatFlows.put(a, ((NetConnection) a).v_currentPowerHeat_kW);
-
-		v_currentLoadElectricity_kW += ((NetConnection) a).v_currentPowerElectricity_kW;
-		v_currentLoadMethane_kW += ((NetConnection) a).v_currentPowerMethane_kW;
-		v_currentLoadHydrogen_kW += ((NetConnection) a).v_currentPowerHydrogen_kW;
-		v_currentLoadHeat_kW += ((NetConnection) a).v_currentPowerHeat_kW;
+	if( a instanceof NetConnection ) {
+		switch(p_energyType) {
+			case ELECTRICITY:
+				c_electricityFlows.put(a, ((NetConnection) a).v_currentPowerElectricity_kW);
+				v_currentLoadElectricity_kW += ((NetConnection) a).v_currentPowerElectricity_kW;
+			break;
+			case METHANE:
+				c_methaneFlows.put(a, ((NetConnection) a).v_currentPowerMethane_kW);
+				v_currentLoadMethane_kW += ((NetConnection) a).v_currentPowerMethane_kW;
+			break;
+			case HYDROGEN:
+				c_hydrogenFlows.put(a, ((NetConnection) a).v_currentPowerHydrogen_kW);
+				v_currentLoadHydrogen_kW += ((NetConnection) a).v_currentPowerHydrogen_kW;
+			break;
+			case HEAT:
+				c_heatFlows.put(a, ((NetConnection) a).v_currentPowerHeat_kW);
+				v_currentLoadHeat_kW += ((NetConnection) a).v_currentPowerHeat_kW;
+			break;
+			default:
+				//
+			break;
+		}
 	}
 }]]></Body>
 				</Function>
@@ -3104,48 +3123,56 @@ c_heatFlows.clear();
 
 v_currentPowerElectricity_kW = 0;
 v_currentPowerMethane_kW = 0;
+v_currentPowerHydrogen_kW = 0;
 v_currentPowerHeat_kW = 0;
 
 f_operateAssets();
 // determine the net electricity flow from all subconnections
 for( Agent a : subConnections.getConnections() )
 {
-	if( a instanceof NetConnection )
-	{
-		traceln("This should not be possible for a NetConnection?");
-//		a = (NetConnection)a;
-//		((NetConnection) a).f_calculateEnergyBalance();   // check if double counting may be possible!
-//		c_electricityFlows.put(a, ((NetConnection) a).v_currentPower_kW);
-//		v_currentPower_kW += ((NetConnection) a).v_currentPower_kW;
-	}
-	else if( a instanceof EnergyAsset )
-	{
-		a = (EnergyAsset)a;
-		((EnergyAsset) a).f_updateEnergyAssetFlows();
-		double assetElectricityProduction_kW = ((EnergyAsset) a).v_currentProductionElectricity_kW;
-		double assetMethaneProduction_kW = ((EnergyAsset) a).v_currentProductionMethane_kW;
-		double assetHydrogenProduction_kW = ((EnergyAsset) a).v_currentProductionHydrogen_kW;
-		double assetHeatProduction_kW = ((EnergyAsset) a).v_currentProductionHeat_kW;
+	a = (EnergyAsset)a;
+	((EnergyAsset) a).f_updateEnergyAssetFlows();
+	double assetElectricityProduction_kW = ((EnergyAsset) a).v_currentProductionElectricity_kW;
+	double assetMethaneProduction_kW = ((EnergyAsset) a).v_currentProductionMethane_kW;
+	double assetHydrogenProduction_kW = ((EnergyAsset) a).v_currentProductionHydrogen_kW;
+	double assetHeatProduction_kW = ((EnergyAsset) a).v_currentProductionHeat_kW;
 
-		double assetElectricityConsumption_kW = ((EnergyAsset) a).v_currentConsumptionElectricity_kW;
-		double assetMethaneConsumption_kW = ((EnergyAsset) a).v_currentConsumptionMethane_kW;
-		double assetHydrogenConsumption_kW = ((EnergyAsset) a).v_currentConsumptionHydrogen_kW;
-		double assetHeatConsumption_kW = ((EnergyAsset) a).v_currentConsumptionHeat_kW;
+	double assetElectricityConsumption_kW = ((EnergyAsset) a).v_currentConsumptionElectricity_kW;
+	double assetMethaneConsumption_kW = ((EnergyAsset) a).v_currentConsumptionMethane_kW;
+	double assetHydrogenConsumption_kW = ((EnergyAsset) a).v_currentConsumptionHydrogen_kW;
+	double assetHeatConsumption_kW = ((EnergyAsset) a).v_currentConsumptionHeat_kW;
 
+	if( assetElectricityProduction_kW !=0 ) {
 		c_electricityFlows.put(a, -assetElectricityProduction_kW);
-		c_electricityFlows.put(a, assetElectricityConsumption_kW);
-		c_methaneFlows.put(a, -assetMethaneProduction_kW);
-		c_methaneFlows.put(a, assetMethaneConsumption_kW);
-		c_hydrogenFlows.put(a, -assetHydrogenProduction_kW);
-		c_hydrogenFlows.put(a, -assetHydrogenConsumption_kW);
-		c_heatFlows.put(a, -assetHeatProduction_kW);
-		c_heatFlows.put(a, assetHeatConsumption_kW);
-		v_currentPowerElectricity_kW += assetElectricityConsumption_kW - assetElectricityProduction_kW;
-		v_currentPowerMethane_kW += assetMethaneConsumption_kW - assetMethaneProduction_kW;
-		v_currentPowerHydrogen_kW += assetHydrogenConsumption_kW - assetHydrogenProduction_kW;
-		v_currentPowerHeat_kW += assetHeatConsumption_kW - assetHeatProduction_kW;
 	}
-}]]></Body>
+	if( assetElectricityConsumption_kW !=0 ) {
+		c_electricityFlows.put(a, assetElectricityConsumption_kW);
+	}
+	if( assetMethaneProduction_kW !=0 ) {
+		c_methaneFlows.put(a, -assetMethaneProduction_kW);
+	}
+	if( assetMethaneConsumption_kW != 0 ) {
+		c_methaneFlows.put(a, assetMethaneConsumption_kW);
+	}
+	if( assetHydrogenProduction_kW != 0 ) {
+		c_hydrogenFlows.put(a, -assetHydrogenProduction_kW);
+	}
+	if( assetHydrogenConsumption_kW != 0 ) {
+		c_hydrogenFlows.put(a, -assetHydrogenConsumption_kW);
+	}
+	if( assetHeatProduction_kW != 0 ) {
+		c_heatFlows.put(a, -assetHeatProduction_kW);
+	}
+	if( assetHeatConsumption_kW != 0 ) {
+		c_heatFlows.put(a, assetHeatConsumption_kW);
+	}
+	
+	v_currentPowerElectricity_kW += assetElectricityConsumption_kW - assetElectricityProduction_kW;
+	v_currentPowerMethane_kW += assetMethaneConsumption_kW - assetMethaneProduction_kW;
+	v_currentPowerHydrogen_kW += assetHydrogenConsumption_kW - assetHydrogenProduction_kW;
+	v_currentPowerHeat_kW += assetHeatConsumption_kW - assetHeatProduction_kW;
+}
+]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -3176,7 +3203,7 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 	}
 } else if (EA.p_energyAssetInstance instanceof J_EAConversion) {
 	c_connectedConversionAssets.add(EA);
-	if (EA.p_energyAssetInstance instanceof J_EAConversionGasBurner || EA.p_energyAssetInstance instanceof J_EAConversionHeatPump ) {
+	if (EA.p_energyAssetInstance instanceof J_EAConversionGasBurner || EA.p_energyAssetInstance instanceof J_EAConversionHeatPump || EA.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet ) {
 		p_spaceHeatingAsset = EA;
 		traceln("heatingAsset class " + p_spaceHeatingAsset.getClass().toString());
 	}
@@ -3215,11 +3242,13 @@ traceln("NetConnection connecting to " + numberOfEnergyAssets + " EnergyAssets")
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[
+					<Body><![CDATA[// ! Testing ground for energy asset operation. To be finalized with correct operational behaviour!
+
 // basic consumption profiles first
 for(EnergyAsset e : c_connectedConsumptionAssets) {
 	if(p_netConnectionCategory == OL_NetConnectionCategory.HOUSE && e.p_energyAssetType == OL_EnergyAssetType.OTHER_ELECTRICITY_CONSUMPTION) {
-		e.v_powerFraction_fr = main.v_currentHouseHoldOtherElectricityDemand_kW;
+		//e.v_powerFraction_fr = main.v_currentHouseHoldOtherElectricityDemand_kW;
+		e.v_powerFraction_fr = 0;
 	}
 	// not steerable, just do their thing.
 }
@@ -3238,11 +3267,13 @@ for(EnergyAsset e : c_connectedProductionAssets) {
 // Flex assets: which assets need control, and what is the target? Heating, battery, EV-charging, district-heating, power to gas,
 
 // Heating system super basic
-if ( p_buildingTempAsset != null ) {
+if ( p_buildingTempAsset != null && p_netConnectionCategory == OL_NetConnectionCategory.HOUSE ) {
 	//J_EAStorageHeat buildingTempInstance = (J_EAStorageHeat)p_buildingTempAsset.p_energyAssetInstance;
 	//traceln("HeatCapacity " + p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW());
 	double tempSetpoint_degC = 20;
 	double houseTemp = p_buildingTempAsset.p_energyAssetInstance.getCurrentTemperature();
+	p_buildingTempAsset.p_energyAssetInstance.updateAmbientTemperature(main.v_currentAmbientTemperature_degC);
+	
 	traceln("house temp in house " + this.getId() + " is " + houseTemp);
 	if (houseTemp < tempSetpoint_degC) {
 
@@ -3269,7 +3300,21 @@ for(EnergyAsset s : c_connectedStorageAssets) {
 }
 */
 
-// Conversion operation
+// derive heat demand from heat consumption -- om kip-ei rond warmtevraag en aanbod in het warmtenet te doorbreken.. Liever via temperatuur in het net/de buffer?
+if( this.p_netConnectionCategory == OL_NetConnectionCategory.DISTRICTHEATING ) {
+	NetNode HeatNode = findFirst( this.superConnection.getConnections(), c -> c.p_agentID.equals(p_parentNodeHeatID) );
+	List<NetConnection> heatConnections = HeatNode.subConnections.getConnections();
+
+	double heatConsumption_kW = 0;
+	for(NetConnection n : heatConnections ) {
+		heatConsumption_kW += n.v_currentPowerHeat_kW;
+	}
+	traceln("f_operateAssets DH netconnection: heatConsumption_kW = " + heatConsumption_kW );
+	//EnergyAsset e = findFirst( c_connectedConversionAssets, c -> c.p_energyAssetType == OL_EnergyAssetType.GAS_BURNER );
+	//e.v_powerFraction_fr = heatConsumption_kW / e.p_energyAssetInstance.getHeatCapacity_kW();
+	
+}
+// Conversion operation hard-coded test-value
 for(EnergyAsset s : c_connectedConversionAssets) {
 	if(s.p_energyAssetType == OL_EnergyAssetType.HEAT_PUMP_AIR) {
 		//s.p_EnergyAssetTypeString.updateParameters();
@@ -3393,6 +3438,14 @@ for(EnergyAsset s : c_connectedConversionAssets) {
 		<ActiveObjectClass>
 			<Id>1658499506320</Id>
 			<Name><![CDATA[EnergyAsset]]></Name>
+			<AdditionalClassCode><![CDATA[@Override
+	public String toString() {
+		return
+			"id = " + this.getIndex() + "; " +
+			"type = " + p_energyAssetType.toString() + "; " + 
+			"powerfraction_r = " + roundToDecimal(v_powerFraction_fr, 3) + " ";
+	}
+	]]></AdditionalClassCode>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
 			<StartupCode><![CDATA[// f_connectToParentNode() --> made explicit function in main to avoid nested functions for easy profiling
 ]]></StartupCode>
@@ -3932,6 +3985,11 @@ if(p_energyAssetInstance instanceof J_EAConsumption) {
 	case HEAT_PUMP_AIR: //EnergyAsset ownerAssetAgent, double capacityElectricity_kW, double eta_r, double baseTemperature_degC, double outputTemperature_degC
 		p_energyAssetInstance = (J_EAConversionHeatPump)p_energyAssetInstance;
 		p_energyAssetInstance = new J_EAConversionHeatPump( this, capacityElectric_kW, eta_r,main.v_currentAmbientTemperature_degC,60 );
+	break;
+	case HEAT_DELIVERY_SET: 
+		p_energyAssetInstance = (J_EAConversionHeatDeliverySet)p_energyAssetInstance;
+		p_energyAssetInstance = new J_EAConversionHeatDeliverySet( this, capacityHeat_kW, eta_r );
+	break;
 	default:
 		traceln("exception: not a valid conversion asset!");
 	break;
@@ -4266,7 +4324,8 @@ p_energyAssetType = assetType;]]></Body>
 for( UI_NetNode n : uI_NetNodes )
 {
 	NetNode realAgent = n.realAgent.getConnectedAgent(0);
-	n.t_loadtext.setText( roundToDecimal( realAgent.v_currentLoadElectricity_kW / 1000, 2 ) + " MW");
+	n.t_loadElectricText.setText( roundToDecimal( realAgent.v_currentLoadElectricity_kW / 1000, 2 ) + " MWe");
+	n.t_loadThermalText.setText( roundToDecimal( realAgent.v_currentLoadHeat_kW / 1000, 2 ) + " MWth");
 }]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -4987,7 +5046,7 @@ t_nodetype.setText(p_nodeType);]]></Body>
 				</Text>
 				<Text>
 					<Id>1658762845695</Id>
-					<Name><![CDATA[t_loadtext]]></Name>
+					<Name><![CDATA[t_loadElectricText]]></Name>
 					<X>70</X><Y>10</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
@@ -4998,7 +5057,28 @@ t_nodetype.setText(p_nodeType);]]></Body>
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
-					<Text><![CDATA[0 MW]]></Text>
+					<Text><![CDATA[0 MWe]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>10</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1660136208763</Id>
+					<Name><![CDATA[t_loadThermalText]]></Name>
+					<X>70</X><Y>20</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[0 MWth]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>10</Size>
@@ -8025,8 +8105,8 @@ public class J_EAStorageHeat extends base.J_EAStorage implements Serializable {
     	//traceln("capacityHeat_kW " + capacityHeat_kW);
     	deltaTemp_degC = energyDelta_kWh / (heatCapacity_JpK / 3.6E6 );
     	//traceln("tempdelta charge uncapped: "+deltaTemp_degC);
-    	deltaTemp_degC = max( deltaTemp_degC, minTemperature_degC - temperature_degC ); // Is deze functionaliteit nodig in de heatbuffer? Kan op zich geen kwaad... zal als het goed is niet aangesproken worden
-    	deltaTemp_degC = min( deltaTemp_degC, (maxTemperature_degC - temperature_degC ) ); // Is deze functionaliteit nodig in de heatbuffer?
+    	//deltaTemp_degC = max( deltaTemp_degC, minTemperature_degC - temperature_degC ); // Is deze functionaliteit nodig in de heatbuffer? Kan op zich geen kwaad... zal als het goed is niet aangesproken worden
+    	//deltaTemp_degC = min( deltaTemp_degC, (maxTemperature_degC - temperature_degC ) ); // Is deze functionaliteit nodig in de heatbuffer?
 
 		//double tempDelta = - energy;   // positieve energielevering verlaagt buffertemperatuur!
 		//energy = energy * (heatCapacity_JpK / 3.6E6 );
@@ -8046,6 +8126,7 @@ public class J_EAStorageHeat extends base.J_EAStorage implements Serializable {
 	public String toString() {
 		return
 			"type = " + this.getClass().toString() + " " +
+			"temp = " + this.temperature_degC + " " +
 			"ownerAsset = " + ownerAsset +" " +
 			"capacityElectric_kW = " + this.capacityElectric_kW +" "+
 			"capacityHeat_kW = " + this.capacityHeat_kW +" "+
