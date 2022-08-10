@@ -4,7 +4,7 @@
 	         AnyLogic Project File 
 *************************************************	         
 -->
-<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.12.202205250339" AlpVersion="8.7.5">
+<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.12.202205250418" AlpVersion="8.7.5">
 <Model>
 	<Id>1658477103134</Id>
 	<Name><![CDATA[Base]]></Name>
@@ -127,7 +127,6 @@
 		<OptionList>
 			<Id>1659118392107</Id>
 			<Name><![CDATA[OL_EnergyAssetCategory]]></Name>
-			<ExcludeFromBuild>true</ExcludeFromBuild>
 			<Option>
 				<Id>1659118392486</Id>
 				<Name><![CDATA[PRODUCTION]]></Name>
@@ -921,7 +920,7 @@ for (Tuple netConnection : netConnections) {
     netConnectionCapacity = roundToDecimal(netConnection.get( config_netconnections.capacity_kw ),2);
     netConnectionID = netConnection.get( config_netconnections.id );
     
-    NetConnection NetConnection = add_netConnections( netConnectionCategory, netConnectionType, netConnectionCapacity, netConnectionParentElectric, netConnectionID, netConnectionParentHeat );
+    NetConnection NetConnection = add_netConnections( netConnectionCategory, netConnectionType, netConnectionCapacity, netConnectionParentElectric, netConnectionID, netConnectionParentHeat, null, null );
 }
 /*
 // 3. add agents to population from database: EnergyAssets
@@ -1060,6 +1059,8 @@ for (NetConnection n : NetConnectionList) {
 		f_addPresetConsumptionAsset( n, OL_EAPresetConsumptionAssets.House_hot_water );
 		f_addPresetProductionAsset( n, OL_EAPresetProductionAssets.House_solarpanels_M);
 		f_addPresetStorageAsset( n, OL_EAPresetStorageAssets.House_battery);
+		f_addPresetStorageAsset( n, OL_EAPresetStorageAssets.House_heatmodel_A);
+		f_addPresetConversionAsset( n, OL_EAPresetConversionAssets.House_gas_burner);
 	}
 	
 	if( netConnectionCategory == OL_NetConnectionCategory.BUILDING ) {
@@ -1346,7 +1347,7 @@ chargeCapacity_kWh =  tup.get( storage_assets.charge_capacity_kwh );
 heatCapacity_JpK =  tup.get( storage_assets.heat_capacity_jpk );
 }
 
-
+//traceln("default asset capacity heat " + capacityHeat_kW);
 EnergyAsset e = add_energyAssets( parentAgentID, null, assetType );
 e.f_instantiateStorageAsset( assetType, capacityElectricity_kW, capacityHeat_kW, stateOfCharge_r, lossFactor_WpK, chargeCapacity_kWh, heatCapacity_JpK  );
 //e.f_instantiateStorageAsset(assetCategory, assetType);
@@ -1487,52 +1488,6 @@ e.f_connectToParentNode( ownerAgent );]]></Body>
 					<Value><![CDATA[0.0]]></Value>
 				</TableFunction>
 			</TableFunctions>
-			<Connectivity>
-				<Database>
-					<Id>1660045239764</Id>
-					<Name><![CDATA[db_backboneConfig]]></Name>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>60</X><Y>20</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<DatabaseType>EXCEL_ACCESS</DatabaseType>
-					<ConnectionURL><![CDATA[]]></ConnectionURL>
-					<ConnectOnStartup>true</ConnectOnStartup>
-					<DatabaseName><![CDATA[]]></DatabaseName>
-					<ResourceReference>
-						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[db_backboneConfig.xlsx]]></ClassName>
-					</ResourceReference>
-					<Host><![CDATA[localhost]]></Host>
-					<JdbcDriverClassName><![CDATA[net.sourceforge.jtds.jdbc.Driver]]></JdbcDriverClassName>
-					<Login><![CDATA[]]></Login>
-					<Password><![CDATA[]]></Password>
-				</Database>
-				<Database>
-					<Id>1660045354880</Id>
-					<Name><![CDATA[db_backboneParams]]></Name>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>-500</X><Y>50</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<DatabaseType>EXCEL_ACCESS</DatabaseType>
-					<ConnectionURL><![CDATA[]]></ConnectionURL>
-					<ConnectOnStartup>true</ConnectOnStartup>
-					<DatabaseName><![CDATA[]]></DatabaseName>
-					<ResourceReference>
-						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[db_backboneParams.xlsx]]></ClassName>
-					</ResourceReference>
-					<Host><![CDATA[localhost]]></Host>
-					<JdbcDriverClassName><![CDATA[net.sourceforge.jtds.jdbc.Driver]]></JdbcDriverClassName>
-					<Login><![CDATA[]]></Login>
-					<Password><![CDATA[]]></Password>
-				</Database>
-			</Connectivity>
 			<AgentLinks>
 				<AgentLink>
 					<Id>1658477103135</Id>
@@ -1669,6 +1624,12 @@ e.f_connectToParentNode( ownerAgent );]]></Body>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_parentNodeHeatID]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_buildingTempAsset]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_spaceHeatingAsset]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -2719,6 +2680,54 @@ for( Agent a : subConnections.getConnections() )
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1660115328584</Id>
+					<Name><![CDATA[p_buildingTempAsset]]></Name>
+					<X>660</X><Y>190</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[EnergyAsset]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[null]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1660115328582</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>SEPARATOR</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1660115363643</Id>
+					<Name><![CDATA[p_spaceHeatingAsset]]></Name>
+					<X>660</X><Y>210</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[EnergyAsset]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[null]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1660115363641</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1658751085004</Id>
 					<Name><![CDATA[c_electricityFlows]]></Name>
@@ -2866,7 +2875,7 @@ for( Agent a : subConnections.getConnections() )
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[NetNode myParentNode = findFirst(main.netNodes, p->p.p_agentID.equals(p_parentNodeElectricID) ;
+					<Body><![CDATA[NetNode myParentNode = findFirst(main.netNodes, p->p.p_agentID.equals(p_parentNodeElectricID)) ;
 if( myParentNode instanceof NetNode ) {
 	superConnection.connectTo(myParentNode);
 	myParentNode.f_connectToChild(this);
@@ -2956,8 +2965,15 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 	c_connectedProductionAssets.add(EA);
 } else if (EA.p_energyAssetInstance instanceof J_EAStorage ) {
 	c_connectedStorageAssets.add(EA);
+	if (EA.p_energyAssetInstance instanceof J_EAStorageHeat) {
+		p_buildingTempAsset = EA;	
+	}
 } else if (EA.p_energyAssetInstance instanceof J_EAConversion) {
 	c_connectedConversionAssets.add(EA);
+	if (EA.p_energyAssetInstance instanceof J_EAConversionGasBurner || EA.p_energyAssetInstance instanceof J_EAConversionHeatPump ) {
+		p_spaceHeatingAsset = EA;	
+		traceln("heatingAsset class " + p_spaceHeatingAsset.getClass().toString());
+	}
 } else {
 	traceln("Exception! EnergyAsset " + ConnectingParentNode.getId() + " is of unknown type!");
 }
@@ -2988,7 +3004,7 @@ traceln("NetConnection connecting to " + numberOfEnergyAssets + " EnergyAssets")
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1659962626915</Id>
 					<Name><![CDATA[f_operateAssets]]></Name>
-					<X>620</X><Y>210</Y>
+					<X>620</X><Y>310</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3013,6 +3029,29 @@ for(EnergyAsset e : c_connectedProductionAssets) {
 }
 
 // storage operation
+// Flex assets: which assets need control, and what is the target? Heating, battery, EV-charging, district-heating, power to gas,
+
+// Heating system super basic
+if ( p_buildingTempAsset != null ) {
+	//J_EAStorageHeat buildingTempInstance = (J_EAStorageHeat)p_buildingTempAsset.p_energyAssetInstance;
+	//traceln("HeatCapacity " + p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW());
+	double tempSetpoint_degC = 20;
+	double houseTemp = p_buildingTempAsset.p_energyAssetInstance.getCurrentTemperature();
+	traceln("house temp in house " + this.getId() + " is " + houseTemp);
+	if (houseTemp < tempSetpoint_degC) {
+		
+		//traceln("heatCapacity heatingSystem " + p_spaceHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
+		double powerDemand_kW = (tempSetpoint_degC - houseTemp) * ((J_EAStorageHeat)p_buildingTempAsset.p_energyAssetInstance).getHeatCapacity_JpK() / 3.6e6;
+		p_spaceHeatingAsset.v_powerFraction_fr = powerDemand_kW / p_spaceHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();
+		p_buildingTempAsset.v_powerFraction_fr = powerDemand_kW / p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW();
+		
+		traceln("Power fraction heating " + p_spaceHeatingAsset.v_powerFraction_fr);
+	} else {
+		p_spaceHeatingAsset.v_powerFraction_fr = 0;
+		p_buildingTempAsset.v_powerFraction_fr = 0;
+	}
+}
+/*
 for(EnergyAsset s : c_connectedStorageAssets) {
 	if(s.p_energyAssetType == OL_EnergyAssetType.STORAGE_ELECTRIC) {
 		s.v_powerFraction_fr = -0.1;  // discharge value
@@ -3022,6 +3061,7 @@ for(EnergyAsset s : c_connectedStorageAssets) {
 		s.v_powerFraction_fr = 0.1;  // discharge value
 	}
 }
+*/
 
 // Conversion operation
 for(EnergyAsset s : c_connectedConversionAssets) {
@@ -3665,11 +3705,11 @@ if(p_energyAssetInstance instanceof J_EAConsumption) {
 						<Type><![CDATA[OL_EnergyAssetType]]></Type>
 					</Parameter>
 					<Parameter>
-						<Name><![CDATA[capacityHeat_kW]]></Name>
+						<Name><![CDATA[capacityElectric_kW]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
 					<Parameter>
-						<Name><![CDATA[capacityElectric_kW]]></Name>
+						<Name><![CDATA[capacityHeat_kW]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
 					<Parameter>
@@ -3707,11 +3747,11 @@ p_energyAssetType = assetType;]]></Body>
 						<Type><![CDATA[OL_EnergyAssetType]]></Type>
 					</Parameter>
 					<Parameter>
-						<Name><![CDATA[capacityHeat_kW]]></Name>
+						<Name><![CDATA[capacityElectric_kW]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
 					<Parameter>
-						<Name><![CDATA[capacityElectric_kW]]></Name>
+						<Name><![CDATA[capacityHeat_kW]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
 					<Parameter>
@@ -3737,13 +3777,13 @@ switch(assetType) {
 	case STORAGE_ELECTRIC:
 	traceln("instantiating asset as electrical battery");
 	// EnergyAsset ownerAsset, double chargeCapacityElectricity_kW, double chargeCapacityHeat_kW, OL_EnergyCarrierType storageMedium, double capacity, double stateOfCharge, double lossFactor, double timestep_h
-	p_energyAssetInstance = new J_EAStorageElectric(this, 30, 10000, 0.5, main.p_timeStep_h);   // (EnergyAsset ownerAsset, double capacityElectricity_kW, double storageCapacity_kWh, double stateOfCharge_r, double timestep_h)
+	p_energyAssetInstance = new J_EAStorageElectric(this, capacityElectric_kW, 10000, InitialStateOfCharge_r, main.p_timeStep_h);   // (EnergyAsset ownerAsset, double capacityElectricity_kW, double storageCapacity_kWh, double stateOfCharge_r, double timestep_h)
 	break;
 	case STORAGE_HEAT:
 	traceln("instantiating asset as heat buffer");
-	
+	traceln("lossFactor_WpK " + lossFactor_WpK);
 	//EnergyAsset ownerAsset, double capacityHeat_kW, double lossFactor_WpK, double timestep_h, double initialTemperature_degC, double minTemperature_degC, double maxTemperature_degC, double heatCapacity_JpK
-	p_energyAssetInstance = new J_EAStorageHeat(this, 30, 1, main.p_timeStep_h, 40, 10, 90, 4000*1000);
+	p_energyAssetInstance = new J_EAStorageHeat(this, capacityHeat_kW, lossFactor_WpK, main.p_timeStep_h, InitialStateOfCharge_r*(50+10)-10, 10, 90, heatCapacity_JpK);
 	break;
 	default:
 		traceln("exception: not a valid storage medium!");
@@ -6639,9 +6679,9 @@ public class J_EAProduction extends base.J_EA implements Serializable {
  */	
 public class J_EAStorage extends J_EA implements Serializable {
 	
-	EnergyAsset ownerAsset;
-	private double capacityElectricity_kW;
-	private double capacityHeat_kW;
+	//EnergyAsset ownerAsset;
+	//private double capacityElectricity_kW;
+	//private double capacityHeat_kW;
 	public OL_EnergyCarrierType storageMedium;
 	private double storageCapacity_kWh;
 	private double stateOfCharge_r;
@@ -6660,7 +6700,7 @@ public class J_EAStorage extends J_EA implements Serializable {
      */
     public J_EAStorage(EnergyAsset ownerAsset, double chargeCapacityElectricity_kW, double chargeCapacityHeat_kW, OL_EnergyCarrierType storageMedium, double storageCapacity_kWh, double stateOfCharge, double lossFactor, double timestep_h) {
 		this.ownerAsset = ownerAsset;
-		this.capacityElectricity_kW = chargeCapacityElectricity_kW;  // capacity for charging/discharging in kW
+		this.capacityElectric_kW = chargeCapacityElectricity_kW;  // capacity for charging/discharging in kW
 		this.capacityHeat_kW = chargeCapacityHeat_kW;				// capacity for charging/discharging in kW
 		this.storageMedium = storageMedium;
 		this.storageCapacity_kWh = storageCapacity_kWh;
@@ -6722,12 +6762,12 @@ public class J_EAStorage extends J_EA implements Serializable {
  */	
 public class J_EAConversion extends base.J_EA implements Serializable {
 	
-	private EnergyAsset ownerAsset;
-	private double capacityElectric_kW;
-	private double capacityHeat_kW;
-	private double eta_r;
-	private OL_EnergyCarrierType energyCarrierProduced;
-	private OL_EnergyCarrierType energyCarrierConsumed;
+	//private EnergyAsset ownerAsset;
+	//private double capacityElectric_kW;
+	//private double capacityHeat_kW;
+	protected double eta_r;
+	protected OL_EnergyCarrierType energyCarrierProduced;
+	protected OL_EnergyCarrierType energyCarrierConsumed;
     
 	/**
      * Default constructor
@@ -7028,18 +7068,18 @@ public class J_EAPhotoThermal extends base.J_EAProduction implements Serializabl
  */	
 public class J_EA {
 
-	 EnergyAsset ownerAsset;
-	 private double capacityElectric_kW;
-	 private double capacityHeat_kW;
+	 protected EnergyAsset ownerAsset;
+	 protected double capacityElectric_kW;
+	 protected double capacityHeat_kW;
 	 
-	 public double electricityProduction_kW = 0.0;
-	 public double heatProduction_kW = 0.0;
-	 public double methaneProduction_kW = 0.0;
-	 public double hydrogenProduction_kW = 0.0;
-	 public double electricityConsumption_kW = 0.0;
-	 public double methaneConsumption_kW = 0.0;
-	 public double hydrogenConsumption_kW = 0.0;
-	 public double heatConsumption_kW = 0.0;
+	 protected double electricityProduction_kW = 0.0;
+	 protected double heatProduction_kW = 0.0;
+	 protected double methaneProduction_kW = 0.0;
+	 protected double hydrogenProduction_kW = 0.0;
+	 protected double electricityConsumption_kW = 0.0;
+	 protected double methaneConsumption_kW = 0.0;
+	 protected double hydrogenConsumption_kW = 0.0;
+	 protected double heatConsumption_kW = 0.0;
 	 	 
     /**
      * Default constructor
@@ -7070,12 +7110,12 @@ public class J_EA {
     
     public double[] operate(double ratioOfCapacity) { 
     	traceln("parent energyAsset operate! ");
-    	double[] arr = {electricityProduction_kW, methaneProduction_kW, hydrogenProduction_kW, heatProduction_kW, electricityConsumption_kW, methaneConsumption_kW, hydrogenConsumption_kW, heatConsumption_kW };
+    	double[] arr = returnEnergyFlows(); //{electricityProduction_kW, methaneProduction_kW, hydrogenProduction_kW, heatProduction_kW, electricityConsumption_kW, methaneConsumption_kW, hydrogenConsumption_kW, heatConsumption_kW };
     	return arr;	
     }
     
     public double[] returnEnergyFlows() {
-    	traceln("returning energy flows from superclass");
+    	//traceln("returning energy flows from superclass");
     	double[] arr = {electricityProduction_kW, methaneProduction_kW, hydrogenProduction_kW, heatProduction_kW, electricityConsumption_kW, methaneConsumption_kW, hydrogenConsumption_kW, heatConsumption_kW };
     	return arr;	
     }
@@ -7088,7 +7128,15 @@ public class J_EA {
     }
     
     public void updateAmbientTemperature(double currentAmbientTemperature_degC) {
-    	// only for storage agents
+    	// only for storage agents. Does it belong in this superclass?
+    }
+    
+    public double getHeatCapacity_kW() {
+    	return capacityHeat_kW;
+    }
+
+    public double getElectricCapacity_kW() {
+    	return capacityElectric_kW;
     }
     
 	@Override
@@ -7108,9 +7156,9 @@ public class J_EA {
  */	
 public class J_EAConversionGasBurner extends base.J_EAConversion implements Serializable {
 	
-	private EnergyAsset ownerAsset;
-	private double capacityHeat_kW;
-	private double capacityElectric_kW;
+	//private EnergyAsset ownerAsset;
+	//private double capacityHeat_kW;
+	//private double capacityElectric_kW;
 	private double eta_r;
 	private OL_EnergyCarrierType energyCarrierProduced = OL_EnergyCarrierType.HEAT;
 	private OL_EnergyCarrierType energyCarrierConsumed = OL_EnergyCarrierType.NATURAL_GAS;
@@ -7141,6 +7189,7 @@ public class J_EAConversionGasBurner extends base.J_EAConversion implements Seri
     	//return arr;	
 		return returnEnergyFlows();
     }
+	
     
 	@Override
 	public String toString() {
@@ -7251,9 +7300,9 @@ public class J_EAStorageElectric extends base.J_EAStorage implements Serializabl
  */	
 public class J_EAStorageHeat extends base.J_EAStorage implements Serializable {
 	
-	EnergyAsset ownerAsset;
-	private double capacityElectricity_kW = 0;
-	private double capacityHeat_kW;
+	//EnergyAsset ownerAsset;
+	//private double capacityElectricity_kW = 0;
+	//private double capacityHeat_kW;
 	public OL_EnergyCarrierType storageMedium = OL_EnergyCarrierType.HEAT;
 	private double storageCapacity_kWh;
 	private double stateOfCharge_r;
@@ -7292,6 +7341,8 @@ public class J_EAStorageHeat extends base.J_EAStorage implements Serializable {
 	public void calculateLoss() {
 		double heatLoss_W = lossFactor_WpK * ( temperature_degC - ambientTemperature_degC );
 		double tempDelta = - ( heatLoss_W / 1000 ) * timestep_h / (heatCapacity_JpK / 3.6E6 );
+		//traceln("Ambient temperature " + ambientTemperature_degC);
+		//traceln("heatCapacity JpK " + heatCapacity_JpK );
 		//traceln("tempdelta loss"+tempDelta);
 		updateStateOfCharge( tempDelta );	
 	}
@@ -7306,7 +7357,7 @@ public class J_EAStorageHeat extends base.J_EAStorage implements Serializable {
     	//double sign = ratioOfChargeCapacity_r / abs( ratioOfChargeCapacity_r ); // charge or discharge
 		
     	energyDelta_kWh = ( ratioOfChargeCapacity_r * capacityHeat_kW * timestep_h ); 
-		//traceln("energyDelta " + energyDelta_kWh);
+    	//traceln("capacityHeat_kW " + capacityHeat_kW);
     	deltaTemp_degC = energyDelta_kWh / (heatCapacity_JpK / 3.6E6 );
     	//traceln("tempdelta charge uncapped: "+deltaTemp_degC);
     	deltaTemp_degC = max( deltaTemp_degC, minTemperature_degC - temperature_degC ); // Is deze functionaliteit nodig in de heatbuffer? Kan op zich geen kwaad... zal als het goed is niet aangesproken worden
@@ -7345,6 +7396,16 @@ public class J_EAStorageHeat extends base.J_EAStorage implements Serializable {
 	public double getStorageCapacity() {
 		return storageCapacity_kWh;
 	}
+	
+	public double getHeatCapacity_JpK() {
+		return heatCapacity_JpK;
+	}
+	/*
+	@Override
+	public double getHeatCapacity_kW() {
+    	return capacityHeat_kW;
+    }
+	*/
 	
 	@Override
 	public void updateAmbientTemperature(double currentAmbientTemperature_degC) { // TODO: Hoe zorgen we dat we deze niet vergeten aan te roepen??
