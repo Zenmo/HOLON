@@ -49,7 +49,7 @@
 			</Option>
 			<Option>
 				<Id>1659117296810</Id>
-				<Name><![CDATA[NATURAL_GAS]]></Name>
+				<Name><![CDATA[METHANE]]></Name>
 			</Option>
 			<Option>
 				<Id>1659117299915</Id>
@@ -208,6 +208,10 @@
 				<Id>1659535868209</Id>
 				<Name><![CDATA[EBOILER]]></Name>
 			</Option>
+			<Option>
+				<Id>1660131462165</Id>
+				<Name><![CDATA[HEATDELIVERYSET]]></Name>
+			</Option>
 		</OptionList>
 		<OptionList>
 			<Id>1659525726440</Id>
@@ -319,6 +323,10 @@
 			<Option>
 				<Id>1660054094472</Id>
 				<Name><![CDATA[DH_gas_burner_S]]></Name>
+			</Option>
+			<Option>
+				<Id>1660131437985</Id>
+				<Name><![CDATA[DH_House_heatdeliveryset]]></Name>
 			</Option>
 		</OptionList>
 		<OptionList>
@@ -942,7 +950,7 @@ for (Tuple energyAsset : energyAssets) {
     capacityElectric_kW = roundToDecimal(energyAsset.get( config_energyassets.capacity_electric_kw ),2);
     capacityHeat_kW = roundToDecimal(energyAsset.get( config_energyassets.capacity_heat_kw ),2);
     
-    EnergyAsset EnergyAsset = add_energyAssets(assetParentID, null, assetType);  // let op: andere volgorde van argumenten. Nog fixen?
+    EnergyAsset EnergyAsset = add_energyAssets(null, assetParentID, assetType);  // let op: andere volgorde van argumenten. Nog fixen?
     //EnergyAsset.f_connectToParentNode(null);
     
 	switch(assetCategory) {
@@ -1206,7 +1214,7 @@ for( Tuple tup : data ) {
 	capacityHeat_kW = tup.get( consumption_assets.capacity_heat_kw );
 }
 
-EnergyAsset e = add_energyAssets( parentAgentID, null, assetType );
+EnergyAsset e = add_energyAssets( null, parentAgentID,  assetType );
 e.f_instantiateConsumerAsset( assetType, capacityElectricity_kW, capacityHeat_kW );
 e.f_connectToParentNode( ownerAgent );
 ]]></Body>
@@ -1255,7 +1263,7 @@ capacityHeat_kW = tup.get( conversion_assets.capacity_heat_kw );
 eta_r = tup.get( conversion_assets.eta_r );
 }
 
-EnergyAsset e = add_energyAssets( parentAgentID, null, assetType );
+EnergyAsset e = add_energyAssets( null, parentAgentID, assetType );
 e.f_instantiateConverterAsset( assetType, capacityElectricity_kW, capacityHeat_kW, eta_r  );
 e.f_connectToParentNode( ownerAgent );]]></Body>
 				</Function>
@@ -1301,7 +1309,7 @@ for( Tuple tup : data ) {
 	capacityHeat_kW = tup.get( production_assets.capacity_heat_kw );
 }
 
-EnergyAsset e = add_energyAssets( parentAgentID, null, assetType );
+EnergyAsset e = add_energyAssets( null, parentAgentID, assetType );
 e.f_instantiateProducerAsset( assetType, capacityElectricity_kW, capacityHeat_kW );
 e.f_connectToParentNode( ownerAgent );
 ]]></Body>
@@ -1357,9 +1365,8 @@ heatCapacity_JpK =  tup.get( storage_assets.heat_capacity_jpk );
 }
 
 
-EnergyAsset e = add_energyAssets( parentAgentID, null, assetType );
+EnergyAsset e = add_energyAssets( null, parentAgentID, assetType );
 e.f_instantiateStorageAsset( assetType, capacityElectricity_kW, capacityHeat_kW, stateOfCharge_r, lossFactor_WpK, chargeCapacity_kWh, heatCapacity_JpK  );
-//e.f_instantiateStorageAsset(assetCategory, assetType);
 e.f_connectToParentNode( ownerAgent );]]></Body>
 				</Function>
 			</Functions>
@@ -1516,7 +1523,7 @@ e.f_connectToParentNode( ownerAgent );]]></Body>
 						<ClassName><![CDATA[db_backboneConfig.xlsx]]></ClassName>
 					</ResourceReference>
 					<Host><![CDATA[localhost]]></Host>
-					<JdbcDriverClassName><![CDATA[net.sourceforge.jtds.jdbc.Driver]]></JdbcDriverClassName>
+					<JdbcDriverClassName><![CDATA[com.microsoft.sqlserver.jdbc.SQLServerDriver]]></JdbcDriverClassName>
 					<Login><![CDATA[]]></Login>
 					<Password><![CDATA[]]></Password>
 				</Database>
@@ -1745,19 +1752,19 @@ e.f_connectToParentNode( ownerAgent );]]></Body>
 							<Name><![CDATA[p_capacity_kW]]></Name>
 						</Parameter>
 						<Parameter>
+							<Name><![CDATA[p_energyAssetInstance]]></Name>
+						</Parameter>
+						<Parameter>
 							<Name><![CDATA[p_parentAgentID]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_energyAssetType]]></Name>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_assetTypeString]]></Name>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_assetCategoryString]]></Name>
-						</Parameter>
-						<Parameter>
-							<Name><![CDATA[p_energyAssetInstance]]></Name>
-						</Parameter>
-						<Parameter>
-							<Name><![CDATA[p_energyAssetType]]></Name>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_parentAgentType]]></Name>
@@ -2121,8 +2128,24 @@ e.f_connectToParentNode( ownerAgent );]]></Body>
 			<Variables>
 				<Variable Class="PlainVariable">
 					<Id>1658497430333</Id>
-					<Name><![CDATA[v_currentPower_kW]]></Name>
-					<X>50</X><Y>320</Y>
+					<Name><![CDATA[v_currentLoadElectricity_kW]]></Name>
+					<X>50</X><Y>290</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1658497443523</Id>
+					<Name><![CDATA[v_currentPowerLost_kW]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>270</X><Y>290</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2132,9 +2155,33 @@ e.f_connectToParentNode( ownerAgent );]]></Body>
 					</Properties>
 				</Variable>
 				<Variable Class="PlainVariable">
-					<Id>1658497443523</Id>
-					<Name><![CDATA[v_currentPowerLost_kW]]></Name>
-					<X>220</X><Y>320</Y>
+					<Id>1660122738711</Id>
+					<Name><![CDATA[v_currentLoadMethane_kW]]></Name>
+					<X>50</X><Y>310</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1660122738713</Id>
+					<Name><![CDATA[v_currentLoadHeat_kW]]></Name>
+					<X>50</X><Y>350</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1660122738715</Id>
+					<Name><![CDATA[v_currentLoadHydrogen_kW]]></Name>
+					<X>50</X><Y>330</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2255,7 +2302,67 @@ e.f_connectToParentNode( ownerAgent );]]></Body>
 				<Variable Class="CollectionVariable">
 					<Id>1658751320739</Id>
 					<Name><![CDATA[c_electricityFlows]]></Name>
-					<X>50</X><Y>390</Y>
+					<X>290</X><Y>400</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[LinkedHashMap]]></CollectionClass>
+						<ElementClass><![CDATA[Object]]></ElementClass>
+						<ValueElementClass><![CDATA[Double]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1660122738695</Id>
+					<Name><![CDATA[c_electricityFlows1]]></Name>
+					<X>50</X><Y>450</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[LinkedHashMap]]></CollectionClass>
+						<ElementClass><![CDATA[Object]]></ElementClass>
+						<ValueElementClass><![CDATA[Double]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1660122738701</Id>
+					<Name><![CDATA[c_heatFlows]]></Name>
+					<X>50</X><Y>510</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[LinkedHashMap]]></CollectionClass>
+						<ElementClass><![CDATA[Object]]></ElementClass>
+						<ValueElementClass><![CDATA[Double]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1660122738703</Id>
+					<Name><![CDATA[c_methaneFlows]]></Name>
+					<X>50</X><Y>470</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[LinkedHashMap]]></CollectionClass>
+						<ElementClass><![CDATA[Object]]></ElementClass>
+						<ValueElementClass><![CDATA[Double]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1660122738705</Id>
+					<Name><![CDATA[c_hydrogenFlows]]></Name>
+					<X>50</X><Y>490</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2308,14 +2415,15 @@ if( myParentNode instanceof NetNode ) {
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1658751236578</Id>
 					<Name><![CDATA[f_calculateEnergyBalance]]></Name>
-					<X>50</X><Y>370</Y>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>290</X><Y>380</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[// clear energy-balance for the next timestep
 c_electricityFlows.clear();
-v_currentPower_kW = 0;
+v_currentLoadElectricity_kW = 0;
 
 // determine the net electricity flow from all subconnections
 for( Agent a : subConnections.getConnections() )
@@ -2325,25 +2433,78 @@ for( Agent a : subConnections.getConnections() )
 		//traceln("NetConnection!");
 		a = (NetConnection)a;
 		c_electricityFlows.put(a, ((NetConnection) a).v_currentPowerElectricity_kW);
-		v_currentPower_kW += ((NetConnection) a).v_currentPowerElectricity_kW;
+		v_currentLoadElectricity_kW += ((NetConnection) a).v_currentPowerElectricity_kW;
 	}
 	else if( a instanceof EnergyAsset )
 	{
 		//traceln("EnergyAsset!");
 		a = (EnergyAsset)a;
 		c_electricityFlows.put(a, ((EnergyAsset) a).v_currentProductionElectricity_kW);
-		v_currentPower_kW += ((EnergyAsset) a).v_currentProductionElectricity_kW;
+		v_currentLoadElectricity_kW += ((EnergyAsset) a).v_currentProductionElectricity_kW;
 	}
 	else if( a instanceof NetNode )
 	{
 		//traceln("NetNode!");
 		a = (NetNode)a;
-		c_electricityFlows.put(a,((NetNode) a).v_currentPower_kW);
-		v_currentPower_kW += ((NetNode) a).v_currentPower_kW;
+		c_electricityFlows.put(a,((NetNode) a).v_currentLoadElectricity_kW);
+		v_currentLoadElectricity_kW += ((NetNode) a).v_currentLoadElectricity_kW;
 	}
 }
 
 //traceln( "total load: "+v_currentPower_kW );]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1660122738707</Id>
+					<Name><![CDATA[f_calculateEnergyBalance]]></Name>
+					<X>50</X><Y>430</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[// clear energy-balance for the next timestep
+c_electricityFlows1.clear();
+c_methaneFlows.clear();
+c_hydrogenFlows.clear();
+c_heatFlows.clear();
+
+v_currentLoadElectricity_kW = 0;
+v_currentLoadMethane_kW = 0;
+v_currentLoadHydrogen_kW = 0;
+v_currentLoadHeat_kW = 0;
+
+// determine the net energy flows from all subconnections by nodetype
+
+for( Agent a : subConnections.getConnections() )
+{
+	if( a instanceof NetNode ) {
+		c_electricityFlows.put(a, ((NetNode) a).v_currentLoadElectricity_kW);
+		c_methaneFlows.put(a, ((NetNode) a).v_currentLoadMethane_kW);
+		c_hydrogenFlows.put(a, ((NetNode) a).v_currentLoadHydrogen_kW);
+		c_heatFlows.put(a, ((NetNode) a).v_currentLoadHeat_kW);
+		
+		v_currentLoadElectricity_kW += ((NetNode) a).v_currentLoadElectricity_kW;
+		v_currentLoadMethane_kW += ((NetNode) a).v_currentLoadMethane_kW;
+		v_currentLoadHydrogen_kW += ((NetNode) a).v_currentLoadHydrogen_kW;
+		v_currentLoadHeat_kW += ((NetNode) a).v_currentLoadHeat_kW;				
+	}
+		
+	if( a instanceof NetConnection )
+	{
+		//traceln("NetConnection!");
+		a = (NetConnection)a;
+		c_electricityFlows.put(a, ((NetConnection) a).v_currentPowerElectricity_kW);
+		c_methaneFlows.put(a, ((NetConnection) a).v_currentPowerMethane_kW);
+		c_hydrogenFlows.put(a, ((NetConnection) a).v_currentPowerHydrogen_kW);
+		c_heatFlows.put(a, ((NetConnection) a).v_currentPowerHeat_kW);
+		
+		v_currentLoadElectricity_kW += ((NetConnection) a).v_currentPowerElectricity_kW;
+		v_currentLoadMethane_kW += ((NetConnection) a).v_currentPowerMethane_kW;
+		v_currentLoadHydrogen_kW += ((NetConnection) a).v_currentPowerHydrogen_kW;
+		v_currentLoadHeat_kW += ((NetConnection) a).v_currentPowerHeat_kW;		
+	}
+}]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -3424,9 +3585,30 @@ for(EnergyAsset s : c_connectedConversionAssets) {
 					</Properties>                 
 				</Variable>
 				<Variable Class="Parameter">
-					<Id>1658750177511</Id>
+					<Id>1659090642877</Id>
+					<Name><![CDATA[p_energyAssetInstance]]></Name>
+					<X>270</X><Y>50</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[J_EA]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1659090642875</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1660130635726</Id>
 					<Name><![CDATA[p_parentAgentID]]></Name>
-					<X>80</X><Y>110</Y>
+					<X>270</X><Y>110</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3436,7 +3618,29 @@ for(EnergyAsset s : c_connectedConversionAssets) {
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<ParameterEditor>
-							<Id>1658750177509</Id>
+							<Id>1660130635724</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1659347079551</Id>
+					<Name><![CDATA[p_energyAssetType]]></Name>
+					<X>270</X><Y>80</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[OL_EnergyAssetType]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1659347079549</Id>
+							<Label><![CDATA[p_energyAssetType]]></Label>
 							<EditorContolType>TEXT_BOX</EditorContolType>
 							<MinSliderValue><![CDATA[0]]></MinSliderValue>
 							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
@@ -3481,49 +3685,6 @@ for(EnergyAsset s : c_connectedConversionAssets) {
 						<SdArray>false</SdArray>
 						<ParameterEditor>
 							<Id>1658750201620</Id>
-							<EditorContolType>TEXT_BOX</EditorContolType>
-							<MinSliderValue><![CDATA[0]]></MinSliderValue>
-							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
-							<DelimeterType>NO_DELIMETER</DelimeterType>
-						</ParameterEditor>
-					</Properties>                 
-				</Variable>
-				<Variable Class="Parameter">
-					<Id>1659090642877</Id>
-					<Name><![CDATA[p_energyAssetInstance]]></Name>
-					<X>270</X><Y>50</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[J_EA]]></Type>
-						<UnitType><![CDATA[NONE]]></UnitType>
-						<SdArray>false</SdArray>
-						<ParameterEditor>
-							<Id>1659090642875</Id>
-							<EditorContolType>TEXT_BOX</EditorContolType>
-							<MinSliderValue><![CDATA[0]]></MinSliderValue>
-							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
-							<DelimeterType>NO_DELIMETER</DelimeterType>
-						</ParameterEditor>
-					</Properties>                 
-				</Variable>
-				<Variable Class="Parameter">
-					<Id>1659347079551</Id>
-					<Name><![CDATA[p_energyAssetType]]></Name>
-					<X>270</X><Y>80</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[OL_EnergyAssetType]]></Type>
-						<UnitType><![CDATA[NONE]]></UnitType>
-						<SdArray>false</SdArray>
-						<ParameterEditor>
-							<Id>1659347079549</Id>
-							<Label><![CDATA[p_energyAssetType]]></Label>
 							<EditorContolType>TEXT_BOX</EditorContolType>
 							<MinSliderValue><![CDATA[0]]></MinSliderValue>
 							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
@@ -4039,7 +4200,7 @@ p_energyAssetType = assetType;]]></Body>
 for( UI_NetNode n : uI_NetNodes )  
 {
 	NetNode realAgent = n.realAgent.getConnectedAgent(0);
-	n.t_loadtext.setText( roundToDecimal( realAgent.v_currentPower_kW / 1000, 2 ) + " MW");
+	n.t_loadtext.setText( roundToDecimal( realAgent.v_currentLoadElectricity_kW / 1000, 2 ) + " MW");
 }]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -4059,15 +4220,16 @@ double maxx = minx + 800;
 // count the number of HS/MS and MS/LS nodes for spacing
 List<NetNode> HSNetnodes = filter( main.netNodes, n -> n.p_nodeType == OL_NetNodeType.HSMS  );
 List<NetNode> MSNetnodes = filter( main.netNodes, n -> n.p_nodeType == OL_NetNodeType.MSLS );
+List<NetNode> HeatNodes = filter( main.netNodes, n -> n.p_energyType == OL_EnergyCarrierType.HEAT );
 //List<NetConnection> Houses = filter( main.netConnections, b -> b.p_netConnectionCategory.equals("house") );
 //List<NetConnection> Windfarms = filter( main.netConnections, b -> b.p_netConnectionCategory.equals("windfarm") );
 List<NetConnection> NetConnections = filter( main.netConnections, n -> true );
 
-traceln("HS "+HSNetnodes+" -> "+HSNetnodes.size());
-traceln("MS "+MSNetnodes+" -> "+MSNetnodes.size());
+//traceln("HS "+HSNetnodes+" -> "+HSNetnodes.size());
+//traceln("MS "+MSNetnodes+" -> "+MSNetnodes.size());
 //traceln("Houses "+Houses+" -> "+Houses.size());
 //traceln("Windfarms "+Windfarms+" -> "+Windfarms.size());
-traceln("NetConnections "+NetConnections+" -> "+NetConnections.size());
+//traceln("NetConnections "+NetConnections+" -> "+NetConnections.size());
 
 // draw upper level HS stations
 double ylevel = 100;
@@ -4111,10 +4273,28 @@ for ( Iterator<NetNode> it = MSNetnodes.iterator(); it.hasNext(); index++ )
 }
 
 // draw heat nodes
-// ***
+ylevel = 500;
+xinterval = ( maxx - minx ) / HeatNodes.size(); // TODO: make this the average x-coordinate of netconnections with this node as a parent?
+index = 0;
+for ( Iterator<NetNode> it = HeatNodes.iterator(); it.hasNext(); index++ )
+{
+    NetNode netnode = it.next();
+//    traceln(netnode + ":" + index);
+	String nodeName = netnode.p_agentID;
+	OL_NetNodeType nodeType = netnode.p_nodeType;
+    String parent = netnode.p_parentNodeID;
+	UI_NetNode hn = add_uI_NetNodes( nodeName, nodeType );
+	hn.setXY( ( minx + ( index * xinterval ) ) , ylevel);
+	hn.realAgent.connectTo(netnode);
+	hn.netNodeVisual.setFillColor(mistyRose);
+	if( parent!=null ){
+		UI_NetNode p = filter( uI_NetNodes, q -> q.p_nodeID.equals(parent) ).get(0);
+		hn.connectTo(p);
+	}
+}
 
 // draw buildings
-ylevel = 400;
+//ylevel = 400;
 for ( Iterator<NetConnection> it = NetConnections.iterator(); it.hasNext(); index++ )
 {
     NetConnection netconnection = it.next();
@@ -4122,20 +4302,35 @@ for ( Iterator<NetConnection> it = NetConnections.iterator(); it.hasNext(); inde
 	String netConnectionName = netconnection.p_agentID;
 	OL_NetConnectionCategory netConnectionCategory = netconnection.p_netConnectionCategory;
 	OL_NetConnectionType netConnectionType = netconnection.p_netConnectionType;
-    String parent = netconnection.p_parentNodeElectricID;
+    String parentElectric = netconnection.p_parentNodeElectricID;
+    String parentHeat = netconnection.p_parentNodeHeatID;
 	UI_NetConnection nc = add_uI_NetConnections( netConnectionName, netConnectionCategory, netConnectionType );
 	
 	nc.realAgent.connectTo( netconnection );
-	traceln("parent input filter "+filter( uI_NetNodes, o -> o.p_nodeID.equals(parent) ).get(0));
-	if( parent != null ){
-		UI_NetNode p = filter( uI_NetNodes, o -> o.p_nodeID.equals(parent) ).get(0);
+	traceln("parent input filter "+filter( uI_NetNodes, o -> o.p_nodeID.equals(parentElectric) ).get(0));
+	if( parentElectric != null ){
+		UI_NetNode p = filter( uI_NetNodes, o -> o.p_nodeID.equals(parentElectric) ).get(0);
 		nc.connectTo(p);
-		
 		double parentx = p.getX() ;
-		nc.setXY( parentx , ylevel );
-		nc.f_setNetConnectionVisual();
+		double parenty = p.getY();
+		nc.setXY( parentx, parenty + 150 );
 	}
-}]]></Body>
+	if( parentHeat != null ){
+		UI_NetNode q = filter( uI_NetNodes, o -> o.p_nodeID.equals(parentHeat) ).get(0);
+		nc.connectTo(q);
+		
+		// district heating plants line up to heat node
+		if( netConnectionCategory == OL_NetConnectionCategory.DISTRICTHEATING ) {
+			double parentx = q.getX() ;
+			double parenty = q.getY();
+			nc.setXY( parentx +50 , parenty - 50 );
+		}
+	}	
+	nc.f_setNetConnectionVisual();	
+}
+
+
+]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -4620,7 +4815,7 @@ t_nodetype.setText(p_nodeType);]]></Body>
 			<Presentation>
 				<Rectangle>
 					<Id>1658752947986</Id>
-					<Name><![CDATA[rectangle]]></Name>
+					<Name><![CDATA[netNodeVisual]]></Name>
 					<X>-30</X><Y>-20</Y>
 					<Label><X>10</X><Y>10</Y></Label>
 					<PublicFlag>true</PublicFlag>
@@ -7038,10 +7233,6 @@ for(int i = 0; i < conversionAssets.size(); i++) {
  */	
 public class J_EAProduction extends base.J_EA implements Serializable {
 	
-	private EnergyAsset ownerAsset;
-	private double capacityElectricity_kW;
-	private double capacityHeat_kW;
-	
     /**
      * Default constructor
      */
@@ -7051,16 +7242,16 @@ public class J_EAProduction extends base.J_EA implements Serializable {
 	/**
      * Constructor initializing the fields
      */
-	public J_EAProduction(EnergyAsset ownerAsset, double capacityElectricity_kW_,double capacityHeat_kW) {
+	public J_EAProduction(EnergyAsset ownerAsset, double capacityElectric_kW_,double capacityHeat_kW) {
 	    this.ownerAsset = ownerAsset;
-	    this.capacityElectricity_kW = capacityElectricity_kW_;
+	    this.capacityElectric_kW = capacityElectric_kW_;
 	    this.capacityHeat_kW = capacityHeat_kW;
 	    traceln("I am instantiated! "+this+" owned by "+ownerAsset);
 	}
 	
 	@Override
     public double[] operate(double ratioOfCapacity) { 
-    	this.electricityProduction_kW = ratioOfCapacity * capacityElectricity_kW;
+    	this.electricityProduction_kW = ratioOfCapacity * capacityElectric_kW;
     	this.heatProduction_kW = ratioOfCapacity * capacityHeat_kW;
     	
     	//double[] arr = {this.electricityProduction_kW, this.methaneProduction_kW, this.hydrogenProduction_kW, this.heatProduction_kW, this.electricityConsumption_kW, this.methaneConsumption_kW, this.hydrogenConsumption_kW, this.heatConsumption_kW };
@@ -7073,7 +7264,7 @@ public class J_EAProduction extends base.J_EA implements Serializable {
 		return	
 			"type = " + this.getClass().toString() + " " +
 			"ownerAsset = " + ownerAsset +" " +
-			"capacityElectricity_kW = " + capacityElectricity_kW +" "+
+			"capacityElectricity_kW = " + capacityElectric_kW +" "+
 			"capacityHeat_kW = " + capacityHeat_kW +" ";
 	}
 	
@@ -7099,15 +7290,12 @@ public class J_EAProduction extends base.J_EA implements Serializable {
  */	
 public class J_EAStorage extends J_EA implements Serializable {
 	
-	EnergyAsset ownerAsset;
-	private double capacityElectricity_kW;
-	private double capacityHeat_kW;
-	public OL_EnergyCarrierType storageMedium;
-	private double storageCapacity_kWh;
-	private double stateOfCharge_r;
-	private double lossFactor_r;
-	private double timestep_h;
-	private double ambientTemperature_degC;
+	protected OL_EnergyCarrierType storageMedium;
+	protected double storageCapacity_kWh;
+	protected double stateOfCharge_r;
+	protected double lossFactor_r;
+	protected double timestep_h;
+	protected double ambientTemperature_degC;
 		 
     /**
      * Default constructor
@@ -7118,9 +7306,9 @@ public class J_EAStorage extends J_EA implements Serializable {
     /**
      * Constructor initializing the fields
      */
-    public J_EAStorage(EnergyAsset ownerAsset, double chargeCapacityElectricity_kW, double chargeCapacityHeat_kW, OL_EnergyCarrierType storageMedium, double storageCapacity_kWh, double stateOfCharge, double lossFactor, double timestep_h) {
+    public J_EAStorage(EnergyAsset ownerAsset, double chargeCapacityElectric_kW, double chargeCapacityHeat_kW, OL_EnergyCarrierType storageMedium, double storageCapacity_kWh, double stateOfCharge, double lossFactor, double timestep_h) {
 		this.ownerAsset = ownerAsset;
-		this.capacityElectricity_kW = chargeCapacityElectricity_kW;  // capacity for charging/discharging in kW
+		this.capacityElectric_kW = chargeCapacityElectric_kW;  // capacity for charging/discharging in kW
 		this.capacityHeat_kW = chargeCapacityHeat_kW;				// capacity for charging/discharging in kW
 		this.storageMedium = storageMedium;
 		this.storageCapacity_kWh = storageCapacity_kWh;
@@ -7182,12 +7370,9 @@ public class J_EAStorage extends J_EA implements Serializable {
  */	
 public class J_EAConversion extends base.J_EA implements Serializable {
 	
-	private EnergyAsset ownerAsset;
-	private double capacityElectric_kW;
-	private double capacityHeat_kW;
-	private double eta_r;
-	private OL_EnergyCarrierType energyCarrierProduced;
-	private OL_EnergyCarrierType energyCarrierConsumed;
+	protected double eta_r;
+	protected OL_EnergyCarrierType energyCarrierProduced;
+	protected OL_EnergyCarrierType energyCarrierConsumed;
     
 	/**
      * Default constructor
@@ -7391,11 +7576,7 @@ public class J_EAOtherElectricityConsumption extends base.J_EAConsumption implem
  */	
 public class J_EAConsumption extends base.J_EA implements Serializable {
 
-	private EnergyAsset ownerAsset;
-	private double capacityElectricity_kW;
-	private double capacityHeat_kW;
-	
-    /**
+	/**
      * Default constructor
      */
     public J_EAConsumption() {
@@ -7404,16 +7585,16 @@ public class J_EAConsumption extends base.J_EA implements Serializable {
     /**
      * Constructor initializing the fields
      */
-    public J_EAConsumption(EnergyAsset ownerAsset, double capacityElectricity_kW, double capacityHeat_kW) {
+    public J_EAConsumption(EnergyAsset ownerAsset, double capacityElectric_kW, double capacityHeat_kW) {
 		this.ownerAsset = ownerAsset;
-		this.capacityElectricity_kW = capacityElectricity_kW;
+		this.capacityElectric_kW = capacityElectric_kW;
 		this.capacityHeat_kW = capacityHeat_kW;
 		traceln("I am instantiated! "+this+" owned by "+ownerAsset);
     }
     
 	@Override
     public double[] operate(double ratioOfCapacity) { 
-    	this.electricityConsumption_kW = ratioOfCapacity * capacityElectricity_kW;
+    	this.electricityConsumption_kW = ratioOfCapacity * capacityElectric_kW;
     	this.heatConsumption_kW = ratioOfCapacity * capacityHeat_kW;
     	
     	//double[] arr = {this.electricityProduction_kW, this.methaneProduction_kW, this.hydrogenProduction_kW, this.heatProduction_kW, this.electricityConsumption_kW, this.methaneConsumption_kW, this.hydrogenConsumption_kW, this.heatConsumption_kW };
@@ -7426,7 +7607,7 @@ public class J_EAConsumption extends base.J_EA implements Serializable {
 		return  
 			"type = " + this.getClass().toString() + " " +
 			"ownerAsset = " + ownerAsset +" " +
-			"capacityElectricity_kW = " + capacityElectricity_kW +" "+
+			"capacityElectricity_kW = " + capacityElectric_kW +" "+
 			"capacityHeat_kW = " + capacityHeat_kW +" ";
 	}	
 	/**
@@ -7488,18 +7669,18 @@ public class J_EAPhotoThermal extends base.J_EAProduction implements Serializabl
  */	
 public class J_EA {
 
-	 EnergyAsset ownerAsset;
-	 private double capacityElectric_kW;
-	 private double capacityHeat_kW;
+	 protected EnergyAsset ownerAsset;
+	 protected double capacityElectric_kW;
+	 protected double capacityHeat_kW;
 	 
-	 public double electricityProduction_kW = 0.0;
-	 public double heatProduction_kW = 0.0;
-	 public double methaneProduction_kW = 0.0;
-	 public double hydrogenProduction_kW = 0.0;
-	 public double electricityConsumption_kW = 0.0;
-	 public double methaneConsumption_kW = 0.0;
-	 public double hydrogenConsumption_kW = 0.0;
-	 public double heatConsumption_kW = 0.0;
+	 protected double electricityProduction_kW = 0.0;
+	 protected double heatProduction_kW = 0.0;
+	 protected double methaneProduction_kW = 0.0;
+	 protected double hydrogenProduction_kW = 0.0;
+	 protected double electricityConsumption_kW = 0.0;
+	 protected double methaneConsumption_kW = 0.0;
+	 protected double hydrogenConsumption_kW = 0.0;
+	 protected double heatConsumption_kW = 0.0;
 	 	 
     /**
      * Default constructor
@@ -7568,13 +7749,8 @@ public class J_EA {
  */	
 public class J_EAConversionGasBurner extends base.J_EAConversion implements Serializable {
 	
-	private EnergyAsset ownerAsset;
-	private double capacityHeat_kW;
-	private double capacityElectric_kW;
-	private double eta_r;
 	private OL_EnergyCarrierType energyCarrierProduced = OL_EnergyCarrierType.HEAT;
-	private OL_EnergyCarrierType energyCarrierConsumed = OL_EnergyCarrierType.NATURAL_GAS;
-	
+	private OL_EnergyCarrierType energyCarrierConsumed = OL_EnergyCarrierType.METHANE;
     /**
      * Default constructor
      */
@@ -7628,14 +7804,8 @@ public class J_EAConversionGasBurner extends base.J_EAConversion implements Seri
  */	
 public class J_EAStorageElectric extends base.J_EAStorage implements Serializable {
 	
-	EnergyAsset ownerAsset;
-	private double capacityElectric_kW;
-	private double capacityHeat_kW = 0;
-	public OL_EnergyCarrierType storageMedium = OL_EnergyCarrierType.ELECTRICITY;
-	private double storageCapacity_kWh;
-	private double stateOfCharge_r;
+	private OL_EnergyCarrierType storageMedium = OL_EnergyCarrierType.ELECTRICITY;
 	private double lossFactor_r = 0;
-	private double timestep_h;
 
     /**
      * Default constructor
@@ -7846,13 +8016,10 @@ public class J_EAStorageHeat extends base.J_EAStorage implements Serializable {
  * J_EAConversionHeatPump
  */	
 public class J_EAConversionHeatPump extends base.J_EAConversion implements Serializable {
-	private EnergyAsset ownerAsset;
-	private double capacityElectricity_kW;
 	private double capacityHeat_kW = 0;
 	private double efficiency_r;
 	private OL_EnergyCarrierType energyCarrierProduced = OL_EnergyCarrierType.HEAT;
 	private OL_EnergyCarrierType energyCarrierConsumed = OL_EnergyCarrierType.ELECTRICITY;
-	private double eta_r;
 	private double outputTemperature_degC;
 	private double baseTemperature_degC;
 	
@@ -7865,9 +8032,9 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
     /**
      * Constructor initializing the fields
      */
-    public J_EAConversionHeatPump(EnergyAsset ownerAssetAgent, double capacityElectricity_kW, double eta_r, double baseTemperature_degC, double outputTemperature_degC) {
+    public J_EAConversionHeatPump(EnergyAsset ownerAssetAgent, double capacityElectric_kW, double eta_r, double baseTemperature_degC, double outputTemperature_degC) {
 	    this.ownerAsset = ownerAssetAgent;
-	    this.capacityElectricity_kW = capacityElectricity_kW;
+	    this.capacityElectric_kW = capacityElectric_kW;
 	    this.eta_r = eta_r;
 	    this.baseTemperature_degC = baseTemperature_degC;
 	    this.outputTemperature_degC = outputTemperature_degC;
@@ -7884,7 +8051,7 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
 	@Override
 	public double[] operate(double ratioOfCapacity) { 
     	   	
-    	this.electricityConsumption_kW = ratioOfCapacity * capacityElectricity_kW;
+    	this.electricityConsumption_kW = ratioOfCapacity * capacityElectric_kW;
     	this.heatProduction_kW = electricityConsumption_kW * efficiency_r;
     	//double[] arr = {this.electricityProduction_kW, this.methaneProduction_kW, this.hydrogenProduction_kW, this.heatProduction_kW, this.electricityConsumption_kW, this.methaneConsumption_kW, this.hydrogenConsumption_kW, this.heatConsumption_kW };
     	//return arr;
@@ -7896,7 +8063,7 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
 		return
 			"type = " + this.getClass().toString() + " " +
 			"ownerAsset = " + ownerAsset +" " +
-			"capacityElectricity_kW = " + capacityElectricity_kW +" "+
+			"capacityElectricity_kW = " + capacityElectric_kW +" "+
 			"capacityHeat_kW = " + capacityHeat_kW +" ";
 	}
 	
@@ -8027,6 +8194,61 @@ public class J_EAEV extends base.J_EAStorage implements Serializable {
 	public boolean getAvailability() {
 		return availability;
 	}
+	/**
+	 * This number is here for model snapshot storing purpose<br>
+	 * It needs to be changed when this class gets changed
+	 */ 
+	private static final long serialVersionUID = 1L;
+
+}]]></Text>
+		</JavaClass>
+		<!--   =========   Java Class   ========  -->
+		<JavaClass>
+			<Id>1660131551684</Id>
+			<Name><![CDATA[J_EAConversionHeatDeliverySet]]></Name>
+			<Text><![CDATA[/**
+ * J_EAConversionHeatDeliverySet
+ */	
+public class J_EAConversionHeatDeliverySet extends base.J_EAConversion implements Serializable {
+	
+	private OL_EnergyCarrierType energyCarrierProduced = OL_EnergyCarrierType.HEAT;
+	private OL_EnergyCarrierType energyCarrierConsumed = OL_EnergyCarrierType.HEAT;
+    /**
+     * Default constructor
+     */
+    public J_EAConversionHeatDeliverySet() {
+    }
+    
+    /**
+     * Constructor initializing the fields
+     */
+    public J_EAConversionHeatDeliverySet(EnergyAsset ownerAssetAgent, double capacityThermal_kW, double efficiency) {
+	    this.ownerAsset = ownerAssetAgent;
+	    this.capacityHeat_kW = capacityThermal_kW;
+	    this.eta_r = efficiency;
+	    traceln("I am instantiated! "+this+" owned by "+ownerAsset);
+	}
+    
+    @Override
+    public double[] operate(double ratioOfCapacity) {
+		//traceln("I convert now! GasBurner @ " + (ratioOfCapacity * 100) + " %");
+		this.heatProduction_kW = capacityHeat_kW * ratioOfCapacity;    
+		this.heatConsumption_kW = heatProduction_kW / eta_r;
+	
+		//double[] arr = {this.electricityProduction_kW, this.methaneProduction_kW, this.hydrogenProduction_kW, this.heatProduction_kW, this.electricityConsumption_kW, this.methaneConsumption_kW, this.hydrogenConsumption_kW, this.heatConsumption_kW };
+    	//return arr;	
+		return returnEnergyFlows();
+    }
+    
+	@Override
+	public String toString() {
+		return  
+			"ownerAsset = " + ownerAsset +" " +
+			"capacityElectric_kW = " + this.capacityElectric_kW +" "+
+			"capacityHeat_kW = " + this.capacityHeat_kW +" "+
+			"eta_r = " + this.eta_r+" ";
+	}
+
 	/**
 	 * This number is here for model snapshot storing purpose<br>
 	 * It needs to be changed when this class gets changed
