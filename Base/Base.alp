@@ -1661,7 +1661,7 @@ e.f_connectToParentNode( ownerAgent );]]></Body>
 							<Name><![CDATA[p_buildingTempAsset]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_spaceHeatingAsset]]></Name>
+							<Name><![CDATA[p_HeatingAsset]]></Name>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_EV]]></Name>
@@ -2968,7 +2968,7 @@ for( Agent a : subConnections.getConnections() )
 				</Variable>
 				<Variable Class="Parameter">
 					<Id>1660115363643</Id>
-					<Name><![CDATA[p_spaceHeatingAsset]]></Name>
+					<Name><![CDATA[p_HeatingAsset]]></Name>
 					<X>640</X><Y>210</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -3402,7 +3402,7 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 } else if (EA.p_energyAssetInstance instanceof J_EAConversion) {
 	c_connectedConversionAssets.add(EA);
 	if (EA.p_energyAssetInstance instanceof J_EAConversionGasBurner || EA.p_energyAssetInstance instanceof J_EAConversionHeatPump || EA.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet ) {
-		p_spaceHeatingAsset = EA;
+		p_HeatingAsset = EA;
 		//traceln("heatingAsset class " + p_spaceHeatingAsset.getClass().toString());
 	} 
 } else {
@@ -3442,7 +3442,7 @@ traceln("NetConnection connecting to " + numberOfEnergyAssets + " EnergyAssets")
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[// ! Testing ground for energy asset operation. To be finalized with correct operational behaviour!
 
-// basic consumption profiles first
+// basic fixed consumption profiles first
 for(EnergyAsset e : c_connectedConsumptionAssets) {
 	if(p_netConnectionCategory == OL_NetConnectionCategory.HOUSE && e.p_energyAssetType == OL_EnergyAssetType.OTHER_ELECTRICITY_CONSUMPTION) {
 		//e.v_powerFraction_fr = main.v_currentHouseHoldOtherElectricityDemand_kW;
@@ -3451,7 +3451,7 @@ for(EnergyAsset e : c_connectedConsumptionAssets) {
 	// not steerable, just do their thing.
 }
 
-// basic production profiles
+// basic fixed production profiles
 for(EnergyAsset e : c_connectedProductionAssets) {
 	if(e.p_energyAssetType == OL_EnergyAssetType.WINDMILL) {
 		e.v_powerFraction_fr = main.v_currentWindPowerNormalized_r;
@@ -3462,9 +3462,10 @@ for(EnergyAsset e : c_connectedProductionAssets) {
 }
 
 // storage operation
-// Flex assets: which assets need control, and what is the target? Heating, battery, EV-charging, district-heating, power to gas,
+// Flex assets: which assets need control, and what is the target? Heating, battery, EV-charging, district-heating, power to gas, etc.
 
-// Heating system super basic
+// House heating system super basic
+
 if ( p_buildingTempAsset != null && p_netConnectionCategory == OL_NetConnectionCategory.HOUSE ) {
 	//J_EAStorageHeat buildingTempInstance = (J_EAStorageHeat)p_buildingTempAsset.p_energyAssetInstance;
 	//traceln("HeatCapacity " + p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW());
@@ -3472,20 +3473,61 @@ if ( p_buildingTempAsset != null && p_netConnectionCategory == OL_NetConnectionC
 	double houseTemp = p_buildingTempAsset.p_energyAssetInstance.getCurrentTemperature();
 	p_buildingTempAsset.p_energyAssetInstance.updateAmbientTemperature(main.v_currentAmbientTemperature_degC);
 	
-	traceln("house temp in house " + this.getId() + " is " + houseTemp);
+	//traceln("house temp in house " + this.getId() + " is " + houseTemp);
 	if (houseTemp < tempSetpoint_degC) {
 
 		//traceln("heatCapacity heatingSystem " + p_spaceHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
 		double powerDemand_kW = (tempSetpoint_degC - houseTemp) * ((J_EAStorageHeat)p_buildingTempAsset.p_energyAssetInstance).getHeatCapacity_JpK() / 3.6e6;
-		p_spaceHeatingAsset.v_powerFraction_fr = powerDemand_kW / p_spaceHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();
+		p_HeatingAsset.v_powerFraction_fr = powerDemand_kW / p_HeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();
 		p_buildingTempAsset.v_powerFraction_fr = powerDemand_kW / p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW();
 
-		traceln("Power fraction heating " + p_spaceHeatingAsset.v_powerFraction_fr);
+		//traceln("Power fraction heating " + p_spaceHeatingAsset.v_powerFraction_fr);
 	} else {
-		p_spaceHeatingAsset.v_powerFraction_fr = 0;
+		p_HeatingAsset.v_powerFraction_fr = 0;
 		p_buildingTempAsset.v_powerFraction_fr = 0;
 	}
 }
+
+// derive heat demand from heat consumption -- om kip-ei rond warmtevraag en aanbod in het warmtenet te doorbreken.. Liever via temperatuur in het net/de buffer?
+if( this.p_netConnectionCategory == OL_NetConnectionCategory.DISTRICTHEATING ) {
+	NetNode HeatNode = findFirst( this.superConnection.getConnections(), c -> c.p_agentID.equals(p_parentNodeHeatID) );
+	List<NetConnection> heatConnections = HeatNode.subConnections.getConnections();
+
+	double heatConsumption_kW = 0;
+	for(NetConnection n : heatConnections ) {
+		heatConsumption_kW += n.v_currentPowerHeat_kW;
+	}
+	traceln("f_operateAssets DH netconnection: heatConsumption_kW = " + heatConsumption_kW ); // Input for heat balance of storage and production
+
+	double tempSetpoint_degC = 60;	
+	double storageTemp_degC = p_buildingTempAsset.p_energyAssetInstance.getCurrentTemperature();
+	traceln("District heating storage temperature " + storageTemp_degC + " degC");
+	if (storageTemp_degC < tempSetpoint_degC) {
+
+		//traceln("heatCapacity heatingSystem " + p_spaceHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
+		double heatingPower_kW = p_HeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();
+		p_HeatingAsset.v_powerFraction_fr = heatingPower_kW/p_HeatingAsset.p_energyAssetInstance.getHeatCapacity_kW(); // Should be 1!
+		p_buildingTempAsset.v_powerFraction_fr = (heatingPower_kW - heatConsumption_kW) / p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW();
+
+		//traceln("Power fraction heating " + p_spaceHeatingAsset.v_powerFraction_fr);
+	} else {
+		p_HeatingAsset.v_powerFraction_fr = 0;
+		p_buildingTempAsset.v_powerFraction_fr = - heatConsumption_kW / p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW();
+	}
+	//EnergyAsset e = findFirst( c_connectedConversionAssets, c -> c.p_energyAssetType == OL_EnergyAssetType.GAS_BURNER );
+	//p_spaceHeatingAsset.v_powerFraction_fr = heatConsumption_kW / p_spaceHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();
+	traceln("District heating power fraction " + p_HeatingAsset.v_powerFraction_fr);
+}
+
+// Conversion operation hard-coded test-value
+for(EnergyAsset s : c_connectedConversionAssets) {
+	if(s.p_energyAssetType == OL_EnergyAssetType.HEAT_PUMP_AIR) {
+		//s.p_EnergyAssetTypeString.updateParameters();
+		s.v_powerFraction_fr = 1;  // conversion value
+	}
+
+}
+
 /*
 for(EnergyAsset s : c_connectedStorageAssets) {
 	if(s.p_energyAssetType == OL_EnergyAssetType.STORAGE_ELECTRIC) {
@@ -3498,28 +3540,6 @@ for(EnergyAsset s : c_connectedStorageAssets) {
 }
 */
 
-// derive heat demand from heat consumption -- om kip-ei rond warmtevraag en aanbod in het warmtenet te doorbreken.. Liever via temperatuur in het net/de buffer?
-if( this.p_netConnectionCategory == OL_NetConnectionCategory.DISTRICTHEATING ) {
-	NetNode HeatNode = findFirst( this.superConnection.getConnections(), c -> c.p_agentID.equals(p_parentNodeHeatID) );
-	List<NetConnection> heatConnections = HeatNode.subConnections.getConnections();
-
-	double heatConsumption_kW = 0;
-	for(NetConnection n : heatConnections ) {
-		heatConsumption_kW += n.v_currentPowerHeat_kW;
-	}
-	traceln("f_operateAssets DH netconnection: heatConsumption_kW = " + heatConsumption_kW );
-	//EnergyAsset e = findFirst( c_connectedConversionAssets, c -> c.p_energyAssetType == OL_EnergyAssetType.GAS_BURNER );
-	//e.v_powerFraction_fr = heatConsumption_kW / e.p_energyAssetInstance.getHeatCapacity_kW();
-	
-}
-// Conversion operation hard-coded test-value
-for(EnergyAsset s : c_connectedConversionAssets) {
-	if(s.p_energyAssetType == OL_EnergyAssetType.HEAT_PUMP_AIR) {
-		//s.p_EnergyAssetTypeString.updateParameters();
-		s.v_powerFraction_fr = 1;  // conversion value
-	}
-
-}
 
 ]]></Body>
 				</Function>
@@ -8602,8 +8622,8 @@ public class J_EAEV extends base.J_EAStorage implements Serializable {
 	@Override
 	public void updateStateOfCharge( double discharge_kW ) {
 		stateOfCharge_r -= ( discharge_kW * timestep_h ) / storageCapacity_kWh;
-		traceln("EV SOC Change: " + (100 * ( -discharge_kW * timestep_h ) / storageCapacity_kWh) + "%");
-		traceln("EV SOC: " + 100*stateOfCharge_r + "%");
+		//traceln("EV SOC Change: " + (100 * ( -discharge_kW * timestep_h ) / storageCapacity_kWh) + "%");
+		//traceln("EV SOC: " + 100*stateOfCharge_r + "%");
 	}
 
 	@Override
