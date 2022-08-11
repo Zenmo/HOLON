@@ -4,7 +4,7 @@
 	         AnyLogic Project File 
 *************************************************	         
 -->
-<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.12.202205250418" AlpVersion="8.7.5">
+<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.8.0.202208091057" AlpVersion="8.7.5">
 <Model>
 	<Id>1658477103134</Id>
 	<Name><![CDATA[Base]]></Name>
@@ -390,6 +390,26 @@
 			<Option>
 				<Id>1660055439251</Id>
 				<Name><![CDATA[District_Heating_heat_buffer_S]]></Name>
+			</Option>
+		</OptionList>
+		<OptionList>
+			<Id>1660226249511</Id>
+			<Name><![CDATA[OL_ActorType]]></Name>
+			<Option>
+				<Id>1660226249512</Id>
+				<Name><![CDATA[HOUSEHOLD]]></Name>
+			</Option>
+			<Option>
+				<Id>1660226249513</Id>
+				<Name><![CDATA[COMMERCIAL]]></Name>
+			</Option>
+			<Option>
+				<Id>1660226249514</Id>
+				<Name><![CDATA[ENERGYSUPPLIER]]></Name>
+			</Option>
+			<Option>
+				<Id>1660226249515</Id>
+				<Name><![CDATA[HOLON]]></Name>
 			</Option>
 		</OptionList>
 	</OptionLists>
@@ -855,14 +875,14 @@ loop netNodes:
 	e.f_operateAssets();
 }*/
 
-for(NetConnection b : filter( netConnections, n -> n.p_netConnectionCategory != OL_NetConnectionCategory.DISTRICTHEATING )) {
+for(NetConnection b : filter( pop_netConnections, n -> n.p_netConnectionCategory != OL_NetConnectionCategory.DISTRICTHEATING )) {
 	b.f_calculateEnergyBalance();
 }
-for(NetConnection b : filter( netConnections, n -> n.p_netConnectionCategory == OL_NetConnectionCategory.DISTRICTHEATING )) {
+for(NetConnection b : filter( pop_netConnections, n -> n.p_netConnectionCategory == OL_NetConnectionCategory.DISTRICTHEATING )) {
 	b.f_calculateEnergyBalance();
 }
 
-for(NetNode n : netNodes) {
+for(NetNode n : pop_netNodes) {
 	n.f_calculateEnergyBalance();
 }
 
@@ -880,7 +900,26 @@ for(NetNode n : netNodes) {
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[// 1. add agents to population from database: NetNodes
+					<Body><![CDATA[// 0. add agents to population from database: Actors
+List<Tuple> actors = selectFrom(config_actors)
+	.list();
+
+String actorID;
+OL_ActorType actortype;
+String parentActorID;
+
+for (Tuple actor : actors) {
+    actorID = actor.get( config_actors.id );
+    actortype = actor.get( config_actors.type );
+    parentActorID = actor.get( config_actors.parent_actor );
+
+    Actor Actor = add_pop_actors( actorID, actortype, parentActorID, null);
+}
+for (Actor a : pop_actors) {
+	a.f_connectToParentNode();
+}
+
+// 1. add agents to population from database: NetNodes
 List<Tuple> netNodes = selectFrom(config_netnodes)
 	.list();
 
@@ -897,7 +936,7 @@ for (Tuple netNode : netNodes) {
     nodeparent = netNode.get( config_netnodes.parent );
     nodecapacity = roundToDecimal(netNode.get( config_netnodes.capacity_kw ),2);
 
-    NetNode NetNode = add_netNodes( nodeID, nodeparent, nodetype, energytype, nodecapacity );
+    NetNode NetNode = add_pop_netNodes( nodeID, nodeparent, nodetype, energytype, nodecapacity );
 }
 
 // 2. add agents to population from database: NetConnections
@@ -910,6 +949,7 @@ OL_NetConnectionType netConnectionType;
 String netConnectionParentElectric;
 String netConnectionParentHeat;
 Double netConnectionCapacity;
+String ownerActorID;
 
 for (Tuple netConnection : netConnections) {
     netConnectionCategory = netConnection.get( config_netconnections.type );
@@ -918,8 +958,9 @@ for (Tuple netConnection : netConnections) {
     netConnectionParentHeat = netConnection.get( config_netconnections.parent_heat );
     netConnectionCapacity = roundToDecimal(netConnection.get( config_netconnections.capacity_kw ),2);
     netConnectionID = netConnection.get( config_netconnections.id );
+	ownerActorID = netConnection.get (config_netconnections.owner_actor );
 
-    NetConnection NetConnection = add_netConnections( netConnectionCategory, netConnectionType, netConnectionCapacity, netConnectionParentElectric, netConnectionID, netConnectionParentHeat, null, null, null);
+    NetConnection NetConnection = add_pop_netConnections( netConnectionCategory, netConnectionType, netConnectionCapacity, netConnectionParentElectric, netConnectionID, netConnectionParentHeat, null, null, null, ownerActorID, null);
 }
 
 // 3. add agents to population from database: EnergyAssets
@@ -940,7 +981,7 @@ for (Tuple energyAsset : energyAssets) {
     capacityElectric_kW = roundToDecimal(energyAsset.get( config_energyassets.capacity_electric_kw ),2);
     capacityHeat_kW = roundToDecimal(energyAsset.get( config_energyassets.capacity_heat_kw ),2);
 
-    EnergyAsset EnergyAsset = add_energyAssets(null, assetParentID, assetType);  // let op: andere volgorde van argumenten. Nog fixen?
+    EnergyAsset EnergyAsset = add_pop_energyAssets(null, assetParentID, assetType);  // let op: andere volgorde van argumenten. Nog fixen?
     //EnergyAsset.f_connectToParentNode(null);
 
 	switch(assetCategory) {
@@ -1053,7 +1094,7 @@ sheet1.importFromExternalDB(sourceConnection, "params", "params", true, true);
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[// add standard EnergyAsset agents from NetConnection agent subtypes automatically
-List<NetConnection> NetConnectionList = filter( netConnections, b -> true );
+List<NetConnection> NetConnectionList = filter( pop_netConnections, b -> true );
 
 for (NetConnection n : NetConnectionList) {
 	traceln("NetConnection for AssetConfiguration: "+n.p_agentID);
@@ -1212,7 +1253,7 @@ for( Tuple tup : data ) {
 	capacityHeat_kW = tup.get( consumption_assets.capacity_heat_kw );
 }
 
-EnergyAsset e = add_energyAssets( null, parentAgentID,  assetType );
+EnergyAsset e = add_pop_energyAssets( null, parentAgentID,  assetType );
 e.f_instantiateConsumerAsset( assetType, capacityElectricity_kW, capacityHeat_kW );
 e.f_connectToParentNode( ownerAgent );
 ]]></Body>
@@ -1261,7 +1302,7 @@ capacityHeat_kW = tup.get( conversion_assets.capacity_heat_kw );
 eta_r = tup.get( conversion_assets.eta_r );
 }
 
-EnergyAsset e = add_energyAssets( null, parentAgentID, assetType );
+EnergyAsset e = add_pop_energyAssets( null, parentAgentID, assetType );
 e.f_instantiateConverterAsset( assetType, capacityElectricity_kW, capacityHeat_kW, eta_r  );
 e.f_connectToParentNode( ownerAgent );]]></Body>
 				</Function>
@@ -1307,7 +1348,7 @@ for( Tuple tup : data ) {
 	capacityHeat_kW = tup.get( production_assets.capacity_heat_kw );
 }
 
-EnergyAsset e = add_energyAssets( null, parentAgentID, assetType );
+EnergyAsset e = add_pop_energyAssets( null, parentAgentID, assetType );
 e.f_instantiateProducerAsset( assetType, capacityElectricity_kW, capacityHeat_kW );
 e.f_connectToParentNode( ownerAgent );
 ]]></Body>
@@ -1363,7 +1404,7 @@ heatCapacity_JpK =  tup.get( storage_assets.heat_capacity_jpk );
 }
 
 
-EnergyAsset e = add_energyAssets( null, parentAgentID, assetType );
+EnergyAsset e = add_pop_energyAssets( null, parentAgentID, assetType );
 e.f_instantiateStorageAsset( assetType, capacityElectricity_kW, capacityHeat_kW, stateOfCharge_r, lossFactor_WpK, chargeCapacity_kWh, heatCapacity_JpK  );
 e.f_connectToParentNode( ownerAgent );]]></Body>
 				</Function>
@@ -1545,7 +1586,7 @@ e.f_connectToParentNode( ownerAgent );]]></Body>
 			<EmbeddedObjects>
 				<EmbeddedObject>
 					<Id>1658477403183</Id>
-					<Name><![CDATA[netNodes]]></Name>
+					<Name><![CDATA[pop_netNodes]]></Name>
 					<X>60</X><Y>130</Y>
 					<Label><X>15</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1621,7 +1662,7 @@ e.f_connectToParentNode( ownerAgent );]]></Body>
 				</EmbeddedObject>
 				<EmbeddedObject>
 					<Id>1658499683452</Id>
-					<Name><![CDATA[netConnections]]></Name>
+					<Name><![CDATA[pop_netConnections]]></Name>
 					<X>60</X><Y>160</Y>
 					<Label><X>15</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1666,6 +1707,12 @@ e.f_connectToParentNode( ownerAgent );]]></Body>
 						<Parameter>
 							<Name><![CDATA[p_EV]]></Name>
 						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_ownerID]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_ownerActor]]></Name>
+						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
 					<Replication Class="CodeValue">
@@ -1709,7 +1756,7 @@ e.f_connectToParentNode( ownerAgent );]]></Body>
 				</EmbeddedObject>
 				<EmbeddedObject>
 					<Id>1658499722957</Id>
-					<Name><![CDATA[energyAssets]]></Name>
+					<Name><![CDATA[pop_energyAssets]]></Name>
 					<X>60</X><Y>190</Y>
 					<Label><X>15</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1854,7 +1901,7 @@ e.f_connectToParentNode( ownerAgent );]]></Body>
 					<Id>1659341409476</Id>
 					<Name><![CDATA[energyManagers]]></Name>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>60</X><Y>220</Y>
+					<X>60</X><Y>250</Y>
 					<Label><X>15</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -1879,6 +1926,79 @@ e.f_connectToParentNode( ownerAgent );]]></Body>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_netConnectionType]]></Name>
+						</Parameter>
+					</Parameters>
+					<ReplicationFlag>true</ReplicationFlag>
+					<Replication Class="CodeValue">
+						<Code><![CDATA[100]]></Code>
+					</Replication>
+					<CollectionType>ARRAY_LIST_BASED</CollectionType>
+					<InEnvironment>true</InEnvironment>	
+					<InitialLocationType>AT_ANIMATION_POSITION</InitialLocationType>
+					<XCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</XCode>
+					<YCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</YCode>
+					<ZCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ZCode>
+					<ColumnCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ColumnCode>
+					<RowCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</RowCode>
+					<LatitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LatitudeCode>
+					<LongitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LongitudeCode>
+					<LocationNameCode Class="CodeValue">
+						<Code><![CDATA[""]]></Code>
+					</LocationNameCode>
+					<InitializationType>EMPTY</InitializationType>
+					<InitializationDatabaseTableQuery>
+						<TableReference>
+						</TableReference>
+					</InitializationDatabaseTableQuery>
+					<InitializationDatabaseType>ONE_AGENT_PER_DATABASE_RECORD</InitializationDatabaseType>
+					<QuantityColumn>
+					</QuantityColumn>
+				</EmbeddedObject>
+				<EmbeddedObject>
+					<Id>1660224868652</Id>
+					<Name><![CDATA[pop_actors]]></Name>
+					<X>60</X><Y>220</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<ActiveObjectClass>
+						<PackageName><![CDATA[base]]></PackageName>
+						<ClassName><![CDATA[Actor]]></ClassName>
+					</ActiveObjectClass>
+					<GenericParameterSubstitute>
+						<GenericParameterSubstituteReference>
+							<PackageName><![CDATA[base]]></PackageName>
+							<ClassName><![CDATA[Actor]]></ClassName>
+							<ItemName><![CDATA[1660224852392]]></ItemName>
+						</GenericParameterSubstituteReference>
+					</GenericParameterSubstitute>
+					<Parameters>
+						<Parameter>
+							<Name><![CDATA[p_actorID]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_actorType]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_parentActorID]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_parentActor]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -2446,7 +2566,7 @@ e.f_connectToParentNode( ownerAgent );]]></Body>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[NetNode myParentNode = findFirst(main.netNodes, p->p.p_agentID.equals(p_parentNodeID));
+					<Body><![CDATA[NetNode myParentNode = findFirst(main.pop_netNodes, p->p.p_agentID.equals(p_parentNodeID));
 if( myParentNode instanceof NetNode ) {
 	superConnection.connectTo(myParentNode);
 	myParentNode.f_connectToChild(this);
@@ -3230,6 +3350,48 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1660229326795</Id>
+					<Name><![CDATA[p_ownerID]]></Name>
+					<X>220</X><Y>80</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[String]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1660229326793</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1660230516807</Id>
+					<Name><![CDATA[p_ownerActor]]></Name>
+					<X>220</X><Y>50</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[Actor]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1660230516805</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1658751085004</Id>
 					<Name><![CDATA[c_electricityFlows]]></Name>
@@ -3501,19 +3663,24 @@ f_bepaalFlexibiliteit();]]></Action>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[NetNode myParentNodeElectric = findFirst(main.netNodes, p->p.p_agentID.equals(p_parentNodeElectricID)) ;
+					<Body><![CDATA[NetNode myParentNodeElectric = findFirst(main.pop_netNodes, p->p.p_agentID.equals(p_parentNodeElectricID)) ;
 if( myParentNodeElectric instanceof NetNode ) {
 	superConnection.connectTo(myParentNodeElectric);
 	myParentNodeElectric.f_connectToChild(this);
 }
 
-NetNode myParentNodeHeat = findFirst(main.netNodes, p->p.p_agentID.equals(p_parentNodeHeatID)) ;
+NetNode myParentNodeHeat = findFirst(main.pop_netNodes, p->p.p_agentID.equals(p_parentNodeHeatID)) ;
 if( myParentNodeHeat instanceof NetNode ) {
 	superConnection.connectTo(myParentNodeHeat);
 	myParentNodeHeat.f_connectToChild(this);
 }
 
-]]></Body>
+Actor myParentActor = findFirst(main.pop_actors, p->p.p_actorID.equals(p_ownerID)) ;
+if( myParentActor instanceof Actor) {
+	p_ownerActor = myParentActor;
+	superConnection.connectTo(myParentActor);
+	myParentActor.f_connectToChild(this);
+}]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -4401,7 +4568,7 @@ if(ProvidedParentConnection != null) {
 	superConnection.connectTo(myParentAgent);
 	((NetConnection) myParentAgent).f_connectToChild(this);
 } else {
-	myParentAgent = findFirst(main.netConnections, p->p.p_agentID.equals(p_parentAgentID));
+	myParentAgent = findFirst(main.pop_netConnections, p->p.p_agentID.equals(p_parentAgentID));
 
 	if( myParentAgent instanceof NetConnection ) {
 		myParentAgent = (NetConnection)myParentAgent;
@@ -4894,12 +5061,12 @@ double minx = 100;
 double maxx = minx + 800;
 
 // count the number of HS/MS and MS/LS nodes for spacing
-List<NetNode> HSNetnodes = filter( main.netNodes, n -> n.p_nodeType == OL_NetNodeType.HSMS  );
-List<NetNode> MSNetnodes = filter( main.netNodes, n -> n.p_nodeType == OL_NetNodeType.MSLS );
-List<NetNode> HeatNodes = filter( main.netNodes, n -> n.p_energyType == OL_EnergyCarrierType.HEAT );
+List<NetNode> HSNetnodes = filter( main.pop_netNodes, n -> n.p_nodeType == OL_NetNodeType.HSMS  );
+List<NetNode> MSNetnodes = filter( main.pop_netNodes, n -> n.p_nodeType == OL_NetNodeType.MSLS );
+List<NetNode> HeatNodes = filter( main.pop_netNodes, n -> n.p_energyType == OL_EnergyCarrierType.HEAT );
 //List<NetConnection> Houses = filter( main.netConnections, b -> b.p_netConnectionCategory.equals("house") );
 //List<NetConnection> Windfarms = filter( main.netConnections, b -> b.p_netConnectionCategory.equals("windfarm") );
-List<NetConnection> NetConnections = filter( main.netConnections, n -> true );
+List<NetConnection> NetConnections = filter( main.pop_netConnections, n -> true );
 
 //traceln("HS "+HSNetnodes+" -> "+HSNetnodes.size());
 //traceln("MS "+MSNetnodes+" -> "+MSNetnodes.size());
@@ -7410,7 +7577,7 @@ if(ProvidedParentConnection != null) {
 	myParentNetConnection = ProvidedParentConnection;
 }
 else {
-	myParentNetConnection = findFirst(main.netConnections, p->p.p_agentID.equals(p_netConnectionID));
+	myParentNetConnection = findFirst(main.pop_netConnections, p->p.p_agentID.equals(p_netConnectionID));
 }
 
 if( myParentNetConnection instanceof NetConnection ) {
@@ -7608,6 +7775,321 @@ for(int i = 0; i < conversionAssets.size(); i++) {
 			</Presentation>
 
 		</ActiveObjectClass>
+		<!--   =========   Active Object Class   ========  -->
+		<ActiveObjectClass>
+			<Id>1660224852394</Id>
+			<Name><![CDATA[Actor]]></Name>
+			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
+			<Generic>false</Generic>
+			<GenericParameter>
+				<Id>1660224852392</Id>
+				<Name><![CDATA[1660224852392]]></Name>
+				<GenericParameterValue Class="CodeValue">
+					<Code><![CDATA[T extends Agent]]></Code>
+				</GenericParameterValue>
+				<GenericParameterLabel><![CDATA[Generic parameter:]]></GenericParameterLabel>
+			</GenericParameter>
+			<FlowChartsUsage>ENTITY</FlowChartsUsage>
+			<SamplesToKeep>100</SamplesToKeep>
+			<LimitNumberOfArrayElements>false</LimitNumberOfArrayElements>
+			<ElementsLimitValue>100</ElementsLimitValue>
+			<MakeDefaultViewArea>true</MakeDefaultViewArea>
+			<SceneGridColor/>
+			<SceneBackgroundColor/>
+			<SceneSkybox>null</SceneSkybox>
+			<AgentProperties>
+	 			<SpaceType>CONTINUOUS</SpaceType>			
+				<EnvironmentDefinesInitialLocation>true</EnvironmentDefinesInitialLocation>
+				<RotateAnimationTowardsMovement>true</RotateAnimationTowardsMovement>
+				<RotateAnimationVertically>false</RotateAnimationVertically>
+				<VelocityCode Class="CodeUnitValue">
+					<Code><![CDATA[10]]></Code>
+					<Unit Class="SpeedUnits"><![CDATA[MPS]]></Unit>
+				</VelocityCode>
+				<PhysicalLength Class="CodeUnitValue">
+					<Code><![CDATA[1]]></Code>
+					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
+				</PhysicalLength>
+				<PhysicalWidth Class="CodeUnitValue">
+					<Code><![CDATA[1]]></Code>
+					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
+				</PhysicalWidth>
+				<PhysicalHeight Class="CodeUnitValue">
+					<Code><![CDATA[1]]></Code>
+					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
+				</PhysicalHeight>
+			</AgentProperties>
+			<EnvironmentProperties>
+					<EnableSteps>false</EnableSteps>
+					<StepDurationCode Class="CodeUnitValue">
+						<Code><![CDATA[1.0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[SECOND]]></Unit>
+					</StepDurationCode>
+					<SpaceType>CONTINUOUS</SpaceType>
+					<WidthCode><![CDATA[500]]></WidthCode>
+					<HeightCode><![CDATA[500]]></HeightCode>
+					<ZHeightCode><![CDATA[0]]></ZHeightCode>
+					<ColumnsCountCode><![CDATA[100]]></ColumnsCountCode>
+					<RowsCountCode><![CDATA[100]]></RowsCountCode>
+					<NeigborhoodType>MOORE</NeigborhoodType>
+					<LayoutType>USER_DEF</LayoutType>
+					<LayoutTypeApplyOnStartup>true</LayoutTypeApplyOnStartup>
+					<NetworkType>USER_DEF</NetworkType>
+					<NetworkTypeApplyOnStartup>true</NetworkTypeApplyOnStartup>
+					<ConnectionsPerAgentCode><![CDATA[2]]></ConnectionsPerAgentCode>
+					<ConnectionsRangeCode><![CDATA[50]]></ConnectionsRangeCode>
+					<NeighborLinkFractionCode><![CDATA[0.95]]></NeighborLinkFractionCode>
+					<MCode><![CDATA[10]]></MCode>
+			</EnvironmentProperties>
+			<DatasetsCreationProperties>
+				<AutoCreate>true</AutoCreate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1660291200000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</RecurrenceCode>
+			</DatasetsCreationProperties>
+			<ScaleRuler>
+				<Id>1660224852390</Id>
+				<Name><![CDATA[scale]]></Name>
+				<X>0</X><Y>-150</Y>
+				<PublicFlag>false</PublicFlag>
+				<PresentationFlag>false</PresentationFlag>
+				<ShowLabel>false</ShowLabel>
+				<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+				<Length>100</Length>
+				<Rotation>0</Rotation>
+				<ScaleType>BASED_ON_LENGTH</ScaleType>
+				<ModelLength>10</ModelLength>
+				<LengthUnits>METER</LengthUnits>
+				<Scale>10</Scale>
+				<InheritedFromParentAgentType>true</InheritedFromParentAgentType>
+			</ScaleRuler>
+			<CurrentLevel>1660224852393</CurrentLevel>
+			<ConnectionsId>1660224852389</ConnectionsId>
+			<Variables>
+				<Variable Class="Parameter">
+					<Id>1660225105547</Id>
+					<Name><![CDATA[p_actorID]]></Name>
+					<X>50</X><Y>20</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[String]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1660225105545</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1660225105552</Id>
+					<Name><![CDATA[p_actorType]]></Name>
+					<X>50</X><Y>50</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[OL_ActorType]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1660225105550</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1660226911197</Id>
+					<Name><![CDATA[p_parentActorID]]></Name>
+					<X>50</X><Y>80</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[String]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1660226911195</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1660230904844</Id>
+					<Name><![CDATA[p_parentActor]]></Name>
+					<X>50</X><Y>110</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[Actor]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1660230904842</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+			</Variables>
+			<Functions>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1660230297342</Id>
+					<Name><![CDATA[f_connectToChild]]></Name>
+					<X>50</X><Y>160</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[ConnectingChildNode]]></Name>
+						<Type><![CDATA[Agent]]></Type>
+					</Parameter>
+					<Body><![CDATA[subConnections.connectTo(ConnectingChildNode);
+]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1660230784171</Id>
+					<Name><![CDATA[f_connectToParentNode]]></Name>
+					<X>50</X><Y>140</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[if ( p_parentActorID != null ) {
+	Actor myParentActor = findFirst(main.pop_actors, p->p.p_actorID.equals(p_parentActorID)) ;
+	if( myParentActor instanceof Actor) {
+		p_parentActor = myParentActor;
+		superConnection.connectTo(myParentActor);
+		myParentActor.f_connectToChild(this);
+	}
+}]]></Body>
+				</Function>
+			</Functions>
+			<AgentLinks>
+				<AgentLink>
+					<Id>1660224852389</Id>
+					<Name><![CDATA[connections]]></Name>
+					<X>50</X><Y>-50</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<HandleReceiveInConnections>false</HandleReceiveInConnections>
+					<AgentLinkType>COLLECTION_OF_LINKS</AgentLinkType>
+					<AgentLinkBidirectional>true</AgentLinkBidirectional>
+					<MessageType><![CDATA[Object]]></MessageType>
+					<LineStyle>SOLID</LineStyle>
+					<LineWidth>1</LineWidth>
+					<LineColor>-16777216</LineColor>
+					<LineZOrder>UNDER_AGENTS</LineZOrder>
+					<LineArrow>NONE</LineArrow>
+					<LineArrowPosition>END</LineArrowPosition>
+				</AgentLink>
+				<AgentLink>
+					<Id>1660225105554</Id>
+					<Name><![CDATA[superConnection]]></Name>
+					<X>240</X><Y>-50</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<HandleReceiveInConnections>false</HandleReceiveInConnections>
+					<AgentLinkType>COLLECTION_OF_LINKS</AgentLinkType>
+					<AgentLinkBidirectional>false</AgentLinkBidirectional>
+					<MessageType><![CDATA[Object]]></MessageType>
+					<LineStyle>SOLID</LineStyle>
+					<LineWidth>1</LineWidth>
+					<LineColor>-16777216</LineColor>
+					<LineZOrder>UNDER_AGENTS</LineZOrder>
+					<LineArrow>NONE</LineArrow>
+					<LineArrowPosition>END</LineArrowPosition>
+				</AgentLink>
+				<AgentLink>
+					<Id>1660225105556</Id>
+					<Name><![CDATA[subConnections]]></Name>
+					<X>240</X><Y>-20</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<HandleReceiveInConnections>false</HandleReceiveInConnections>
+					<AgentLinkType>COLLECTION_OF_LINKS</AgentLinkType>
+					<AgentLinkBidirectional>false</AgentLinkBidirectional>
+					<MessageType><![CDATA[Object]]></MessageType>
+					<LineStyle>SOLID</LineStyle>
+					<LineWidth>1</LineWidth>
+					<LineColor>-16777216</LineColor>
+					<LineZOrder>UNDER_AGENTS</LineZOrder>
+					<LineArrow>NONE</LineArrow>
+					<LineArrowPosition>END</LineArrowPosition>
+				</AgentLink>
+			</AgentLinks>
+
+			<ContainerLinks>
+				<ContainerLink>
+					<Id>1660224870913</Id>
+					<Name><![CDATA[main]]></Name>
+					<X>50</X><Y>-100</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<ActiveObjectClass>
+						<PackageName><![CDATA[base]]></PackageName>
+						<ClassName><![CDATA[Main]]></ClassName>
+					</ActiveObjectClass>
+				</ContainerLink>
+			</ContainerLinks>
+
+			<Presentation>
+				<Level>
+					<Id>1660224852393</Id>
+					<Name><![CDATA[level]]></Name>
+					<X>0</X><Y>0</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<Z>0</Z>
+					<LevelVisibility>DIM_NON_CURRENT</LevelVisibility>
+
+
+				</Level>
+			</Presentation>
+
+		</ActiveObjectClass>
 	</ActiveObjectClasses>	
 	<DifferentialEquationsMethod>EULER</DifferentialEquationsMethod>
 	<MixedEquationsMethod>RK45_NEWTON</MixedEquationsMethod>
@@ -7712,10 +8194,10 @@ for(int i = 0; i < conversionAssets.size(); i++) {
 			<TableImportSettings>
 				<TableReference>
 					<PackageName><![CDATA[base]]></PackageName>
-					<ClassName><![CDATA[production_assets]]></ClassName>
+					<ClassName><![CDATA[storage_assets]]></ClassName>
 				</TableReference>
 				<ConnectionIndex>0</ConnectionIndex>
-				<ExternalTableName><![CDATA["productionAssets"]]></ExternalTableName>
+				<ExternalTableName><![CDATA["storageAssets"]]></ExternalTableName>
 				<AutoImport>true</AutoImport>
 			</TableImportSettings>
 			<TableImportSettings>
@@ -7725,15 +8207,6 @@ for(int i = 0; i < conversionAssets.size(); i++) {
 				</TableReference>
 				<ConnectionIndex>1</ConnectionIndex>
 				<ExternalTableName><![CDATA["config"]]></ExternalTableName>
-				<AutoImport>true</AutoImport>
-			</TableImportSettings>
-			<TableImportSettings>
-				<TableReference>
-					<PackageName><![CDATA[base]]></PackageName>
-					<ClassName><![CDATA[storage_assets]]></ClassName>
-				</TableReference>
-				<ConnectionIndex>0</ConnectionIndex>
-				<ExternalTableName><![CDATA["storageAssets"]]></ExternalTableName>
 				<AutoImport>true</AutoImport>
 			</TableImportSettings>
 			<TableImportSettings>
@@ -7757,10 +8230,10 @@ for(int i = 0; i < conversionAssets.size(); i++) {
 			<TableImportSettings>
 				<TableReference>
 					<PackageName><![CDATA[base]]></PackageName>
-					<ClassName><![CDATA[config_netconnections]]></ClassName>
+					<ClassName><![CDATA[production_assets]]></ClassName>
 				</TableReference>
-				<ConnectionIndex>1</ConnectionIndex>
-				<ExternalTableName><![CDATA["config_netConnections"]]></ExternalTableName>
+				<ConnectionIndex>0</ConnectionIndex>
+				<ExternalTableName><![CDATA["productionAssets"]]></ExternalTableName>
 				<AutoImport>true</AutoImport>
 			</TableImportSettings>
 			<TableImportSettings>
@@ -7771,6 +8244,24 @@ for(int i = 0; i < conversionAssets.size(); i++) {
 				<ConnectionIndex>2</ConnectionIndex>
 				<ExternalTableName><![CDATA["profiles"]]></ExternalTableName>
 				<AutoImport>true</AutoImport>
+			</TableImportSettings>
+			<TableImportSettings>
+				<TableReference>
+					<PackageName><![CDATA[base]]></PackageName>
+					<ClassName><![CDATA[config_netconnections]]></ClassName>
+				</TableReference>
+				<ConnectionIndex>1</ConnectionIndex>
+				<ExternalTableName><![CDATA["config_netConnections"]]></ExternalTableName>
+				<AutoImport>true</AutoImport>
+			</TableImportSettings>
+			<TableImportSettings>
+				<TableReference>
+					<PackageName><![CDATA[base]]></PackageName>
+					<ClassName><![CDATA[config_actors]]></ClassName>
+				</TableReference>
+				<ConnectionIndex>1</ConnectionIndex>
+				<ExternalTableName><![CDATA["config_actors"]]></ExternalTableName>
+				<AutoImport>false</AutoImport>
 			</TableImportSettings>
 			<TableImportSettings>
 				<TableReference>
