@@ -4,7 +4,7 @@
 	         AnyLogic Project File 
 *************************************************	         
 -->
-<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.12.202205250418" AlpVersion="8.7.5">
+<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.8.0.202208091057" AlpVersion="8.7.5">
 <Model>
 	<Id>1658477103134</Id>
 	<Name><![CDATA[Base]]></Name>
@@ -897,7 +897,11 @@ for (Tuple netNode : netNodes) {
     nodeparent = netNode.get( config_netnodes.parent );
     nodecapacity = roundToDecimal(netNode.get( config_netnodes.capacity_kw ),2);
 
-    NetNode NetNode = add_netNodes( nodeID, nodeparent, nodetype, energytype, nodecapacity );
+	//if (energyType.equals(OL_EnergyCarrierType.HEAT)) {
+	//	NetNode NetNode = add_netNodes( nodeID, nodeparent, nodetype, energytype, nodecapacity, null );
+	//} else {
+    	NetNode NetNode = add_netNodes( nodeID, nodeparent, nodetype, energytype, nodecapacity, null );
+	//}
 }
 
 // 2. add agents to population from database: NetConnections
@@ -919,7 +923,7 @@ for (Tuple netConnection : netConnections) {
     netConnectionCapacity = roundToDecimal(netConnection.get( config_netconnections.capacity_kw ),2);
     netConnectionID = netConnection.get( config_netconnections.id );
 
-    NetConnection NetConnection = add_netConnections( netConnectionCategory, netConnectionType, netConnectionCapacity, netConnectionParentElectric, netConnectionID, netConnectionParentHeat, null, null, null);
+    NetConnection NetConnection = add_netConnections( netConnectionCategory, netConnectionType, netConnectionCapacity, netConnectionParentElectric, netConnectionID, netConnectionParentHeat, null, null, null, null, null);
 }
 
 // 3. add agents to population from database: EnergyAssets
@@ -1578,6 +1582,9 @@ e.f_connectToParentNode( ownerAgent );]]></Body>
 						<Parameter>
 							<Name><![CDATA[p_capacity_kW]]></Name>
 						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_transportBuffer]]></Name>
+						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
 					<Replication Class="CodeValue">
@@ -1665,6 +1672,12 @@ e.f_connectToParentNode( ownerAgent );]]></Body>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_EV]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_parentNodeElectric]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_parentNodeHeat]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -2011,7 +2024,16 @@ e.f_connectToParentNode( ownerAgent );]]></Body>
 			<Id>1658477288308</Id>
 			<Name><![CDATA[NetNode]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
-			<StartupCode><![CDATA[f_connectToParentNode();]]></StartupCode>
+			<StartupCode><![CDATA[f_connectToParentNode();
+if (p_energyType.equals(OL_EnergyCarrierType.HEAT)) { 
+	double capacityHeat_kW = 1000;
+	double lossFactor_WpK = 100;
+	double InitialStateOfCharge_degC = 60;
+	double heatCapacity_JpK = 1e7;
+	double soilTemperature_degC = 8;
+	p_transportBuffer = new J_EAStorageHeat(null, capacityHeat_kW, lossFactor_WpK, main.p_timeStep_h, InitialStateOfCharge_degC, 10, 90, heatCapacity_JpK);
+	p_transportBuffer.updateAmbientTemperature(soilTemperature_degC);
+}]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1658477288306</Id>
@@ -2374,6 +2396,30 @@ e.f_connectToParentNode( ownerAgent );]]></Body>
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1660635056957</Id>
+					<Name><![CDATA[p_transportBuffer]]></Name>
+					<X>270</X><Y>160</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[J_EAStorage]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[null]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1660635056955</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1658751320739</Id>
 					<Name><![CDATA[c_electricityFlows]]></Name>
@@ -2585,6 +2631,12 @@ for( Agent a : subConnections.getConnections() )
 			break;
 		}
 	}
+}
+
+if (p_energyType.equals(OL_EnergyCarrierType.HEAT)) { // Thermal load goes into transportBuffer
+	double v_powerFraction_fr = -v_currentLoadHeat_kW / p_transportBuffer.getHeatCapacity_kW();
+	p_transportBuffer.operate(v_powerFraction_fr);
+	//traceln("DistrictHeating network water temperature " + p_transportBuffer.getCurrentTemperature() + " deg C, buffer power fraction " + v_powerFraction_fr);
 }
 
 f_nodeMetering();]]></Body>
@@ -2809,7 +2861,7 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 				<Variable Class="PlainVariable">
 					<Id>1658499590783</Id>
 					<Name><![CDATA[v_currentPowerElectricity_kW]]></Name>
-					<X>50</X><Y>230</Y>
+					<X>50</X><Y>250</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2822,7 +2874,7 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 					<Id>1658501011313</Id>
 					<Name><![CDATA[v_currentPowerLost_kW]]></Name>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>240</X><Y>230</Y>
+					<X>240</X><Y>250</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2834,7 +2886,7 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 				<Variable Class="PlainVariable">
 					<Id>1659355078476</Id>
 					<Name><![CDATA[v_currentPowerMethane_kW]]></Name>
-					<X>50</X><Y>250</Y>
+					<X>50</X><Y>270</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2846,7 +2898,7 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 				<Variable Class="PlainVariable">
 					<Id>1659355091165</Id>
 					<Name><![CDATA[v_currentPowerHeat_kW]]></Name>
-					<X>50</X><Y>290</Y>
+					<X>50</X><Y>310</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2858,7 +2910,7 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 				<Variable Class="PlainVariable">
 					<Id>1659513167233</Id>
 					<Name><![CDATA[v_currentPowerHydrogen_kW]]></Name>
-					<X>50</X><Y>270</Y>
+					<X>50</X><Y>290</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2937,7 +2989,7 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 				<Variable Class="PlainVariable">
 					<Id>1660212770046</Id>
 					<Name><![CDATA[v_electricityDrawn_kWh]]></Name>
-					<X>50</X><Y>490</Y>
+					<X>50</X><Y>510</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2949,7 +3001,7 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 				<Variable Class="PlainVariable">
 					<Id>1660212770048</Id>
 					<Name><![CDATA[v_methaneDrawn_kWh]]></Name>
-					<X>50</X><Y>510</Y>
+					<X>50</X><Y>530</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2961,7 +3013,7 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 				<Variable Class="PlainVariable">
 					<Id>1660212770050</Id>
 					<Name><![CDATA[v_heatDrawn_kWh]]></Name>
-					<X>50</X><Y>550</Y>
+					<X>50</X><Y>570</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2973,7 +3025,7 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 				<Variable Class="PlainVariable">
 					<Id>1660212770052</Id>
 					<Name><![CDATA[v_hydrogenDrawn_kWh]]></Name>
-					<X>50</X><Y>530</Y>
+					<X>50</X><Y>550</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2985,7 +3037,7 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 				<Variable Class="PlainVariable">
 					<Id>1660212876472</Id>
 					<Name><![CDATA[v_electricityDelivered_kWh]]></Name>
-					<X>230</X><Y>489</Y>
+					<X>230</X><Y>509</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2997,7 +3049,7 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 				<Variable Class="PlainVariable">
 					<Id>1660212876474</Id>
 					<Name><![CDATA[v_methaneDelivered_kWh]]></Name>
-					<X>230</X><Y>509</Y>
+					<X>230</X><Y>529</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3009,7 +3061,7 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 				<Variable Class="PlainVariable">
 					<Id>1660212876476</Id>
 					<Name><![CDATA[v_heatDelivered_kWh]]></Name>
-					<X>230</X><Y>549</Y>
+					<X>230</X><Y>569</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3021,7 +3073,7 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 				<Variable Class="PlainVariable">
 					<Id>1660212876478</Id>
 					<Name><![CDATA[v_hydrogenDelivered_kWh]]></Name>
-					<X>230</X><Y>529</Y>
+					<X>230</X><Y>549</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3140,7 +3192,7 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 				<Variable Class="Parameter">
 					<Id>1660053984881</Id>
 					<Name><![CDATA[p_parentNodeHeatID]]></Name>
-					<X>220</X><Y>110</Y>
+					<X>250</X><Y>110</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3230,10 +3282,52 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1660641245957</Id>
+					<Name><![CDATA[p_parentNodeElectric]]></Name>
+					<X>50</X><Y>170</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[NetNode]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1660641245955</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1660641260214</Id>
+					<Name><![CDATA[p_parentNodeHeat]]></Name>
+					<X>250</X><Y>170</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[NetNode]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1660641260212</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1658751085004</Id>
 					<Name><![CDATA[c_electricityFlows]]></Name>
-					<X>50</X><Y>340</Y>
+					<X>50</X><Y>360</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3248,7 +3342,7 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 				<Variable Class="CollectionVariable">
 					<Id>1659115755266</Id>
 					<Name><![CDATA[c_heatFlows]]></Name>
-					<X>50</X><Y>400</Y>
+					<X>50</X><Y>420</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3263,7 +3357,7 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 				<Variable Class="CollectionVariable">
 					<Id>1659355047955</Id>
 					<Name><![CDATA[c_methaneFlows]]></Name>
-					<X>50</X><Y>360</Y>
+					<X>50</X><Y>380</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3278,7 +3372,7 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 				<Variable Class="CollectionVariable">
 					<Id>1659513190843</Id>
 					<Name><![CDATA[c_hydrogenFlows]]></Name>
-					<X>50</X><Y>380</Y>
+					<X>50</X><Y>400</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3496,7 +3590,7 @@ f_bepaalFlexibiliteit();]]></Action>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1658500398176</Id>
 					<Name><![CDATA[f_connectToParentNode]]></Name>
-					<X>50</X><Y>180</Y>
+					<X>50</X><Y>200</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3505,12 +3599,14 @@ f_bepaalFlexibiliteit();]]></Action>
 if( myParentNodeElectric instanceof NetNode ) {
 	superConnection.connectTo(myParentNodeElectric);
 	myParentNodeElectric.f_connectToChild(this);
+	p_parentNodeElectric = myParentNodeElectric;
 }
 
 NetNode myParentNodeHeat = findFirst(main.netNodes, p->p.p_agentID.equals(p_parentNodeHeatID)) ;
 if( myParentNodeHeat instanceof NetNode ) {
 	superConnection.connectTo(myParentNodeHeat);
 	myParentNodeHeat.f_connectToChild(this);
+	p_parentNodeHeat = myParentNodeHeat;
 }
 
 ]]></Body>
@@ -3520,7 +3616,7 @@ if( myParentNodeHeat instanceof NetNode ) {
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1658751062480</Id>
 					<Name><![CDATA[f_calculateEnergyBalance]]></Name>
-					<X>50</X><Y>320</Y>
+					<X>50</X><Y>340</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3590,7 +3686,7 @@ f_connectionMetering();]]></Body>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1658752229618</Id>
 					<Name><![CDATA[f_connectToChild]]></Name>
-					<X>50</X><Y>200</Y>
+					<X>50</X><Y>220</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3713,30 +3809,23 @@ if( this.p_netConnectionCategory == OL_NetConnectionCategory.DISTRICTHEATING ) {
 	NetNode HeatNode = findFirst( this.superConnection.getConnections(), c -> c.p_agentID.equals(p_parentNodeHeatID) );
 	List<NetConnection> heatConnections = HeatNode.subConnections.getConnections();
 
-	double heatConsumption_kW = 0;
-	for(NetConnection n : heatConnections ) {
-		heatConsumption_kW += n.v_currentPowerHeat_kW;
-	}
-	traceln("f_operateAssets DH netconnection: heatConsumption_kW = " + heatConsumption_kW ); // Input for heat balance of storage and production
-
 	double tempSetpoint_degC = 60;	
 	double storageTemp_degC = p_buildingTempAsset.p_energyAssetInstance.getCurrentTemperature();
-	traceln("District heating storage temperature " + storageTemp_degC + " degC");
+	traceln("District heating storage temperature " + storageTemp_degC + " degC" + ", district heating network temperature " + p_parentNodeHeat.p_transportBuffer.getCurrentTemperature() + " deg C" );
+	double heatTransferToNetworkCoefficient_kWpK = 5;
+	double heatTransferToNetwork_kW = max(min(storageTemp_degC,tempSetpoint_degC)-p_parentNodeHeat.p_transportBuffer.getCurrentTemperature(), 0) * heatTransferToNetworkCoefficient_kWpK;
 	if (storageTemp_degC < tempSetpoint_degC) {
 
 		//traceln("heatCapacity heatingSystem " + p_spaceHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
-		double heatingPower_kW = p_HeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();
-		p_HeatingAsset.v_powerFraction_fr = heatingPower_kW/p_HeatingAsset.p_energyAssetInstance.getHeatCapacity_kW(); // Should be 1!
-		p_buildingTempAsset.v_powerFraction_fr = (heatingPower_kW - heatConsumption_kW) / p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW();
-
+		double maxHeatingPower_kW = p_HeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();
+		p_HeatingAsset.v_powerFraction_fr = maxHeatingPower_kW/p_HeatingAsset.p_energyAssetInstance.getHeatCapacity_kW(); // Should be 1!
+		p_buildingTempAsset.v_powerFraction_fr = (maxHeatingPower_kW - heatTransferToNetwork_kW) / p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW();
 		//traceln("Power fraction heating " + p_spaceHeatingAsset.v_powerFraction_fr);
 	} else {
 		p_HeatingAsset.v_powerFraction_fr = 0;
-		p_buildingTempAsset.v_powerFraction_fr = - heatConsumption_kW / p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW();
+		p_buildingTempAsset.v_powerFraction_fr = - heatTransferToNetwork_kW / p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW();
 	}
-	//EnergyAsset e = findFirst( c_connectedConversionAssets, c -> c.p_energyAssetType == OL_EnergyAssetType.GAS_BURNER );
-	//p_spaceHeatingAsset.v_powerFraction_fr = heatConsumption_kW / p_spaceHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();
-	traceln("District heating power fraction " + p_HeatingAsset.v_powerFraction_fr);
+	//traceln("District heating power fraction " + p_HeatingAsset.v_powerFraction_fr);
 }
 
 // Conversion operation hard-coded test-value
@@ -3866,7 +3955,7 @@ nextActivityEndTimer.restart( endtimes.get(0) - starttimes.get(0) - time( MINUTE
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1660212665961</Id>
 					<Name><![CDATA[f_connectionMetering]]></Name>
-					<X>50</X><Y>450</Y>
+					<X>50</X><Y>470</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
