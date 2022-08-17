@@ -435,6 +435,10 @@
 				<Id>1660744105865</Id>
 				<Name><![CDATA[METHANE_FIXED]]></Name>
 			</Option>
+			<Option>
+				<Id>1660746114431</Id>
+				<Name><![CDATA[HYDROGEN_FIXED]]></Name>
+			</Option>
 		</OptionList>
 	</OptionLists>
 	<ActiveObjectClasses>
@@ -726,6 +730,18 @@ v_currentAmbientTemperature_degC = tf_ambientTemperature_degC(time(HOUR));
 // Update incentives based on energyflows from previous timestep (or start with 'initial incentives')
 
 // Propagate incentives from energySuppiers/holons via connectionOwners to energyManagers in netConnections
+nationalEnergyMarket.f_updateEnergyPrice();
+for (EnergySupplier e : pop_energySuppliers) {
+	e.f_updateEnergyPrice();
+}
+for (GridOperator g : pop_gridOperators) {
+	//e.f_updateGridTariff();
+}
+for (EnergyHolon e : pop_energyHolons) {
+	//e.f_updateEnergyPrice();
+	//e.f_updateOtherIncentives();
+}
+
 
 // Calculate loads from bottom nodes up
 
@@ -796,7 +812,8 @@ for (Tuple actor : actors) {
 	if (actortype.equals(OL_ActorType.CONNECTIONOWNER) ) {
 	    ConnectionOwner Actor = add_pop_connectionOwners( actorID, actortype, parentActorID, null);
     } else if (actortype.equals(OL_ActorType.ENERGYSUPPLIER) ) {
-	    EnergySupplier Actor = add_pop_energySuppliers( actorID, actortype, parentActorID, null);
+//	    EnergySupplier Actor = add_pop_energySuppliers( actorID, actortype, parentActorID, null);
+		EnergySupplier Actor = add_pop_energySuppliers(actorID, actortype, parentActorID, null, 0.21, 0.1, 0.05, 0.3, 0.17);
     } else if (actortype.equals(OL_ActorType.ENERGYHOLON) ) {
 	    EnergyHolon Actor = add_pop_energyHolons( actorID, actortype, parentActorID, null);
     } else if (actortype.equals(OL_ActorType.GRIDOPERATOR) ) {
@@ -1907,6 +1924,21 @@ e.f_connectToParentNode( ownerAgent );]]></Body>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_parentActor]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_fixedElectricityPrice_eurpkWh]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_fixedHeatPrice_eurpkWh]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_fixedMethanePrice_eurpkWh]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_fixedHydrogenPrice_eurpkWh]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_variableElectricityPriceOverNational_eurpkWh]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -3360,7 +3392,7 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 				<Variable Class="PlainVariable">
 					<Id>1660212876478</Id>
 					<Name><![CDATA[v_hydrogenDelivered_kWh]]></Name>
-					<X>230</X><Y>559</Y>
+					<X>230</X><Y>549</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -4349,7 +4381,7 @@ nextActivityEndTimer.restart( endtimes.get(0) - starttimes.get(0) - time( MINUTE
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1660212665961</Id>
 					<Name><![CDATA[f_connectionMetering]]></Name>
-					<X>50</X><Y>470</Y>
+					<X>50</X><Y>490</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -10548,6 +10580,33 @@ Operator]]></Text>
 			<CurrentLevel>1660731377983</CurrentLevel>
 			<ConnectionsId>1660731377979</ConnectionsId>
 			<Variables>
+				<Variable Class="PlainVariable">
+					<Id>1660746837357</Id>
+					<Name><![CDATA[v_currentVariableElectricityPrice_eurpkWh]]></Name>
+					<X>30</X><Y>330</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1660752591616</Id>
+					<Name><![CDATA[v_currentBalance_eur]]></Name>
+					<X>30</X><Y>500</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1660736336144</Id>
 					<Name><![CDATA[p_actorID]]></Name>
@@ -10648,6 +10707,111 @@ Operator]]></Text>
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1660746260066</Id>
+					<Name><![CDATA[p_fixedElectricityPrice_eurpkWh]]></Name>
+					<X>30</X><Y>210</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1660746260064</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1660746283321</Id>
+					<Name><![CDATA[p_fixedHeatPrice_eurpkWh]]></Name>
+					<X>30</X><Y>230</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1660746283319</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1660746306858</Id>
+					<Name><![CDATA[p_fixedMethanePrice_eurpkWh]]></Name>
+					<X>30</X><Y>250</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1660746306856</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1660746679056</Id>
+					<Name><![CDATA[p_fixedHydrogenPrice_eurpkWh]]></Name>
+					<X>30</X><Y>270</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1660746679054</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1660746710965</Id>
+					<Name><![CDATA[p_variableElectricityPriceOverNational_eurpkWh]]></Name>
+					<X>30</X><Y>310</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1660746710963</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 			</Variables>
 			<Functions>
 				<Function AccessType="default" StaticFunction="false">
@@ -10693,15 +10857,94 @@ Operator]]></Text>
 }]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnModificator>RETURNS_VALUE</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1660743197178</Id>
-					<Name><![CDATA[f_doEnergyTransaction]]></Name>
-					<X>30</X><Y>240</Y>
+					<Name><![CDATA[f_doEnergyTransactionClient]]></Name>
+					<X>30</X><Y>370</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[transactionVolume_kWh]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
+					<Parameter>
+						<Name><![CDATA[contractType]]></Name>
+						<Type><![CDATA[OL_ContractType]]></Type>
+					</Parameter>
+					<Body><![CDATA[double transactionCost_eur;
+switch (contractType) {
+	case ELECTRICITY_FIXED:
+			transactionCost_eur = transactionVolume_kWh * p_fixedElectricityPrice_eurpkWh;
+		break;
+	case ELECTRICITY_VARIABLE:
+			transactionCost_eur = transactionVolume_kWh * (p_variableElectricityPriceOverNational_eurpkWh + v_currentVariableElectricityPrice_eurpkWh);
+		break;
+	case HEAT_FIXED:
+			transactionCost_eur = transactionVolume_kWh * p_fixedHeatPrice_eurpkWh;		
+		break;
+	case METHANE_FIXED:
+			transactionCost_eur = transactionVolume_kWh * p_fixedMethanePrice_eurpkWh;
+		break;
+	case HYDROGEN_FIXED:
+			transactionCost_eur = transactionVolume_kWh * p_fixedHydrogenPrice_eurpkWh;
+		break;
+	default: 
+		throw new IllegalStateException("Invalid contract type: " + contractType);
+}
+v_currentBalance_eur += transactionCost_eur;
+return transactionCost_eur;]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>RETURNS_VALUE</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1660746864022</Id>
+					<Name><![CDATA[f_getEnergyPrice]]></Name>
+					<X>30</X><Y>400</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[contractType]]></Name>
+						<Type><![CDATA[OL_ContractType]]></Type>
+					</Parameter>
+					<Body><![CDATA[double energyPrice_eurpkWh;
+switch (contractType) {
+	case ELECTRICITY_FIXED:
+			energyPrice_eurpkWh = p_fixedElectricityPrice_eurpkWh;
+		break;
+	case ELECTRICITY_VARIABLE:
+			energyPrice_eurpkWh = (p_variableElectricityPriceOverNational_eurpkWh + v_currentVariableElectricityPrice_eurpkWh);
+		break;
+	case HEAT_FIXED:
+			energyPrice_eurpkWh = p_fixedHeatPrice_eurpkWh;		
+		break;
+	case METHANE_FIXED:
+			energyPrice_eurpkWh = p_fixedMethanePrice_eurpkWh;
+		break;
+	case HYDROGEN_FIXED:
+			energyPrice_eurpkWh = p_fixedHydrogenPrice_eurpkWh;
+		break;
+	default: 
+		throw new IllegalStateException("Invalid contract type: " + contractType);
+}
+
+return energyPrice_eurpkWh;]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1660746926252</Id>
+					<Name><![CDATA[f_updateEnergyPrice]]></Name>
+					<X>30</X><Y>430</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[v_currentVariableElectricityPrice_eurpkWh = main.nationalEnergyMarket.f_getNationalElectricityPrice_eurpMWh()/1000;]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -11248,29 +11491,51 @@ Operator]]></Text>
 			</ScaleRuler>
 			<CurrentLevel>1660731384414</CurrentLevel>
 			<ConnectionsId>1660731384410</ConnectionsId>
+			<Variables>
+				<Variable Class="PlainVariable">
+					<Id>1660752725660</Id>
+					<Name><![CDATA[v_currentVariableElectricityPrice_eurpMWh]]></Name>
+					<X>50</X><Y>110</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+			</Variables>
 			<Functions>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>RETURNS_VALUE</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1660738813066</Id>
 					<Name><![CDATA[f_getNationalElectricityPrice_eurpMWh]]></Name>
-					<X>50</X><Y>90</Y>
+					<X>50</X><Y>140</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[return tf_dayAheadElectricity_eurpMWh(time(HOUR));]]></Body>
+					<Body><![CDATA[return v_currentVariableElectricityPrice_eurpMWh;]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1660752725657</Id>
+					<Name><![CDATA[f_updateEnergyPrice]]></Name>
+					<X>50</X><Y>80</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[v_currentVariableElectricityPrice_eurpMWh = tf_dayAheadElectricityPricing_eurpMWh(time(HOUR));]]></Body>
 				</Function>
 			</Functions>
 			<TableFunctions>
-				<TableFunction AccessType="private" StaticFunction="false">
-					<Id>1660738765110</Id>
-					<Name><![CDATA[tf_dayAheadElectricity_eurpMWh]]></Name>
-					<Description><![CDATA[Genormaliseerde tijdreeksdata per uur voor household other electricity demand (koeling, verlichting etc.), ingelezen vanuit externe (aanpasbare) database.
-
-@since: Sprint 6
-@author: Jorrit]]></Description>
-					<X>50</X><Y>40</Y>
+				<TableFunction AccessType="public" StaticFunction="false">
+					<Id>1660752214584</Id>
+					<Name><![CDATA[tf_dayAheadElectricityPricing_eurpMWh]]></Name>
+					<X>50</X><Y>50</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -11510,7 +11775,7 @@ Operator]]></Text>
 				</TableReference>
 				<ConnectionIndex>2</ConnectionIndex>
 				<ExternalTableName><![CDATA["profiles"]]></ExternalTableName>
-				<AutoImport>true</AutoImport>
+				<AutoImport>false</AutoImport>
 			</TableImportSettings>
 			<TableImportSettings>
 				<TableReference>
