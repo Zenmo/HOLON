@@ -703,6 +703,10 @@ v_currentWindPowerNormalized_r = tf_p_wind_e_normalized(time(HOUR));
 v_currentSolarPowerNormalized_r = tf_p_solar_e_normalized(time(HOUR));
 v_currentAmbientTemperature_degC = tf_ambientTemperature_degC(time(HOUR));
 
+// Update incentives based on energyflows from previous timestep (or start with 'initial incentives')
+
+// Propagate incentives from energySuppiers/holons via connectionOwners to energyManagers in netConnections
+
 // Calculate loads from bottom nodes up
 
 /*
@@ -728,6 +732,14 @@ for(NetNode n : pop_netNodes) {
 	n.f_calculateEnergyBalance();
 }
 
+///////////// Financial accounting of energy flows
+
+// Propagate transaction volumes, by definition bottom-up
+/*for all connectionOwners do energyTransaction with energyHolons and/or energySuppliers
+
+for all energyHolons do energyTransaction with energySuppliers
+
+for all energySuppliers do energyTransaction with nationalMarket*/
 ]]></Action>
 				</Event>
 			</Events>
@@ -11041,6 +11053,59 @@ Operator]]></Text>
 			</ScaleRuler>
 			<CurrentLevel>1660731384414</CurrentLevel>
 			<ConnectionsId>1660731384410</ConnectionsId>
+			<Functions>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>RETURNS_VALUE</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1660738813066</Id>
+					<Name><![CDATA[f_getNationalElectricityPrice_eurpMWh]]></Name>
+					<X>50</X><Y>90</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[return tf_dayAheadElectricity_eurpMWh(time(HOUR));]]></Body>
+				</Function>
+			</Functions>
+			<TableFunctions>
+				<TableFunction AccessType="private" StaticFunction="false">
+					<Id>1660738765110</Id>
+					<Name><![CDATA[tf_dayAheadElectricity_eurpMWh]]></Name>
+					<Description><![CDATA[Genormaliseerde tijdreeksdata per uur voor household other electricity demand (koeling, verlichting etc.), ingelezen vanuit externe (aanpasbare) database.
+
+@since: Sprint 6
+@author: Jorrit]]></Description>
+					<X>50</X><Y>40</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<InterpolationMethod>LINEAR</InterpolationMethod>
+					<OutOfRangeBehaviour>ERROR</OutOfRangeBehaviour>
+					<OutOfRangeCustomValue><![CDATA[0.0]]></OutOfRangeCustomValue>
+					<ApproximationOrder><![CDATA[1]]></ApproximationOrder>
+					<LoadFromDatabase><![CDATA[true]]></LoadFromDatabase>
+					<ValuesQuery>
+						<TableReference>
+							<PackageName><![CDATA[base]]></PackageName>
+							<ClassName><![CDATA[profiles]]></ClassName>
+						</TableReference>
+							<ArgumentColumnReference>
+								<PackageName><![CDATA[base]]></PackageName>
+								<ClassName><![CDATA[profiles]]></ClassName>
+								<ItemName><![CDATA[t_h]]></ItemName>
+							</ArgumentColumnReference>
+							<ValueColumnReference>
+								<PackageName><![CDATA[base]]></PackageName>
+								<ClassName><![CDATA[profiles]]></ClassName>
+								<ItemName><![CDATA[day_ahead_price_eur_mwh]]></ItemName>
+							</ValueColumnReference>
+					</ValuesQuery>
+// arguments and values
+					<Argument><![CDATA[0.0]]></Argument>
+					<Value><![CDATA[0.0]]></Value>
+				</TableFunction>
+			</TableFunctions>
 			<AgentLinks>
 				<AgentLink>
 					<Id>1660731384410</Id>
