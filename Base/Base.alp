@@ -810,24 +810,30 @@ List<Tuple> actors = selectFrom(config_actors)
 String actorID;
 OL_ActorType actortype;
 String parentActorID;
+String type;
 
 for (Tuple actor : actors) {
     actorID = actor.get( config_actors.id );
-    actortype = actor.get( config_actors.type );
+    type = actor.get( config_actors.type );
+    actortype = actor.get( config_actors.agenttype );
+    //traceln(actortype.toString());
     parentActorID = actor.get( config_actors.parent_actor );
 
 	if (actortype.equals(OL_ActorType.CONNECTIONOWNER) ) {
-	    ConnectionOwner Actor = add_pop_connectionOwners( actorID, actortype, parentActorID, null);
+	    ConnectionOwner Actor = add_pop_connectionOwners( actorID, type, parentActorID, null);
     } else if (actortype.equals(OL_ActorType.ENERGYSUPPLIER) ) {
 //	    EnergySupplier Actor = add_pop_energySuppliers( actorID, actortype, parentActorID, null);
-		EnergySupplier Actor = add_pop_energySuppliers(actorID, actortype, parentActorID, null, 0.21, 0.1, 0.05, 0.3, 0.17);
+		EnergySupplier Actor = add_pop_energySuppliers(actorID, type, parentActorID, null, 0.21, 0.1, 0.05, 0.3, 0.17);
     } else if (actortype.equals(OL_ActorType.ENERGYHOLON) ) {
-	    EnergyHolon Actor = add_pop_energyHolons( actorID, actortype, parentActorID, null);
+	    EnergyHolon Actor = add_pop_energyHolons( actorID, type, parentActorID, null);
     } else if (actortype.equals(OL_ActorType.GRIDOPERATOR) ) {
-	    GridOperator Actor = add_pop_gridOperators( actorID, actortype, parentActorID, null);
+	    GridOperator Actor = add_pop_gridOperators( actorID, type, parentActorID, null);
     }
 }
 for (ConnectionOwner a : pop_connectionOwners) {
+	a.f_connectToParentActor();
+}
+for (EnergyHolon a : pop_energyHolons) {
 	a.f_connectToParentActor();
 }
 
@@ -1288,6 +1294,8 @@ double stateOfCharge_r = 0;
 double lossFactor_WpK = 0;
 double chargeCapacity_kWh = 0;
 double heatCapacity_JpK = 0;
+double minTemperature_degC = 0;
+double maxTemperature_degC = 0;
 
 for( Tuple tup : data ) {
 assetType = tup.get( storage_assets.energy_asset_type );
@@ -1297,11 +1305,13 @@ stateOfCharge_r =  tup.get( storage_assets.state_of_charge_r );
 lossFactor_WpK =  tup.get( storage_assets.loss_factor_wpk );
 chargeCapacity_kWh =  tup.get( storage_assets.charge_capacity_kwh );
 heatCapacity_JpK =  tup.get( storage_assets.heat_capacity_jpk );
+minTemperature_degC = tup.get( storage_assets.min_temp_degc);
+maxTemperature_degC = tup.get( storage_assets.max_temp_degc);
 }
 
 
 EnergyAsset e = add_pop_energyAssets( null, parentAgentID, assetType );
-e.f_instantiateStorageAsset( assetType, capacityElectricity_kW, capacityHeat_kW, stateOfCharge_r, lossFactor_WpK, chargeCapacity_kWh, heatCapacity_JpK  );
+e.f_instantiateStorageAsset( assetType, capacityElectricity_kW, capacityHeat_kW, stateOfCharge_r, lossFactor_WpK, chargeCapacity_kWh, heatCapacity_JpK, minTemperature_degC, maxTemperature_degC );
 e.f_connectToParentNode( ownerAgent );]]></Body>
 				</Function>
 			</Functions>
@@ -2018,7 +2028,7 @@ e.f_connectToParentNode( ownerAgent );]]></Body>
 							<Name><![CDATA[p_parentActorID]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_parentActor]]></Name>
+							<Name><![CDATA[p_energySupplier]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -4244,7 +4254,7 @@ if( this.p_netConnectionCategory == OL_NetConnectionCategory.DISTRICTHEATING ) {
 
 	double tempSetpoint_degC = 60;	
 	double storageTemp_degC = p_buildingTempAsset.p_energyAssetInstance.getCurrentTemperature();
-	traceln("District heating storage temperature " + storageTemp_degC + " degC" + ", district heating network temperature " + p_parentNodeHeat.p_transportBuffer.getCurrentTemperature() + " deg C" );
+	//traceln("District heating storage temperature " + storageTemp_degC + " degC" + ", district heating network temperature " + p_parentNodeHeat.p_transportBuffer.getCurrentTemperature() + " deg C" );
 	double heatTransferToNetworkCoefficient_kWpK = 5;
 	double heatTransferToNetwork_kW = max(min(storageTemp_degC,tempSetpoint_degC)-p_parentNodeHeat.p_transportBuffer.getCurrentTemperature(), 0) * heatTransferToNetworkCoefficient_kWpK;
 	if (storageTemp_degC < tempSetpoint_degC) {
@@ -5103,8 +5113,15 @@ p_energyAssetType = assetType;]]></Body>
 						<Name><![CDATA[heatCapacity_JpK]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
+					<Parameter>
+						<Name><![CDATA[minTemperature_degC]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
+					<Parameter>
+						<Name><![CDATA[maxTemperature_degC]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
 					<Body><![CDATA[//energyAssetType	capacityElectricity_kW	capacityHeat_kW	stateOfCharge_r	minTemp_degC	maxTemp_degC	lossFactor_WpK	chargeCapacity_kWh	heatCapacity_JpK
-
 
 switch(assetType) {
 	case STORAGE_ELECTRIC:
@@ -5116,7 +5133,7 @@ switch(assetType) {
 	traceln("instantiating asset as heat buffer");
 	traceln("lossFactor_WpK " + lossFactor_WpK);
 	//EnergyAsset ownerAsset, double capacityHeat_kW, double lossFactor_WpK, double timestep_h, double initialTemperature_degC, double minTemperature_degC, double maxTemperature_degC, double heatCapacity_JpK
-	p_energyAssetInstance = new J_EAStorageHeat(this, capacityHeat_kW, lossFactor_WpK, main.p_timeStep_h, InitialStateOfCharge_r*(50+10)-10, 10, 90, heatCapacity_JpK);
+	p_energyAssetInstance = new J_EAStorageHeat(this, capacityHeat_kW, lossFactor_WpK, main.p_timeStep_h, InitialStateOfCharge_r*(maxTemperature_degC-minTemperature_degC)-minTemperature_degC, minTemperature_degC, maxTemperature_degC, heatCapacity_JpK);
 	break;
 	case ELECTRIC_VEHICLE:
 	traceln("instantiating asset as electric vehicle");
@@ -5602,10 +5619,10 @@ f_plotActors(minx,maxx);]]></Body>
 					</Parameter>
 					<Body><![CDATA[// Bepaal aanwezige actortypen voor visualisatie
 List<ConnectionOwner> Actors = filter( main.pop_connectionOwners, n -> true );
-List<ConnectionOwner> Households = filter( main.pop_connectionOwners, n -> n.p_actorType == OL_ActorType.CONNECTIONOWNER);
-List<ConnectionOwner> Commercials = filter( main.pop_connectionOwners, n -> n.p_actorType == OL_ActorType.CONNECTIONOWNER);
-List<ConnectionOwner> EnergySuppliers = filter( main.pop_connectionOwners, n -> n.p_actorType == OL_ActorType.ENERGYSUPPLIER);
-List<ConnectionOwner> Holons = filter( main.pop_connectionOwners, n -> n.p_actorType == OL_ActorType.ENERGYHOLON);
+List<ConnectionOwner> Households = filter( main.pop_connectionOwners, n -> n.p_actorType.equals("household") );
+List<ConnectionOwner> Commercials = filter( main.pop_connectionOwners, n -> n.p_actorType.equals("commercial") );
+List<EnergySupplier> EnergySuppliers = filter( main.pop_energySuppliers, n -> n.p_actorType.equals("energysupplier") );
+List<EnergyHolon> Holons = filter( main.pop_energyHolons, n -> n.p_actorType.equals("holon") );
 
 traceln("KPIVisuals f_plotActors(): number of households: "+ Households.size());
 traceln("KPIVisuals f_plotActors(): number of commercials: "+ Commercials.size());
@@ -5617,9 +5634,9 @@ if( p_individualMode ) {
 	int index = 0;
 	double xinterval = ( maxx - minx ) / ( Holons.size() * 2 );
 	
-	for ( Iterator<ConnectionOwner> it = Holons.iterator(); it.hasNext(); index++ )
+	for ( Iterator<EnergyHolon> it = Holons.iterator(); it.hasNext(); index++ )
 	{
-	    ConnectionOwner holon = it.next();
+	    EnergyHolon holon = it.next();
 		String parent = holon.p_parentActorID;
  	   	String actorID = holon.p_actorID;
  	   	OL_ActorType actorType = OL_ActorType.ENERGYHOLON;
@@ -5634,9 +5651,9 @@ if( p_individualMode ) {
 	ylevel = 750;
 	index = 0;
 	xinterval = ( maxx - minx ) / ( EnergySuppliers.size() * 2 );
-	for ( Iterator<ConnectionOwner> it = EnergySuppliers.iterator(); it.hasNext(); index++ )
+	for ( Iterator<EnergySupplier> it = EnergySuppliers.iterator(); it.hasNext(); index++ )
 	{
-	    ConnectionOwner energySupplier = it.next();
+	    EnergySupplier energySupplier = it.next();
 		String parent = energySupplier.p_parentActorID;
  	   	String actorID = energySupplier.p_actorID;
  	   	OL_ActorType actorType = OL_ActorType.ENERGYSUPPLIER;
@@ -8238,7 +8255,7 @@ t_nodetype.setText(p_nodeType);]]></Body>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[OL_ActorType]]></Type>
+						<Type><![CDATA[String]]></Type>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<ParameterEditor>
@@ -8288,7 +8305,7 @@ t_nodetype.setText(p_nodeType);]]></Body>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[EnergySupplier]]></Type>
+						<Type><![CDATA[Agent]]></Type>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<ParameterEditor>
@@ -8337,10 +8354,19 @@ t_nodetype.setText(p_nodeType);]]></Body>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[if ( p_parentActorID != null ) {
 	Agent myParentActor = findFirst(main.pop_energySuppliers, p->p.p_actorID.equals(p_parentActorID)) ;
-	if( myParentActor instanceof EnergySupplier) {
-		p_energySupplier = (EnergySupplier) myParentActor;
+	if( myParentActor != null) {
 		superConnection.connectTo(myParentActor);
-		p_energySupplier.f_connectToChild((ConnectionOwner)this);
+		p_energySupplier = myParentActor;
+		EnergySupplier energySupplier =  (EnergySupplier)myParentActor;
+		energySupplier.f_connectToChild(this);
+	}
+	
+	myParentActor = findFirst(main.pop_energyHolons, p->p.p_actorID.equals(p_parentActorID)) ;
+	if( myParentActor != null) {
+		superConnection.connectTo(myParentActor);
+		p_energySupplier = myParentActor;
+		EnergyHolon energySupplier = (EnergyHolon)myParentActor;
+		energySupplier.f_connectToChild(this);
 	}
 }]]></Body>
 				</Function>
@@ -8359,12 +8385,24 @@ f_gatherEnergyFlows();
 
 // trigger transaction with supplier/holon
 if( p_energySupplier != null) { 
-	double transactionCost_eur = p_energySupplier.f_doEnergyTransaction(v_electricityVolume_kWh, v_electricityContractType);
-	v_balanceElectricity_eur -= transactionCost_eur;
-	transactionCost_eur = p_energySupplier.f_doEnergyTransaction(v_heatVolume_kWh, v_heatContractType);
-	v_balanceHeat_eur -= transactionCost_eur;
-	transactionCost_eur = p_energySupplier.f_doEnergyTransaction(v_methaneVolume_kWh, v_methaneContractType);
-	v_balanceMethane_eur -= transactionCost_eur; 
+	if( p_energySupplier instanceof EnergySupplier) {
+		EnergySupplier energySupplier = (EnergySupplier)p_energySupplier;
+		double transactionCost_eur = energySupplier.f_doEnergyTransaction(v_electricityVolume_kWh, v_electricityContractType);
+		v_balanceElectricity_eur -= transactionCost_eur;
+		transactionCost_eur = energySupplier.f_doEnergyTransaction(v_heatVolume_kWh, v_heatContractType);
+		v_balanceHeat_eur -= transactionCost_eur;
+		transactionCost_eur = energySupplier.f_doEnergyTransaction(v_methaneVolume_kWh, v_methaneContractType);
+		v_balanceMethane_eur -= transactionCost_eur; 
+	} else if ( p_energySupplier instanceof EnergyHolon ) {
+		EnergyHolon energySupplier = (EnergyHolon)p_energySupplier;
+		double transactionCost_eur = energySupplier.f_doEnergyTransaction(v_electricityVolume_kWh, v_electricityContractType);
+		v_balanceElectricity_eur -= transactionCost_eur;
+		transactionCost_eur = energySupplier.f_doEnergyTransaction(v_heatVolume_kWh, v_heatContractType);
+		v_balanceHeat_eur -= transactionCost_eur;
+		transactionCost_eur = energySupplier.f_doEnergyTransaction(v_methaneVolume_kWh, v_methaneContractType);
+		v_balanceMethane_eur -= transactionCost_eur; 
+			
+	}
 } else {
 	traceln("Connection owner " + this + " has no energy supplier!");
 }]]></Body>
@@ -10255,6 +10293,21 @@ Operator]]></Text>
 			<CurrentLevel>1660731375015</CurrentLevel>
 			<ConnectionsId>1660731375011</ConnectionsId>
 			<Variables>
+				<Variable Class="PlainVariable">
+					<Id>1660826420173</Id>
+					<Name><![CDATA[v_energyPassedThrough_kWh]]></Name>
+					<X>40</X><Y>300</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1660736326709</Id>
 					<Name><![CDATA[p_actorID]]></Name>
@@ -10293,7 +10346,7 @@ Operator]]></Text>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[OL_ActorType]]></Type>
+						<Type><![CDATA[String]]></Type>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<ParameterEditor>
@@ -10332,7 +10385,7 @@ Operator]]></Text>
 				</Variable>
 				<Variable Class="Parameter">
 					<Id>1660736326718</Id>
-					<Name><![CDATA[p_parentActor]]></Name>
+					<Name><![CDATA[p_energySupplier]]></Name>
 					<Description><![CDATA[Pointer of the designated parent actor (e.g. a holon or energy supplier)
 
 @since: Sprint 6
@@ -10343,7 +10396,7 @@ Operator]]></Text>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[ConnectionOwner]]></Type>
+						<Type><![CDATA[Agent]]></Type>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<ParameterEditor>
@@ -10362,14 +10415,14 @@ Operator]]></Text>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1660736326703</Id>
 					<Name><![CDATA[f_connectToChild]]></Name>
-					<X>40</X><Y>170</Y>
+					<X>40</X><Y>160</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Parameter>
 						<Name><![CDATA[ConnectingChildNode]]></Name>
-						<Type><![CDATA[ConnectionOwner]]></Type>
+						<Type><![CDATA[Agent]]></Type>
 					</Parameter>
 					<Body><![CDATA[subConnections.connectTo(ConnectingChildNode);
 ]]></Body>
@@ -10377,35 +10430,9 @@ Operator]]></Text>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1660736326706</Id>
-					<Name><![CDATA[f_connectToParentActor]]></Name>
-					<Description><![CDATA[Creates an agentLink in superConnection if a parentActorID is designated in the config-excel. Called from f_configureBackBone() in main for profiling reasons, so no parameters are given.
-
-@param: none
-@return: none
-@since: Sprint 6
-@author: HOUJ]]></Description>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>40</X><Y>150</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[if ( p_parentActorID != null ) {
-	Agent myParentActor = findFirst(main.pop_energySuppliers, p->p.p_actorID.equals(p_parentActorID)) ;
-	if( myParentActor instanceof EnergySupplier) {
-		p_parentActor = myParentActor;
-		superConnection.connectTo(myParentActor);
-		myParentActor.f_connectToChild(this);
-	}
-}]]></Body>
-				</Function>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1660806150226</Id>
 					<Name><![CDATA[f_updateFinances]]></Name>
-					<X>40</X><Y>220</Y>
+					<X>40</X><Y>260</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -10421,6 +10448,72 @@ double transactionCost_eur = p_energySupplier.f_doEnergyTransaction(transactionV
 v_balanceHeat_eur -= transactionCost;
 double transactionCost_eur = p_energySupplier.f_doEnergyTransaction(transactionVolume_kWh, v_methaneContractType);
 v_balanceMethane_eur -= transactionCost; */]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>RETURNS_VALUE</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1660825183645</Id>
+					<Name><![CDATA[f_doEnergyTransaction]]></Name>
+					<X>40</X><Y>220</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[transactionVolume_kWh]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
+					<Parameter>
+						<Name><![CDATA[contractType]]></Name>
+						<Type><![CDATA[OL_ContractType]]></Type>
+					</Parameter>
+					<Body><![CDATA[double transactionCostClient_eur = 0;
+
+if( p_energySupplier instanceof EnergySupplier ) {
+	EnergySupplier energySupplier = (EnergySupplier)p_energySupplier;
+	transactionCostClient_eur = energySupplier.f_doEnergyTransaction(transactionVolume_kWh, contractType);
+} else if( p_energySupplier instanceof EnergyHolon ) {
+	EnergyHolon energySupplier = (EnergyHolon)p_energySupplier;
+	transactionCostClient_eur = energySupplier.f_doEnergyTransaction(transactionVolume_kWh, contractType);
+}
+
+v_energyPassedThrough_kWh += transactionVolume_kWh;
+
+return transactionCostClient_eur;]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1660825257472</Id>
+					<Name><![CDATA[f_connectToParentActor]]></Name>
+					<Description><![CDATA[Creates an agentLink in superConnection if a parentActorID is designated in the config-excel. Called from f_configureBackBone() in main for profiling reasons, so no parameters are given.
+
+@param: none
+@return: none
+@since: Sprint 6
+@author: HOUJ]]></Description>
+					<X>40</X><Y>190</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[if ( p_parentActorID != null ) {
+	Agent myParentActor = findFirst(main.pop_energySuppliers, p->p.p_actorID.equals(p_parentActorID)) ;
+	if( myParentActor != null) {
+		superConnection.connectTo(myParentActor);
+		p_energySupplier = myParentActor;
+		EnergySupplier energySupplier =  (EnergySupplier)myParentActor;
+		energySupplier.f_connectToChild(this);
+	}
+	
+	myParentActor = findFirst(main.pop_energyHolons, p->p.p_actorID.equals(p_parentActorID)) ;
+	if( myParentActor != null) {
+		superConnection.connectTo(myParentActor);
+		p_energySupplier = myParentActor;
+		EnergyHolon energySupplier = (EnergyHolon)myParentActor;
+		energySupplier.f_connectToChild(this);
+	}
+}]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -10778,7 +10871,7 @@ v_balanceMethane_eur -= transactionCost; */]]></Body>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[OL_ActorType]]></Type>
+						<Type><![CDATA[String]]></Type>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<ParameterEditor>
@@ -11343,7 +11436,7 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[OL_ActorType]]></Type>
+						<Type><![CDATA[String]]></Type>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<ParameterEditor>
@@ -11799,27 +11892,6 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 		<ShutdownCompact>false</ShutdownCompact>
 		<ImportSettings>
 			<ExternalConnection>
-				<Id>1659535432855</Id>
-				<Name><![CDATA[database]]></Name>
-				<X>0</X><Y>0</Y>
-				<Label><X>10</X><Y>0</Y></Label>
-				<PublicFlag>false</PublicFlag>
-				<PresentationFlag>true</PresentationFlag>
-				<ShowLabel>true</ShowLabel>
-				<DatabaseType>EXCEL_ACCESS</DatabaseType>
-				<ConnectionURL><![CDATA[]]></ConnectionURL>
-				<ConnectOnStartup>true</ConnectOnStartup>
-				<DatabaseName><![CDATA[]]></DatabaseName>
-				<ResourceReference>
-					<PackageName><![CDATA[base]]></PackageName>
-					<ClassName><![CDATA[db_defaultEnergyAssets.xlsx]]></ClassName>
-				</ResourceReference>
-				<Host><![CDATA[localhost]]></Host>
-				<JdbcDriverClassName><![CDATA[net.sourceforge.jtds.jdbc.Driver]]></JdbcDriverClassName>
-				<Login><![CDATA[]]></Login>
-				<Password><![CDATA[]]></Password>
-			</ExternalConnection>
-			<ExternalConnection>
 				<Id>1658495176902</Id>
 				<Name><![CDATA[database]]></Name>
 				<X>0</X><Y>0</Y>
@@ -11834,6 +11906,27 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 				<ResourceReference>
 					<PackageName><![CDATA[base]]></PackageName>
 					<ClassName><![CDATA[db_backboneConfig.xlsx]]></ClassName>
+				</ResourceReference>
+				<Host><![CDATA[localhost]]></Host>
+				<JdbcDriverClassName><![CDATA[net.sourceforge.jtds.jdbc.Driver]]></JdbcDriverClassName>
+				<Login><![CDATA[]]></Login>
+				<Password><![CDATA[]]></Password>
+			</ExternalConnection>
+			<ExternalConnection>
+				<Id>1659535432855</Id>
+				<Name><![CDATA[database]]></Name>
+				<X>0</X><Y>0</Y>
+				<Label><X>10</X><Y>0</Y></Label>
+				<PublicFlag>false</PublicFlag>
+				<PresentationFlag>true</PresentationFlag>
+				<ShowLabel>true</ShowLabel>
+				<DatabaseType>EXCEL_ACCESS</DatabaseType>
+				<ConnectionURL><![CDATA[]]></ConnectionURL>
+				<ConnectOnStartup>true</ConnectOnStartup>
+				<DatabaseName><![CDATA[]]></DatabaseName>
+				<ResourceReference>
+					<PackageName><![CDATA[base]]></PackageName>
+					<ClassName><![CDATA[db_defaultEnergyAssets.xlsx]]></ClassName>
 				</ResourceReference>
 				<Host><![CDATA[localhost]]></Host>
 				<JdbcDriverClassName><![CDATA[net.sourceforge.jtds.jdbc.Driver]]></JdbcDriverClassName>
@@ -11885,19 +11978,19 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 			<TableImportSettings>
 				<TableReference>
 					<PackageName><![CDATA[base]]></PackageName>
-					<ClassName><![CDATA[storage_assets]]></ClassName>
+					<ClassName><![CDATA[config]]></ClassName>
 				</TableReference>
 				<ConnectionIndex>0</ConnectionIndex>
-				<ExternalTableName><![CDATA["storageAssets"]]></ExternalTableName>
+				<ExternalTableName><![CDATA["config"]]></ExternalTableName>
 				<AutoImport>true</AutoImport>
 			</TableImportSettings>
 			<TableImportSettings>
 				<TableReference>
 					<PackageName><![CDATA[base]]></PackageName>
-					<ClassName><![CDATA[config]]></ClassName>
+					<ClassName><![CDATA[storage_assets]]></ClassName>
 				</TableReference>
 				<ConnectionIndex>1</ConnectionIndex>
-				<ExternalTableName><![CDATA["config"]]></ExternalTableName>
+				<ExternalTableName><![CDATA["storageAssets"]]></ExternalTableName>
 				<AutoImport>true</AutoImport>
 			</TableImportSettings>
 			<TableImportSettings>
@@ -11905,17 +11998,8 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 					<PackageName><![CDATA[base]]></PackageName>
 					<ClassName><![CDATA[consumption_assets]]></ClassName>
 				</TableReference>
-				<ConnectionIndex>0</ConnectionIndex>
+				<ConnectionIndex>1</ConnectionIndex>
 				<ExternalTableName><![CDATA["consumptionAssets"]]></ExternalTableName>
-				<AutoImport>true</AutoImport>
-			</TableImportSettings>
-			<TableImportSettings>
-				<TableReference>
-					<PackageName><![CDATA[base]]></PackageName>
-					<ClassName><![CDATA[conversion_assets]]></ClassName>
-				</TableReference>
-				<ConnectionIndex>0</ConnectionIndex>
-				<ExternalTableName><![CDATA["conversionAssets"]]></ExternalTableName>
 				<AutoImport>true</AutoImport>
 			</TableImportSettings>
 			<TableImportSettings>
@@ -11923,8 +12007,35 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 					<PackageName><![CDATA[base]]></PackageName>
 					<ClassName><![CDATA[production_assets]]></ClassName>
 				</TableReference>
-				<ConnectionIndex>0</ConnectionIndex>
+				<ConnectionIndex>1</ConnectionIndex>
 				<ExternalTableName><![CDATA["productionAssets"]]></ExternalTableName>
+				<AutoImport>true</AutoImport>
+			</TableImportSettings>
+			<TableImportSettings>
+				<TableReference>
+					<PackageName><![CDATA[base]]></PackageName>
+					<ClassName><![CDATA[conversion_assets]]></ClassName>
+				</TableReference>
+				<ConnectionIndex>1</ConnectionIndex>
+				<ExternalTableName><![CDATA["conversionAssets"]]></ExternalTableName>
+				<AutoImport>true</AutoImport>
+			</TableImportSettings>
+			<TableImportSettings>
+				<TableReference>
+					<PackageName><![CDATA[base]]></PackageName>
+					<ClassName><![CDATA[config_actors]]></ClassName>
+				</TableReference>
+				<ConnectionIndex>0</ConnectionIndex>
+				<ExternalTableName><![CDATA["config_actors"]]></ExternalTableName>
+				<AutoImport>true</AutoImport>
+			</TableImportSettings>
+			<TableImportSettings>
+				<TableReference>
+					<PackageName><![CDATA[base]]></PackageName>
+					<ClassName><![CDATA[config_netconnections]]></ClassName>
+				</TableReference>
+				<ConnectionIndex>0</ConnectionIndex>
+				<ExternalTableName><![CDATA["config_netConnections"]]></ExternalTableName>
 				<AutoImport>true</AutoImport>
 			</TableImportSettings>
 			<TableImportSettings>
@@ -11935,24 +12046,6 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 				<ConnectionIndex>2</ConnectionIndex>
 				<ExternalTableName><![CDATA["profiles"]]></ExternalTableName>
 				<AutoImport>false</AutoImport>
-			</TableImportSettings>
-			<TableImportSettings>
-				<TableReference>
-					<PackageName><![CDATA[base]]></PackageName>
-					<ClassName><![CDATA[config_netconnections]]></ClassName>
-				</TableReference>
-				<ConnectionIndex>1</ConnectionIndex>
-				<ExternalTableName><![CDATA["config_netConnections"]]></ExternalTableName>
-				<AutoImport>true</AutoImport>
-			</TableImportSettings>
-			<TableImportSettings>
-				<TableReference>
-					<PackageName><![CDATA[base]]></PackageName>
-					<ClassName><![CDATA[config_actors]]></ClassName>
-				</TableReference>
-				<ConnectionIndex>1</ConnectionIndex>
-				<ExternalTableName><![CDATA["config_actors"]]></ExternalTableName>
-				<AutoImport>true</AutoImport>
 			</TableImportSettings>
 			<TableImportSettings>
 				<TableReference>
@@ -11968,7 +12061,7 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 					<PackageName><![CDATA[base]]></PackageName>
 					<ClassName><![CDATA[config_energyassets]]></ClassName>
 				</TableReference>
-				<ConnectionIndex>1</ConnectionIndex>
+				<ConnectionIndex>0</ConnectionIndex>
 				<ExternalTableName><![CDATA["config_energyAssets"]]></ExternalTableName>
 				<AutoImport>true</AutoImport>
 			</TableImportSettings>
@@ -11977,7 +12070,7 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 					<PackageName><![CDATA[base]]></PackageName>
 					<ClassName><![CDATA[config_netnodes]]></ClassName>
 				</TableReference>
-				<ConnectionIndex>1</ConnectionIndex>
+				<ConnectionIndex>0</ConnectionIndex>
 				<ExternalTableName><![CDATA["config_netNodes"]]></ExternalTableName>
 				<AutoImport>true</AutoImport>
 			</TableImportSettings>
@@ -12613,7 +12706,7 @@ public class J_EA {
 	@Override
 	public String toString() {
 		return
-			"ownerAsset = " + ownerAsset +" ";
+			"ownerAsset = " + ownerAsset.getIndex() +" ";
 	}
 
 }]]></Text>
@@ -12986,17 +13079,23 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
  */
 public class J_EAEV extends base.J_EAStorage implements Serializable {
 
-	EnergyAsset ownerAsset;
-	private double capacityElectricity_kW;
-	private double capacityHeat_kW = 0;
+	//EnergyAsset ownerAsset;
+	// protected EnergyAsset ownerAsset;
+	// protected double capacityElectric_kW;
+	// protected double capacityHeat_kW;
+	// protected double energyUsed_kWh=0.0;
+ 	// protected double timestep_h;
+
+	//private double capacityElectricity_kW;
+	//private double capacityHeat_kW = 0;
 	public OL_EnergyCarrierType storageMedium = OL_EnergyCarrierType.ELECTRICITY;
 	private double storageCapacity_kWh;
 	private double stateOfCharge_r;
 	private double lossFactor_r = 0;
-	private double timestep_h;
+//	private double timestep_h;
 	private double energyConsumption_kWhpmk = 0.2;
 	private boolean availability = true;
-	private double energyUsed_kWh=0;
+	//private double energyUsed_kWh=0;
 
     /**
      * Default constructor
@@ -13009,7 +13108,7 @@ public class J_EAEV extends base.J_EAStorage implements Serializable {
      */
     public J_EAEV(EnergyAsset ownerAsset, double capacityElectricity_kW, double storageCapacity_kWh, double stateOfCharge_r, double timestep_h, double energyConsumption_kWhpmk ) {
 		this.ownerAsset = ownerAsset;
-		this.capacityElectricity_kW = capacityElectricity_kW; // for EV, this is max charging power.
+		this.capacityElectric_kW = capacityElectricity_kW; // for EV, this is max charging power.
 		this.storageCapacity_kWh = storageCapacity_kWh;
 		this.stateOfCharge_r = stateOfCharge_r;
 		this.timestep_h = timestep_h;
@@ -13029,7 +13128,7 @@ public class J_EAEV extends base.J_EAStorage implements Serializable {
 	    	double deltaEnergy_kWh;   // to check the request with the energy currently in storage
 	    	//double sign = ratioOfChargeCapacity_r / abs( ratioOfChargeCapacity_r ); // charge or discharge
 
-	    	deltaEnergy_kWh = ( ratioOfChargeCapacity_r * capacityElectricity_kW * timestep_h ) ;
+	    	deltaEnergy_kWh = ( ratioOfChargeCapacity_r * capacityElectric_kW * timestep_h ) ;
 	    	deltaEnergy_kWh = - min( -deltaEnergy_kWh, (stateOfCharge_r * storageCapacity_kWh) ); // Prevent negative charge
 	    	deltaEnergy_kWh = min(deltaEnergy_kWh, (1 - stateOfCharge_r) * storageCapacity_kWh ); // Prevent overcharge
 
@@ -13077,7 +13176,7 @@ public class J_EAEV extends base.J_EAStorage implements Serializable {
 			stateOfCharge_r -= (tripDist_km * energyConsumption_kWhpmk) / storageCapacity_kWh;
 			energyUsed_kWh += tripDist_km * energyConsumption_kWhpmk;
 			if (stateOfCharge_r < 0) {
-				traceln("EV arrived home with negative SOC! Leaving negative SOC to compensate with extra charging later");
+				traceln("EV in " + this.toString() + " arrived home with negative SOC ! Negative charge " + -stateOfCharge_r * storageCapacity_kWh + " kWh");
 			}
 			availability = true;
 			return true;
