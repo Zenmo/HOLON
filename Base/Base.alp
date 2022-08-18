@@ -771,11 +771,18 @@ for(NetNode n : pop_netNodes) {
 ///////////// Financial accounting of energy flows
 
 // Propagate transaction volumes, by definition bottom-up
-/*for all connectionOwners do energyTransaction with energyHolons and/or energySuppliers
+//for all connectionOwners do energyTransaction with energyHolons and/or energySuppliers
+for (ConnectionOwner c : pop_connectionOwners) {
+	c.f_updateFinances();
+}
 
-for all energyHolons do energyTransaction with energySuppliers
+for (EnergyHolon h : pop_energyHolons) {
+	h.f_updateFinances();
+}
 
-for all energySuppliers do energyTransaction with nationalMarket*/
+for (EnergySupplier e : pop_energySuppliers) {
+	e.f_updateFinances();
+}
 ]]></Action>
 				</Event>
 			</Events>
@@ -1850,7 +1857,7 @@ e.f_connectToParentNode( ownerAgent );]]></Body>
 							<Name><![CDATA[p_parentActorID]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_parentActor]]></Name>
+							<Name><![CDATA[p_energySupplier]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -2349,7 +2356,7 @@ if (p_energyType.equals(OL_EnergyCarrierType.HEAT)) {
 	double lossFactor_WpK = 100;
 	double InitialStateOfCharge_degC = 60;
 	double heatCapacity_JpK = 1e7;
-	double soilTemperature_degC = 8;
+	double soilTemperature_degC = main.p_undergroundTemperature_degC;
 	p_transportBuffer = new J_EAStorageHeat(null, capacityHeat_kW, lossFactor_WpK, main.p_timeStep_h, InitialStateOfCharge_degC, 10, 90, heatCapacity_JpK);
 	p_transportBuffer.updateAmbientTemperature(soilTemperature_degC);
 }]]></StartupCode>
@@ -8270,7 +8277,7 @@ t_nodetype.setText(p_nodeType);]]></Body>
 				</Variable>
 				<Variable Class="Parameter">
 					<Id>1660230904844</Id>
-					<Name><![CDATA[p_parentActor]]></Name>
+					<Name><![CDATA[p_energySupplier]]></Name>
 					<Description><![CDATA[Pointer of the designated parent actor (e.g. a holon or energy supplier)
 
 @since: Sprint 6
@@ -8281,7 +8288,7 @@ t_nodetype.setText(p_nodeType);]]></Body>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[ConnectionOwner]]></Type>
+						<Type><![CDATA[EnergySupplier]]></Type>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<ParameterEditor>
@@ -8307,7 +8314,7 @@ t_nodetype.setText(p_nodeType);]]></Body>
 					<ShowLabel>true</ShowLabel>
 					<Parameter>
 						<Name><![CDATA[ConnectingChildNode]]></Name>
-						<Type><![CDATA[Agent]]></Type>
+						<Type><![CDATA[NetConnection]]></Type>
 					</Parameter>
 					<Body><![CDATA[subConnections.connectTo(ConnectingChildNode);
 ]]></Body>
@@ -8329,11 +8336,11 @@ t_nodetype.setText(p_nodeType);]]></Body>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[if ( p_parentActorID != null ) {
-	ConnectionOwner myParentActor = findFirst(main.pop_connectionOwners, p->p.p_actorID.equals(p_parentActorID)) ;
-	if( myParentActor instanceof ConnectionOwner) {
-		p_parentActor = myParentActor;
+	Agent myParentActor = findFirst(main.pop_energySuppliers, p->p.p_actorID.equals(p_parentActorID)) ;
+	if( myParentActor instanceof EnergySupplier) {
+		p_energySupplier = (EnergySupplier) myParentActor;
 		superConnection.connectTo(myParentActor);
-		myParentActor.f_connectToChild(this);
+		p_energySupplier.f_connectToChild((ConnectionOwner)this);
 	}
 }]]></Body>
 				</Function>
@@ -8347,17 +8354,20 @@ t_nodetype.setText(p_nodeType);]]></Body>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[/*
-// get current energy flows
+					<Body><![CDATA[// get current energy flows
 f_gatherEnergyFlows();
 
 // trigger transaction with supplier/holon
-double transactionCost_eur = p_energySupplier.f_doEnergyTransaction(transactionVolume_kWh, v_electricityContractType);
-v_balanceElectricity_eur -= transactionCost;
-double transactionCost_eur = p_energySupplier.f_doEnergyTransaction(transactionVolume_kWh, v_heatContractType);
-v_balanceHeat_eur -= transactionCost;
-double transactionCost_eur = p_energySupplier.f_doEnergyTransaction(transactionVolume_kWh, v_methaneContractType);
-v_balanceMethane_eur -= transactionCost; */]]></Body>
+if( p_energySupplier != null) { 
+	double transactionCost_eur = p_energySupplier.f_doEnergyTransaction(v_electricityVolume_kWh, v_electricityContractType);
+	v_balanceElectricity_eur -= transactionCost_eur;
+	transactionCost_eur = p_energySupplier.f_doEnergyTransaction(v_heatVolume_kWh, v_heatContractType);
+	v_balanceHeat_eur -= transactionCost_eur;
+	transactionCost_eur = p_energySupplier.f_doEnergyTransaction(v_methaneVolume_kWh, v_methaneContractType);
+	v_balanceMethane_eur -= transactionCost_eur; 
+} else {
+	traceln("Connection owner " + this + " has no energy supplier!");
+}]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -8369,8 +8379,17 @@ v_balanceMethane_eur -= transactionCost; */]]></Body>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[// gather electricity flows
-]]></Body>
+					<Body><![CDATA[// reset eenrgy flows
+v_electricityVolume_kWh = 0;
+v_heatVolume_kWh = 0;
+v_methaneVolume_kWh = 0;
+
+// gather electricity flows
+for(NetConnection n :  subConnections.getConnections() ) {
+	v_electricityVolume_kWh += n.v_currentPowerElectricity_kW * main.p_timeStep_h;
+	v_heatVolume_kWh += n.v_currentPowerHeat_kW * main.p_timeStep_h;
+	v_methaneVolume_kWh += n.v_currentPowerMethane_kW * main.p_timeStep_h;
+}]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -8430,6 +8449,7 @@ v_balanceMethane_eur -= transactionCost; */]]></Body>
 					<ShowLabel>true</ShowLabel>
 					<HandleReceiveInConnections>false</HandleReceiveInConnections>
 					<AgentLinkType>COLLECTION_OF_LINKS</AgentLinkType>
+					<AgentReferenceId>1658499438203</AgentReferenceId>
 					<AgentLinkBidirectional>false</AgentLinkBidirectional>
 					<MessageType><![CDATA[Object]]></MessageType>
 					<LineStyle>SOLID</LineStyle>
@@ -10349,7 +10369,7 @@ Operator]]></Text>
 					<ShowLabel>true</ShowLabel>
 					<Parameter>
 						<Name><![CDATA[ConnectingChildNode]]></Name>
-						<Type><![CDATA[Agent]]></Type>
+						<Type><![CDATA[NetConnection]]></Type>
 					</Parameter>
 					<Body><![CDATA[subConnections.connectTo(ConnectingChildNode);
 ]]></Body>
@@ -10365,6 +10385,7 @@ Operator]]></Text>
 @return: none
 @since: Sprint 6
 @author: HOUJ]]></Description>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>40</X><Y>150</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -10378,6 +10399,28 @@ Operator]]></Text>
 		myParentActor.f_connectToChild(this);
 	}
 }]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1660806150226</Id>
+					<Name><![CDATA[f_updateFinances]]></Name>
+					<X>40</X><Y>220</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[/*
+// get current energy flows
+f_gatherEnergyFlows();
+
+// trigger transaction with supplier/holon
+double transactionCost_eur = p_energySupplier.f_doEnergyTransaction(transactionVolume_kWh, v_electricityContractType);
+v_balanceElectricity_eur -= transactionCost;
+double transactionCost_eur = p_energySupplier.f_doEnergyTransaction(transactionVolume_kWh, v_heatContractType);
+v_balanceHeat_eur -= transactionCost;
+double transactionCost_eur = p_energySupplier.f_doEnergyTransaction(transactionVolume_kWh, v_methaneContractType);
+v_balanceMethane_eur -= transactionCost; */]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -10594,8 +10637,98 @@ Operator]]></Text>
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1660752591616</Id>
-					<Name><![CDATA[v_currentBalance_eur]]></Name>
+					<Name><![CDATA[v_currentBalanceClients_eur]]></Name>
 					<X>30</X><Y>500</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1660804951335</Id>
+					<Name><![CDATA[v_totalElectricitySoldToClients_kWh]]></Name>
+					<X>30</X><Y>520</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1660804979322</Id>
+					<Name><![CDATA[v_totalElectricityBoughtFromClients_kWh]]></Name>
+					<X>30</X><Y>540</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1660805212026</Id>
+					<Name><![CDATA[v_currentBalanceNat_eur]]></Name>
+					<X>320</X><Y>500</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1660805212029</Id>
+					<Name><![CDATA[v_totalElectricitySoldToNat_kWh]]></Name>
+					<X>320</X><Y>520</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1660805212031</Id>
+					<Name><![CDATA[v_totalElectricityBoughtFromNat_kWh]]></Name>
+					<X>320</X><Y>540</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1660810211679</Id>
+					<Name><![CDATA[v_currentNettElectricityVolume_kWh]]></Name>
+					<X>30</X><Y>570</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -10842,6 +10975,7 @@ Operator]]></Text>
 @return: none
 @since: Sprint 6
 @author: HOUJ]]></Description>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>30</X><Y>150</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -10860,7 +10994,7 @@ Operator]]></Text>
 					<ReturnModificator>RETURNS_VALUE</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1660743197178</Id>
-					<Name><![CDATA[f_doEnergyTransactionClient]]></Name>
+					<Name><![CDATA[f_doEnergyTransaction]]></Name>
 					<X>30</X><Y>370</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -10874,28 +11008,37 @@ Operator]]></Text>
 						<Name><![CDATA[contractType]]></Name>
 						<Type><![CDATA[OL_ContractType]]></Type>
 					</Parameter>
-					<Body><![CDATA[double transactionCost_eur;
+					<Body><![CDATA[double transactionCostClient_eur;
+double transactionCostNat_eur;
 switch (contractType) {
 	case ELECTRICITY_FIXED:
-			transactionCost_eur = transactionVolume_kWh * p_fixedElectricityPrice_eurpkWh;
+			transactionCostClient_eur = transactionVolume_kWh * p_fixedElectricityPrice_eurpkWh;
+			transactionCostNat_eur = - transactionVolume_kWh * v_currentVariableElectricityPrice_eurpkWh;
+			v_totalElectricitySoldToClients_kWh += max(0,transactionVolume_kWh);
+			v_totalElectricityBoughtFromClients_kWh -= min(0,transactionVolume_kWh);
+			v_currentNettElectricityVolume_kWh += transactionVolume_kWh;
 		break;
 	case ELECTRICITY_VARIABLE:
-			transactionCost_eur = transactionVolume_kWh * (p_variableElectricityPriceOverNational_eurpkWh + v_currentVariableElectricityPrice_eurpkWh);
+			transactionCostClient_eur = transactionVolume_kWh * (p_variableElectricityPriceOverNational_eurpkWh + v_currentVariableElectricityPrice_eurpkWh);
+			transactionCostNat_eur = - transactionVolume_kWh * v_currentVariableElectricityPrice_eurpkWh;
 		break;
 	case HEAT_FIXED:
-			transactionCost_eur = transactionVolume_kWh * p_fixedHeatPrice_eurpkWh;		
+			transactionCostClient_eur = transactionVolume_kWh * p_fixedHeatPrice_eurpkWh;		
+			transactionCostNat_eur = - transactionVolume_kWh * 0;
 		break;
 	case METHANE_FIXED:
-			transactionCost_eur = transactionVolume_kWh * p_fixedMethanePrice_eurpkWh;
+			transactionCostClient_eur = transactionVolume_kWh * p_fixedMethanePrice_eurpkWh;
+			transactionCostNat_eur = - transactionVolume_kWh * 0;
 		break;
 	case HYDROGEN_FIXED:
-			transactionCost_eur = transactionVolume_kWh * p_fixedHydrogenPrice_eurpkWh;
+			transactionCostClient_eur = transactionVolume_kWh * p_fixedHydrogenPrice_eurpkWh;
+			transactionCostNat_eur = - transactionVolume_kWh * 0;
 		break;
 	default: 
 		throw new IllegalStateException("Invalid contract type: " + contractType);
 }
-v_currentBalance_eur += transactionCost_eur;
-return transactionCost_eur;]]></Body>
+v_currentBalanceClients_eur += transactionCostClient_eur;
+return transactionCostClient_eur;]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>RETURNS_VALUE</ReturnModificator>
@@ -10944,7 +11087,22 @@ return energyPrice_eurpkWh;]]></Body>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[v_currentVariableElectricityPrice_eurpkWh = main.nationalEnergyMarket.f_getNationalElectricityPrice_eurpMWh()/1000;]]></Body>
+					<Body><![CDATA[v_currentVariableElectricityPrice_eurpkWh = main.nationalEnergyMarket.f_getNationalElectricityPrice_eurpMWh()/1000;
+v_currentNettElectricityVolume_kWh = 0;]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1660806140354</Id>
+					<Name><![CDATA[f_updateFinances]]></Name>
+					<X>30</X><Y>460</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[v_totalElectricityBoughtFromNat_kWh += max(0,v_currentNettElectricityVolume_kWh);
+v_totalElectricitySoldToNat_kWh -= min(0,v_currentNettElectricityVolume_kWh);
+v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariableElectricityPrice_eurpkWh;]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -11277,6 +11435,7 @@ return energyPrice_eurpkWh;]]></Body>
 @return: none
 @since: Sprint 6
 @author: HOUJ]]></Description>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>30</X><Y>150</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
