@@ -728,7 +728,6 @@ v_currentSolarPowerNormalized_r = tf_p_solar_e_normalized(time(HOUR));
 v_currentAmbientTemperature_degC = tf_ambientTemperature_degC(time(HOUR));
 
 // Update incentives based on energyflows from previous timestep (or start with 'initial incentives')
-
 // Propagate incentives from energySuppiers/holons via connectionOwners to energyManagers in netConnections
 nationalEnergyMarket.f_updateEnergyPrice();
 for (EnergySupplier e : pop_energySuppliers) {
@@ -742,48 +741,25 @@ for (EnergyHolon e : pop_energyHolons) {
 	//e.f_updateOtherIncentives();
 }
 
-
-// Calculate loads from bottom nodes up
-
-/*
-heuristiek:
-loop netNodes:
-	-subconnections > 0?
-		-loop subconnections
-			-subconnections > 0?
-*/
-
-/*for(EnergyManager e : energyManagers) {
-	e.f_operateAssets();
-}*/
-
-for(GridConnection b : filter( pop_gridConnections, n -> n.p_netConnectionCategory != OL_NetConnectionCategory.DISTRICTHEATING )) {
+// Calculate energy flows from bottom nodes up
+for(GridConnection b : pop_gridConnections) { 
 	b.f_calculateEnergyBalance();
 }
-for(GridConnection b : filter( pop_gridConnections, n -> n.p_netConnectionCategory == OL_NetConnectionCategory.DISTRICTHEATING )) {
-	b.f_calculateEnergyBalance();
-}
-
 for(GridNode n : pop_gridNodes) {
 	n.f_calculateEnergyBalance();
 }
 
-///////////// Financial accounting of energy flows
-
-// Propagate transaction volumes, by definition bottom-up
-//for all connectionOwners do energyTransaction with energyHolons and/or energySuppliers
+// Financial accounting of energy flows
+// Propagate energy transaction volumes and corresponding values bottom-up
 for (ConnectionOwner c : pop_connectionOwners) {
 	c.f_updateFinances();
 }
-
 for (EnergyHolon h : pop_energyHolons) {
 	h.f_updateFinances();
 }
-
 for (EnergySupplier e : pop_energySuppliers) {
 	e.f_updateFinances();
-}
-]]></Action>
+}]]></Action>
 				</Event>
 			</Events>
 			<Functions>
@@ -4221,26 +4197,21 @@ for(EnergyAsset e : c_connectedProductionAssets) {
 	}
 }
 
-// storage operation
 // Flex assets: which assets need control, and what is the target? Heating, battery, EV-charging, district-heating, power to gas, etc.
 
 // House heating system super basic
-
 if ( p_buildingTempAsset != null && p_netConnectionCategory == OL_NetConnectionCategory.HOUSE ) {
 	//J_EAStorageHeat buildingTempInstance = (J_EAStorageHeat)p_buildingTempAsset.p_energyAssetInstance;
 	//traceln("HeatCapacity " + p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW());
 	double tempSetpoint_degC = 20;
 	double houseTemp = p_buildingTempAsset.p_energyAssetInstance.getCurrentTemperature();
-	p_buildingTempAsset.p_energyAssetInstance.updateAmbientTemperature(main.v_currentAmbientTemperature_degC);
-	
+	p_buildingTempAsset.p_energyAssetInstance.updateAmbientTemperature(main.v_currentAmbientTemperature_degC);	
 	//traceln("house temp in house " + this.getId() + " is " + houseTemp);
 	if (houseTemp < tempSetpoint_degC) {
-
 		//traceln("heatCapacity heatingSystem " + p_spaceHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
 		double powerDemand_kW = (tempSetpoint_degC - houseTemp) * ((J_EAStorageHeat)p_buildingTempAsset.p_energyAssetInstance).getHeatCapacity_JpK() / 3.6e6;
 		p_HeatingAsset.v_powerFraction_fr = powerDemand_kW / p_HeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();
 		p_buildingTempAsset.v_powerFraction_fr = powerDemand_kW / p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW();
-
 		//traceln("Power fraction heating " + p_spaceHeatingAsset.v_powerFraction_fr);
 	} else {
 		p_HeatingAsset.v_powerFraction_fr = 0;
@@ -4248,18 +4219,14 @@ if ( p_buildingTempAsset != null && p_netConnectionCategory == OL_NetConnectionC
 	}
 }
 
-// derive heat demand from heat consumption -- om kip-ei rond warmtevraag en aanbod in het warmtenet te doorbreken.. Liever via temperatuur in het net/de buffer?
+// District heating system, heating power based on temperature of buffer of heating system. (big or small) Heat transfer from DH_GridConnection to heat NetNode is based on temperature difference between heating-buffer and water in heating network
 if( this.p_netConnectionCategory == OL_NetConnectionCategory.DISTRICTHEATING ) {
-	GridNode HeatNode = findFirst( this.superConnection.getConnections(), c -> c.p_agentID.equals(p_parentNodeHeatID) );
-	List<GridConnection> heatConnections = HeatNode.subConnections.getConnections();
-
 	double tempSetpoint_degC = 60;	
 	double storageTemp_degC = p_buildingTempAsset.p_energyAssetInstance.getCurrentTemperature();
 	//traceln("District heating storage temperature " + storageTemp_degC + " degC" + ", district heating network temperature " + p_parentNodeHeat.p_transportBuffer.getCurrentTemperature() + " deg C" );
-	double heatTransferToNetworkCoefficient_kWpK = 5;
+	double heatTransferToNetworkCoefficient_kWpK = 10;
 	double heatTransferToNetwork_kW = max(min(storageTemp_degC,tempSetpoint_degC)-p_parentNodeHeat.p_transportBuffer.getCurrentTemperature(), 0) * heatTransferToNetworkCoefficient_kWpK;
 	if (storageTemp_degC < tempSetpoint_degC) {
-
 		//traceln("heatCapacity heatingSystem " + p_spaceHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
 		double maxHeatingPower_kW = p_HeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();
 		p_HeatingAsset.v_powerFraction_fr = maxHeatingPower_kW/p_HeatingAsset.p_energyAssetInstance.getHeatCapacity_kW(); // Should be 1!
@@ -4278,7 +4245,6 @@ for(EnergyAsset s : c_connectedConversionAssets) {
 		//s.p_EnergyAssetTypeString.updateParameters();
 		s.v_powerFraction_fr = 0;  // conversion value
 	}
-
 }
 
 /*
