@@ -10296,7 +10296,52 @@ Operator]]></Text>
 				<Variable Class="PlainVariable">
 					<Id>1660826420173</Id>
 					<Name><![CDATA[v_energyPassedThrough_kWh]]></Name>
-					<X>40</X><Y>300</Y>
+					<X>40</X><Y>440</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1660829948793</Id>
+					<Name><![CDATA[v_electricityVolume_kWh]]></Name>
+					<X>60</X><Y>300</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1660829948795</Id>
+					<Name><![CDATA[v_heatVolume_kWh]]></Name>
+					<X>60</X><Y>320</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1660829948797</Id>
+					<Name><![CDATA[v_methaneVolume_kWh]]></Name>
+					<X>60</X><Y>340</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -10437,11 +10482,11 @@ Operator]]></Text>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[/*
-// get current energy flows
+					<Body><![CDATA[// get current energy flows
 f_gatherEnergyFlows();
 
 // trigger transaction with supplier/holon
+/*
 double transactionCost_eur = p_energySupplier.f_doEnergyTransaction(transactionVolume_kWh, v_electricityContractType);
 v_balanceElectricity_eur -= transactionCost;
 double transactionCost_eur = p_energySupplier.f_doEnergyTransaction(transactionVolume_kWh, v_heatContractType);
@@ -10513,6 +10558,34 @@ return transactionCostClient_eur;]]></Body>
 		EnergyHolon energySupplier = (EnergyHolon)myParentActor;
 		energySupplier.f_connectToChild(this);
 	}
+}]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1660829948789</Id>
+					<Name><![CDATA[f_gatherEnergyFlows]]></Name>
+					<X>60</X><Y>280</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[// reset eenrgy flows
+v_electricityVolume_kWh = 0;
+v_heatVolume_kWh = 0;
+v_methaneVolume_kWh = 0;
+
+// gather electricity flows
+for(Agent a :  subConnections.getConnections() ) {
+	if(a instanceof ConnectionOwner){
+		ConnectionOwner n = (ConnectionOwner)a;
+		v_electricityVolume_kWh += n.v_electricityVolume_kWh;
+		v_heatVolume_kWh += n.v_heatVolume_kWh;
+		v_methaneVolume_kWh += n.v_methaneVolume_kWh;
+	} else if (a instanceof EnergyHolon) {
+		traceln("Collecting current energy transfer from child HOLONs not yet implemented");
+	}
+	
 }]]></Body>
 				</Function>
 			</Functions>
