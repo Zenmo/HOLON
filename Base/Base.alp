@@ -757,14 +757,14 @@ loop netNodes:
 	e.f_operateAssets();
 }*/
 
-for(GridConnection b : filter( pop_netConnections, n -> n.p_netConnectionCategory != OL_NetConnectionCategory.DISTRICTHEATING )) {
+for(GridConnection b : filter( pop_gridConnections, n -> n.p_netConnectionCategory != OL_NetConnectionCategory.DISTRICTHEATING )) {
 	b.f_calculateEnergyBalance();
 }
-for(GridConnection b : filter( pop_netConnections, n -> n.p_netConnectionCategory == OL_NetConnectionCategory.DISTRICTHEATING )) {
+for(GridConnection b : filter( pop_gridConnections, n -> n.p_netConnectionCategory == OL_NetConnectionCategory.DISTRICTHEATING )) {
 	b.f_calculateEnergyBalance();
 }
 
-for(GridNode n : pop_netNodes) {
+for(GridNode n : pop_gridNodes) {
 	n.f_calculateEnergyBalance();
 }
 
@@ -854,7 +854,7 @@ for (Tuple netNode : netNodes) {
     nodeparent = netNode.get( config_netnodes.parent );
     nodecapacity = roundToDecimal(netNode.get( config_netnodes.capacity_kw ),2);
 
-	GridNode NetNode = add_pop_netNodes( nodeID, nodeparent, nodetype, energytype, nodecapacity, null );
+	GridNode NetNode = add_pop_gridNodes( nodeID, nodeparent, nodetype, energytype, nodecapacity, null );
 }
 
 // 2. add agents to population from database: NetConnections
@@ -879,7 +879,7 @@ for (Tuple netConnection : netConnections) {
 	ownerActorID = netConnection.get (config_netconnections.owner_actor );
 
    // NetConnection NetConnection = add_pop_netConnections( netConnectionCategory, netConnectionType, netConnectionCapacity, netConnectionParentElectric, netConnectionID, netConnectionParentHeat, null, null, null, ownerActorID, null, null);
-    GridConnection NetConnection = add_pop_netConnections(netConnectionCategory, netConnectionType, netConnectionCapacity, netConnectionParentElectric, netConnectionID, netConnectionParentHeat, null, null, null, null, ownerActorID, null, null);
+    GridConnection NetConnection = add_pop_gridConnections(netConnectionCategory, netConnectionType, netConnectionCapacity, netConnectionParentElectric, netConnectionID, netConnectionParentHeat, null, null, null, null, ownerActorID, null, null);
 }
 
 // 3. add agents to population from database: EnergyAssets
@@ -1014,7 +1014,7 @@ sheet1.importFromExternalDB(sourceConnection, "params", "params", true, true);
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[// add standard EnergyAsset agents from NetConnection agent subtypes automatically
-List<GridConnection> NetConnectionList = filter( pop_netConnections, b -> true );
+List<GridConnection> NetConnectionList = filter( pop_gridConnections, b -> true );
 
 for (GridConnection n : NetConnectionList) {
 	traceln("NetConnection for AssetConfiguration: "+n.p_agentID);
@@ -1510,7 +1510,7 @@ e.f_connectToParentNode( ownerAgent );]]></Body>
 			<EmbeddedObjects>
 				<EmbeddedObject>
 					<Id>1658477403183</Id>
-					<Name><![CDATA[pop_netNodes]]></Name>
+					<Name><![CDATA[pop_gridNodes]]></Name>
 					<X>60</X><Y>130</Y>
 					<Label><X>15</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1589,7 +1589,7 @@ e.f_connectToParentNode( ownerAgent );]]></Body>
 				</EmbeddedObject>
 				<EmbeddedObject>
 					<Id>1658499683452</Id>
-					<Name><![CDATA[pop_netConnections]]></Name>
+					<Name><![CDATA[pop_gridConnections]]></Name>
 					<X>60</X><Y>160</Y>
 					<Label><X>15</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -2828,7 +2828,7 @@ if (p_energyType.equals(OL_EnergyCarrierType.HEAT)) {
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[GridNode myParentNode = findFirst(main.pop_netNodes, p->p.p_agentID.equals(p_parentNodeID));
+					<Body><![CDATA[GridNode myParentNode = findFirst(main.pop_gridNodes, p->p.p_agentID.equals(p_parentNodeID));
 if( myParentNode instanceof GridNode ) {
 	superConnection.connectTo(myParentNode);
 	myParentNode.f_connectToChild(this);
@@ -2975,6 +2975,7 @@ if (p_energyType.equals(OL_EnergyCarrierType.HEAT)) { // Thermal load goes into 
 	//traceln("DistrictHeating network water temperature " + p_transportBuffer.getCurrentTemperature() + " deg C, buffer power fraction " + v_powerFraction_fr);
 }
 
+//traceln("GridNode " + p_agentID + " update at time " + time(HOUR));
 f_nodeMetering();]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -4021,14 +4022,14 @@ f_bepaalFlexibiliteit();]]></Action>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[GridNode myParentNodeElectric = findFirst(main.pop_netNodes, p->p.p_agentID.equals(p_parentNodeElectricID)) ;
+					<Body><![CDATA[GridNode myParentNodeElectric = findFirst(main.pop_gridNodes, p->p.p_agentID.equals(p_parentNodeElectricID)) ;
 if( myParentNodeElectric instanceof GridNode ) {
 	superConnection.connectTo(myParentNodeElectric);
 	myParentNodeElectric.f_connectToChild(this);
 	p_parentNodeElectric = myParentNodeElectric;
 }
 
-GridNode myParentNodeHeat = findFirst(main.pop_netNodes, p->p.p_agentID.equals(p_parentNodeHeatID)) ;
+GridNode myParentNodeHeat = findFirst(main.pop_gridNodes, p->p.p_agentID.equals(p_parentNodeHeatID)) ;
 if( myParentNodeHeat instanceof GridNode ) {
 	superConnection.connectTo(myParentNodeHeat);
 	myParentNodeHeat.f_connectToChild(this);
@@ -4933,7 +4934,7 @@ if(ProvidedParentConnection != null) {
 	superConnection.connectTo(myParentAgent);
 	((GridConnection) myParentAgent).f_connectToChild(this);
 } else {
-	myParentAgent = findFirst(main.pop_netConnections, p->p.p_agentID.equals(p_parentAgentID));
+	myParentAgent = findFirst(main.pop_gridConnections, p->p.p_agentID.equals(p_parentAgentID));
 
 	if( myParentAgent instanceof GridConnection ) {
 		myParentAgent = (GridConnection)myParentAgent;
@@ -5479,12 +5480,12 @@ double minx = 100;
 double maxx = minx + 800;
 
 // count the number of HS/MS and MS/LS nodes for spacing
-List<GridNode> HSNetnodes = filter( main.pop_netNodes, n -> n.p_nodeType == OL_NetNodeType.HSMS  );
-List<GridNode> MSNetnodes = filter( main.pop_netNodes, n -> n.p_nodeType == OL_NetNodeType.MSLS );
-List<GridNode> HeatNodes = filter( main.pop_netNodes, n -> n.p_energyType == OL_EnergyCarrierType.HEAT );
+List<GridNode> HSNetnodes = filter( main.pop_gridNodes, n -> n.p_nodeType == OL_NetNodeType.HSMS  );
+List<GridNode> MSNetnodes = filter( main.pop_gridNodes, n -> n.p_nodeType == OL_NetNodeType.MSLS );
+List<GridNode> HeatNodes = filter( main.pop_gridNodes, n -> n.p_energyType == OL_EnergyCarrierType.HEAT );
 //List<NetConnection> Houses = filter( main.netConnections, b -> b.p_netConnectionCategory.equals("house") );
 //List<NetConnection> Windfarms = filter( main.netConnections, b -> b.p_netConnectionCategory.equals("windfarm") );
-List<GridConnection> NetConnections = filter( main.pop_netConnections, n -> true );
+List<GridConnection> NetConnections = filter( main.pop_gridConnections, n -> true );
 
 //traceln("HS "+HSNetnodes+" -> "+HSNetnodes.size());
 //traceln("MS "+MSNetnodes+" -> "+MSNetnodes.size());
