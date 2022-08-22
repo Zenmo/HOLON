@@ -650,7 +650,7 @@ traceln("*** main end *** "+System.currentTimeMillis());]]></StartupCode>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[false]]></Code>
+							<Code><![CDATA[true]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1658752734131</Id>
@@ -745,9 +745,13 @@ for (EnergyHolon e : pop_energyHolons) {
 for(GridConnection b : pop_gridConnections) { 
 	b.f_calculateEnergyBalance();
 }
-for(GridNode n : pop_gridNodes) {
+for(GridNode n : filter(pop_gridNodes, p -> !p.p_nodeType.equals(HSMS))) {
 	n.f_calculateEnergyBalance();
 }
+for(GridNode n : filter(pop_gridNodes, p -> p.p_nodeType.equals(HSMS))) {
+	n.f_calculateEnergyBalance();
+}
+
 
 // Financial accounting of energy flows
 // Propagate energy transaction volumes and corresponding values bottom-up
@@ -813,7 +817,7 @@ for (EnergyHolon a : pop_energyHolons) {
 	a.f_connectToParentActor();
 }
 
-// 1. add agents to population from database: NetNodes
+// 1. add agents to population from database: GridNodes
 List<Tuple> netNodes = selectFrom(config_netnodes)
 	.list();
 
@@ -831,6 +835,11 @@ for (Tuple netNode : netNodes) {
     nodecapacity = roundToDecimal(netNode.get( config_netnodes.capacity_kw ),2);
 
 	GridNode NetNode = add_pop_gridNodes( nodeID, nodeparent, nodetype, energytype, nodecapacity, null );
+}
+
+// do this only after all GridNodes have been created! Or connections might be missed
+for( GridNode g : pop_gridNodes ) {
+	g.f_connectToParentNode();
 }
 
 // 2. add agents to population from database: NetConnections
@@ -2336,8 +2345,7 @@ e.f_connectToParentNode( ownerAgent );]]></Body>
 			<Id>1658477288308</Id>
 			<Name><![CDATA[GridNode]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
-			<StartupCode><![CDATA[f_connectToParentNode();
-if (p_energyType.equals(OL_EnergyCarrierType.HEAT)) { 
+			<StartupCode><![CDATA[if (p_energyType.equals(OL_EnergyCarrierType.HEAT)) { 
 	double capacityHeat_kW = 1000;
 	double lossFactor_WpK = 100;
 	double InitialStateOfCharge_degC = 60;
@@ -5334,6 +5342,36 @@ p_energyAssetType = assetType;]]></Body>
 			<CurrentLevel>1658752695710</CurrentLevel>
 			<ConnectionsId>1658752695706</ConnectionsId>
 			<Variables>
+				<Variable Class="PlainVariable">
+					<Id>1661169181264</Id>
+					<Name><![CDATA[v_electricityBalanceMSLSGridConnections_kWh]]></Name>
+					<X>-280</X><Y>310</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1661169229844</Id>
+					<Name><![CDATA[v_electricityBalanceHSMSGridConnections_kWh]]></Name>
+					<X>-280</X><Y>330</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1660578629879</Id>
 					<Name><![CDATA[p_individualMode]]></Name>
@@ -5397,7 +5435,8 @@ p_energyAssetType = assetType;]]></Body>
 						</RecurrenceCode>
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
-					<Action><![CDATA[f_gatherEnergyFlows();]]></Action>
+					<Action><![CDATA[f_gatherEnergyFlows();
+f_checkModelConsistency();]]></Action>
 				</Event>
 			</Events>
 			<Functions>
@@ -5418,11 +5457,11 @@ p_energyAssetType = assetType;]]></Body>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[//
-for( UI_NetNode n : uI_NetNodes )
+for( UI_GridNode n : uI_GridNodes )
 {
 	GridNode realAgent = n.realAgent.getConnectedAgent(0);
-	n.t_loadElectricText.setText( roundToDecimal( realAgent.v_currentLoadElectricity_kW / 1000, 2 ) + " MWe");
-	n.t_loadThermalText.setText( roundToDecimal( realAgent.v_currentLoadHeat_kW / 1000, 2 ) + " MWth");
+	n.t_loadElectricText.setText( roundToDecimal( realAgent.v_currentLoadElectricity_kW / 1000, 3 ) + " MWe");
+	n.t_loadThermalText.setText( roundToDecimal( realAgent.v_currentLoadHeat_kW / 1000, 3 ) + " MWth");
 }]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -5471,7 +5510,7 @@ for ( Iterator<GridNode> it = HSNetnodes.iterator(); it.hasNext(); index++ )
     String nodeName = netnode.p_agentID;
     String parent = netnode.p_parentNodeID;
     OL_NetNodeType nodeType = netnode.p_nodeType;
-	UI_NetNode hs = add_uI_NetNodes( nodeName, nodeType );
+	UI_GridNode hs = add_uI_GridNodes( nodeName, nodeType );
 	hs.setXY( ( minx + ( xinterval / 2 ) + ( index * xinterval ) ) , ylevel);
 	hs.realAgent.connectTo(netnode);
 	//if( parent!=null ){
@@ -5491,11 +5530,11 @@ for ( Iterator<GridNode> it = MSNetnodes.iterator(); it.hasNext(); index++ )
 	String nodeName = netnode.p_agentID;
 	OL_NetNodeType nodeType = netnode.p_nodeType;
     String parent = netnode.p_parentNodeID;
-	UI_NetNode ms = add_uI_NetNodes( nodeName, nodeType );
+	UI_GridNode ms = add_uI_GridNodes( nodeName, nodeType );
 	ms.setXY( ( minx + ( xinterval / 2 ) + ( index * xinterval ) ) , ylevel);
 	ms.realAgent.connectTo(netnode);
 	if( parent!=null ){
-		UI_NetNode p = filter( uI_NetNodes, q -> q.p_nodeID.equals(parent) ).get(0);
+		UI_GridNode p = filter( uI_GridNodes, q -> q.p_nodeID.equals(parent) ).get(0);
 		ms.connectTo(p);
 	}
 }
@@ -5511,12 +5550,12 @@ for ( Iterator<GridNode> it = HeatNodes.iterator(); it.hasNext(); index++ )
 	String nodeName = netnode.p_agentID;
 	OL_NetNodeType nodeType = netnode.p_nodeType;
     String parent = netnode.p_parentNodeID;
-	UI_NetNode hn = add_uI_NetNodes( nodeName, nodeType );
+	UI_GridNode hn = add_uI_GridNodes( nodeName, nodeType );
 	hn.setXY( ( minx + ( xinterval / 2 ) + ( index * xinterval ) ) , ylevel);
 	hn.realAgent.connectTo(netnode);
 	hn.netNodeVisual.setFillColor(mistyRose);
 	if( parent!=null ){
-		UI_NetNode p = filter( uI_NetNodes, q -> q.p_nodeID.equals(parent) ).get(0);
+		UI_GridNode p = filter( uI_GridNodes, q -> q.p_nodeID.equals(parent) ).get(0);
 		hn.connectTo(p);
 	}
 }
@@ -5532,19 +5571,19 @@ for ( Iterator<GridConnection> it = NetConnections.iterator(); it.hasNext(); ind
 	OL_NetConnectionType netConnectionType = netconnection.p_netConnectionType;
     String parentElectric = netconnection.p_parentNodeElectricID;
     String parentHeat = netconnection.p_parentNodeHeatID;
-	UI_NetConnection nc = add_uI_NetConnections( netConnectionName, netConnectionCategory, netConnectionType );
+	UI_GridConnection nc = add_uI_GridConnections( netConnectionName, netConnectionCategory, netConnectionType );
 
 	nc.realAgent.connectTo( netconnection );
-	traceln("parent input filter "+filter( uI_NetNodes, o -> o.p_nodeID.equals(parentElectric) ).get(0));
+	traceln("parent input filter "+filter( uI_GridNodes, o -> o.p_nodeID.equals(parentElectric) ).get(0));
 	if( parentElectric != null ){
-		UI_NetNode p = filter( uI_NetNodes, o -> o.p_nodeID.equals(parentElectric) ).get(0);
+		UI_GridNode p = filter( uI_GridNodes, o -> o.p_nodeID.equals(parentElectric) ).get(0);
 		nc.connectTo(p);
 		double parentx = p.getX() ;
 		double parenty = p.getY();
 		nc.setXY( parentx, parenty + 150 );
 	}
 	if( parentHeat != null ){
-		UI_NetNode q = filter( uI_NetNodes, o -> o.p_nodeID.equals(parentHeat) ).get(0);
+		UI_GridNode q = filter( uI_GridNodes, o -> o.p_nodeID.equals(parentHeat) ).get(0);
 		nc.connectTo(q);
 
 		// district heating plants line up to heat node
@@ -5710,6 +5749,36 @@ else {
 	
 }		]]></Body>
 				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1661169336291</Id>
+					<Name><![CDATA[f_checkModelConsistency]]></Name>
+					<X>-280</X><Y>270</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[// Retrieve MSLS gridnode electricity balance
+double electricityBalance_kWh = 0;
+
+for( UI_GridNode n : filter( uI_GridNodes, p -> !p.p_nodeType.equals(HSMS)) ) {
+	GridNode realAgent = n.realAgent.getConnectedAgent(0);
+	electricityBalance_kWh += realAgent.v_electricityDelivered_kWh - realAgent.v_electricityDrawn_kWh;
+}
+
+v_electricityBalanceMSLSGridConnections_kWh = electricityBalance_kWh;
+
+// retrieve HSLS gridnode electricity balance and compare
+electricityBalance_kWh = 0;
+
+for( UI_GridNode n : filter( uI_GridNodes, p -> p.p_nodeType.equals(HSMS)) ) {
+	GridNode realAgent = n.realAgent.getConnectedAgent(0);
+	electricityBalance_kWh += realAgent.v_electricityDelivered_kWh - realAgent.v_electricityDrawn_kWh;
+}
+
+v_electricityBalanceHSMSGridConnections_kWh = electricityBalance_kWh;]]></Body>
+				</Function>
 			</Functions>
 			<AgentLinks>
 				<AgentLink>
@@ -5751,7 +5820,7 @@ else {
 			<EmbeddedObjects>
 				<EmbeddedObject>
 					<Id>1658753298441</Id>
-					<Name><![CDATA[uI_NetNodes]]></Name>
+					<Name><![CDATA[uI_GridNodes]]></Name>
 					<Description><![CDATA[populatie van uI_NetNodes agents ter visualisatie van NetNodes parallel aan het model
 
 @since: Sprint 6
@@ -5764,12 +5833,12 @@ else {
 					<PresentationId>1658753301607</PresentationId>
 					<ActiveObjectClass>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[UI_NetNode]]></ClassName>
+						<ClassName><![CDATA[UI_GridNode]]></ClassName>
 					</ActiveObjectClass>
 					<GenericParameterSubstitute>
 						<GenericParameterSubstituteReference>
 							<PackageName><![CDATA[base]]></PackageName>
-							<ClassName><![CDATA[UI_NetNode]]></ClassName>
+							<ClassName><![CDATA[UI_GridNode]]></ClassName>
 							<ItemName><![CDATA[1658752913452]]></ItemName>
 						</GenericParameterSubstituteReference>
 					</GenericParameterSubstitute>
@@ -5823,7 +5892,7 @@ else {
 				</EmbeddedObject>
 				<EmbeddedObject>
 					<Id>1658764981278</Id>
-					<Name><![CDATA[uI_NetConnections]]></Name>
+					<Name><![CDATA[uI_GridConnections]]></Name>
 					<Description><![CDATA[populatie van uI_NetConnections agents ter visualisatie van NetConnections parallel aan het model
 
 @since: Sprint 6
@@ -5836,12 +5905,12 @@ else {
 					<PresentationId>1658929061851</PresentationId>
 					<ActiveObjectClass>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[UI_NetConnection]]></ClassName>
+						<ClassName><![CDATA[UI_GridConnection]]></ClassName>
 					</ActiveObjectClass>
 					<GenericParameterSubstitute>
 						<GenericParameterSubstituteReference>
 							<PackageName><![CDATA[base]]></PackageName>
-							<ClassName><![CDATA[UI_NetConnection]]></ClassName>
+							<ClassName><![CDATA[UI_GridConnection]]></ClassName>
 							<ItemName><![CDATA[1658764971885]]></ItemName>
 						</GenericParameterSubstituteReference>
 					</GenericParameterSubstitute>
@@ -5989,7 +6058,7 @@ else {
 			<Presentation>
 				<EmbeddedObjectPresentation>
 					<Id>1658753301607</Id>
-					<Name><![CDATA[uI_NetNodes_presentation]]></Name>
+					<Name><![CDATA[uI_GridNodes_presentation]]></Name>
 					<X>0</X><Y>0</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
@@ -6008,7 +6077,7 @@ else {
 				</EmbeddedObjectPresentation>
 				<EmbeddedObjectPresentation>
 					<Id>1658929061851</Id>
-					<Name><![CDATA[uI_NetConnections_presentation]]></Name>
+					<Name><![CDATA[uI_GridConnections_presentation]]></Name>
 					<X>0</X><Y>0</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
@@ -6044,6 +6113,27 @@ else {
 					<Latitude>0.0</Latitude>
 					<Longitude>0.0</Longitude>
 				</EmbeddedObjectPresentation>
+				<Text>
+					<Id>1661169262789</Id>
+					<Name><![CDATA[text]]></Name>
+					<X>-290</X><Y>280</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Debugging and system check variables]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>12</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
 			</Presentation>
 
 				</Level>
@@ -6053,7 +6143,7 @@ else {
 		<!--   =========   Active Object Class   ========  -->
 		<ActiveObjectClass>
 			<Id>1658752913454</Id>
-			<Name><![CDATA[UI_NetNode]]></Name>
+			<Name><![CDATA[UI_GridNode]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
 			<StartupCode><![CDATA[f_setNodeVisual();]]></StartupCode>
 			<Generic>false</Generic>
@@ -6450,7 +6540,7 @@ t_nodetype.setText(p_nodeType);]]></Body>
 		<!--   =========   Active Object Class   ========  -->
 		<ActiveObjectClass>
 			<Id>1658764971887</Id>
-			<Name><![CDATA[UI_NetConnection]]></Name>
+			<Name><![CDATA[UI_GridConnection]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
 			<StartupCode><![CDATA[f_setNetConnectionVisual();]]></StartupCode>
 			<Generic>false</Generic>
