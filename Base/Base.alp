@@ -5372,6 +5372,66 @@ p_energyAssetType = assetType;]]></Body>
 						</InitialValue>
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1661171246105</Id>
+					<Name><![CDATA[v_gridConnectionBalanceElectricity_eur]]></Name>
+					<X>-320</X><Y>380</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1661171629108</Id>
+					<Name><![CDATA[v_energySupplierBalanceTotal_eur]]></Name>
+					<X>-320</X><Y>480</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1661172254045</Id>
+					<Name><![CDATA[v_gridConnectionBalanceHeat_eur]]></Name>
+					<X>-320</X><Y>400</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1661172266072</Id>
+					<Name><![CDATA[v_gridConnectionBalanceMethane_eur]]></Name>
+					<X>-320</X><Y>420</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1661172282245</Id>
+					<Name><![CDATA[v_gridConnectionBalanceTotal_eur]]></Name>
+					<X>-320</X><Y>440</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1660578629879</Id>
 					<Name><![CDATA[p_individualMode]]></Name>
@@ -5777,7 +5837,29 @@ for( UI_GridNode n : filter( uI_GridNodes, p -> p.p_nodeType.equals(HSMS)) ) {
 	electricityBalance_kWh += realAgent.v_electricityDelivered_kWh - realAgent.v_electricityDrawn_kWh;
 }
 
-v_electricityBalanceHSMSGridConnections_kWh = electricityBalance_kWh;]]></Body>
+v_electricityBalanceHSMSGridConnections_kWh = electricityBalance_kWh;
+
+// retrieve GridConnections financial states
+double electricityBalance_eur = 0;
+double heatBalance_eur = 0;
+double methaneBalance_eur = 0;
+for( UI_Actor a : filter( uI_Actors, p -> p.p_actorType.equals(CONNECTIONOWNER)) ) {
+	ConnectionOwner realAgent = (ConnectionOwner)a.realAgent.getConnectedAgent(0);
+	electricityBalance_eur += realAgent.v_balanceElectricity_eur;
+	heatBalance_eur += realAgent.v_balanceHeat_eur;
+	methaneBalance_eur += realAgent.v_balanceMethane_eur;
+}
+v_gridConnectionBalanceElectricity_eur = electricityBalance_eur;
+v_gridConnectionBalanceHeat_eur = heatBalance_eur;
+v_gridConnectionBalanceMethane_eur = methaneBalance_eur;
+v_gridConnectionBalanceTotal_eur = v_gridConnectionBalanceElectricity_eur + v_gridConnectionBalanceHeat_eur + v_gridConnectionBalanceMethane_eur;
+
+electricityBalance_eur = 0;
+for( UI_Actor a : filter( uI_Actors, p -> p.p_actorType.equals(ENERGYSUPPLIER)) ) {
+	EnergySupplier realAgent = (EnergySupplier)a.realAgent.getConnectedAgent(0);
+	electricityBalance_eur += realAgent.v_currentBalanceClients_eur;
+}
+v_energySupplierBalanceTotal_eur = electricityBalance_eur;]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -10961,6 +11043,42 @@ for(Agent a :  subConnections.getConnections() ) {
 						<InitialValue Class="CodeValue">
 							<Code><![CDATA[0]]></Code>
 						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1661173036699</Id>
+					<Name><![CDATA[v_currentBalanceElectricityClients_eur]]></Name>
+					<X>320</X><Y>370</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1661173058952</Id>
+					<Name><![CDATA[v_currentBalanceHeatClients_eur]]></Name>
+					<X>320</X><Y>390</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1661173096820</Id>
+					<Name><![CDATA[v_currentBalanceMethaneClients_eur]]></Name>
+					<X>320</X><Y>410</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
 					</Properties>
 				</Variable>
 				<Variable Class="Parameter">
