@@ -864,9 +864,21 @@ for (Tuple netConnection : netConnections) {
 	ownerActorID = netConnection.get (config_netconnections.owner_actor );
 
    // NetConnection NetConnection = add_pop_netConnections( netConnectionCategory, netConnectionType, netConnectionCapacity, netConnectionParentElectric, netConnectionID, netConnectionParentHeat, null, null, null, ownerActorID, null, null);
-    GridConnection NetConnection = add_pop_gridConnections(netConnectionCategory, netConnectionType, netConnectionCapacity, netConnectionParentElectric, netConnectionID, netConnectionParentHeat, null, null, null, null, ownerActorID, null, null);
+    GridConnection GridConnection = add_pop_gridConnections(netConnectionCategory, netConnectionType, netConnectionCapacity, netConnectionParentElectric, netConnectionID, netConnectionParentHeat, null, null, null, null, ownerActorID, null, null);
 }
-
+for (GridConnection g : pop_gridConnections) {
+	g.f_connectToParentNode();
+}	
+// assign heat supplier only after all relevant agent connections are made!
+for (GridConnection g: pop_gridConnections) {
+	if(g.p_parentNodeHeat instanceof GridNode && g.p_ownerActor instanceof ConnectionOwner) {
+			ConnectionOwner o = (ConnectionOwner)g.p_ownerActor;
+			List<GridConnection> heatSuppliers = filter( g.p_parentNodeHeat.subConnections.getConnections(), p -> p.p_netConnectionCategory.equals(DISTRICTHEATING));
+			traceln("connection id: "+g.p_agentID+", heatEnergySupplier: "+heatSuppliers+ ", owneractor: "+heatSuppliers.get(0).p_ownerActor); 
+			o.v_energySupplierDistrictHeat = heatSuppliers.get(0).p_ownerActor;
+	
+	}
+}
 // 3. add agents to population from database: EnergyAssets
 List<Tuple> energyAssets = selectFrom(config_energyassets)
 	.list();
@@ -3085,7 +3097,6 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 			<Id>1658499438203</Id>
 			<Name><![CDATA[GridConnection]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
-			<StartupCode><![CDATA[f_connectToParentNode();]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1658499438201</Id>
@@ -3723,7 +3734,7 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[ConnectionOwner]]></Type>
+						<Type><![CDATA[Agent]]></Type>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<ParameterEditor>
@@ -4020,12 +4031,19 @@ if( myParentNodeHeat instanceof GridNode ) {
 	p_parentNodeHeat = myParentNodeHeat;
 }
 
-ConnectionOwner myParentActor = findFirst(main.pop_connectionOwners, p->p.p_actorID.equals(p_ownerID)) ;
-if( myParentActor instanceof ConnectionOwner) {
-	p_ownerActor = myParentActor;
-	superConnection.connectTo(myParentActor);
-	myParentActor.f_connectToChild(this);
-}]]></Body>
+ConnectionOwner myParentConnectionOwner = findFirst(main.pop_connectionOwners, p->p.p_actorID.equals(p_ownerID)) ;
+if( myParentConnectionOwner instanceof ConnectionOwner) {
+	p_ownerActor = myParentConnectionOwner;
+	superConnection.connectTo(myParentConnectionOwner);
+	myParentConnectionOwner.f_connectToChild(this);
+}
+EnergySupplier myParentEnergySupplier = findFirst(main.pop_energySuppliers, p->p.p_actorID.equals(p_ownerID)) ;
+if( myParentEnergySupplier instanceof EnergySupplier) {
+	p_ownerActor = myParentEnergySupplier;
+	superConnection.connectTo(myParentEnergySupplier);
+	myParentEnergySupplier.f_connectToChild(this);
+}
+]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -8525,6 +8543,30 @@ t_nodetype.setText(p_nodeType);]]></Body>
 						</InitialValue>
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1661177954454</Id>
+					<Name><![CDATA[v_energySupplierDistrictHeat]]></Name>
+					<X>50</X><Y>150</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[Agent]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1661179464769</Id>
+					<Name><![CDATA[v_ownedConnection]]></Name>
+					<X>50</X><Y>130</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[GridConnection]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1660225105547</Id>
 					<Name><![CDATA[p_actorID]]></Name>
@@ -8632,7 +8674,7 @@ t_nodetype.setText(p_nodeType);]]></Body>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1660230297342</Id>
 					<Name><![CDATA[f_connectToChild]]></Name>
-					<X>50</X><Y>160</Y>
+					<X>50</X><Y>200</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -8642,6 +8684,7 @@ t_nodetype.setText(p_nodeType);]]></Body>
 						<Type><![CDATA[GridConnection]]></Type>
 					</Parameter>
 					<Body><![CDATA[subConnections.connectTo(ConnectingChildNode);
+v_ownedConnection = ConnectingChildNode;
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -8655,7 +8698,7 @@ t_nodetype.setText(p_nodeType);]]></Body>
 @return: none
 @since: Sprint 6
 @author: HOUJ]]></Description>
-					<X>50</X><Y>140</Y>
+					<X>50</X><Y>180</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -8698,8 +8741,6 @@ if( p_energySupplier != null) {
 		EnergySupplier energySupplier = (EnergySupplier)p_energySupplier;
 		double transactionCost_eur = energySupplier.f_doEnergyTransaction(v_electricityVolume_kWh, v_electricityContractType);
 		v_balanceElectricity_eur -= transactionCost_eur;
-		transactionCost_eur = energySupplier.f_doEnergyTransaction(v_heatVolume_kWh, v_heatContractType);
-		v_balanceHeat_eur -= transactionCost_eur;
 		transactionCost_eur = energySupplier.f_doEnergyTransaction(v_methaneVolume_kWh, v_methaneContractType);
 		v_balanceMethane_eur -= transactionCost_eur; 
 		transactionCost_eur = energySupplier.f_doEnergyTransaction(v_hydrogenVolume_kWh, v_hydrogenContractType);
@@ -8708,18 +8749,28 @@ if( p_energySupplier != null) {
 		EnergyHolon energySupplier = (EnergyHolon)p_energySupplier;
 		double transactionCost_eur = energySupplier.f_doEnergyTransaction(v_electricityVolume_kWh, v_electricityContractType);
 		v_balanceElectricity_eur -= transactionCost_eur;
-		transactionCost_eur = energySupplier.f_doEnergyTransaction(v_heatVolume_kWh, v_heatContractType);
-		v_balanceHeat_eur -= transactionCost_eur;
 		transactionCost_eur = energySupplier.f_doEnergyTransaction(v_methaneVolume_kWh, v_methaneContractType);
 		v_balanceMethane_eur -= transactionCost_eur; 
 		transactionCost_eur = energySupplier.f_doEnergyTransaction(v_hydrogenVolume_kWh, v_hydrogenContractType);
 		v_balanceHydrogen_eur -= transactionCost_eur; 
 	}
-	
-			
 } else {
 	traceln("Connection owner " + this + " has no energy supplier!");
-}]]></Body>
+}
+
+// trigger district heat accounting with specified heat supplier agent
+if( v_energySupplierDistrictHeat instanceof EnergySupplier) {
+	EnergySupplier energySupplier = (EnergySupplier)v_energySupplierDistrictHeat;
+	double transactionCost_eur = energySupplier.f_doEnergyTransaction(v_heatVolume_kWh, v_heatContractType);
+	v_balanceHeat_eur -= transactionCost_eur;
+}
+else if( v_energySupplierDistrictHeat instanceof EnergyHolon ) {
+	EnergyHolon energySupplier = (EnergyHolon)v_energySupplierDistrictHeat;
+	double transactionCost_eur = energySupplier.f_doEnergyTransaction(v_heatVolume_kWh, v_heatContractType);
+	v_balanceHeat_eur -= transactionCost_eur;
+}
+		
+			]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
