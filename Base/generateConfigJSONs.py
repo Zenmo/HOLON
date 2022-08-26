@@ -1,4 +1,3 @@
-from xml.etree.ElementTree import tostring
 import pandas
 
 import pandas as pd
@@ -21,13 +20,13 @@ def convertExcelToJson(excelsheet):
 
 def jsonForJava(json_string):
     #str = json.dumps(output, cls=EnhancedJSONEncoder)
-    json_string = json_string.replace('"', r"\"")
-    json_string = '"' + json_string + '"'
+    #json_string = json_string.replace('"', r"\"")
+    #json_string = '"' + json_string + '"'
     print(json_string)
     return json_string
     
 def outputJSONfile(json_string,sheet):
-    with open(path+'/'+sheet+".json", "w") as outfile:
+    with open(path+'/'+sheet+".txt", "w") as outfile:
         outfile.writelines([json_string])
 
 def processExcelSheet(sheet):

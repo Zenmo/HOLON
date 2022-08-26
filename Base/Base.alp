@@ -467,6 +467,7 @@ traceln("*** main start *** "+System.currentTimeMillis());
 
 // read config files
 //f_readParameters();
+//function();
 f_readConfigJSONS();
 f_loadParameters();
 
@@ -479,7 +480,7 @@ f_addDefaultEnergyAssets();
 // add optional KpiVisuals-agent for model monitoring, checks and debugging
 f_addKpiVisuals();
 traceln("*** main end *** "+System.currentTimeMillis());]]></StartupCode>
-			<DestroyCode><![CDATA[f_returnActorData();]]></DestroyCode>
+			<DestroyCode><![CDATA[f_returnActorData(true);]]></DestroyCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1658477103138</Id>
@@ -575,7 +576,7 @@ traceln("*** main end *** "+System.currentTimeMillis());]]></StartupCode>
 			<Outputs>
 				<Output>
 					<Id>1661516161016</Id>
-					<Name><![CDATA[o_outputJSON]]></Name>
+					<Name><![CDATA[o_outputConnectionOwnerJSON]]></Name>
 					<X>60</X><Y>630</Y>
 					<Label><X>15</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -583,7 +584,24 @@ traceln("*** main end *** "+System.currentTimeMillis());]]></StartupCode>
 					<ShowLabel>true</ShowLabel>
 					<Type><![CDATA[String]]></Type>
 					<UnitType><![CDATA[NONE]]></UnitType>
-					<ComputationMoment>ON_SIMULATION_END</ComputationMoment>
+					<ComputationMoment>MANUALLY</ComputationMoment>
+					<ComputationTimeCode Class="CodeUnitValue">
+						<Code><![CDATA[]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[SECOND]]></Unit>
+					</ComputationTimeCode>
+					<ComputationDate>1661587200000</ComputationDate>
+				</Output>
+				<Output>
+					<Id>1661529224106</Id>
+					<Name><![CDATA[o_outputExceptions]]></Name>
+					<X>60</X><Y>650</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Type><![CDATA[String]]></Type>
+					<UnitType><![CDATA[NONE]]></UnitType>
+					<ComputationMoment>MANUALLY</ComputationMoment>
 					<ComputationTimeCode Class="CodeUnitValue">
 						<Code><![CDATA[]]></Code>
 						<Unit Class="TimeUnits"><![CDATA[SECOND]]></Unit>
@@ -956,6 +974,37 @@ for (EnergySupplier e : pop_energySuppliers) {
 	e.f_updateFinances();
 }]]></Action>
 				</Event>
+				<Event>
+					<Id>1661520233573</Id>
+					<Name><![CDATA[e_KPIUpdate]]></Name>
+					<X>440</X><Y>540</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties TriggerType="rate" Mode="occuresOnce">
+						<Timeout Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+						</Timeout>
+						<Rate Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="RateUnits"><![CDATA[PER_DAY]]></Unit>
+						</Rate>
+						<OccurrenceAtTime>true</OccurrenceAtTime>
+						<OccurrenceDate>1661587200000</OccurrenceDate>
+						<OccurrenceTime Class="CodeUnitValue">
+							<Code><![CDATA[0]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+						</OccurrenceTime>
+						<RecurrenceCode Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+						</RecurrenceCode>
+						<Condition><![CDATA[false]]></Condition>
+					</Properties>
+					<Action><![CDATA[f_returnActorData(false);]]></Action>
+				</Event>
 			</Events>
 			<Functions>
 				<Function AccessType="default" StaticFunction="false">
@@ -1129,6 +1178,7 @@ parsedJSONGridNodes = mapper.readValue(
 
 } catch (IOException e) {
 e.printStackTrace();
+update_o_outputExceptions(e.getMessage());
 }
 
 //GridConnection config
@@ -1139,6 +1189,7 @@ parsedJSONGridConnections = mapper.readValue(
 
 } catch (IOException e) {
 e.printStackTrace();
+update_o_outputExceptions(e.getMessage());
 }
 
 //Actor config
@@ -1149,6 +1200,7 @@ parsedJSONActors = mapper.readValue(
 
 } catch (IOException e) {
 e.printStackTrace();
+update_o_outputExceptions(e.getMessage());
 }
 
 //EnergyAssets config
@@ -1159,6 +1211,7 @@ parsedJSONEnergyAssets = mapper.readValue(
 
 } catch (IOException e) {
 e.printStackTrace();
+update_o_outputExceptions(e.getMessage());
 }
 ]]></Body>
 				</Function>
@@ -1532,27 +1585,35 @@ e.f_connectToParentNode( ownerAgent );]]></Body>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[writeToDisk]]></Name>
+						<Type><![CDATA[boolean]]></Type>
+					</Parameter>
 					<Body><![CDATA[ObjectMapper mapper = new ObjectMapper();
 
 DataOut great_succes = new DataOut();
 
 for (ConnectionOwner c : pop_connectionOwners) {
-	c.j_ConnectionOwnerData.updateData(c.p_actorID, c.p_actorType, c.p_parentActorID, c.p_energySupplier, c.v_ownedGridConnection, c.v_energySupplierDistrictHeat, c.v_electricityVolume_kWh, c.v_heatVolume_kWh, c.v_methaneVolume_kWh, c.v_hydrogenVolume_kWh, c.v_balanceElectricity_eur, c.v_balanceHeat_eur, c.v_balanceMethane_eur, c.v_balanceHydrogen_eur);
+	c.j_ConnectionOwnerData.updateData(c.p_actorID, c.p_actorType, c.p_parentActorID, c.p_energySupplier, c.v_ownedGridConnection, c.v_energySupplierDistrictHeat, c.v_electricityVolume_kWh, c.v_heatVolume_kWh, c.v_methaneVolume_kWh, c.v_hydrogenVolume_kWh, c.v_electricityContractType.toString(), c.v_heatContractType.toString(), c.v_methaneContractType.toString(), c.v_hydrogenContractType.toString(), c.v_balanceElectricity_eur, c.v_balanceHeat_eur, c.v_balanceMethane_eur, c.v_balanceHydrogen_eur);
 	J_ConnectionOwnerData data = c.j_ConnectionOwnerData;
-	traceln(data);
+	//traceln(data);
 	great_succes.greatSucces.add(data);
 	
 }
 
+
 try {
 //	J_ConnectionOwnerData data = pop_connectionOwners.get(0).j_ConnectionOwnerData;
     String json = mapper.writeValueAsString(great_succes);
-    System.out.println(json);
-    o_outputJSON = json;
-    traceln("succes");
-    mapper.writeValue(
-    new File(".\\output-2.json"), great_succes);
-    traceln("file succes");
+    //System.out.println(json);
+    
+    if(writeToDisk) {
+    	traceln("succes");
+    	mapper.writeValue(
+		new File(".\\output-2.json"), great_succes);
+		traceln("file succes");
+	}
+    update_o_outputConnectionOwnerJSON(json);
 
 } catch (IOException e) {
     traceln("exception generating output");
@@ -1560,6 +1621,18 @@ try {
 }
 
 ]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1661530837893</Id>
+					<Name><![CDATA[f_importConfigText]]></Name>
+					<X>60</X><Y>20</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[p_actorsConfigJSON = t_configActors.readString().replaceAll("^\"|\"$", "");]]></Body>
 				</Function>
 			</Functions>
 			<TableFunctions>
@@ -1576,7 +1649,7 @@ try {
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<InterpolationMethod>LINEAR</InterpolationMethod>
-					<OutOfRangeBehaviour>ERROR</OutOfRangeBehaviour>
+					<OutOfRangeBehaviour>REPEATING</OutOfRangeBehaviour>
 					<OutOfRangeCustomValue><![CDATA[0.0]]></OutOfRangeCustomValue>
 					<ApproximationOrder><![CDATA[1]]></ApproximationOrder>
 					<LoadFromDatabase><![CDATA[true]]></LoadFromDatabase>
@@ -1614,7 +1687,7 @@ try {
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<InterpolationMethod>LINEAR</InterpolationMethod>
-					<OutOfRangeBehaviour>ERROR</OutOfRangeBehaviour>
+					<OutOfRangeBehaviour>REPEATING</OutOfRangeBehaviour>
 					<OutOfRangeCustomValue><![CDATA[0.0]]></OutOfRangeCustomValue>
 					<ApproximationOrder><![CDATA[1]]></ApproximationOrder>
 					<LoadFromDatabase><![CDATA[true]]></LoadFromDatabase>
@@ -1652,7 +1725,7 @@ try {
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<InterpolationMethod>LINEAR</InterpolationMethod>
-					<OutOfRangeBehaviour>ERROR</OutOfRangeBehaviour>
+					<OutOfRangeBehaviour>REPEATING</OutOfRangeBehaviour>
 					<OutOfRangeCustomValue><![CDATA[0.0]]></OutOfRangeCustomValue>
 					<ApproximationOrder><![CDATA[1]]></ApproximationOrder>
 					<LoadFromDatabase><![CDATA[true]]></LoadFromDatabase>
@@ -1689,7 +1762,7 @@ try {
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<InterpolationMethod>LINEAR</InterpolationMethod>
-					<OutOfRangeBehaviour>ERROR</OutOfRangeBehaviour>
+					<OutOfRangeBehaviour>REPEATING</OutOfRangeBehaviour>
 					<OutOfRangeCustomValue><![CDATA[0.0]]></OutOfRangeCustomValue>
 					<ApproximationOrder><![CDATA[1]]></ApproximationOrder>
 					<LoadFromDatabase><![CDATA[true]]></LoadFromDatabase>
@@ -1715,6 +1788,24 @@ try {
 				</TableFunction>
 			</TableFunctions>
 			<Connectivity>
+				<TextFile>
+					<Id>1661530848985</Id>
+					<Name><![CDATA[t_configActors]]></Name>
+					<X>260</X><Y>20</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<FileType>FILE</FileType>
+					<Url><![CDATA[]]></Url>
+					<ResourceReference>
+						<PackageName><![CDATA[base]]></PackageName>
+						<ClassName><![CDATA[config_actors.txt]]></ClassName>
+					</ResourceReference>
+					<FileMode>READ</FileMode>
+					<CharsetName>UTF-8</CharsetName>
+					<Separators></Separators>
+				</TextFile>
 				<ExcelFile>
 					<Id>1660141188744</Id>
 					<Name><![CDATA[tripsExcel]]></Name>
@@ -6607,6 +6698,28 @@ v_energySupplierBalanceTotal_eur = v_energySupplierBalanceElectricity_eur + v_en
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>12</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1661517923605</Id>
+					<Name><![CDATA[text3]]></Name>
+					<X>20</X><Y>580</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA["Model time: "+]]></Text>
+					<TextCode><![CDATA["Model Time: "+roundToDecimal(time(HOUR),1) + " hours simulated"]]></TextCode>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>10</Size>
 						<Style>0</Style>
 					</Font>
 					<Alignment>LEFT</Alignment>
@@ -12567,7 +12680,7 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<InterpolationMethod>LINEAR</InterpolationMethod>
-					<OutOfRangeBehaviour>ERROR</OutOfRangeBehaviour>
+					<OutOfRangeBehaviour>REPEATING</OutOfRangeBehaviour>
 					<OutOfRangeCustomValue><![CDATA[0.0]]></OutOfRangeCustomValue>
 					<ApproximationOrder><![CDATA[1]]></ApproximationOrder>
 					<LoadFromDatabase><![CDATA[true]]></LoadFromDatabase>
@@ -12820,25 +12933,97 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 	<RunConfiguration ActiveObjectClassId="1658477103140">
 		<Id>1658477103163</Id>
 		<Name><![CDATA[RunConfiguration]]></Name>
-		<MaximumMemory>512</MaximumMemory>
+		<MaximumMemory>1024</MaximumMemory>
 		<ModelTimeProperties>
-			<StopOption><![CDATA[Stop at specified time]]></StopOption>
+			<StopOption><![CDATA[Stop at specified date]]></StopOption>
 			<InitialDate><![CDATA[1658448000000]]></InitialDate>	
 			<InitialTime><![CDATA[0.0]]></InitialTime>	
-			<FinalDate><![CDATA[1661126400000]]></FinalDate>	
-			<FinalTime><![CDATA[100.0]]></FinalTime>	
+			<FinalDate><![CDATA[1689984000000]]></FinalDate>	
+			<FinalTime><![CDATA[8760.0]]></FinalTime>	
 		</ModelTimeProperties>
 		<AnimationProperties>
 			<StopNever>true</StopNever>
 			<ExecutionMode>realTimeScaled</ExecutionMode>
-			<RealTimeScale>1.0</RealTimeScale>
+			<RealTimeScale>10.0</RealTimeScale>
 			<EnableZoomAndPanning>true</EnableZoomAndPanning>
 			<EnableDeveloperPanel>false</EnableDeveloperPanel>
 			<ShowDeveloperPanelOnStart>false</ShowDeveloperPanelOnStart>
 		</AnimationProperties>
-		<Inputs>		
+		<Inputs>
+    		<RunConfigurationInput>
+				<Id>1661517220706</Id>
+				<Name><![CDATA[P time step h]]></Name>
+				<InputReference>
+					<PackageName><![CDATA[base]]></PackageName>
+					<ClassName><![CDATA[Main]]></ClassName>
+					<ItemName><![CDATA[p_timeStep_h]]></ItemName>
+				</InputReference>
+    		</RunConfigurationInput>
+    		<RunConfigurationInput>
+				<Id>1661517213660</Id>
+				<Name><![CDATA[B add kpi visuals]]></Name>
+				<InputReference>
+					<PackageName><![CDATA[base]]></PackageName>
+					<ClassName><![CDATA[Main]]></ClassName>
+					<ItemName><![CDATA[b_addKpiVisuals]]></ItemName>
+				</InputReference>
+    		</RunConfigurationInput>
+    		<RunConfigurationInput>
+				<Id>1661517224234</Id>
+				<Name><![CDATA[P grid node config JSON]]></Name>
+				<InputReference>
+					<PackageName><![CDATA[base]]></PackageName>
+					<ClassName><![CDATA[Main]]></ClassName>
+					<ItemName><![CDATA[p_gridNodeConfigJSON]]></ItemName>
+				</InputReference>
+    		</RunConfigurationInput>
+    		<RunConfigurationInput>
+				<Id>1661517225656</Id>
+				<Name><![CDATA[P grid connection config JSON]]></Name>
+				<InputReference>
+					<PackageName><![CDATA[base]]></PackageName>
+					<ClassName><![CDATA[Main]]></ClassName>
+					<ItemName><![CDATA[p_gridConnectionConfigJSON]]></ItemName>
+				</InputReference>
+    		</RunConfigurationInput>
+    		<RunConfigurationInput>
+				<Id>1661517226959</Id>
+				<Name><![CDATA[P actors config JSON]]></Name>
+				<InputReference>
+					<PackageName><![CDATA[base]]></PackageName>
+					<ClassName><![CDATA[Main]]></ClassName>
+					<ItemName><![CDATA[p_actorsConfigJSON]]></ItemName>
+				</InputReference>
+    		</RunConfigurationInput>
+    		<RunConfigurationInput>
+				<Id>1661517228035</Id>
+				<Name><![CDATA[P energy assets config JSON]]></Name>
+				<InputReference>
+					<PackageName><![CDATA[base]]></PackageName>
+					<ClassName><![CDATA[Main]]></ClassName>
+					<ItemName><![CDATA[p_energyAssetsConfigJSON]]></ItemName>
+				</InputReference>
+    		</RunConfigurationInput>		
 		</Inputs>
 		<Outputs>
+    		<RunConfigurationOutput>
+				<Id>1661517229694</Id>
+				<Name><![CDATA[O output JSON]]></Name>
+				<OutputReference>
+					<PackageName><![CDATA[base]]></PackageName>
+					<ClassName><![CDATA[Main]]></ClassName>
+					<ItemName><![CDATA[o_outputConnectionOwnerJSON]]></ItemName>
+				</OutputReference>
+    		</RunConfigurationOutput>
+    		<RunConfigurationOutput>
+				<Id>1661529672978</Id>
+				<Name><![CDATA[O output exceptions]]></Name>
+				<OutputReference>
+					<PackageName><![CDATA[base]]></PackageName>
+					<ClassName><![CDATA[Main]]></ClassName>
+					<ItemName><![CDATA[o_outputExceptions]]></ItemName>
+				</OutputReference>
+    		</RunConfigurationOutput>
 		</Outputs>
 	</RunConfiguration>
 	<Experiments>	
@@ -12851,6 +13036,7 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 			<MaximumMemory>512</MaximumMemory>
 			<RandomNumberGenerationType>fixedSeed</RandomNumberGenerationType>
 			<CustomGeneratorCode>new Random()</CustomGeneratorCode>
+			<AfterSimulationRunCode><![CDATA[root.f_returnActorData(true);]]></AfterSimulationRunCode>
 			<SeedValue>1</SeedValue>
 			<SelectionModeForSimultaneousEvents>LIFO</SelectionModeForSimultaneousEvents>
 			<VmArgs><![CDATA[]]></VmArgs>
@@ -12889,6 +13075,9 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 				</Parameter>
 				<Parameter>
 					<ParameterName><![CDATA[p_undergroundTemperature_degC]]></ParameterName>
+					<ParameterValue Class="CodeValue">
+						<Code><![CDATA[10]]></Code>
+					</ParameterValue>
 				</Parameter>
 				<Parameter>
 					<ParameterName><![CDATA[p_gridNodeConfigJSON]]></ParameterName>
@@ -14094,7 +14283,7 @@ public class J_ConnectionOwnerData implements Serializable {
 			"balanceHydrogen_eur = " + balanceHydrogen_eur +" ";
 	}
 	
-	public void updateData(String actorID, String actorType, String parentActorID, Agent energySupplier, GridConnection ownedGridConnection, Agent energySupplierDistrictHeat,double electricityVolume_kWh, double heatVolume_kWh, double methaneVolume_kWh, double hydrogenVolume_kWh, double balanceElectricity_eur, double balanceHeat_eur, double balanceMethane_eur, double balanceHydrogen_eur) {
+	public void updateData(String actorID, String actorType, String parentActorID, Agent energySupplier, GridConnection ownedGridConnection, Agent energySupplierDistrictHeat,double electricityVolume_kWh, double heatVolume_kWh, double methaneVolume_kWh, double hydrogenVolume_kWh, String electricityContractType, String heatContractType, String methaneContractType, String hydrogenContractType, double balanceElectricity_eur, double balanceHeat_eur, double balanceMethane_eur, double balanceHydrogen_eur) {
 		this.actorID = actorID;
 		this.actorType = actorType;
 		this.parentActorID = parentActorID;
@@ -14105,10 +14294,10 @@ public class J_ConnectionOwnerData implements Serializable {
 		this.heatVolume_kWh = heatVolume_kWh  + "";
 		this.methaneVolume_kWh = methaneVolume_kWh + "";
 		this.hydrogenVolume_kWh = hydrogenVolume_kWh + "";
-		this.electricityContractType = electricityContractType.toString();
-		this.heatContractType = heatContractType.toString();
-		this.methaneContractType = methaneContractType.toString();
-		this.hydrogenContractType = hydrogenContractType.toString();
+		this.electricityContractType = electricityContractType + "";
+		this.heatContractType = heatContractType + "";
+		this.methaneContractType = methaneContractType + "";
+		this.hydrogenContractType = hydrogenContractType + "";
 		this.balanceElectricity_eur = balanceElectricity_eur + "";
 		this.balanceHeat_eur = balanceHeat_eur + "";
 		this.balanceMethane_eur = balanceMethane_eur + "";
@@ -14172,6 +14361,10 @@ public class DataOut implements Serializable {
 			<Path><![CDATA[AlbatrossProcessedVehicleTrips.xlsx]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
+		<Resource>
+			<Path><![CDATA[config_actors.txt]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+		</Resource>
 	</ModelResources>
     <RequiredLibraryReference>
 		<LibraryName><![CDATA[com.anylogic.libraries.modules.markup_descriptors]]></LibraryName>
@@ -14185,5 +14378,6 @@ public class DataOut implements Serializable {
 		<VersionMinor>0</VersionMinor>
 		<VersionBuild>5</VersionBuild>
     </RequiredLibraryReference>
+	<CloudModelUuid><![CDATA[203f1e6d-c343-48c0-9b42-30d0164b6902]]></CloudModelUuid>
 </Model>
 </AnyLogicWorkspace>
