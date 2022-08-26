@@ -467,7 +467,7 @@ traceln("*** main start *** "+System.currentTimeMillis());
 
 // read config files
 //f_readParameters();
-f_readConfigDatabases();
+f_readConfigJSONS();
 f_loadParameters();
 
 // populate the model agent type populations
@@ -572,6 +572,25 @@ traceln("*** main end *** "+System.currentTimeMillis());]]></StartupCode>
 			</ScaleRuler>
 			<CurrentLevel>1658477103139</CurrentLevel>
 			<ConnectionsId>1658477103135</ConnectionsId>
+			<Outputs>
+				<Output>
+					<Id>1661516161016</Id>
+					<Name><![CDATA[o_outputJSON]]></Name>
+					<X>60</X><Y>630</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Type><![CDATA[String]]></Type>
+					<UnitType><![CDATA[NONE]]></UnitType>
+					<ComputationMoment>ON_SIMULATION_END</ComputationMoment>
+					<ComputationTimeCode Class="CodeUnitValue">
+						<Code><![CDATA[]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[SECOND]]></Unit>
+					</ComputationTimeCode>
+					<ComputationDate>1661587200000</ComputationDate>
+				</Output>
+			</Outputs>
 			<Variables>
 				<Variable Class="PlainVariable">
 					<Id>1659356181110</Id>
@@ -1053,10 +1072,6 @@ for (GridConnection g: pop_gridConnections) {
 	
 	}
 }
-// 3. add agents to population from database: EnergyAssets
-List<Tuple> energyAssets = selectFrom(config_energyassets)
-	.list();
-
 //String energyAssetID;
 OL_EACategories assetCategory;
 OL_EnergyAssetType assetType;
@@ -1064,12 +1079,13 @@ String assetParentID;
 double capacityElectric_kW;
 double capacityHeat_kW;
 
-for (Tuple energyAsset : energyAssets) {
-    assetCategory = energyAsset.get( config_energyassets.type );
-    assetType = energyAsset.get( config_energyassets.type2 );
-    assetParentID = energyAsset.get( config_energyassets.parent );
-    capacityElectric_kW = roundToDecimal(energyAsset.get( config_energyassets.capacity_electric_kw ),2);
-    capacityHeat_kW = roundToDecimal(energyAsset.get( config_energyassets.capacity_heat_kw ),2);
+for(HashMap data : parsedJSONEnergyAssets) {
+    traceln("data = "+data);
+    assetCategory = OL_EACategories.valueOf( (String)data.get( "type" ) );
+    assetType = OL_EnergyAssetType.valueOf( (String)data.get( "type2" ) );
+    assetParentID = (String)data.get( "parent" );
+    capacityElectric_kW = roundToDecimal((Integer)data.get( "capacity_electric_kw" ),2);
+    capacityHeat_kW = roundToDecimal((Integer)data.get( "capacity_heat_kw" ),2);
 
     EnergyAsset EnergyAsset = add_pop_energyAssets(null, assetParentID, assetType);  // let op: andere volgorde van argumenten. Nog fixen?
     //EnergyAsset.f_connectToParentNode(null);
@@ -1091,7 +1107,7 @@ for (Tuple energyAsset : energyAssets) {
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1658494691805</Id>
-					<Name><![CDATA[f_readConfigDatabases]]></Name>
+					<Name><![CDATA[f_readConfigJSONS]]></Name>
 					<Description><![CDATA[Functie om handmatig databases te updaten vanuit custom database connection objecten (niet aanwezig als het model is opgeslagen met Gillis' AnyLogic-versie). Gebruikt om mogelijk externe database-connecties (via URLs) te kunnen implementeren, en voor profiling doeleinden.
 
 @since: Sprint 6
@@ -1532,13 +1548,14 @@ try {
 //	J_ConnectionOwnerData data = pop_connectionOwners.get(0).j_ConnectionOwnerData;
     String json = mapper.writeValueAsString(great_succes);
     System.out.println(json);
+    o_outputJSON = json;
     traceln("succes");
     mapper.writeValue(
     new File(".\\output-2.json"), great_succes);
     traceln("file succes");
 
 } catch (IOException e) {
-    traceln("panic!");
+    traceln("exception generating output");
     e.printStackTrace();
 }
 
@@ -12780,24 +12797,6 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 			<TableImportSettings>
 				<TableReference>
 					<PackageName><![CDATA[base]]></PackageName>
-					<ClassName><![CDATA[config_actors]]></ClassName>
-				</TableReference>
-				<ConnectionIndex>0</ConnectionIndex>
-				<ExternalTableName><![CDATA["config_actors"]]></ExternalTableName>
-				<AutoImport>true</AutoImport>
-			</TableImportSettings>
-			<TableImportSettings>
-				<TableReference>
-					<PackageName><![CDATA[base]]></PackageName>
-					<ClassName><![CDATA[config_netconnections]]></ClassName>
-				</TableReference>
-				<ConnectionIndex>0</ConnectionIndex>
-				<ExternalTableName><![CDATA["config_netConnections"]]></ExternalTableName>
-				<AutoImport>true</AutoImport>
-			</TableImportSettings>
-			<TableImportSettings>
-				<TableReference>
-					<PackageName><![CDATA[base]]></PackageName>
 					<ClassName><![CDATA[profiles]]></ClassName>
 				</TableReference>
 				<ConnectionIndex>2</ConnectionIndex>
@@ -12811,24 +12810,6 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 				</TableReference>
 				<ConnectionIndex>3</ConnectionIndex>
 				<ExternalTableName><![CDATA["params"]]></ExternalTableName>
-				<AutoImport>true</AutoImport>
-			</TableImportSettings>
-			<TableImportSettings>
-				<TableReference>
-					<PackageName><![CDATA[base]]></PackageName>
-					<ClassName><![CDATA[config_energyassets]]></ClassName>
-				</TableReference>
-				<ConnectionIndex>0</ConnectionIndex>
-				<ExternalTableName><![CDATA["config_energyAssets"]]></ExternalTableName>
-				<AutoImport>true</AutoImport>
-			</TableImportSettings>
-			<TableImportSettings>
-				<TableReference>
-					<PackageName><![CDATA[base]]></PackageName>
-					<ClassName><![CDATA[config_netnodes]]></ClassName>
-				</TableReference>
-				<ConnectionIndex>0</ConnectionIndex>
-				<ExternalTableName><![CDATA["config_netNodes"]]></ExternalTableName>
 				<AutoImport>true</AutoImport>
 			</TableImportSettings>
 		</ImportSettings>
