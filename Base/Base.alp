@@ -447,12 +447,23 @@
 			<Id>1658477103140</Id>
 			<Name><![CDATA[Main]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
+			<Import><![CDATA[import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.TextNode;
+import com.fasterxml.jackson.databind.node.NumericNode;
+import java.io.FileOutputStream;
+
+import java.io.File;
+import java.io.IOException;]]></Import>
 			<StartupCode><![CDATA[//
 traceln("*** main start *** "+System.currentTimeMillis());
 
 // read config files
 //f_readParameters();
-//f_readConfigDatabases();
+f_readConfigDatabases();
 f_loadParameters();
 
 // populate the model agent type populations
@@ -464,6 +475,7 @@ f_addDefaultEnergyAssets();
 // add optional KpiVisuals-agent for model monitoring, checks and debugging
 f_addKpiVisuals();
 traceln("*** main end *** "+System.currentTimeMillis());]]></StartupCode>
+			<DestroyCode><![CDATA[f_returnActorData();]]></DestroyCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1658477103138</Id>
@@ -650,7 +662,7 @@ traceln("*** main end *** "+System.currentTimeMillis());]]></StartupCode>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[true]]></Code>
+							<Code><![CDATA[false]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1658752734131</Id>
@@ -685,6 +697,162 @@ traceln("*** main end *** "+System.currentTimeMillis());]]></StartupCode>
 							<DelimeterType>NO_DELIMETER</DelimeterType>
 						</ParameterEditor>
 					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1661500135010</Id>
+					<Name><![CDATA[p_gridNodeConfigJSON]]></Name>
+					<X>260</X><Y>40</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[String]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA["[{\"index\":0,\"agenttype\":\"netNode\",\"id\":\"E2\",\"type\":\"ELECTRICITY\",\"type2\":\"MSLS\",\"parent\":\"E1\",\"capacity_kw\":1000},{\"index\":1,\"agenttype\":\"netNode\",\"id\":\"E3\",\"type\":\"ELECTRICITY\",\"type2\":\"MSLS\",\"parent\":\"E1\",\"capacity_kw\":1000},{\"index\":2,\"agenttype\":\"netNode\",\"id\":\"E4\",\"type\":\"ELECTRICITY\",\"type2\":\"MSLS\",\"parent\":\"E1\",\"capacity_kw\":1000},{\"index\":3,\"agenttype\":\"netNode\",\"id\":\"E1\",\"type\":\"ELECTRICITY\",\"type2\":\"HSMS\",\"parent\":null,\"capacity_kw\":500000},{\"index\":4,\"agenttype\":\"netNode\",\"id\":\"H1\",\"type\":\"HEAT\",\"type2\":\"MT\",\"parent\":null,\"capacity_kw\":300000}]"]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1661500135008</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1661509540475</Id>
+					<Name><![CDATA[p_gridConnectionConfigJSON]]></Name>
+					<X>260</X><Y>60</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[String]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA["[{\"index\":0,\"agenttype\":\"netConnection\",\"id\":\"b1\",\"type\":\"HOUSE\",\"type2\":\"DETACHED\",\"parent_electric\":\"E2\",\"parent_heat\":null,\"capacity_kw\":11,\"owner_actor\":\"hh1\"},{\"index\":1,\"agenttype\":\"netConnection\",\"id\":\"b2\",\"type\":\"HOUSE\",\"type2\":\"TERRACED\",\"parent_electric\":\"E2\",\"parent_heat\":null,\"capacity_kw\":11,\"owner_actor\":\"hh2\"},{\"index\":2,\"agenttype\":\"netConnection\",\"id\":\"b3\",\"type\":\"HOUSE\",\"type2\":\"SEMIDETACHED\",\"parent_electric\":\"E2\",\"parent_heat\":\"H1\",\"capacity_kw\":11,\"owner_actor\":\"hh3\"},{\"index\":3,\"agenttype\":\"netConnection\",\"id\":\"b4\",\"type\":\"HOUSE\",\"type2\":\"DETACHED\",\"parent_electric\":\"E3\",\"parent_heat\":null,\"capacity_kw\":11,\"owner_actor\":\"hh4\"},{\"index\":4,\"agenttype\":\"netConnection\",\"id\":\"b5\",\"type\":\"HOUSE\",\"type2\":\"SEMIDETACHED\",\"parent_electric\":\"E3\",\"parent_heat\":null,\"capacity_kw\":11,\"owner_actor\":\"hh5\"},{\"index\":5,\"agenttype\":\"netConnection\",\"id\":\"b6\",\"type\":\"HOUSE\",\"type2\":\"TERRACED\",\"parent_electric\":\"E3\",\"parent_heat\":null,\"capacity_kw\":11,\"owner_actor\":\"hh6\"},{\"index\":6,\"agenttype\":\"netConnection\",\"id\":\"b7\",\"type\":\"HOUSE\",\"type2\":\"TERRACED\",\"parent_electric\":\"E4\",\"parent_heat\":null,\"capacity_kw\":11,\"owner_actor\":\"hh7\"},{\"index\":7,\"agenttype\":\"netConnection\",\"id\":\"b8\",\"type\":\"HOUSE\",\"type2\":\"DETACHED\",\"parent_electric\":\"E4\",\"parent_heat\":null,\"capacity_kw\":11,\"owner_actor\":\"hh8\"},{\"index\":8,\"agenttype\":\"netConnection\",\"id\":\"b9\",\"type\":\"HOUSE\",\"type2\":\"DETACHED\",\"parent_electric\":\"E4\",\"parent_heat\":null,\"capacity_kw\":11,\"owner_actor\":\"hh9\"},{\"index\":9,\"agenttype\":\"netConnection\",\"id\":\"b10\",\"type\":\"HOUSE\",\"type2\":\"DETACHED\",\"parent_electric\":\"E2\",\"parent_heat\":\"H1\",\"capacity_kw\":11,\"owner_actor\":\"hh10\"},{\"index\":10,\"agenttype\":\"netConnection\",\"id\":\"b11\",\"type\":\"HOUSE\",\"type2\":\"TERRACED\",\"parent_electric\":\"E2\",\"parent_heat\":\"H1\",\"capacity_kw\":11,\"owner_actor\":\"hh11\"},{\"index\":11,\"agenttype\":\"netConnection\",\"id\":\"b12\",\"type\":\"HOUSE\",\"type2\":\"SEMIDETACHED\",\"parent_electric\":\"E2\",\"parent_heat\":\"H1\",\"capacity_kw\":11,\"owner_actor\":\"hh12\"},{\"index\":12,\"agenttype\":\"netConnection\",\"id\":\"b13\",\"type\":\"HOUSE\",\"type2\":\"DETACHED\",\"parent_electric\":\"E3\",\"parent_heat\":null,\"capacity_kw\":11,\"owner_actor\":\"hh13\"},{\"index\":13,\"agenttype\":\"netConnection\",\"id\":\"b14\",\"type\":\"HOUSE\",\"type2\":\"SEMIDETACHED\",\"parent_electric\":\"E3\",\"parent_heat\":null,\"capacity_kw\":11,\"owner_actor\":\"hh14\"},{\"index\":14,\"agenttype\":\"netConnection\",\"id\":\"b15\",\"type\":\"HOUSE\",\"type2\":\"TERRACED\",\"parent_electric\":\"E3\",\"parent_heat\":null,\"capacity_kw\":11,\"owner_actor\":\"hh15\"},{\"index\":15,\"agenttype\":\"netConnection\",\"id\":\"b16\",\"type\":\"HOUSE\",\"type2\":\"TERRACED\",\"parent_electric\":\"E4\",\"parent_heat\":null,\"capacity_kw\":11,\"owner_actor\":\"hh16\"},{\"index\":16,\"agenttype\":\"netConnection\",\"id\":\"b17\",\"type\":\"HOUSE\",\"type2\":\"DETACHED\",\"parent_electric\":\"E4\",\"parent_heat\":null,\"capacity_kw\":11,\"owner_actor\":\"hh17\"},{\"index\":17,\"agenttype\":\"netConnection\",\"id\":\"b18\",\"type\":\"HOUSE\",\"type2\":\"DETACHED\",\"parent_electric\":\"E4\",\"parent_heat\":null,\"capacity_kw\":11,\"owner_actor\":\"hh18\"},{\"index\":18,\"agenttype\":\"netConnection\",\"id\":\"b19\",\"type\":\"BUILDING\",\"type2\":\"STORE\",\"parent_electric\":\"E2\",\"parent_heat\":\"H1\",\"capacity_kw\":50,\"owner_actor\":\"com1\"},{\"index\":19,\"agenttype\":\"netConnection\",\"id\":\"b20\",\"type\":\"BUILDING\",\"type2\":\"STORE\",\"parent_electric\":\"E3\",\"parent_heat\":null,\"capacity_kw\":50,\"owner_actor\":\"com2\"},{\"index\":20,\"agenttype\":\"netConnection\",\"id\":\"b21\",\"type\":\"BUILDING\",\"type2\":\"STORE\",\"parent_electric\":\"E4\",\"parent_heat\":null,\"capacity_kw\":50,\"owner_actor\":\"com3\"},{\"index\":21,\"agenttype\":\"netConnection\",\"id\":\"b22\",\"type\":\"BUILDING\",\"type2\":\"STORE\",\"parent_electric\":\"E2\",\"parent_heat\":null,\"capacity_kw\":50,\"owner_actor\":\"com3\"},{\"index\":22,\"agenttype\":\"netConnection\",\"id\":\"b23\",\"type\":\"BUILDING\",\"type2\":\"OFFICE\",\"parent_electric\":\"E3\",\"parent_heat\":null,\"capacity_kw\":50,\"owner_actor\":\"com4\"},{\"index\":23,\"agenttype\":\"netConnection\",\"id\":\"b24\",\"type\":\"BUILDING\",\"type2\":\"OFFICE\",\"parent_electric\":\"E4\",\"parent_heat\":null,\"capacity_kw\":50,\"owner_actor\":\"com4\"},{\"index\":24,\"agenttype\":\"netConnection\",\"id\":\"b25\",\"type\":\"WINDFARM\",\"type2\":null,\"parent_electric\":\"E2\",\"parent_heat\":null,\"capacity_kw\":400000,\"owner_actor\":\"sup1\"},{\"index\":25,\"agenttype\":\"netConnection\",\"id\":\"b26\",\"type\":\"WINDFARM\",\"type2\":null,\"parent_electric\":\"E3\",\"parent_heat\":null,\"capacity_kw\":400000,\"owner_actor\":\"sup1\"},{\"index\":26,\"agenttype\":\"netConnection\",\"id\":\"b27\",\"type\":\"SOLARFARM\",\"type2\":null,\"parent_electric\":\"E4\",\"parent_heat\":null,\"capacity_kw\":400000,\"owner_actor\":\"sup1\"},{\"index\":27,\"agenttype\":\"netConnection\",\"id\":\"b28\",\"type\":\"DISTRICTHEATING\",\"type2\":null,\"parent_electric\":\"E2\",\"parent_heat\":\"H1\",\"capacity_kw\":400000,\"owner_actor\":\"sup2\"}]"]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1661509540473</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1661510358303</Id>
+					<Name><![CDATA[p_actorsConfigJSON]]></Name>
+					<X>260</X><Y>80</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[String]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA["[{\"index\":0,\"type\":\"household\",\"agenttype\":\"CONNECTIONOWNER\",\"id\":\"hh1\",\"parent_actor\":\"sup1\"},{\"index\":1,\"type\":\"household\",\"agenttype\":\"CONNECTIONOWNER\",\"id\":\"hh2\",\"parent_actor\":\"sup1\"},{\"index\":2,\"type\":\"household\",\"agenttype\":\"CONNECTIONOWNER\",\"id\":\"hh3\",\"parent_actor\":\"sup1\"},{\"index\":3,\"type\":\"household\",\"agenttype\":\"CONNECTIONOWNER\",\"id\":\"hh4\",\"parent_actor\":\"hol1\"},{\"index\":4,\"type\":\"household\",\"agenttype\":\"CONNECTIONOWNER\",\"id\":\"hh5\",\"parent_actor\":\"sup1\"},{\"index\":5,\"type\":\"household\",\"agenttype\":\"CONNECTIONOWNER\",\"id\":\"hh6\",\"parent_actor\":\"sup1\"},{\"index\":6,\"type\":\"household\",\"agenttype\":\"CONNECTIONOWNER\",\"id\":\"hh7\",\"parent_actor\":\"sup1\"},{\"index\":7,\"type\":\"household\",\"agenttype\":\"CONNECTIONOWNER\",\"id\":\"hh8\",\"parent_actor\":\"sup1\"},{\"index\":8,\"type\":\"household\",\"agenttype\":\"CONNECTIONOWNER\",\"id\":\"hh9\",\"parent_actor\":\"sup1\"},{\"index\":9,\"type\":\"household\",\"agenttype\":\"CONNECTIONOWNER\",\"id\":\"hh10\",\"parent_actor\":\"hol1\"},{\"index\":10,\"type\":\"household\",\"agenttype\":\"CONNECTIONOWNER\",\"id\":\"hh11\",\"parent_actor\":\"hol1\"},{\"index\":11,\"type\":\"household\",\"agenttype\":\"CONNECTIONOWNER\",\"id\":\"hh12\",\"parent_actor\":\"hol1\"},{\"index\":12,\"type\":\"household\",\"agenttype\":\"CONNECTIONOWNER\",\"id\":\"hh13\",\"parent_actor\":\"sup1\"},{\"index\":13,\"type\":\"household\",\"agenttype\":\"CONNECTIONOWNER\",\"id\":\"hh14\",\"parent_actor\":\"sup1\"},{\"index\":14,\"type\":\"household\",\"agenttype\":\"CONNECTIONOWNER\",\"id\":\"hh15\",\"parent_actor\":\"sup1\"},{\"index\":15,\"type\":\"household\",\"agenttype\":\"CONNECTIONOWNER\",\"id\":\"hh16\",\"parent_actor\":\"sup1\"},{\"index\":16,\"type\":\"household\",\"agenttype\":\"CONNECTIONOWNER\",\"id\":\"hh17\",\"parent_actor\":\"sup1\"},{\"index\":17,\"type\":\"household\",\"agenttype\":\"CONNECTIONOWNER\",\"id\":\"hh18\",\"parent_actor\":\"sup1\"},{\"index\":18,\"type\":\"commercial\",\"agenttype\":\"CONNECTIONOWNER\",\"id\":\"com1\",\"parent_actor\":\"hol1\"},{\"index\":19,\"type\":\"commercial\",\"agenttype\":\"CONNECTIONOWNER\",\"id\":\"com2\",\"parent_actor\":\"sup1\"},{\"index\":20,\"type\":\"energysupplier\",\"agenttype\":\"ENERGYSUPPLIER\",\"id\":\"sup1\",\"parent_actor\":\"nat\"},{\"index\":21,\"type\":\"energysupplier\",\"agenttype\":\"ENERGYSUPPLIER\",\"id\":\"sup2\",\"parent_actor\":\"nat\"},{\"index\":22,\"type\":\"holon\",\"agenttype\":\"ENERGYHOLON\",\"id\":\"hol1\",\"parent_actor\":\"sup2\"}]"]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1661510358301</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1661510407466</Id>
+					<Name><![CDATA[p_energyAssetsConfigJSON]]></Name>
+					<X>260</X><Y>100</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[String]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA["[{\"index\":0,\"agenttype\":\"energyAsset\",\"id\":\"a1\",\"type\":\"PRODUCTION\",\"type2\":\"WINDMILL\",\"parent\":\"b25\",\"capacity_electric_kw\":3000,\"capacity_heat_kw\":0},{\"index\":1,\"agenttype\":\"energyAsset\",\"id\":\"a2\",\"type\":\"PRODUCTION\",\"type2\":\"WINDMILL\",\"parent\":\"b25\",\"capacity_electric_kw\":5000,\"capacity_heat_kw\":0},{\"index\":2,\"agenttype\":\"energyAsset\",\"id\":\"a3\",\"type\":\"PRODUCTION\",\"type2\":\"WINDMILL\",\"parent\":\"b26\",\"capacity_electric_kw\":5000,\"capacity_heat_kw\":0},{\"index\":3,\"agenttype\":\"energyAsset\",\"id\":\"a4\",\"type\":\"PRODUCTION\",\"type2\":\"WINDMILL\",\"parent\":\"b26\",\"capacity_electric_kw\":3000,\"capacity_heat_kw\":0},{\"index\":4,\"agenttype\":\"energyAsset\",\"id\":\"a5\",\"type\":\"PRODUCTION\",\"type2\":\"PHOTOVOLTAIC\",\"parent\":\"b27\",\"capacity_electric_kw\":1000,\"capacity_heat_kw\":0},{\"index\":5,\"agenttype\":\"energyAsset\",\"id\":\"a6\",\"type\":\"PRODUCTION\",\"type2\":\"PHOTOVOLTAIC\",\"parent\":\"b27\",\"capacity_electric_kw\":1000,\"capacity_heat_kw\":0}]"]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1661510407464</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1661504944109</Id>
+					<Name><![CDATA[parsedJSONGridNodes]]></Name>
+					<X>260</X><Y>120</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
+						<ElementClass><![CDATA[HashMap]]></ElementClass>
+						<ValueElementClass><![CDATA[String]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1661510454747</Id>
+					<Name><![CDATA[parsedJSONGridConnections]]></Name>
+					<X>260</X><Y>140</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
+						<ElementClass><![CDATA[HashMap]]></ElementClass>
+						<ValueElementClass><![CDATA[String]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1661510457715</Id>
+					<Name><![CDATA[parsedJSONActors]]></Name>
+					<X>260</X><Y>160</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
+						<ElementClass><![CDATA[HashMap]]></ElementClass>
+						<ValueElementClass><![CDATA[String]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1661510460035</Id>
+					<Name><![CDATA[parsedJSONEnergyAssets]]></Name>
+					<X>260</X><Y>180</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
+						<ElementClass><![CDATA[HashMap]]></ElementClass>
+						<ValueElementClass><![CDATA[String]]></ValueElementClass>
+					</Properties>
+
 				</Variable>
 			</Variables>
 			<Events>
@@ -801,6 +969,7 @@ for (Tuple actor : actors) {
 
 	if (actortype.equals(OL_ActorType.CONNECTIONOWNER) ) {
 	    ConnectionOwner Actor = add_pop_connectionOwners( actorID, type, parentActorID, null);
+	    Actor.j_ConnectionOwnerData = new J_ConnectionOwnerData(actorID, type, parentActorID);
     } else if (actortype.equals(OL_ActorType.ENERGYSUPPLIER) ) {
 //	    EnergySupplier Actor = add_pop_energySuppliers( actorID, actortype, parentActorID, null);
 		EnergySupplier Actor = add_pop_energySuppliers(actorID, type, parentActorID, null, 0.21, 0.1, 0.05, 0.3, 0.17);
@@ -810,6 +979,7 @@ for (Tuple actor : actors) {
 	    GridOperator Actor = add_pop_gridOperators( actorID, type, parentActorID, null);
     }
 }
+
 for (ConnectionOwner a : pop_connectionOwners) {
 	a.f_connectToParentActor();
 }
@@ -818,6 +988,31 @@ for (EnergyHolon a : pop_energyHolons) {
 }
 
 // 1. add agents to population from database: GridNodes
+
+// iterate over the entries in the ArrayList as HashMaps so we can access the 
+// values by calling the corresponding keys
+
+String nodeID;
+OL_NetNodeType nodetype;
+OL_EnergyCarrierType energytype;
+String nodeparent;
+int nodecapacity;
+
+for(HashMap data : parsedJSONGridNodes)
+{
+   	nodeID = data.get("id").toString();
+	nodetype = OL_NetNodeType.valueOf((String)data.get("type2"));
+	energytype = OL_EnergyCarrierType.valueOf((String)data.get("type"));
+	nodeparent = (String) data.get("parent");
+	nodecapacity = (Integer)data.get("capacity_kw");
+	traceln("data "+"id= "+nodeID +", nodetype = "+nodetype +", energytype = "+ energytype+", nodeparent = "+ nodeparent+", capacity = "+ nodecapacity);
+	
+	GridNode GridNode = add_pop_gridNodes( nodeID, nodeparent, nodetype, energytype, nodecapacity, null );
+	traceln("agent "+nodeID+" added by JSON!");
+}
+
+/*
+
 List<Tuple> netNodes = selectFrom(config_netnodes)
 	.list();
 
@@ -836,11 +1031,13 @@ for (Tuple netNode : netNodes) {
 
 	GridNode NetNode = add_pop_gridNodes( nodeID, nodeparent, nodetype, energytype, nodecapacity, null );
 }
-
+*/
 // do this only after all GridNodes have been created! Or connections might be missed
 for( GridNode g : pop_gridNodes ) {
 	g.f_connectToParentNode();
 }
+
+
 
 // 2. add agents to population from database: NetConnections
 List<Tuple> netConnections = selectFrom(config_netconnections)
@@ -865,6 +1062,7 @@ for (Tuple netConnection : netConnections) {
 
    // NetConnection NetConnection = add_pop_netConnections( netConnectionCategory, netConnectionType, netConnectionCapacity, netConnectionParentElectric, netConnectionID, netConnectionParentHeat, null, null, null, ownerActorID, null, null);
     GridConnection GridConnection = add_pop_gridConnections(netConnectionCategory, netConnectionType, netConnectionCapacity, netConnectionParentElectric, netConnectionID, netConnectionParentHeat, null, null, null, null, ownerActorID, null, null);
+	//GridConnection.j_
 }
 for (GridConnection g : pop_gridConnections) {
 	g.f_connectToParentNode();
@@ -922,33 +1120,54 @@ for (Tuple energyAsset : energyAssets) {
 
 @since: Sprint 6
 @author: Jorrit]]></Description>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>60</X><Y>40</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[// read backbone config database
+					<Body><![CDATA[// create a mapper to parse the JSON file
+ObjectMapper mapper = new ObjectMapper();
 
-ModelDatabase sheet2 = getEngine().getModelDatabase();
-Connection sourceConnection = db_backboneConfig.getConnection();
-Connection targetConnection = sheet2.getConnection();
-sheet2.importFromExternalDB(sourceConnection, "config", "config", true, true);
+// open the json file using java.io.File and cast it to an ArrayList
+//GridNode config
+try {
+parsedJSONGridNodes = mapper.readValue(
+		p_gridNodeConfigJSON,    // <--- THIS PART CHANGED!
+		ArrayList.class);
 
-// read backbone config database: netNodes
-ModelDatabase netnodes_config = getEngine().getModelDatabase();
-//Connection sourceConnection = db_backboneConfig.getConnection();
-//Connection targetConnection = netnodes_config.getConnection();
-netnodes_config.importFromExternalDB(sourceConnection, "config_netNodes", "config_netNodes", true, true);
+} catch (IOException e) {
+e.printStackTrace();
+}
 
-// read backbone config database: netConnections
-ModelDatabase netconnections_config = getEngine().getModelDatabase();
-netconnections_config.importFromExternalDB(sourceConnection, "config_netConnections", "config_netConnections", true, true);
+//GridConnection config
+try {
+parsedJSONGridConnections = mapper.readValue(
+		p_gridConnectionConfigJSON,    // <--- THIS PART CHANGED!
+		ArrayList.class);
 
-// read backbone config database: energyAssets
-ModelDatabase energyassets_config = getEngine().getModelDatabase();
-energyassets_config.importFromExternalDB(sourceConnection, "config_energyassets", "config_energyassets", true, true);
+} catch (IOException e) {
+e.printStackTrace();
+}
 
+//Actor config
+try {
+parsedJSONActors = mapper.readValue(
+		p_actorsConfigJSON,    // <--- THIS PART CHANGED!
+		ArrayList.class);
+
+} catch (IOException e) {
+e.printStackTrace();
+}
+
+//EnergyAssets config
+try {
+parsedJSONEnergyAssets = mapper.readValue(
+		p_energyAssetsConfigJSON,    // <--- THIS PART CHANGED!
+		ArrayList.class);
+
+} catch (IOException e) {
+e.printStackTrace();
+}
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -1310,6 +1529,44 @@ maxTemperature_degC = tup.get( storage_assets.max_temp_degc);
 EnergyAsset e = add_pop_energyAssets( null, parentAgentID, assetType );
 e.f_instantiateStorageAsset( assetType, capacityElectricity_kW, capacityHeat_kW, stateOfCharge_r, lossFactor_WpK, chargeCapacity_kWh, heatCapacity_JpK, minTemperature_degC, maxTemperature_degC );
 e.f_connectToParentNode( ownerAgent );]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1661328014569</Id>
+					<Name><![CDATA[f_returnActorData]]></Name>
+					<X>440</X><Y>560</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[ObjectMapper mapper = new ObjectMapper();
+
+DataOut great_succes = new DataOut();
+
+for (ConnectionOwner c : pop_connectionOwners) {
+	c.j_ConnectionOwnerData.updateData(c.p_actorID, c.p_actorType, c.p_parentActorID, c.p_energySupplier, c.v_ownedGridConnection, c.v_energySupplierDistrictHeat, c.v_electricityVolume_kWh, c.v_heatVolume_kWh, c.v_methaneVolume_kWh, c.v_hydrogenVolume_kWh, c.v_balanceElectricity_eur, c.v_balanceHeat_eur, c.v_balanceMethane_eur, c.v_balanceHydrogen_eur);
+	J_ConnectionOwnerData data = c.j_ConnectionOwnerData;
+	traceln(data);
+	great_succes.greatSucces.add(data);
+	
+}
+
+try {
+//	J_ConnectionOwnerData data = pop_connectionOwners.get(0).j_ConnectionOwnerData;
+    String json = mapper.writeValueAsString(great_succes);
+    System.out.println(json);
+    traceln("succes");
+    mapper.writeValue(
+    new File(".\\output-2.json"), great_succes);
+    traceln("file succes");
+
+} catch (IOException e) {
+    traceln("panic!");
+    e.printStackTrace();
+}
+
+]]></Body>
 				</Function>
 			</Functions>
 			<TableFunctions>
@@ -8557,7 +8814,7 @@ t_nodetype.setText(p_nodeType);]]></Body>
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1661179464769</Id>
-					<Name><![CDATA[v_ownedConnection]]></Name>
+					<Name><![CDATA[v_ownedGridConnection]]></Name>
 					<X>50</X><Y>130</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -8565,6 +8822,18 @@ t_nodetype.setText(p_nodeType);]]></Body>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[GridConnection]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1661267039916</Id>
+					<Name><![CDATA[j_ConnectionOwnerData]]></Name>
+					<X>300</X><Y>240</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[J_ConnectionOwnerData]]></Type>        
 					</Properties>
 				</Variable>
 				<Variable Class="Parameter">
@@ -8684,7 +8953,7 @@ t_nodetype.setText(p_nodeType);]]></Body>
 						<Type><![CDATA[GridConnection]]></Type>
 					</Parameter>
 					<Body><![CDATA[subConnections.connectTo(ConnectingChildNode);
-v_ownedConnection = ConnectingChildNode;
+v_ownedGridConnection = ConnectingChildNode;
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -12664,6 +12933,18 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 				<Parameter>
 					<ParameterName><![CDATA[p_undergroundTemperature_degC]]></ParameterName>
 				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_gridNodeConfigJSON]]></ParameterName>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_gridConnectionConfigJSON]]></ParameterName>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_actorsConfigJSON]]></ParameterName>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_energyAssetsConfigJSON]]></ParameterName>
+				</Parameter>
 			</Parameters>			
 			<PresentationProperties>
 				<EnableZoomAndPanning>true</EnableZoomAndPanning>
@@ -13772,6 +14053,135 @@ public class J_EAConversionHeatDeliverySet extends base.J_EAConversion implement
 	 * It needs to be changed when this class gets changed
 	 */
 	private static final long serialVersionUID = 1L;
+
+}]]></Text>
+		</JavaClass>
+		<!--   =========   Java Class   ========  -->
+		<JavaClass>
+			<Id>1661266990567</Id>
+			<Name><![CDATA[J_ConnectionOwnerData]]></Name>
+			<Text><![CDATA[/**
+ * J_ConnectionOwnerData
+ */	
+public class J_ConnectionOwnerData implements Serializable {
+
+	public String actorID;
+	public String actorType;
+	public String parentActorID;
+	public String energySupplier;
+	public String ownedGridConnection;
+	public String energySupplierDistrictHeat;
+	public String electricityVolume_kWh;
+	public String heatVolume_kWh;
+	public String methaneVolume_kWh;
+	public String hydrogenVolume_kWh;
+	public String electricityContractType;
+	public String heatContractType;
+	public String methaneContractType;
+	public String hydrogenContractType;
+	public String balanceElectricity_eur;
+	public String balanceHeat_eur;
+	public String balanceMethane_eur;
+	public String balanceHydrogen_eur;
+
+	 /**
+     * Default constructor
+     */
+    public J_ConnectionOwnerData() {
+    }
+
+    /**
+     * Constructor initializing the fields
+     */
+    public J_ConnectionOwnerData(String actorID, String actorType, String parentActorID) {
+		this.actorID = actorID;
+		this.actorType = actorType;
+		this.parentActorID = parentActorID;
+		this.energySupplier = "";
+		this.ownedGridConnection = "";
+		this.energySupplierDistrictHeat = "";
+		this.electricityVolume_kWh = "";
+		this.heatVolume_kWh = "";
+		this.methaneVolume_kWh = "";
+		this.hydrogenVolume_kWh = "";
+		this.electricityContractType = "";
+		this.heatContractType = "";
+		this.methaneContractType = "";
+		this.hydrogenContractType = "";
+		this.balanceElectricity_eur = "";
+		this.balanceHeat_eur = "";
+		this.balanceMethane_eur = "";
+		this.balanceHydrogen_eur = "";
+    }
+
+	@Override
+	public String toString() {
+		return  
+			"actorID = " + actorID +" " +
+			"actorType = " + actorType +" " +
+			"parentActorID = " + parentActorID +" " +
+			"energySupplier = " + energySupplier +" " +
+			"ownedGridConnection = " + ownedGridConnection +" " +
+			"energySupplierDistrictHeat = " + energySupplierDistrictHeat +" " +
+			"electricityVolume_kWh = " + electricityVolume_kWh +" " +
+			"heatVolume_kWh = " + heatVolume_kWh +" " +
+			"methaneVolume_kWh = " + methaneVolume_kWh +" " +
+			"hydrogenVolume_kWh = " + hydrogenVolume_kWh +" " +
+			"electricityContractType = " + electricityContractType +" " +
+			"heatContractType = " + heatContractType +" " +
+			"methaneContractType = " + methaneContractType +" " +
+			"hydrogenContractType = " + hydrogenContractType +" " +
+			"balanceElectricity_eur = " + balanceElectricity_eur +" " +
+			"balanceHeat_eur = " + balanceHeat_eur +" " +
+			"balanceMethane_eur = " + balanceMethane_eur +" " +
+			"balanceHydrogen_eur = " + balanceHydrogen_eur +" ";
+	}
+	
+	public void updateData(String actorID, String actorType, String parentActorID, Agent energySupplier, GridConnection ownedGridConnection, Agent energySupplierDistrictHeat,double electricityVolume_kWh, double heatVolume_kWh, double methaneVolume_kWh, double hydrogenVolume_kWh, double balanceElectricity_eur, double balanceHeat_eur, double balanceMethane_eur, double balanceHydrogen_eur) {
+		this.actorID = actorID;
+		this.actorType = actorType;
+		this.parentActorID = parentActorID;
+		this.energySupplier = energySupplier.toString();
+		this.ownedGridConnection = ownedGridConnection.toString();
+		this.energySupplierDistrictHeat = energySupplierDistrictHeat +"";
+		this.electricityVolume_kWh = electricityVolume_kWh + "";
+		this.heatVolume_kWh = heatVolume_kWh  + "";
+		this.methaneVolume_kWh = methaneVolume_kWh + "";
+		this.hydrogenVolume_kWh = hydrogenVolume_kWh + "";
+		this.electricityContractType = electricityContractType.toString();
+		this.heatContractType = heatContractType.toString();
+		this.methaneContractType = methaneContractType.toString();
+		this.hydrogenContractType = hydrogenContractType.toString();
+		this.balanceElectricity_eur = balanceElectricity_eur + "";
+		this.balanceHeat_eur = balanceHeat_eur + "";
+		this.balanceMethane_eur = balanceMethane_eur + "";
+		this.balanceHydrogen_eur = balanceHydrogen_eur + "";
+	}
+	/*
+	public ArrayList returnData() {
+		ArrayList data = new ArrayList({actorID, actorType, parentActorID, energySupplier, ownedGridConnection.toString(), energySupplierDistrictHeat.toString(), electricityVolume_kWh, heatVolume_kWh, methaneVolume_kWh, hydrogenVolume_kWh, balanceElectricity_eur, balanceHeat_eur, balanceMethane_eur, balanceHydrogen_eur});
+		return data;
+
+	}*/
+	/**
+	 * This number is here for model snapshot storing purpose<br>
+	 * It needs to be changed when this class gets changed
+	 */ 
+	private static final long serialVersionUID = 1L;
+
+}]]></Text>
+		</JavaClass>
+		<!--   =========   Java Class   ========  -->
+		<JavaClass>
+			<Id>1661349111073</Id>
+			<Name><![CDATA[DataOut]]></Name>
+			<Text><![CDATA[/**
+ * DataOut
+ */	
+public class DataOut implements Serializable {
+	
+	public ArrayList greatSucces = new ArrayList();
+
 
 }]]></Text>
 		</JavaClass>
