@@ -8,6 +8,7 @@ path = str(pathlib.Path(__file__).parent.resolve())
 experiment_default = exp.Experiment(path, "default", "db_backboneConfig.xlsx", 1)
 experiment_default.printSettings()
 experiment_default.generateConfigJSONs()
+experiment_default.actorsConfigData
 
 # Run experiment in AnyLogic Cloud
 api_experiment_default = api.AnyLogicExperiment(experiment_default)
@@ -17,15 +18,32 @@ print("duration: ", api_experiment_default.duration_s, " seconds")
 
 ##
 #Experiment with more agents
-experiment_moreAgents = exp.Experiment(path, "moreAgents", "db_backboneConfig_moreagents.xlsx", 1)
-experiment_moreAgents.printSettings()
-experiment_moreAgents.generateConfigJSONs()
+experiment_300 = exp.Experiment(path, "300_gridConnections", "db_backboneConfig_300.xlsx", 1)
+experiment_300.printSettings()
+experiment_300.generateConfigJSONs()
+experiment_300.actorsConfigData
+experiment_default.actorsConfigData
 
 # Run experiment in AnyLogic Cloud
-api_experiment_moreAgents = api.AnyLogicExperiment(experiment_moreAgents)
-api_experiment_moreAgents.setInputs()
-api_experiment_moreAgents.runSimulation()
-print("duration: ", api_experiment_moreAgents.duration_s, " seconds")
+api_experiment_300 = api.AnyLogicExperiment(experiment_300)
+api_experiment_300.setInputs()
+api_experiment_300.runSimulation()
+print("duration: ", api_experiment_300.duration_s, " seconds")
+
+
+
+#Experiment with more agents
+experiment_1000 = exp.Experiment(path, "1000_gridConnections", "db_backboneConfig_1000.xlsx", 1)
+experiment_1000.printSettings()
+experiment_1000.generateConfigJSONs()
+experiment_1000.actorsConfigData
+experiment_default.actorsConfigData
+
+# Run experiment in AnyLogic Cloud
+api_experiment_1000 = api.AnyLogicExperiment(experiment_1000)
+api_experiment_1000.setInputs()
+api_experiment_1000.runSimulation()
+print("duration: ", api_experiment_1000.duration_s, " seconds")
 
 
 

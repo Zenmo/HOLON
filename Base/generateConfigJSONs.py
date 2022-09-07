@@ -40,8 +40,8 @@ class ConfigJSONs:
         return json_str
 
     def generateJSONs(self):
-        self.gridNodeConfigJSONs = self.processExcelSheet('config_netNodes')
-        self.gridConnectionConfigJSONs = self.processExcelSheet('config_netConnections')
+        self.gridNodeConfigJSONs = self.processExcelSheet('config_gridNodes')
+        self.gridConnectionConfigJSONs = self.processExcelSheet('config_gridConnections')
         self.energyAssetsConfigJSONs = self.processExcelSheet('config_energyAssets')
         self.actorsConfigJSONs = self.processExcelSheet('config_actors')
 

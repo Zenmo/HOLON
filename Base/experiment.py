@@ -14,6 +14,7 @@ class Experiment:
         self.name = experiment_name
         self.configFile = experiment_configxlsx
         self.timeStep_h = timestep_hours
+  
 
     def printSettings(self):
         print("Experiment settings: "+self.name)
