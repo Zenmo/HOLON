@@ -17,7 +17,7 @@ api_experiment_default.runSimulation()
 print("duration: ", api_experiment_default.duration_s, " seconds")
 
 ##
-#Experiment with more agents
+#Experiment with 300 agents
 experiment_300 = exp.Experiment(path, "300_gridConnections", "db_backboneConfig_300.xlsx", 1)
 experiment_300.printSettings()
 experiment_300.generateConfigJSONs()
@@ -32,7 +32,7 @@ print("duration: ", api_experiment_300.duration_s, " seconds")
 
 
 
-#Experiment with more agents
+#Experiment with 1000 agents
 experiment_1000 = exp.Experiment(path, "1000_gridConnections", "db_backboneConfig_1000.xlsx", 1)
 experiment_1000.printSettings()
 experiment_1000.generateConfigJSONs()

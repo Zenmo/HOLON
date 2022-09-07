@@ -463,7 +463,8 @@ import java.io.FileOutputStream;
 import java.io.File;
 import java.io.IOException;]]></Import>
 			<StartupCode><![CDATA[//
-traceln("*** main start *** "+System.currentTimeMillis());
+double startTime = System.currentTimeMillis();
+traceln("*** main start *** "+startTime);
 
 // read config files
 //f_readParameters();
@@ -479,7 +480,10 @@ f_addDefaultEnergyAssets();
 
 // add optional KpiVisuals-agent for model monitoring, checks and debugging
 f_addKpiVisuals();
-traceln("*** main end *** "+System.currentTimeMillis());]]></StartupCode>
+double endTime = System.currentTimeMillis();
+double duration = endTime - startTime;
+traceln("*** main end *** "+endTime);
+traceln("*** main duration *** "+ roundToDecimal(duration / 1000, 3)+" s");]]></StartupCode>
 			<DestroyCode><![CDATA[f_returnActorData(true);]]></DestroyCode>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -1075,10 +1079,10 @@ for(HashMap data : parsedJSONGridNodes)
 	energytype = OL_EnergyCarrierType.valueOf((String)data.get("type"));
 	nodeparent = (String) data.get("parent");
 	nodecapacity = (Integer)data.get("capacity_kw");
-	traceln("data "+"id= "+nodeID +", nodetype = "+nodetype +", energytype = "+ energytype+", nodeparent = "+ nodeparent+", capacity = "+ nodecapacity);
+//	traceln("data "+"id= "+nodeID +", nodetype = "+nodetype +", energytype = "+ energytype+", nodeparent = "+ nodeparent+", capacity = "+ nodecapacity);
 	
 	GridNode GridNode = add_pop_gridNodes( nodeID, nodeparent, nodetype, energytype, nodecapacity, null );
-	traceln("agent "+nodeID+" added by JSON!");
+//	traceln("agent "+nodeID+" added by JSON!");
 }
 
 // do this only after all GridNodes have been created! Or connections might be missed
@@ -1096,7 +1100,7 @@ Double netConnectionCapacity;
 String ownerActorID;
 
 for(HashMap data : parsedJSONGridConnections) {
-    traceln("data = "+data);
+//    traceln("data = "+data);
     netConnectionCategory = OL_NetConnectionCategory.valueOf((String)data.get( "type" ));
     netConnectionType = OL_NetConnectionType.valueOf((String)data.get( "type2" ));
     netConnectionParentElectric = data.get( "parent_electric" ).toString();
@@ -1105,7 +1109,7 @@ for(HashMap data : parsedJSONGridConnections) {
     netConnectionID = data.get( "id" ).toString();
 	ownerActorID = data.get ( "owner_actor" ).toString();
 	
-	traceln("data: " + "id = " + netConnectionID + ", category = " + netConnectionCategory + ", connectionType = " + netConnectionType + ", parentElectric" + netConnectionParentElectric + ", parentHeat = " + netConnectionParentHeat + ", capacity = " + netConnectionCapacity + "owner_actor = "+ ownerActorID);
+//	traceln("data: " + "id = " + netConnectionID + ", category = " + netConnectionCategory + ", connectionType = " + netConnectionType + ", parentElectric" + netConnectionParentElectric + ", parentHeat = " + netConnectionParentHeat + ", capacity = " + netConnectionCapacity + "owner_actor = "+ ownerActorID);
    GridConnection GridConnection = add_pop_gridConnections(netConnectionCategory, netConnectionType, netConnectionCapacity, netConnectionParentElectric, netConnectionID, netConnectionParentHeat, null, null, null, null, ownerActorID, null, null);
 }
 for (GridConnection g : pop_gridConnections) {
@@ -1116,7 +1120,7 @@ for (GridConnection g: pop_gridConnections) {
 	if(g.p_parentNodeHeat instanceof GridNode && g.p_ownerActor instanceof ConnectionOwner) {
 			ConnectionOwner o = (ConnectionOwner)g.p_ownerActor;
 			List<GridConnection> heatSuppliers = filter( g.p_parentNodeHeat.subConnections.getConnections(), p -> p.p_netConnectionCategory.equals(DISTRICTHEATING));
-			traceln("connection id: "+g.p_agentID+", heatEnergySupplier: "+heatSuppliers+ ", owneractor: "+heatSuppliers.get(0).p_ownerActor); 
+//			traceln("connection id: "+g.p_agentID+", heatEnergySupplier: "+heatSuppliers+ ", owneractor: "+heatSuppliers.get(0).p_ownerActor); 
 			o.v_energySupplierDistrictHeat = heatSuppliers.get(0).p_ownerActor;
 	
 	}
@@ -1129,7 +1133,7 @@ double capacityElectric_kW;
 double capacityHeat_kW;
 
 for(HashMap data : parsedJSONEnergyAssets) {
-    traceln("data = "+data);
+ //   traceln("data = "+data);
     assetCategory = OL_EACategories.valueOf( (String)data.get( "type" ) );
     assetType = OL_EnergyAssetType.valueOf( (String)data.get( "type2" ) );
     assetParentID = (String)data.get( "parent" );
@@ -1146,7 +1150,7 @@ for(HashMap data : parsedJSONEnergyAssets) {
 
     	break;
     	default:
-    		traceln("f_configureBackbone: no energy asset of this instantiated yet!");
+ //   		traceln("f_configureBackbone: no energy asset of this instantiated yet!");
     	break;
     }
 
@@ -1278,7 +1282,7 @@ sheet1.importFromExternalDB(sourceConnection, "params", "params", true, true);
 List<GridConnection> NetConnectionList = filter( pop_gridConnections, b -> true );
 
 for (GridConnection n : NetConnectionList) {
-	traceln("NetConnection for AssetConfiguration: "+n.p_agentID);
+//	traceln("NetConnection for AssetConfiguration: "+n.p_agentID);
 	OL_NetConnectionCategory netConnectionCategory = n.p_netConnectionCategory;
 	OL_NetConnectionType netConnectionType = n.p_netConnectionType;
 	//Double capacityElectricity_kW = 0.0;
@@ -1611,12 +1615,12 @@ try {
     	traceln("succes");
     	mapper.writeValue(
 		new File(".\\output-2.json"), great_succes);
-		traceln("file succes");
+//		traceln("file succes");
 	}
     update_o_outputConnectionOwnerJSON(json);
 
 } catch (IOException e) {
-    traceln("exception generating output");
+//   traceln("exception generating output");
     e.printStackTrace();
 }
 
@@ -1803,7 +1807,7 @@ p_actorsConfigJSON = t_configActors.readString().replaceAll("^\"|\"$", "");]]></
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[config_actors_300_gridConnections.txt]]></ClassName>
+						<ClassName><![CDATA[config_actors_default.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -1821,7 +1825,7 @@ p_actorsConfigJSON = t_configActors.readString().replaceAll("^\"|\"$", "");]]></
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[config_gridNodes_300_gridConnections.txt]]></ClassName>
+						<ClassName><![CDATA[config_gridNodes_default.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -1839,7 +1843,7 @@ p_actorsConfigJSON = t_configActors.readString().replaceAll("^\"|\"$", "");]]></
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[config_gridConnections_300_gridConnections.txt]]></ClassName>
+						<ClassName><![CDATA[config_gridConnections_default.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -1857,7 +1861,7 @@ p_actorsConfigJSON = t_configActors.readString().replaceAll("^\"|\"$", "");]]></
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[config_energyAssets_300_gridConnections.txt]]></ClassName>
+						<ClassName><![CDATA[config_energyAssets_default.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -5447,7 +5451,7 @@ if(p_energyAssetInstance instanceof J_EAConsumption) {
 					</Parameter>
 					<Body><![CDATA[switch(assetType) {
 	case GAS_BURNER:
-		traceln("instantiating asset as GasBurner");
+//		traceln("instantiating asset as GasBurner");
 		p_energyAssetInstance = (J_EAConversionGasBurner)p_energyAssetInstance;
 		p_energyAssetInstance = new J_EAConversionGasBurner( this, capacityHeat_kW, eta_r, main.p_timeStep_h );
 	break;
@@ -5460,7 +5464,7 @@ if(p_energyAssetInstance instanceof J_EAConsumption) {
 		p_energyAssetInstance = new J_EAConversionHeatDeliverySet( this, capacityHeat_kW, eta_r );
 	break;
 	default:
-		traceln("exception: not a valid conversion asset!");
+//		traceln("exception: not a valid conversion asset!");
 	break;
 }
 
@@ -5516,18 +5520,18 @@ p_energyAssetType = assetType;]]></Body>
 
 switch(assetType) {
 	case STORAGE_ELECTRIC:
-	traceln("instantiating asset as electrical battery");
+//	traceln("instantiating asset as electrical battery");
 	// EnergyAsset ownerAsset, double chargeCapacityElectricity_kW, double chargeCapacityHeat_kW, OL_EnergyCarrierType storageMedium, double capacity, double stateOfCharge, double lossFactor, double timestep_h
 	p_energyAssetInstance = new J_EAStorageElectric(this, capacityElectric_kW, 10000, InitialStateOfCharge_r, main.p_timeStep_h);   // (EnergyAsset ownerAsset, double capacityElectricity_kW, double storageCapacity_kWh, double stateOfCharge_r, double timestep_h)
 	break;
 	case STORAGE_HEAT:
-	traceln("instantiating asset as heat buffer");
-	traceln("lossFactor_WpK " + lossFactor_WpK);
+//	traceln("instantiating asset as heat buffer");
+//	traceln("lossFactor_WpK " + lossFactor_WpK);
 	//EnergyAsset ownerAsset, double capacityHeat_kW, double lossFactor_WpK, double timestep_h, double initialTemperature_degC, double minTemperature_degC, double maxTemperature_degC, double heatCapacity_JpK
 	p_energyAssetInstance = new J_EAStorageHeat(this, capacityHeat_kW, lossFactor_WpK, main.p_timeStep_h, InitialStateOfCharge_r*(maxTemperature_degC-minTemperature_degC)-minTemperature_degC, minTemperature_degC, maxTemperature_degC, heatCapacity_JpK);
 	break;
 	case ELECTRIC_VEHICLE:
-	traceln("instantiating asset as electric vehicle");
+//	traceln("instantiating asset as electric vehicle");
 	// EnergyAsset ownerAsset, double chargeCapacityElectricity_kW, double chargeCapacityHeat_kW, OL_EnergyCarrierType storageMedium, double capacity, double stateOfCharge, double lossFactor, double timestep_h
 	p_energyAssetInstance = new J_EAEV(this, capacityElectric_kW, chargeCapacity_kWh, InitialStateOfCharge_r, main.p_timeStep_h, 0.2);   // (EnergyAsset ownerAsset, double capacityElectricity_kW, double storageCapacity_kWh, double stateOfCharge_r, double timestep_h, energyConsumption_kWhpkm)
 	break;
@@ -11382,7 +11386,7 @@ for(Agent a :  subConnections.getConnections() ) {
 		v_heatVolume_kWh += n.v_heatVolume_kWh;
 		v_methaneVolume_kWh += n.v_methaneVolume_kWh;
 	} else if (a instanceof EnergyHolon) {
-		traceln("Collecting current energy transfer from child HOLONs not yet implemented");
+//		traceln("Collecting current energy transfer from child HOLONs not yet implemented");
 	}
 	
 }]]></Body>
@@ -13191,7 +13195,7 @@ public class J_EAProduction extends base.J_EA implements Serializable {
 	    this.capacityElectric_kW = capacityElectric_kW_;
 	    this.capacityHeat_kW = capacityHeat_kW;
 	    this.timestep_h = timestep_h;
-	    traceln("I am instantiated! "+this+" owned by "+ownerAsset);
+//	    traceln("I am instantiated! "+this+" owned by "+ownerAsset);
 	}
 
 	@Override
@@ -13335,7 +13339,6 @@ public class J_EAConversion extends base.J_EA implements Serializable {
 	    this.energyCarrierProduced = energyCarrierProduced;
 	    this.energyCarrierConsumed = energyCarrierConsumed;
 	    this.timestep_h = timestep_h;
-	    traceln("I am instantiated! "+this+" owned by "+ownerAsset);
 	}
 
 	@Override
@@ -13535,7 +13538,6 @@ public class J_EAConsumption extends base.J_EA implements Serializable {
 		this.capacityElectric_kW = capacityElectric_kW;
 		this.capacityHeat_kW = capacityHeat_kW;
 		this.timestep_h = timestep_h;
-		traceln("I am instantiated! "+this+" owned by "+ownerAsset);
     }
 
 	@Override
@@ -13732,7 +13734,6 @@ public class J_EAConversionGasBurner extends base.J_EAConversion implements Seri
 	    this.capacityHeat_kW = capacityThermal_kW;
 	    this.eta_r = efficiency;
 	    this.timestep_h = timestep_h;
-	    traceln("I am instantiated! "+this+" owned by "+ownerAsset);
 	}
 
     @Override
@@ -14027,9 +14028,6 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
 	    this.eta_r = eta_r;
 	    this.baseTemperature_degC = baseTemperature_degC;
 	    this.outputTemperature_degC = outputTemperature_degC;
-
-	    traceln("I am instantiated! "+this+" owned by "+ownerAsset);
-
 	}
 
 	public void updateParameters(double baseTemperature_degC, double outputTemperature_degC) {
@@ -14132,7 +14130,6 @@ public class J_EAEV extends base.J_EAStorage implements Serializable {
 
 			electricityProduction_kW = max(discharge_kW, 0);
 			electricityConsumption_kW = max(-discharge_kW, 0);
-			//traceln("EV discharge_kW " + discharge_kW);
 			updateStateOfCharge( discharge_kW );
 
 
@@ -14166,13 +14163,13 @@ public class J_EAEV extends base.J_EAStorage implements Serializable {
 
 	public boolean endTrip(double tripDist_km) {
 		if(availability) {
-			traceln("Trip not ended because EV never left!");
+	//		traceln("Trip not ended because EV never left!");
 			return false;
 		} else {
 			stateOfCharge_r -= (tripDist_km * energyConsumption_kWhpmk) / storageCapacity_kWh;
 			energyUsed_kWh += tripDist_km * energyConsumption_kWhpmk;
 			if (stateOfCharge_r < 0) {
-				traceln("EV in " + this.toString() + " arrived home with negative SOC ! Negative charge " + -stateOfCharge_r * storageCapacity_kWh + " kWh");
+//				traceln("EV in " + this.toString() + " arrived home with negative SOC ! Negative charge " + -stateOfCharge_r * storageCapacity_kWh + " kWh");
 			}
 			availability = true;
 			return true;
@@ -14227,7 +14224,6 @@ public class J_EAConversionHeatDeliverySet extends base.J_EAConversion implement
 	    this.ownerAsset = ownerAssetAgent;
 	    this.capacityHeat_kW = capacityThermal_kW;
 	    this.eta_r = efficiency;
-	    traceln("I am instantiated! "+this+" owned by "+ownerAsset);
 	}
 
     @Override
@@ -14419,19 +14415,19 @@ public class DataOut implements Serializable {
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[config_gridNodes_300_gridConnections.txt]]></Path>
+			<Path><![CDATA[config_actors_default.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[config_gridConnections_300_gridConnections.txt]]></Path>
+			<Path><![CDATA[config_energyAssets_default.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[config_energyAssets_300_gridConnections.txt]]></Path>
+			<Path><![CDATA[config_gridConnections_default.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[config_actors_300_gridConnections.txt]]></Path>
+			<Path><![CDATA[config_gridNodes_default.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
