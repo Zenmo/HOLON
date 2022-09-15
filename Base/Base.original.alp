@@ -468,7 +468,7 @@ traceln("*** main start *** "+startTime);
 
 // read config files
 //f_readParameters();
-f_importExperimentConfigs();
+//f_importExperimentConfigs();
 f_readConfigJSONS();
 f_loadParameters();
 
@@ -1007,7 +1007,12 @@ for (EnergySupplier e : pop_energySuppliers) {
 						</RecurrenceCode>
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
-					<Action><![CDATA[f_returnActorData(false);]]></Action>
+					<Action><![CDATA[f_returnActorData(false);
+
+// Model-wide KPIs
+double totalModelEnergyUsed_kWh; // split up per energy carrier?
+double totalModelEnergyProduction_kWh; // split up per energy carrier? At least: electricity, heat (from heatpumps), gas/H2 for P-to-gas
+]]></Action>
 				</Event>
 			</Events>
 			<Functions>
@@ -1631,6 +1636,7 @@ try {
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1661530837893</Id>
 					<Name><![CDATA[f_importExperimentConfigs]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>60</X><Y>20</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1807,7 +1813,7 @@ p_actorsConfigJSON = t_configActors.readString().replaceAll("^\"|\"$", "");]]></
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[config_actors_300_gridConnections.txt]]></ClassName>
+						<ClassName><![CDATA[config_actors_default.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -1825,7 +1831,7 @@ p_actorsConfigJSON = t_configActors.readString().replaceAll("^\"|\"$", "");]]></
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[config_gridNodes_300_gridConnections.txt]]></ClassName>
+						<ClassName><![CDATA[config_gridNodes_default.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -1843,7 +1849,7 @@ p_actorsConfigJSON = t_configActors.readString().replaceAll("^\"|\"$", "");]]></
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[config_gridConnections_300_gridConnections.txt]]></ClassName>
+						<ClassName><![CDATA[config_gridConnections_default.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -1861,7 +1867,7 @@ p_actorsConfigJSON = t_configActors.readString().replaceAll("^\"|\"$", "");]]></
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[config_energyAssets_300_gridConnections.txt]]></ClassName>
+						<ClassName><![CDATA[config_energyAssets_default.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -3157,7 +3163,6 @@ p_actorsConfigJSON = t_configActors.readString().replaceAll("^\"|\"$", "");]]></
 				<Variable Class="CollectionVariable">
 					<Id>1658751320739</Id>
 					<Name><![CDATA[c_electricityFlows]]></Name>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>50</X><Y>370</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -3173,7 +3178,6 @@ p_actorsConfigJSON = t_configActors.readString().replaceAll("^\"|\"$", "");]]></
 				<Variable Class="CollectionVariable">
 					<Id>1660122738701</Id>
 					<Name><![CDATA[c_heatFlows]]></Name>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>50</X><Y>430</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -3189,7 +3193,6 @@ p_actorsConfigJSON = t_configActors.readString().replaceAll("^\"|\"$", "");]]></
 				<Variable Class="CollectionVariable">
 					<Id>1660122738703</Id>
 					<Name><![CDATA[c_methaneFlows]]></Name>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>50</X><Y>390</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -3205,7 +3208,6 @@ p_actorsConfigJSON = t_configActors.readString().replaceAll("^\"|\"$", "");]]></
 				<Variable Class="CollectionVariable">
 					<Id>1660122738705</Id>
 					<Name><![CDATA[c_hydrogenFlows]]></Name>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>50</X><Y>410</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -3308,10 +3310,10 @@ for( Agent a : subConnections.getConnections() )
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[// clear energy-balance for the next timestep
-/*c_electricityFlows.clear();
+c_electricityFlows.clear();
 c_methaneFlows.clear();
 c_hydrogenFlows.clear();
-c_heatFlows.clear();*/
+c_heatFlows.clear();
 
 v_currentLoadElectricity_kW = 0;
 v_currentLoadMethane_kW = 0;
@@ -3325,19 +3327,19 @@ for( Agent a : subConnections.getConnections() )
 	if( a instanceof GridNode ) {
 		switch(p_energyType) {
 			case ELECTRICITY:
-				//c_electricityFlows.put(a, ((GridNode) a).v_currentLoadElectricity_kW);
+				c_electricityFlows.put(a, ((GridNode) a).v_currentLoadElectricity_kW);
 				v_currentLoadElectricity_kW += ((GridNode) a).v_currentLoadElectricity_kW;
 			break;
 			case METHANE:
-				//c_methaneFlows.put(a, ((GridNode) a).v_currentLoadMethane_kW);
+				c_methaneFlows.put(a, ((GridNode) a).v_currentLoadMethane_kW);
 				v_currentLoadMethane_kW += ((GridNode) a).v_currentLoadMethane_kW;
 			break;
 			case HYDROGEN:
-				//c_hydrogenFlows.put(a, ((GridNode) a).v_currentLoadHydrogen_kW);
+				c_hydrogenFlows.put(a, ((GridNode) a).v_currentLoadHydrogen_kW);
 				v_currentLoadHydrogen_kW += ((GridNode) a).v_currentLoadHydrogen_kW;
 			break;
 			case HEAT:
-				//c_heatFlows.put(a, ((GridNode) a).v_currentLoadHeat_kW);
+				c_heatFlows.put(a, ((GridNode) a).v_currentLoadHeat_kW);
 				v_currentLoadHeat_kW += ((GridNode) a).v_currentLoadHeat_kW;
 			break;
 			default:
@@ -3349,19 +3351,19 @@ for( Agent a : subConnections.getConnections() )
 	if( a instanceof GridConnection ) {
 		switch(p_energyType) {
 			case ELECTRICITY:
-				//c_electricityFlows.put(a, ((GridConnection) a).v_currentPowerElectricity_kW);
+				c_electricityFlows.put(a, ((GridConnection) a).v_currentPowerElectricity_kW);
 				v_currentLoadElectricity_kW += ((GridConnection) a).v_currentPowerElectricity_kW;
 			break;
 			case METHANE:
-				//c_methaneFlows.put(a, ((GridConnection) a).v_currentPowerMethane_kW);
+				c_methaneFlows.put(a, ((GridConnection) a).v_currentPowerMethane_kW);
 				v_currentLoadMethane_kW += ((GridConnection) a).v_currentPowerMethane_kW;
 			break;
 			case HYDROGEN:
-				//c_hydrogenFlows.put(a, ((GridConnection) a).v_currentPowerHydrogen_kW);
+				c_hydrogenFlows.put(a, ((GridConnection) a).v_currentPowerHydrogen_kW);
 				v_currentLoadHydrogen_kW += ((GridConnection) a).v_currentPowerHydrogen_kW;
 			break;
 			case HEAT:
-				//c_heatFlows.put(a, ((GridConnection) a).v_currentPowerHeat_kW);
+				c_heatFlows.put(a, ((GridConnection) a).v_currentPowerHeat_kW);
 				v_currentLoadHeat_kW += ((GridConnection) a).v_currentPowerHeat_kW;
 			break;
 			default:
@@ -4155,7 +4157,6 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 				<Variable Class="CollectionVariable">
 					<Id>1658751085004</Id>
 					<Name><![CDATA[c_electricityFlows]]></Name>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>50</X><Y>360</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -4171,7 +4172,6 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 				<Variable Class="CollectionVariable">
 					<Id>1659115755266</Id>
 					<Name><![CDATA[c_heatFlows]]></Name>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>50</X><Y>420</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -4187,7 +4187,6 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 				<Variable Class="CollectionVariable">
 					<Id>1659355047955</Id>
 					<Name><![CDATA[c_methaneFlows]]></Name>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>50</X><Y>380</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -4203,7 +4202,6 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 				<Variable Class="CollectionVariable">
 					<Id>1659513190843</Id>
 					<Name><![CDATA[c_hydrogenFlows]]></Name>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>50</X><Y>400</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -4466,10 +4464,10 @@ if( myParentEnergySupplier instanceof EnergySupplier) {
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[// clear energy-balance for the next timestep
-/*c_electricityFlows.clear();
+c_electricityFlows.clear();
 c_methaneFlows.clear();
 c_hydrogenFlows.clear();
-c_heatFlows.clear();*/
+c_heatFlows.clear();
 
 v_currentPowerElectricity_kW = 0;
 v_currentPowerMethane_kW = 0;
@@ -4492,7 +4490,7 @@ for( Agent a : subConnections.getConnections() )
 	double assetHydrogenConsumption_kW = EA.v_currentConsumptionHydrogen_kW;
 	double assetHeatConsumption_kW = EA.v_currentConsumptionHeat_kW;
 
-	/*if( assetElectricityProduction_kW !=0 ) {
+	if( assetElectricityProduction_kW !=0 ) {
 		c_electricityFlows.put(a, -assetElectricityProduction_kW);
 	}
 	if( assetElectricityConsumption_kW !=0 ) {
@@ -4515,7 +4513,7 @@ for( Agent a : subConnections.getConnections() )
 	}
 	if( assetHeatConsumption_kW != 0 ) {
 		c_heatFlows.put(a, assetHeatConsumption_kW);
-	}*/
+	}
 	
 	v_currentPowerElectricity_kW += assetElectricityConsumption_kW - assetElectricityProduction_kW;
 	v_currentPowerMethane_kW += assetMethaneConsumption_kW - assetMethaneProduction_kW;
@@ -13163,7 +13161,7 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 			</Parameters>			
 			<PresentationProperties>
 				<EnableZoomAndPanning>true</EnableZoomAndPanning>
-				<ExecutionMode><![CDATA[virtualTime]]></ExecutionMode>
+				<ExecutionMode><![CDATA[realTimeScaled]]></ExecutionMode>
 				<Title><![CDATA[MainModel : Simulation]]></Title>	
 				<EnableDeveloperPanel>true</EnableDeveloperPanel>
 				<ShowDeveloperPanelOnStart>false</ShowDeveloperPanelOnStart>
@@ -14423,19 +14421,19 @@ public class DataOut implements Serializable {
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[config_actors_300_gridConnections.txt]]></Path>
+			<Path><![CDATA[config_actors_default.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[config_energyAssets_300_gridConnections.txt]]></Path>
+			<Path><![CDATA[config_energyAssets_default.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[config_gridConnections_300_gridConnections.txt]]></Path>
+			<Path><![CDATA[config_gridConnections_default.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[config_gridNodes_300_gridConnections.txt]]></Path>
+			<Path><![CDATA[config_gridNodes_default.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
@@ -14451,6 +14449,6 @@ public class DataOut implements Serializable {
 		<VersionMinor>0</VersionMinor>
 		<VersionBuild>5</VersionBuild>
     </RequiredLibraryReference>
-	<CloudModelUuid><![CDATA[203f1e6d-c343-48c0-9b42-30d0164b6902]]></CloudModelUuid>
+	<CloudModelUuid><![CDATA[986dba87-5c1a-412f-9dc7-c9711e7cad78]]></CloudModelUuid>
 </Model>
 </AnyLogicWorkspace>
