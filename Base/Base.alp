@@ -470,7 +470,7 @@ traceln("*** main start *** "+startTime);
 
 // read config files
 //f_readParameters();
-f_importExperimentConfigs();
+//f_importExperimentConfigs();
 f_readConfigJSONS();
 f_loadParameters();
 
@@ -1059,6 +1059,9 @@ for (GridOperator g : pop_gridOperators) {
 for (EnergyHolon e : pop_energyHolons) {
 	//e.f_updateEnergyPrice();
 	//e.f_updateOtherIncentives();
+}
+for (ConnectionOwner c : pop_connectionOwners) {
+	c.f_updateIncentives();
 }
 
 // Calculate energy flows from bottom nodes up
@@ -9129,6 +9132,36 @@ t_nodetype.setText(p_nodeType);]]></Body>
 						<Type><![CDATA[J_ConnectionOwnerData]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1663237705961</Id>
+					<Name><![CDATA[v_electricityPrice_eurpkWh]]></Name>
+					<X>50</X><Y>410</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0.2]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1663237725571</Id>
+					<Name><![CDATA[v_electricitySurpluss_kW]]></Name>
+					<X>50</X><Y>430</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1660225105547</Id>
 					<Name><![CDATA[p_actorID]]></Name>
@@ -9356,6 +9389,31 @@ for(GridConnection n :  subConnections.getConnections() ) {
 	v_heatVolume_kWh += n.v_currentPowerHeat_kW * main.p_timeStep_h;
 	v_methaneVolume_kWh += n.v_currentPowerMethane_kW * main.p_timeStep_h;
 	v_hydrogenVolume_kWh += n.v_currentPowerHydrogen_kW * main.p_timeStep_h;
+}]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1663237679579</Id>
+					<Name><![CDATA[f_updateIncentives]]></Name>
+					<X>50</X><Y>380</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[// Update electricity price (if necessary)
+if (v_electricityContractType == OL_ContractType.ELECTRICITY_VARIABLE) {
+	if (p_energySupplier instanceof EnergySupplier) {
+		v_electricityPrice_eurpkWh =((EnergySupplier)p_energySupplier).f_getEnergyPrice(v_electricityContractType);
+	} else if (p_energySupplier instanceof EnergyHolon) {
+		v_electricityPrice_eurpkWh =((EnergyHolon)p_energySupplier).f_getEnergyPrice(v_electricityContractType);
+	}
+}
+
+// Update energy balance
+v_electricitySurpluss_kW = 0;
+for(GridConnection c : subConnections.getConnections()){
+	v_electricitySurpluss_kW += c.v_currentPowerElectricity_kW;
 }]]></Body>
 				</Function>
 			</Functions>
@@ -11516,6 +11574,24 @@ for(Agent a :  subConnections.getConnections() ) {
 	}
 	
 }]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>RETURNS_VALUE</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1663237981986</Id>
+					<Name><![CDATA[f_getEnergyPrice]]></Name>
+					<X>40</X><Y>380</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[contractType]]></Name>
+						<Type><![CDATA[OL_ContractType]]></Type>
+					</Parameter>
+					<Body><![CDATA[double energyPrice_eurpkWh = ((EnergySupplier)p_energySupplier).f_getEnergyPrice(contractType);
+
+return energyPrice_eurpkWh;]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -14631,6 +14707,6 @@ public class J_ConnectionOwnerData implements Serializable {
 		<VersionMinor>0</VersionMinor>
 		<VersionBuild>5</VersionBuild>
     </RequiredLibraryReference>
-	<CloudModelUuid><![CDATA[203f1e6d-c343-48c0-9b42-30d0164b6902]]></CloudModelUuid>
+	<CloudModelUuid><![CDATA[5cac17df-459d-4130-8833-eecf283e5069]]></CloudModelUuid>
 </Model>
 </AnyLogicWorkspace>
