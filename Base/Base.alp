@@ -464,7 +464,9 @@ import java.io.File;
 import java.io.IOException;]]></Import>
 			<StartupCode><![CDATA[//
 double startTime = System.currentTimeMillis();
+v_timeOfModelStart_ms = startTime;
 traceln("*** main start *** "+startTime);
+
 
 // read config files
 //f_readParameters();
@@ -480,11 +482,15 @@ f_addDefaultEnergyAssets();
 
 // add optional KpiVisuals-agent for model monitoring, checks and debugging
 f_addKpiVisuals();
+
+j_dataOut = new DataOut();
+j_experimentSettingsData = new J_ExperimentSettingsData();
+
 double endTime = System.currentTimeMillis();
 double duration = endTime - startTime;
 traceln("*** main end *** "+endTime);
 traceln("*** main duration *** "+ roundToDecimal(duration / 1000, 3)+" s");]]></StartupCode>
-			<DestroyCode><![CDATA[f_returnActorData(true);]]></DestroyCode>
+			<DestroyCode><![CDATA[f_returnKPIData(true);]]></DestroyCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1658477103138</Id>
@@ -612,6 +618,23 @@ traceln("*** main duration *** "+ roundToDecimal(duration / 1000, 3)+" s");]]></
 					</ComputationTimeCode>
 					<ComputationDate>1661587200000</ComputationDate>
 				</Output>
+				<Output>
+					<Id>1663238746791</Id>
+					<Name><![CDATA[o_outputSettings]]></Name>
+					<X>60</X><Y>670</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Type><![CDATA[String]]></Type>
+					<UnitType><![CDATA[NONE]]></UnitType>
+					<ComputationMoment>MANUALLY</ComputationMoment>
+					<ComputationTimeCode Class="CodeUnitValue">
+						<Code><![CDATA[]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[SECOND]]></Unit>
+					</ComputationTimeCode>
+					<ComputationDate>1663315200000</ComputationDate>
+				</Output>
 			</Outputs>
 			<Variables>
 				<Variable Class="PlainVariable">
@@ -654,6 +677,33 @@ traceln("*** main duration *** "+ roundToDecimal(duration / 1000, 3)+" s");]]></
 					<Id>1659364131698</Id>
 					<Name><![CDATA[v_currentAmbientTemperature_degC]]></Name>
 					<X>720</X><Y>510</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1663238634515</Id>
+					<Name><![CDATA[v_timeStepsElapsed]]></Name>
+					<X>830</X><Y>120</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[int]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1663243393136</Id>
+					<Name><![CDATA[v_timeOfModelStart_ms]]></Name>
+					<X>830</X><Y>140</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -839,6 +889,48 @@ traceln("*** main duration *** "+ roundToDecimal(duration / 1000, 3)+" s");]]></
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1663239405341</Id>
+					<Name><![CDATA[j_dataOut]]></Name>
+					<X>440</X><Y>580</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[DataOut]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1663239405339</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1663242364390</Id>
+					<Name><![CDATA[j_experimentSettingsData]]></Name>
+					<X>540</X><Y>580</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[J_ExperimentSettingsData]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1663242364388</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1661504944109</Id>
 					<Name><![CDATA[parsedJSONGridNodes]]></Name>
@@ -895,6 +987,21 @@ traceln("*** main duration *** "+ roundToDecimal(duration / 1000, 3)+" s");]]></
 					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
 						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
 						<ElementClass><![CDATA[HashMap]]></ElementClass>
+						<ValueElementClass><![CDATA[String]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1663238323139</Id>
+					<Name><![CDATA[c_energyAssetData]]></Name>
+					<X>260</X><Y>220</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
+						<ElementClass><![CDATA[Object]]></ElementClass>
 						<ValueElementClass><![CDATA[String]]></ValueElementClass>
 					</Properties>
 
@@ -976,7 +1083,9 @@ for (EnergyHolon h : pop_energyHolons) {
 }
 for (EnergySupplier e : pop_energySuppliers) {
 	e.f_updateFinances();
-}]]></Action>
+}
+
+v_timeStepsElapsed ++;]]></Action>
 				</Event>
 				<Event>
 					<Id>1661520233573</Id>
@@ -1007,7 +1116,7 @@ for (EnergySupplier e : pop_energySuppliers) {
 						</RecurrenceCode>
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
-					<Action><![CDATA[f_returnActorData(false);]]></Action>
+					<Action><![CDATA[f_returnKPIData(false);]]></Action>
 				</Event>
 			</Events>
 			<Functions>
@@ -1583,7 +1692,7 @@ e.f_connectToParentNode( ownerAgent );]]></Body>
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1661328014569</Id>
-					<Name><![CDATA[f_returnActorData]]></Name>
+					<Name><![CDATA[f_returnKPIData]]></Name>
 					<X>440</X><Y>560</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1595,29 +1704,38 @@ e.f_connectToParentNode( ownerAgent );]]></Body>
 					</Parameter>
 					<Body><![CDATA[ObjectMapper mapper = new ObjectMapper();
 
-DataOut great_succes = new DataOut();
+//DataOut great_succes = new DataOut();
+j_dataOut.clearData();
 
 for (ConnectionOwner c : pop_connectionOwners) {
 	c.j_ConnectionOwnerData.updateData(c.p_actorID, c.p_actorType, c.p_parentActorID, c.p_energySupplier, c.v_ownedGridConnection, c.v_energySupplierDistrictHeat, c.v_electricityVolume_kWh, c.v_heatVolume_kWh, c.v_methaneVolume_kWh, c.v_hydrogenVolume_kWh, c.v_electricityContractType.toString(), c.v_heatContractType.toString(), c.v_methaneContractType.toString(), c.v_hydrogenContractType.toString(), c.v_balanceElectricity_eur, c.v_balanceHeat_eur, c.v_balanceMethane_eur, c.v_balanceHydrogen_eur);
 	J_ConnectionOwnerData data = c.j_ConnectionOwnerData;
 	//traceln(data);
-	great_succes.greatSucces.add(data);
+	j_dataOut.connectionOwnerData.add(data);
 	
 }
 
+double modelDuration_s = ( System.currentTimeMillis() - v_timeOfModelStart_ms ) / 1000;
+j_experimentSettingsData.updateData(p_timeStep_h+"", v_timeStepsElapsed+"", modelDuration_s + "");
+j_dataOut.runSettingsData.add(j_experimentSettingsData);
 
 try {
 //	J_ConnectionOwnerData data = pop_connectionOwners.get(0).j_ConnectionOwnerData;
-    String json = mapper.writeValueAsString(great_succes);
+    String AgentDataJson = mapper.writeValueAsString(j_dataOut.connectionOwnerData);
+    String settingsJson = mapper.writeValueAsString(j_dataOut.runSettingsData);
     //System.out.println(json);
     
     if(writeToDisk) {
     	traceln("succes");
     	mapper.writeValue(
-		new File(".\\output-2.json"), great_succes);
+		new File(".\\OutputAgentData.json"), j_dataOut.connectionOwnerData);
+	
+	   	mapper.writeValue(
+		new File(".\\OutputRunSettingsData.json"), j_dataOut.runSettingsData);
 //		traceln("file succes");
 	}
-    update_o_outputConnectionOwnerJSON(json);
+    update_o_outputConnectionOwnerJSON(AgentDataJson);
+    update_o_outputSettings(settingsJson);
 
 } catch (IOException e) {
 //   traceln("exception generating output");
@@ -13105,7 +13223,7 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 			<MaximumMemory>512</MaximumMemory>
 			<RandomNumberGenerationType>fixedSeed</RandomNumberGenerationType>
 			<CustomGeneratorCode>new Random()</CustomGeneratorCode>
-			<AfterSimulationRunCode><![CDATA[root.f_returnActorData(true);]]></AfterSimulationRunCode>
+			<AfterSimulationRunCode><![CDATA[root.f_returnKPIData(true);]]></AfterSimulationRunCode>
 			<SeedValue>1</SeedValue>
 			<SelectionModeForSimultaneousEvents>LIFO</SelectionModeForSimultaneousEvents>
 			<VmArgs><![CDATA[]]></VmArgs>
@@ -13159,6 +13277,12 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 				</Parameter>
 				<Parameter>
 					<ParameterName><![CDATA[p_energyAssetsConfigJSON]]></ParameterName>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[j_dataOut]]></ParameterName>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[j_experimentSettingsData]]></ParameterName>
 				</Parameter>
 			</Parameters>			
 			<PresentationProperties>
@@ -14266,6 +14390,76 @@ public class J_EAConversionHeatDeliverySet extends base.J_EAConversion implement
 		<!--   =========   Java Class   ========  -->
 		<JavaClass>
 			<Id>1661266990567</Id>
+			<Name><![CDATA[J_ExperimentSettingsData]]></Name>
+			<Text><![CDATA[/**
+ * J_ExperimentSettingsData
+ */	
+public class J_ExperimentSettingsData implements Serializable {
+
+	public String timeStep_h;
+	public String timeStepsElapsed;
+	public String modelDuration_s;
+
+
+	 /**
+     * Default constructor
+     */
+    public J_ExperimentSettingsData() {
+    }
+
+    /**
+     * Constructor initializing the fields
+     */
+    public J_ExperimentSettingsData(String timeStep_h) {
+		this.timeStep_h = timeStep_h;
+		this.timeStepsElapsed = "";
+		this.modelDuration_s = "";
+    }
+
+	@Override
+	public String toString() {
+		return  
+			"timeStep_h = " + timeStep_h +" " +
+			"timeStepsElapsed = " + timeStepsElapsed +" " +
+			"modelDuration_s = " + modelDuration_s + " ";
+		
+	}
+	
+	public void updateData(String timeStep_h, String timeStepsElapsed, String modelDuration_s) {
+		this.timeStep_h = timeStep_h;
+		this.timeStepsElapsed = timeStepsElapsed;
+		this.modelDuration_s = modelDuration_s;
+	}
+
+	/**
+	 * This number is here for model snapshot storing purpose<br>
+	 * It needs to be changed when this class gets changed
+	 */ 
+	private static final long serialVersionUID = 1L;
+
+}]]></Text>
+		</JavaClass>
+		<!--   =========   Java Class   ========  -->
+		<JavaClass>
+			<Id>1661349111073</Id>
+			<Name><![CDATA[DataOut]]></Name>
+			<Text><![CDATA[/**
+ * DataOut
+ */	
+public class DataOut implements Serializable {
+	
+	public ArrayList connectionOwnerData = new ArrayList();
+	public ArrayList runSettingsData = new ArrayList(1);
+
+	public void clearData() {
+		connectionOwnerData.clear();
+		runSettingsData.clear();
+	}
+}]]></Text>
+		</JavaClass>
+		<!--   =========   Java Class   ========  -->
+		<JavaClass>
+			<Id>1663238817163</Id>
 			<Name><![CDATA[J_ConnectionOwnerData]]></Name>
 			<Text><![CDATA[/**
  * J_ConnectionOwnerData
@@ -14375,20 +14569,6 @@ public class J_ConnectionOwnerData implements Serializable {
 	 * It needs to be changed when this class gets changed
 	 */ 
 	private static final long serialVersionUID = 1L;
-
-}]]></Text>
-		</JavaClass>
-		<!--   =========   Java Class   ========  -->
-		<JavaClass>
-			<Id>1661349111073</Id>
-			<Name><![CDATA[DataOut]]></Name>
-			<Text><![CDATA[/**
- * DataOut
- */	
-public class DataOut implements Serializable {
-	
-	public ArrayList greatSucces = new ArrayList();
-
 
 }]]></Text>
 		</JavaClass>
