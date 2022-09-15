@@ -488,8 +488,9 @@ j_experimentSettingsData = new J_ExperimentSettingsData();
 
 double endTime = System.currentTimeMillis();
 double duration = endTime - startTime;
+v_modelStartUpDuration_s = roundToDecimal(duration / 1000, 3);
 traceln("*** main end *** "+endTime);
-traceln("*** main duration *** "+ roundToDecimal(duration / 1000, 3)+" s");]]></StartupCode>
+traceln("*** main duration *** "+ v_modelStartUpDuration_s+" s");]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1658477103138</Id>
@@ -711,10 +712,25 @@ traceln("*** main duration *** "+ roundToDecimal(duration / 1000, 3)+" s");]]></
 						<Type><![CDATA[double]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1663246198254</Id>
+					<Name><![CDATA[v_modelStartUpDuration_s]]></Name>
+					<X>830</X><Y>160</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1658496701675</Id>
 					<Name><![CDATA[p_timeStep_h]]></Name>
-					<Description><![CDATA[Model timestep in uren. Per modelrun ingelezen vanuit externe database en gelinkte excelsheet.
+					<Description><![CDATA[Model timestep in uren. Kan in experimenten aangepast worden naar wens.
 
 @since: Sprint 6
 @author: Gillis]]></Description>
@@ -1452,11 +1468,7 @@ for (GridConnection n : NetConnectionList) {
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[// Set backbone timestep
-p_timeStep_h = (double) selectFrom(params)
-	.where(params.parameter.eq("p_timeStep_h"))
-	.firstResult(params.value);
-
+					<Body><![CDATA[// Set backbone physical parameters
 p_undergroundTemperature_degC = (double) selectFrom(params)
 	.where(params.parameter.eq("p_undergroundTemperature_degC"))
 	.firstResult(params.value);]]></Body>
@@ -1717,8 +1729,22 @@ for (ConnectionOwner c : pop_connectionOwners) {
 	
 }
 
-double modelDuration_s = ( System.currentTimeMillis() - v_timeOfModelStart_ms ) / 1000;
-j_experimentSettingsData.updateData(p_timeStep_h+"", v_timeStepsElapsed+"", modelDuration_s + "");
+double modelRunDuration_s = ( System.currentTimeMillis() - v_timeOfModelStart_ms ) / 1000 - v_modelStartUpDuration_s;
+j_experimentSettingsData.updateData( p_timeStep_h+"", 
+									v_timeStepsElapsed+"", 
+									time(HOUR) + "", 
+									v_modelStartUpDuration_s + "", 
+									modelRunDuration_s + "",
+									pop_gridNodes.size() + "", 
+									pop_gridConnections.size() + "", 
+									pop_energyAssets.size() + "",
+									pop_connectionOwners.size() + "",
+									pop_energySuppliers.size() + "", 
+									pop_energyHolons.size() + "",
+									pop_administrativeHolons.size() + "",
+									pop_gridOperators.size() + "",
+									1 + "" );
+									 
 j_dataOut.runSettingsData.add(j_experimentSettingsData);
 
 try {
@@ -13295,7 +13321,7 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 			<Name><![CDATA[Simulation]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
 			<CommandLineArguments><![CDATA[]]></CommandLineArguments>
-			<MaximumMemory>512</MaximumMemory>
+			<MaximumMemory>1024</MaximumMemory>
 			<RandomNumberGenerationType>fixedSeed</RandomNumberGenerationType>
 			<CustomGeneratorCode>new Random()</CustomGeneratorCode>
 			<AfterSimulationRunCode><![CDATA[root.f_returnKPIData(true);]]></AfterSimulationRunCode>
@@ -14473,8 +14499,18 @@ public class J_ExperimentSettingsData implements Serializable {
 
 	public String timeStep_h;
 	public String timeStepsElapsed;
-	public String modelDuration_s;
-
+	public String modelHoursElapsed_h;
+	public String modelStartUpDuration_s;
+	public String modelRunDuration_s;
+	public String nGridNodes;
+	public String nGridConnections;
+	public String nEnergyAssets;
+	public String nConnectionOwners;
+	public String nEnergySuppliers;
+	public String nEnergyHolons;
+	public String nAdministrativeHolons;
+	public String nGridOperators;
+	public String nNationalEnergyMarket;
 
 	 /**
      * Default constructor
@@ -14488,7 +14524,18 @@ public class J_ExperimentSettingsData implements Serializable {
     public J_ExperimentSettingsData(String timeStep_h) {
 		this.timeStep_h = timeStep_h;
 		this.timeStepsElapsed = "";
-		this.modelDuration_s = "";
+		this.modelHoursElapsed_h = "";
+		this.modelStartUpDuration_s = "";
+		this.modelRunDuration_s = "";
+		this.nGridNodes = "";
+		this.nGridConnections = "";
+		this.nEnergyAssets = "";
+		this.nConnectionOwners = "";
+		this.nEnergySuppliers = "";
+		this.nEnergyHolons = "";
+		this.nAdministrativeHolons = "";
+		this.nGridOperators = "";
+		this.nNationalEnergyMarket = "";
     }
 
 	@Override
@@ -14496,15 +14543,35 @@ public class J_ExperimentSettingsData implements Serializable {
 		return  
 			"timeStep_h = " + timeStep_h +" " +
 			"timeStepsElapsed = " + timeStepsElapsed +" " +
-			"modelDuration_s = " + modelDuration_s + " ";
-		
+			"modelHoursElapsed_h = " + modelHoursElapsed_h + " " +
+			"modelStartUpDuration_s = " + modelStartUpDuration_s + " " +
+			"modelRunDuration_s = " + modelRunDuration_s + " " +
+			"nGridNodes = " + nGridNodes + " " +
+			"nGridConnections = " + nGridConnections + " " +
+			"nEnergyAssets = " +	nEnergyAssets + " " +
+			"nConnectionOwners = " + nConnectionOwners + " " +
+			"nEnergySuppliers = "+ nEnergySuppliers + " " +
+			"nEnergyHolons = " + nEnergyHolons + " " +
+			"nAdministrativeHolons = " + nAdministrativeHolons + " " +
+			"nGridOperators = " + nGridOperators + " " +
+			"nNationalEnergyMarket = " + nNationalEnergyMarket + " ";
 	}
 	
-	public void updateData(String timeStep_h, String timeStepsElapsed, String modelDuration_s) {
+	public void updateData(String timeStep_h, String timeStepsElapsed, String modelHoursElapsed_h, String modelStartUpDuration_s, String modelRunDuration_s, String nGridNodes,	String nGridConnections, String nEnergyAssets, String nConnectionOwners, String nEnergySuppliers, String nEnergyHolons, String nAdministrativeHolons, String nGridOperators, String nNationalEnergyMarket) {
 		this.timeStep_h = timeStep_h;
 		this.timeStepsElapsed = timeStepsElapsed;
-		this.modelDuration_s = modelDuration_s;
-	}
+		this.modelHoursElapsed_h = modelHoursElapsed_h;
+		this.modelStartUpDuration_s = modelStartUpDuration_s;
+		this.modelRunDuration_s = modelRunDuration_s;
+		this.nGridNodes = nGridNodes;
+		this.nGridConnections = nGridConnections;
+		this.nEnergyAssets = nEnergyAssets;
+		this.nConnectionOwners = nConnectionOwners;
+		this.nEnergySuppliers = nEnergySuppliers;
+		this.nEnergyHolons = nEnergyHolons;
+		this.nAdministrativeHolons = nAdministrativeHolons;
+		this.nGridOperators = nGridOperators;
+		this.nNationalEnergyMarket = nNationalEnergyMarket;	}
 
 	/**
 	 * This number is here for model snapshot storing purpose<br>
