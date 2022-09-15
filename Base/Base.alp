@@ -464,7 +464,9 @@ import java.io.File;
 import java.io.IOException;]]></Import>
 			<StartupCode><![CDATA[//
 double startTime = System.currentTimeMillis();
+v_timeOfModelStart_ms = startTime;
 traceln("*** main start *** "+startTime);
+
 
 // read config files
 //f_readParameters();
@@ -480,11 +482,15 @@ f_addDefaultEnergyAssets();
 
 // add optional KpiVisuals-agent for model monitoring, checks and debugging
 f_addKpiVisuals();
+
+j_dataOut = new DataOut();
+j_experimentSettingsData = new J_ExperimentSettingsData();
+
 double endTime = System.currentTimeMillis();
 double duration = endTime - startTime;
+v_modelStartUpDuration_s = roundToDecimal(duration / 1000, 3);
 traceln("*** main end *** "+endTime);
-traceln("*** main duration *** "+ roundToDecimal(duration / 1000, 3)+" s");]]></StartupCode>
-			<DestroyCode><![CDATA[f_returnActorData(true);]]></DestroyCode>
+traceln("*** main duration *** "+ v_modelStartUpDuration_s+" s");]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1658477103138</Id>
@@ -612,6 +618,23 @@ traceln("*** main duration *** "+ roundToDecimal(duration / 1000, 3)+" s");]]></
 					</ComputationTimeCode>
 					<ComputationDate>1661587200000</ComputationDate>
 				</Output>
+				<Output>
+					<Id>1663238746791</Id>
+					<Name><![CDATA[o_outputSettings]]></Name>
+					<X>60</X><Y>670</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Type><![CDATA[String]]></Type>
+					<UnitType><![CDATA[NONE]]></UnitType>
+					<ComputationMoment>MANUALLY</ComputationMoment>
+					<ComputationTimeCode Class="CodeUnitValue">
+						<Code><![CDATA[]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[SECOND]]></Unit>
+					</ComputationTimeCode>
+					<ComputationDate>1663315200000</ComputationDate>
+				</Output>
 			</Outputs>
 			<Variables>
 				<Variable Class="PlainVariable">
@@ -662,10 +685,52 @@ traceln("*** main duration *** "+ roundToDecimal(duration / 1000, 3)+" s");]]></
 						<Type><![CDATA[double]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1663238634515</Id>
+					<Name><![CDATA[v_timeStepsElapsed]]></Name>
+					<X>830</X><Y>120</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[int]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1663243393136</Id>
+					<Name><![CDATA[v_timeOfModelStart_ms]]></Name>
+					<X>830</X><Y>140</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1663246198254</Id>
+					<Name><![CDATA[v_modelStartUpDuration_s]]></Name>
+					<X>830</X><Y>160</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1658496701675</Id>
 					<Name><![CDATA[p_timeStep_h]]></Name>
-					<Description><![CDATA[Model timestep in uren. Per modelrun ingelezen vanuit externe database en gelinkte excelsheet.
+					<Description><![CDATA[Model timestep in uren. Kan in experimenten aangepast worden naar wens.
 
 @since: Sprint 6
 @author: Gillis]]></Description>
@@ -707,7 +772,7 @@ traceln("*** main duration *** "+ roundToDecimal(duration / 1000, 3)+" s");]]></
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[false]]></Code>
+							<Code><![CDATA[true]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1658752734131</Id>
@@ -839,6 +904,48 @@ traceln("*** main duration *** "+ roundToDecimal(duration / 1000, 3)+" s");]]></
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1663239405341</Id>
+					<Name><![CDATA[j_dataOut]]></Name>
+					<X>440</X><Y>580</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[DataOut]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1663239405339</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1663242364390</Id>
+					<Name><![CDATA[j_experimentSettingsData]]></Name>
+					<X>540</X><Y>580</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[J_ExperimentSettingsData]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1663242364388</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1661504944109</Id>
 					<Name><![CDATA[parsedJSONGridNodes]]></Name>
@@ -895,6 +1002,51 @@ traceln("*** main duration *** "+ roundToDecimal(duration / 1000, 3)+" s");]]></
 					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
 						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
 						<ElementClass><![CDATA[HashMap]]></ElementClass>
+						<ValueElementClass><![CDATA[String]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1663238323139</Id>
+					<Name><![CDATA[c_connectionOwners]]></Name>
+					<X>260</X><Y>270</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
+						<ElementClass><![CDATA[ConnectionOwner]]></ElementClass>
+						<ValueElementClass><![CDATA[String]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1663251681035</Id>
+					<Name><![CDATA[c_gridNodesHSMS]]></Name>
+					<X>260</X><Y>230</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
+						<ElementClass><![CDATA[GridNode]]></ElementClass>
+						<ValueElementClass><![CDATA[String]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1663252052482</Id>
+					<Name><![CDATA[c_gridNodesMSLS]]></Name>
+					<X>260</X><Y>250</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
+						<ElementClass><![CDATA[Object]]></ElementClass>
 						<ValueElementClass><![CDATA[String]]></ValueElementClass>
 					</Properties>
 
@@ -979,38 +1131,9 @@ for (EnergyHolon h : pop_energyHolons) {
 }
 for (EnergySupplier e : pop_energySuppliers) {
 	e.f_updateFinances();
-}]]></Action>
-				</Event>
-				<Event>
-					<Id>1661520233573</Id>
-					<Name><![CDATA[e_KPIUpdate]]></Name>
-					<X>440</X><Y>540</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties TriggerType="rate" Mode="occuresOnce">
-						<Timeout Class="CodeUnitValue">
-							<Code><![CDATA[1]]></Code>
-							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
-						</Timeout>
-						<Rate Class="CodeUnitValue">
-							<Code><![CDATA[1]]></Code>
-							<Unit Class="RateUnits"><![CDATA[PER_DAY]]></Unit>
-						</Rate>
-						<OccurrenceAtTime>true</OccurrenceAtTime>
-						<OccurrenceDate>1661587200000</OccurrenceDate>
-						<OccurrenceTime Class="CodeUnitValue">
-							<Code><![CDATA[0]]></Code>
-							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
-						</OccurrenceTime>
-						<RecurrenceCode Class="CodeUnitValue">
-							<Code><![CDATA[1]]></Code>
-							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
-						</RecurrenceCode>
-						<Condition><![CDATA[false]]></Condition>
-					</Properties>
-					<Action><![CDATA[f_returnActorData(false);]]></Action>
+}
+
+v_timeStepsElapsed ++;]]></Action>
 				</Event>
 			</Events>
 			<Functions>
@@ -1047,6 +1170,7 @@ for(HashMap data : parsedJSONActors)
 	if (actortype.equals(OL_ActorType.CONNECTIONOWNER) ) {
 	    ConnectionOwner Actor = add_pop_connectionOwners( actorID, type, parentActorID, null);
 	    Actor.j_ConnectionOwnerData = new J_ConnectionOwnerData(actorID, type, parentActorID);
+	    c_connectionOwners.add(Actor);
     } else if (actortype.equals(OL_ActorType.ENERGYSUPPLIER) ) {
 //	    EnergySupplier Actor = add_pop_energySuppliers( actorID, actortype, parentActorID, null);
 		EnergySupplier Actor = add_pop_energySuppliers(actorID, type, parentActorID, null, 0.21, 0.1, 0.05, 0.3, 0.17);
@@ -1086,12 +1210,24 @@ for(HashMap data : parsedJSONGridNodes)
 	
 	GridNode GridNode = add_pop_gridNodes( nodeID, nodeparent, nodetype, energytype, nodecapacity, null );
 //	traceln("agent "+nodeID+" added by JSON!");
+	switch( GridNode.p_nodeType ) {
+		case HSMS:
+			c_gridNodesHSMS.add(GridNode);
+		break;
+		case MSLS:
+			c_gridNodesMSLS.add(GridNode);
+		break;
+		default:
+			traceln("Gridnode not added to collection!");
+		break;
+	}
 }
 
 // do this only after all GridNodes have been created! Or connections might be missed
 for( GridNode g : pop_gridNodes ) {
 	g.f_connectToParentNode();
 }
+
 
 // 2. add agents to population from database: NetConnections
 String netConnectionID;
@@ -1344,11 +1480,7 @@ for (GridConnection n : NetConnectionList) {
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[// Set backbone timestep
-p_timeStep_h = (double) selectFrom(params)
-	.where(params.parameter.eq("p_timeStep_h"))
-	.firstResult(params.value);
-
+					<Body><![CDATA[// Set backbone physical parameters
 p_undergroundTemperature_degC = (double) selectFrom(params)
 	.where(params.parameter.eq("p_undergroundTemperature_degC"))
 	.firstResult(params.value);]]></Body>
@@ -1586,7 +1718,11 @@ e.f_connectToParentNode( ownerAgent );]]></Body>
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1661328014569</Id>
-					<Name><![CDATA[f_returnActorData]]></Name>
+					<Name><![CDATA[f_returnKPIData]]></Name>
+					<Description><![CDATA[Executed on simulation end to export data.
+
+@author: JorritvandenHouten
+@since: Sprint 6]]></Description>
 					<X>440</X><Y>560</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1598,29 +1734,61 @@ e.f_connectToParentNode( ownerAgent );]]></Body>
 					</Parameter>
 					<Body><![CDATA[ObjectMapper mapper = new ObjectMapper();
 
-DataOut great_succes = new DataOut();
+//DataOut great_succes = new DataOut();
+j_dataOut.clearData();
 
-for (ConnectionOwner c : pop_connectionOwners) {
+
+c_connectionOwners.parallelStream().forEach(c -> {
 	c.j_ConnectionOwnerData.updateData(c.p_actorID, c.p_actorType, c.p_parentActorID, c.p_energySupplier, c.v_ownedGridConnection, c.v_energySupplierDistrictHeat, c.v_electricityVolume_kWh, c.v_heatVolume_kWh, c.v_methaneVolume_kWh, c.v_hydrogenVolume_kWh, c.v_electricityContractType.toString(), c.v_heatContractType.toString(), c.v_methaneContractType.toString(), c.v_hydrogenContractType.toString(), c.v_balanceElectricity_eur, c.v_balanceHeat_eur, c.v_balanceMethane_eur, c.v_balanceHydrogen_eur);
 	J_ConnectionOwnerData data = c.j_ConnectionOwnerData;
 	//traceln(data);
-	great_succes.greatSucces.add(data);
-	
+	j_dataOut.connectionOwnerData.add(data);
+});
+
+double electricityImported_MWh = 0;
+double electricityExported_MWh = 0;
+for ( GridNode g : c_gridNodesHSMS ) {
+	electricityImported_MWh += g.v_electricityDrawn_kWh / 1000;
+	electricityExported_MWh += g.v_electricityDelivered_kWh / 1000;	
 }
 
+double modelRunDuration_s = roundToDecimal( ( System.currentTimeMillis() - v_timeOfModelStart_ms ) / 1000 - v_modelStartUpDuration_s, 3);
+j_experimentSettingsData.updateData( p_timeStep_h+"", 
+									v_timeStepsElapsed+"", 
+									time(HOUR) + "", 
+									v_modelStartUpDuration_s + "", 
+									modelRunDuration_s + "",
+									pop_gridNodes.size() + "", 
+									pop_gridConnections.size() + "", 
+									pop_energyAssets.size() + "",
+									pop_connectionOwners.size() + "",
+									pop_energySuppliers.size() + "", 
+									pop_energyHolons.size() + "",
+									pop_administrativeHolons.size() + "",
+									pop_gridOperators.size() + "",
+									1 + "",
+									roundToDecimal( electricityImported_MWh, 3 ) + "",
+									roundToDecimal( electricityExported_MWh, 3 ) + "" );
+									 
+j_dataOut.runSettingsData.add(j_experimentSettingsData);
 
 try {
 //	J_ConnectionOwnerData data = pop_connectionOwners.get(0).j_ConnectionOwnerData;
-    String json = mapper.writeValueAsString(great_succes);
+    String AgentDataJson = mapper.writeValueAsString(j_dataOut.connectionOwnerData);
+    String settingsJson = mapper.writeValueAsString(j_dataOut.runSettingsData);
     //System.out.println(json);
     
     if(writeToDisk) {
     	traceln("succes");
     	mapper.writeValue(
-		new File(".\\output-2.json"), great_succes);
+		new File(".\\OutputAgentData.json"), j_dataOut.connectionOwnerData);
+	
+	   	mapper.writeValue(
+		new File(".\\OutputRunSettingsData.json"), j_dataOut.runSettingsData);
 //		traceln("file succes");
 	}
-    update_o_outputConnectionOwnerJSON(json);
+    update_o_outputConnectionOwnerJSON(AgentDataJson);
+    update_o_outputSettings(settingsJson);
 
 } catch (IOException e) {
 //   traceln("exception generating output");
@@ -13178,10 +13346,10 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 			<Name><![CDATA[Simulation]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
 			<CommandLineArguments><![CDATA[]]></CommandLineArguments>
-			<MaximumMemory>512</MaximumMemory>
+			<MaximumMemory>1024</MaximumMemory>
 			<RandomNumberGenerationType>fixedSeed</RandomNumberGenerationType>
 			<CustomGeneratorCode>new Random()</CustomGeneratorCode>
-			<AfterSimulationRunCode><![CDATA[root.f_returnActorData(true);]]></AfterSimulationRunCode>
+			<AfterSimulationRunCode><![CDATA[root.f_returnKPIData(true);]]></AfterSimulationRunCode>
 			<SeedValue>1</SeedValue>
 			<SelectionModeForSimultaneousEvents>LIFO</SelectionModeForSimultaneousEvents>
 			<VmArgs><![CDATA[]]></VmArgs>
@@ -13235,6 +13403,12 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 				</Parameter>
 				<Parameter>
 					<ParameterName><![CDATA[p_energyAssetsConfigJSON]]></ParameterName>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[j_dataOut]]></ParameterName>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[j_experimentSettingsData]]></ParameterName>
 				</Parameter>
 			</Parameters>			
 			<PresentationProperties>
@@ -14342,6 +14516,126 @@ public class J_EAConversionHeatDeliverySet extends base.J_EAConversion implement
 		<!--   =========   Java Class   ========  -->
 		<JavaClass>
 			<Id>1661266990567</Id>
+			<Name><![CDATA[J_ExperimentSettingsData]]></Name>
+			<Text><![CDATA[/**
+ * J_ExperimentSettingsData
+ */	
+public class J_ExperimentSettingsData implements Serializable {
+
+	public String timeStep_h;
+	public String timeStepsElapsed;
+	public String modelHoursElapsed_h;
+	public String modelStartUpDuration_s;
+	public String modelRunDuration_s;
+	public String nGridNodes;
+	public String nGridConnections;
+	public String nEnergyAssets;
+	public String nConnectionOwners;
+	public String nEnergySuppliers;
+	public String nEnergyHolons;
+	public String nAdministrativeHolons;
+	public String nGridOperators;
+	public String nNationalEnergyMarket;
+	public String totalElectricityImported_MWh;
+	public String totalElectricityExported_MWh;
+
+	 /**
+     * Default constructor
+     */
+    public J_ExperimentSettingsData() {
+    }
+
+    /**
+     * Constructor initializing the fields
+     */
+    public J_ExperimentSettingsData(String timeStep_h) {
+		this.timeStep_h = timeStep_h;
+		this.timeStepsElapsed = "";
+		this.modelHoursElapsed_h = "";
+		this.modelStartUpDuration_s = "";
+		this.modelRunDuration_s = "";
+		this.nGridNodes = "";
+		this.nGridConnections = "";
+		this.nEnergyAssets = "";
+		this.nConnectionOwners = "";
+		this.nEnergySuppliers = "";
+		this.nEnergyHolons = "";
+		this.nAdministrativeHolons = "";
+		this.nGridOperators = "";
+		this.nNationalEnergyMarket = "";
+		this.totalElectricityImported_MWh = "";
+		this.totalElectricityExported_MWh = "";
+    }
+
+	@Override
+	public String toString() {
+		return  
+			"timeStep_h = " + timeStep_h +" " +
+			"timeStepsElapsed = " + timeStepsElapsed +" " +
+			"modelHoursElapsed_h = " + modelHoursElapsed_h + " " +
+			"modelStartUpDuration_s = " + modelStartUpDuration_s + " " +
+			"modelRunDuration_s = " + modelRunDuration_s + " " +
+			"nGridNodes = " + nGridNodes + " " +
+			"nGridConnections = " + nGridConnections + " " +
+			"nEnergyAssets = " +	nEnergyAssets + " " +
+			"nConnectionOwners = " + nConnectionOwners + " " +
+			"nEnergySuppliers = "+ nEnergySuppliers + " " +
+			"nEnergyHolons = " + nEnergyHolons + " " +
+			"nAdministrativeHolons = " + nAdministrativeHolons + " " +
+			"nGridOperators = " + nGridOperators + " " +
+			"nNationalEnergyMarket = " + nNationalEnergyMarket + " " +
+			"totalElectricityImported_MWh = " + totalElectricityImported_MWh + " " +
+			"totalElectricityExported_MWh = " + totalElectricityExported_MWh + " ";
+	}
+	
+	public void updateData(String timeStep_h, String timeStepsElapsed, String modelHoursElapsed_h, String modelStartUpDuration_s, String modelRunDuration_s, String nGridNodes,	String nGridConnections, String nEnergyAssets, String nConnectionOwners, String nEnergySuppliers, String nEnergyHolons, String nAdministrativeHolons, String nGridOperators, String nNationalEnergyMarket, String totalElectricityImported_MWh, String totalElectricityExported_MWh) {
+		this.timeStep_h = timeStep_h;
+		this.timeStepsElapsed = timeStepsElapsed;
+		this.modelHoursElapsed_h = modelHoursElapsed_h;
+		this.modelStartUpDuration_s = modelStartUpDuration_s;
+		this.modelRunDuration_s = modelRunDuration_s;
+		this.nGridNodes = nGridNodes;
+		this.nGridConnections = nGridConnections;
+		this.nEnergyAssets = nEnergyAssets;
+		this.nConnectionOwners = nConnectionOwners;
+		this.nEnergySuppliers = nEnergySuppliers;
+		this.nEnergyHolons = nEnergyHolons;
+		this.nAdministrativeHolons = nAdministrativeHolons;
+		this.nGridOperators = nGridOperators;
+		this.nNationalEnergyMarket = nNationalEnergyMarket;	
+		this.totalElectricityImported_MWh = totalElectricityImported_MWh;
+		this.totalElectricityExported_MWh = totalElectricityExported_MWh;}
+	
+
+	/**
+	 * This number is here for model snapshot storing purpose<br>
+	 * It needs to be changed when this class gets changed
+	 */ 
+	private static final long serialVersionUID = 1L;
+
+}]]></Text>
+		</JavaClass>
+		<!--   =========   Java Class   ========  -->
+		<JavaClass>
+			<Id>1661349111073</Id>
+			<Name><![CDATA[DataOut]]></Name>
+			<Text><![CDATA[/**
+ * DataOut
+ */	
+public class DataOut implements Serializable {
+	
+	public ArrayList connectionOwnerData = new ArrayList();
+	public ArrayList runSettingsData = new ArrayList(1);
+
+	public void clearData() {
+		connectionOwnerData.clear();
+		runSettingsData.clear();
+	}
+}]]></Text>
+		</JavaClass>
+		<!--   =========   Java Class   ========  -->
+		<JavaClass>
+			<Id>1663238817163</Id>
 			<Name><![CDATA[J_ConnectionOwnerData]]></Name>
 			<Text><![CDATA[/**
  * J_ConnectionOwnerData
@@ -14451,20 +14745,6 @@ public class J_ConnectionOwnerData implements Serializable {
 	 * It needs to be changed when this class gets changed
 	 */ 
 	private static final long serialVersionUID = 1L;
-
-}]]></Text>
-		</JavaClass>
-		<!--   =========   Java Class   ========  -->
-		<JavaClass>
-			<Id>1661349111073</Id>
-			<Name><![CDATA[DataOut]]></Name>
-			<Text><![CDATA[/**
- * DataOut
- */	
-public class DataOut implements Serializable {
-	
-	public ArrayList greatSucces = new ArrayList();
-
 
 }]]></Text>
 		</JavaClass>
