@@ -772,7 +772,7 @@ traceln("*** main duration *** "+ v_modelStartUpDuration_s+" s");]]></StartupCod
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[false]]></Code>
+							<Code><![CDATA[true]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1658752734131</Id>
@@ -1008,8 +1008,38 @@ traceln("*** main duration *** "+ v_modelStartUpDuration_s+" s");]]></StartupCod
 				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1663238323139</Id>
-					<Name><![CDATA[c_energyAssetData]]></Name>
-					<X>260</X><Y>220</Y>
+					<Name><![CDATA[c_connectionOwners]]></Name>
+					<X>260</X><Y>270</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
+						<ElementClass><![CDATA[ConnectionOwner]]></ElementClass>
+						<ValueElementClass><![CDATA[String]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1663251681035</Id>
+					<Name><![CDATA[c_gridNodesHSMS]]></Name>
+					<X>260</X><Y>230</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
+						<ElementClass><![CDATA[GridNode]]></ElementClass>
+						<ValueElementClass><![CDATA[String]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1663252052482</Id>
+					<Name><![CDATA[c_gridNodesMSLS]]></Name>
+					<X>260</X><Y>250</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -1105,37 +1135,6 @@ for (EnergySupplier e : pop_energySuppliers) {
 
 v_timeStepsElapsed ++;]]></Action>
 				</Event>
-				<Event>
-					<Id>1661520233573</Id>
-					<Name><![CDATA[e_KPIUpdate]]></Name>
-					<X>440</X><Y>540</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties TriggerType="rate" Mode="occuresOnce">
-						<Timeout Class="CodeUnitValue">
-							<Code><![CDATA[1]]></Code>
-							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
-						</Timeout>
-						<Rate Class="CodeUnitValue">
-							<Code><![CDATA[1]]></Code>
-							<Unit Class="RateUnits"><![CDATA[PER_DAY]]></Unit>
-						</Rate>
-						<OccurrenceAtTime>true</OccurrenceAtTime>
-						<OccurrenceDate>1661587200000</OccurrenceDate>
-						<OccurrenceTime Class="CodeUnitValue">
-							<Code><![CDATA[0]]></Code>
-							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
-						</OccurrenceTime>
-						<RecurrenceCode Class="CodeUnitValue">
-							<Code><![CDATA[1]]></Code>
-							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
-						</RecurrenceCode>
-						<Condition><![CDATA[false]]></Condition>
-					</Properties>
-					<Action><![CDATA[f_returnKPIData(false);]]></Action>
-				</Event>
 			</Events>
 			<Functions>
 				<Function AccessType="default" StaticFunction="false">
@@ -1171,6 +1170,7 @@ for(HashMap data : parsedJSONActors)
 	if (actortype.equals(OL_ActorType.CONNECTIONOWNER) ) {
 	    ConnectionOwner Actor = add_pop_connectionOwners( actorID, type, parentActorID, null);
 	    Actor.j_ConnectionOwnerData = new J_ConnectionOwnerData(actorID, type, parentActorID);
+	    c_connectionOwners.add(Actor);
     } else if (actortype.equals(OL_ActorType.ENERGYSUPPLIER) ) {
 //	    EnergySupplier Actor = add_pop_energySuppliers( actorID, actortype, parentActorID, null);
 		EnergySupplier Actor = add_pop_energySuppliers(actorID, type, parentActorID, null, 0.21, 0.1, 0.05, 0.3, 0.17);
@@ -1210,12 +1210,24 @@ for(HashMap data : parsedJSONGridNodes)
 	
 	GridNode GridNode = add_pop_gridNodes( nodeID, nodeparent, nodetype, energytype, nodecapacity, null );
 //	traceln("agent "+nodeID+" added by JSON!");
+	switch( GridNode.p_nodeType ) {
+		case HSMS:
+			c_gridNodesHSMS.add(GridNode);
+		break;
+		case MSLS:
+			c_gridNodesMSLS.add(GridNode);
+		break;
+		default:
+			traceln("Gridnode not added to collection!");
+		break;
+	}
 }
 
 // do this only after all GridNodes have been created! Or connections might be missed
 for( GridNode g : pop_gridNodes ) {
 	g.f_connectToParentNode();
 }
+
 
 // 2. add agents to population from database: NetConnections
 String netConnectionID;
@@ -1707,6 +1719,10 @@ e.f_connectToParentNode( ownerAgent );]]></Body>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1661328014569</Id>
 					<Name><![CDATA[f_returnKPIData]]></Name>
+					<Description><![CDATA[Executed on simulation end to export data.
+
+@author: JorritvandenHouten
+@since: Sprint 6]]></Description>
 					<X>440</X><Y>560</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1721,15 +1737,22 @@ e.f_connectToParentNode( ownerAgent );]]></Body>
 //DataOut great_succes = new DataOut();
 j_dataOut.clearData();
 
-for (ConnectionOwner c : pop_connectionOwners) {
+
+c_connectionOwners.parallelStream().forEach(c -> {
 	c.j_ConnectionOwnerData.updateData(c.p_actorID, c.p_actorType, c.p_parentActorID, c.p_energySupplier, c.v_ownedGridConnection, c.v_energySupplierDistrictHeat, c.v_electricityVolume_kWh, c.v_heatVolume_kWh, c.v_methaneVolume_kWh, c.v_hydrogenVolume_kWh, c.v_electricityContractType.toString(), c.v_heatContractType.toString(), c.v_methaneContractType.toString(), c.v_hydrogenContractType.toString(), c.v_balanceElectricity_eur, c.v_balanceHeat_eur, c.v_balanceMethane_eur, c.v_balanceHydrogen_eur);
 	J_ConnectionOwnerData data = c.j_ConnectionOwnerData;
 	//traceln(data);
 	j_dataOut.connectionOwnerData.add(data);
-	
+});
+
+double electricityImported_MWh = 0;
+double electricityExported_MWh = 0;
+for ( GridNode g : c_gridNodesHSMS ) {
+	electricityImported_MWh += g.v_electricityDrawn_kWh / 1000;
+	electricityExported_MWh += g.v_electricityDelivered_kWh / 1000;	
 }
 
-double modelRunDuration_s = ( System.currentTimeMillis() - v_timeOfModelStart_ms ) / 1000 - v_modelStartUpDuration_s;
+double modelRunDuration_s = roundToDecimal( ( System.currentTimeMillis() - v_timeOfModelStart_ms ) / 1000 - v_modelStartUpDuration_s, 3);
 j_experimentSettingsData.updateData( p_timeStep_h+"", 
 									v_timeStepsElapsed+"", 
 									time(HOUR) + "", 
@@ -1743,7 +1766,9 @@ j_experimentSettingsData.updateData( p_timeStep_h+"",
 									pop_energyHolons.size() + "",
 									pop_administrativeHolons.size() + "",
 									pop_gridOperators.size() + "",
-									1 + "" );
+									1 + "",
+									roundToDecimal( electricityImported_MWh, 3 ) + "",
+									roundToDecimal( electricityExported_MWh, 3 ) + "" );
 									 
 j_dataOut.runSettingsData.add(j_experimentSettingsData);
 
@@ -14511,6 +14536,8 @@ public class J_ExperimentSettingsData implements Serializable {
 	public String nAdministrativeHolons;
 	public String nGridOperators;
 	public String nNationalEnergyMarket;
+	public String totalElectricityImported_MWh;
+	public String totalElectricityExported_MWh;
 
 	 /**
      * Default constructor
@@ -14536,6 +14563,8 @@ public class J_ExperimentSettingsData implements Serializable {
 		this.nAdministrativeHolons = "";
 		this.nGridOperators = "";
 		this.nNationalEnergyMarket = "";
+		this.totalElectricityImported_MWh = "";
+		this.totalElectricityExported_MWh = "";
     }
 
 	@Override
@@ -14554,10 +14583,12 @@ public class J_ExperimentSettingsData implements Serializable {
 			"nEnergyHolons = " + nEnergyHolons + " " +
 			"nAdministrativeHolons = " + nAdministrativeHolons + " " +
 			"nGridOperators = " + nGridOperators + " " +
-			"nNationalEnergyMarket = " + nNationalEnergyMarket + " ";
+			"nNationalEnergyMarket = " + nNationalEnergyMarket + " " +
+			"totalElectricityImported_MWh = " + totalElectricityImported_MWh + " " +
+			"totalElectricityExported_MWh = " + totalElectricityExported_MWh + " ";
 	}
 	
-	public void updateData(String timeStep_h, String timeStepsElapsed, String modelHoursElapsed_h, String modelStartUpDuration_s, String modelRunDuration_s, String nGridNodes,	String nGridConnections, String nEnergyAssets, String nConnectionOwners, String nEnergySuppliers, String nEnergyHolons, String nAdministrativeHolons, String nGridOperators, String nNationalEnergyMarket) {
+	public void updateData(String timeStep_h, String timeStepsElapsed, String modelHoursElapsed_h, String modelStartUpDuration_s, String modelRunDuration_s, String nGridNodes,	String nGridConnections, String nEnergyAssets, String nConnectionOwners, String nEnergySuppliers, String nEnergyHolons, String nAdministrativeHolons, String nGridOperators, String nNationalEnergyMarket, String totalElectricityImported_MWh, String totalElectricityExported_MWh) {
 		this.timeStep_h = timeStep_h;
 		this.timeStepsElapsed = timeStepsElapsed;
 		this.modelHoursElapsed_h = modelHoursElapsed_h;
@@ -14571,7 +14602,10 @@ public class J_ExperimentSettingsData implements Serializable {
 		this.nEnergyHolons = nEnergyHolons;
 		this.nAdministrativeHolons = nAdministrativeHolons;
 		this.nGridOperators = nGridOperators;
-		this.nNationalEnergyMarket = nNationalEnergyMarket;	}
+		this.nNationalEnergyMarket = nNationalEnergyMarket;	
+		this.totalElectricityImported_MWh = totalElectricityImported_MWh;
+		this.totalElectricityExported_MWh = totalElectricityExported_MWh;}
+	
 
 	/**
 	 * This number is here for model snapshot storing purpose<br>
