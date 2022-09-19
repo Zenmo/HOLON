@@ -4,14 +4,21 @@ import pandas as pd
 import time
 
 from anylogiccloudclient.client.cloud_client import CloudClient
-import threading
+
+# import threading
+
 
 class AnyLogicExperiment:
     # client = CloudClient("f105b75c-4265-4c79-ab36-a9d6e7532fc0")
 
-    client = CloudClient("91ac4553-3732-411d-ada6-3aa4d307e0c4", "https://engine.holontool.nl")
+    # client = CloudClient( # API Key van Jorrit
+    #     "91ac4553-3732-411d-ada6-3aa4d307e0c4", "https://engine.holontool.nl"
+    # )
+    client = CloudClient(  # API Key van Gillis
+        "9f281fab-a0bf-4bf5-9baa-b74d9d2fcc89", "https://engine.holontool.nl"
+    )
     model = ""
-    version = "" 
+    version = ""
     inputs = ""
     simulation = ""
     outputs = ""
@@ -23,7 +30,6 @@ class AnyLogicExperiment:
         self.experiment = experiment
         self.model = experiment.modelName
         self.version = self.client.get_latest_model_version(self.model)
-    
 
     def setInputs(self):
         # actorInputFile1 = 'config_actors_moreAgents.txt'
@@ -32,7 +38,6 @@ class AnyLogicExperiment:
         # Create an Inputs object with the default input values
         self.inputs = self.client.create_default_inputs(self.version)
         print(self.inputs.names())
-
 
         self.inputs.set_input("P actors config JSON", self.experiment.actorsConfigData)
         self.inputs.set_input(
@@ -45,12 +50,23 @@ class AnyLogicExperiment:
             "P energy assets config JSON", self.experiment.energyAssetConfigData
         )
         self.inputs.set_input("P time step h", self.experiment.timeStep_h)
-        
+
         if self.experiment.forceUnCached:
             try:
                 self.inputs.set_input("P force uncached", random.random())
             except:
-                print("variable not available")
+                print("variable forceUnCached not available")
+
+        if self.experiment.parallelize:
+            try:
+                self.inputs.set_input("P parallelize", self.experiment.parallelize)
+            except:
+                print("variable parallelize not available")
+
+        try:
+            self.inputs.set_input("P import local config jsons", False)
+        except:
+            print("variable P import local config jsons not available")
 
         print("inputs set!")
 
@@ -58,7 +74,8 @@ class AnyLogicExperiment:
         startTime_ms = round(time.time() * 1000)
         print("working...")
         self.simulation = self.client.create_simulation(self.inputs)
-        self.outputs = self.simulation.get_outputs_and_run_if_absent(polling_period= 10)
+        self.outputs = self.simulation.get_outputs_and_run_if_absent(polling_period=10)
+        # self.outputs = self.simulation.get_outputs_and_run_if_absent()
         endTime_ms = round(time.time() * 1000)
         print("Outputs: ", self.outputs.names())
         self.OutputRunSettings = self.outputs.value("O output runSettings")
@@ -72,14 +89,22 @@ class AnyLogicExperiment:
         print("cloud run response time = ", self.duration_s, " s")
         print("cloud data response time = ", totalDuration_s, " s")
 
-        #print("DataOut: "+self.OutputAgentData)
+        # print("DataOut: "+self.OutputAgentData)
         agentData = json.loads(self.OutputAgentData)
         runData = json.loads(self.OutputRunSettings)
         agentData = pd.json_normalize(agentData)
         runData = pd.json_normalize(runData)
         agentData.to_excel(
-            self.experiment.path + "\\" + "APIOutputAgentData_" + self.experiment.name + ".xlsx"
+            self.experiment.path
+            + "\\"
+            + "APIOutputAgentData_"
+            + self.experiment.name
+            + ".xlsx"
         )
         runData.to_excel(
-            self.experiment.path + "\\" + "APIOutputRunData_" + self.experiment.name + ".xlsx"
+            self.experiment.path
+            + "\\"
+            + "APIOutputRunData_"
+            + self.experiment.name
+            + ".xlsx"
         )
