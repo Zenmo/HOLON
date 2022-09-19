@@ -9,7 +9,6 @@ import threading
 class AnyLogicExperiment:
     # client = CloudClient("f105b75c-4265-4c79-ab36-a9d6e7532fc0")
 
-    #client = CloudClient("23cd7f85-d254-406b-b69c-66d23dfc9fd8", "http://5.9.100.203")
     client = CloudClient("91ac4553-3732-411d-ada6-3aa4d307e0c4", "https://engine.holontool.nl")
     model = ""
     version = "" 
@@ -84,38 +83,3 @@ class AnyLogicExperiment:
         runData.to_excel(
             self.experiment.path + "\\" + "APIOutputRunData_" + self.experiment.name + ".xlsx"
         )
-   #
-    ##### Experiment 2 with other json inputs and fetch outputs
-
-    # actorInputFile2 = 'config_actors2.txt'
-    # gridConnectionInputFile2 = 'config_netConnections2.txt'
-
-    # print(path+actorInputFile2)
-
-    # with open(path+"\\"+actorInputFile2,'r') as f:
-    #    ActorInputdata2 = json.loads(f.read())
-
-    # with open(path+"\\"+gridConnectionInputFile2,'r') as f:
-    #    gridConnectionInputdata2 = json.loads(f.read())
-
-    # ActorInputdata2
-    # gridConnectionInputdata2
-
-    # inputs2 = client.create_default_inputs(version)
-    # inputs2.names()
-
-    # inputs2.set_input('P actors config JSON', ActorInputdata2)
-    # inputs2.set_input('P grid connection config JSON', gridConnectionInputdata2)
-
-    # simulation2 = client.create_simulation(inputs2)
-    # outputs2 = simulation2.get_outputs_and_run_if_absent()
-    # outputs2.names()
-    # jsonOutput2 = outputs2.value('O output JSON')
-    # errors2 = outputs2.value('O output exceptions')
-    # print(errors2)
-
-    # data2 = json.loads(jsonOutput2)
-    # print(data2)
-    # df_nested_list2 = pd.json_normalize(data2, record_path =['greatSucces'])
-    # print(df_nested_list2)
-    # df_nested_list2.to_excel(path+"\\"+"outputAPI2.xlsx")

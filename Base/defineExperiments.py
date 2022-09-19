@@ -9,7 +9,7 @@ showProgress = False
 
 ##
 # #Experiment default
-experiment_default = exp.Experiment(path, "default", "Base","db_backboneConfig.xlsx", 0.84, forceUncached, showProgress)
+experiment_default = exp.Experiment(path, "default", "BaseParallel","db_backboneConfig.xlsx", 1, forceUncached, showProgress)
 experiment_default.printSettings()
 experiment_default.generateConfigJSONs()
 experiment_default.actorsConfigData

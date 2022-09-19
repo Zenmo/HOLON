@@ -18,14 +18,14 @@ class Experiment:
         self.forceUnCached = forceUnCached
         self.progressUpdates = progressUpdates
   
-
     def printSettings(self):
         print("Experiment settings: "+self.name)
-        print(self.path)
-        print(self.modelName)
-        print(self.configFile)
-        print(self.timeStep_h)
-        print(self.progressUpdates)
+        print("Path: ", self.path)
+        print("Model: ", self.modelName)
+        print("Config: ", self.configFile)
+        print("TimeStep_h: ", self.timeStep_h)
+        print("Force Uncached: ", self.forceUnCached)
+        print("Show progress: ", self.progressUpdates)
 
     def generateConfigJSONs(self):
         print("start creating json files: "+self.name)

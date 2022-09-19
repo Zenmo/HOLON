@@ -459,6 +459,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.fasterxml.jackson.databind.node.NumericNode;
 import java.io.FileOutputStream;
+import java.util.stream.Stream; 
 
 import java.io.File;
 import java.io.IOException;]]></Import>
@@ -983,7 +984,7 @@ traceln("*** main duration *** "+ v_modelStartUpDuration_s+" s");]]></StartupCod
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[false]]></Code>
+							<Code><![CDATA[true]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1663318124012</Id>
@@ -1085,7 +1086,7 @@ traceln("*** main duration *** "+ v_modelStartUpDuration_s+" s");]]></StartupCod
 				<Variable Class="CollectionVariable">
 					<Id>1663238323139</Id>
 					<Name><![CDATA[c_connectionOwners]]></Name>
-					<X>260</X><Y>270</Y>
+					<X>260</X><Y>290</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -1122,7 +1123,7 @@ traceln("*** main duration *** "+ v_modelStartUpDuration_s+" s");]]></StartupCod
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
 						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
-						<ElementClass><![CDATA[Object]]></ElementClass>
+						<ElementClass><![CDATA[GridNode]]></ElementClass>
 						<ValueElementClass><![CDATA[String]]></ValueElementClass>
 					</Properties>
 
@@ -1130,7 +1131,7 @@ traceln("*** main duration *** "+ v_modelStartUpDuration_s+" s");]]></StartupCod
 				<Variable Class="CollectionVariable">
 					<Id>1663312177330</Id>
 					<Name><![CDATA[c_gridConnections]]></Name>
-					<X>260</X><Y>290</Y>
+					<X>260</X><Y>310</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -1138,6 +1139,21 @@ traceln("*** main duration *** "+ v_modelStartUpDuration_s+" s");]]></StartupCod
 					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
 						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
 						<ElementClass><![CDATA[GridConnection]]></ElementClass>
+						<ValueElementClass><![CDATA[String]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1663336485480</Id>
+					<Name><![CDATA[c_gridNodesHeat]]></Name>
+					<X>260</X><Y>270</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
+						<ElementClass><![CDATA[GridNode]]></ElementClass>
 						<ValueElementClass><![CDATA[String]]></ValueElementClass>
 					</Properties>
 
@@ -1212,10 +1228,13 @@ c_gridConnections.parallelStream().forEach(g -> {
 });
 
 
-for(GridNode n : filter(pop_gridNodes, p -> !p.p_nodeType.equals(HSMS))) {
+for(GridNode n : c_gridNodesHeat) {
 	n.f_calculateEnergyBalance();
 }
-for(GridNode n : filter(pop_gridNodes, p -> p.p_nodeType.equals(HSMS))) {
+for(GridNode n : c_gridNodesMSLS) {
+	n.f_calculateEnergyBalance();
+}
+for(GridNode n : c_gridNodesHSMS) {
 	n.f_calculateEnergyBalance();
 }
 
@@ -1319,6 +1338,12 @@ for(HashMap data : parsedJSONGridNodes)
 		break;
 		case MSLS:
 			c_gridNodesMSLS.add(GridNode);
+		break;
+		case HT:
+			c_gridNodesHeat.add(GridNode);
+		break;
+		case MT:
+			c_gridNodesHeat.add(GridNode);
 		break;
 		default:
 			traceln("Gridnode not added to collection!");
@@ -1843,12 +1868,20 @@ e.f_connectToParentNode( ownerAgent );]]></Body>
 j_dataOut.clearData();
 
 
-c_connectionOwners.parallelStream().forEach(c -> {
-	c.j_ConnectionOwnerData.updateData(c.p_actorID, c.p_actorType, c.p_parentActorID, c.p_energySupplier, c.v_ownedGridConnection, c.v_energySupplierDistrictHeat, c.v_electricityVolume_kWh, c.v_heatVolume_kWh, c.v_methaneVolume_kWh, c.v_hydrogenVolume_kWh, c.v_electricityContractType.toString(), c.v_heatContractType.toString(), c.v_methaneContractType.toString(), c.v_hydrogenContractType.toString(), c.v_balanceElectricity_eur, c.v_balanceHeat_eur, c.v_balanceMethane_eur, c.v_balanceHydrogen_eur);
-	J_ConnectionOwnerData data = c.j_ConnectionOwnerData;
+//c_connectionOwners.parallelStream().forEach(c -> {
+traceln("connectionOwners left: "+pop_connectionOwners.size());
+traceln("connectionOwners in list: "+c_connectionOwners.size());
+for(ConnectionOwner c : pop_connectionOwners) {
+	try {
+		c.j_ConnectionOwnerData.updateData(c.p_actorID, c.p_actorType, c.p_parentActorID, c.p_energySupplier, c.v_ownedGridConnection, c.v_energySupplierDistrictHeat, c.v_electricityVolume_kWh, c.v_heatVolume_kWh, c.v_methaneVolume_kWh, c.v_hydrogenVolume_kWh, c.v_electricityContractType.toString(), c.v_heatContractType.toString(), c.v_methaneContractType.toString(), c.v_hydrogenContractType.toString(), c.v_balanceElectricity_eur, c.v_balanceHeat_eur, c.v_balanceMethane_eur, c.v_balanceHydrogen_eur);
+		J_ConnectionOwnerData data = c.j_ConnectionOwnerData;
 	//traceln(data);
-	j_dataOut.connectionOwnerData.add(data);
-});
+		j_dataOut.connectionOwnerData.add(data);
+	} catch (Exception e) {
+		e.printStackTrace();
+	}
+//});
+}
 
 double electricityImported_MWh = 0;
 double electricityExported_MWh = 0;
@@ -1878,12 +1911,19 @@ j_experimentSettingsData.updateData( p_timeStep_h+"",
 									 
 j_dataOut.runSettingsData.add(j_experimentSettingsData);
 
-try {
-//	J_ConnectionOwnerData data = pop_connectionOwners.get(0).j_ConnectionOwnerData;
-    String AgentDataJson = mapper.writeValueAsString(j_dataOut.connectionOwnerData);
-    String settingsJson = mapper.writeValueAsString(j_dataOut.runSettingsData);
+
+
     //System.out.println(json);
-    
+try {
+	String AgentDataJson = mapper.writeValueAsString(j_dataOut.connectionOwnerData);
+	String settingsJson = mapper.writeValueAsString(j_dataOut.runSettingsData);
+	update_o_outputConnectionOwnerJSON(AgentDataJson);
+	update_o_outputSettings(settingsJson);    
+} catch(IOException e) {
+	e.printStackTrace();
+}
+
+try {    
     if(writeToDisk) {
     	traceln("succes");
     	mapper.writeValue(
@@ -1892,10 +1932,9 @@ try {
 	   	mapper.writeValue(
 		new File(".\\OutputRunSettingsData.json"), j_dataOut.runSettingsData);
 //		traceln("file succes");
+		
+		
 	}
-    update_o_outputConnectionOwnerJSON(AgentDataJson);
-    update_o_outputSettings(settingsJson);
-
 } catch (IOException e) {
 //   traceln("exception generating output");
     e.printStackTrace();
@@ -13353,7 +13392,7 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 	<RunConfiguration ActiveObjectClassId="1658477103140">
 		<Id>1658477103163</Id>
 		<Name><![CDATA[RunConfiguration]]></Name>
-		<MaximumMemory>1024</MaximumMemory>
+		<MaximumMemory>512</MaximumMemory>
 		<ModelTimeProperties>
 			<StopOption><![CDATA[Stop at specified date]]></StopOption>
 			<InitialDate><![CDATA[1658448000000]]></InitialDate>	
@@ -13462,6 +13501,15 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 					<ItemName><![CDATA[o_outputExceptions]]></ItemName>
 				</OutputReference>
     		</RunConfigurationOutput>
+    		<RunConfigurationOutput>
+				<Id>1663340413770</Id>
+				<Name><![CDATA[O output trigger]]></Name>
+				<OutputReference>
+					<PackageName><![CDATA[base]]></PackageName>
+					<ClassName><![CDATA[Main]]></ClassName>
+					<ItemName><![CDATA[o_outputTrigger]]></ItemName>
+				</OutputReference>
+    		</RunConfigurationOutput>
 		</Outputs>
 	</RunConfiguration>
 	<Experiments>	
@@ -13474,7 +13522,6 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 			<MaximumMemory>1024</MaximumMemory>
 			<RandomNumberGenerationType>fixedSeed</RandomNumberGenerationType>
 			<CustomGeneratorCode>new Random()</CustomGeneratorCode>
-			<AfterSimulationRunCode><![CDATA[root.f_returnKPIData(true);]]></AfterSimulationRunCode>
 			<SeedValue>1</SeedValue>
 			<SelectionModeForSimultaneousEvents>LIFO</SelectionModeForSimultaneousEvents>
 			<VmArgs><![CDATA[]]></VmArgs>
