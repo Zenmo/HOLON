@@ -4,7 +4,7 @@
 	         AnyLogic Project File 
 *************************************************	         
 -->
-<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.12.202205250418" AlpVersion="8.7.5">
+<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.8.0.202208091057" AlpVersion="8.7.5">
 <Model>
 	<Id>1641891178629</Id>
 	<Name><![CDATA[Ebuurt]]></Name>
@@ -106,7 +106,19 @@
 @since 16-02-2022]]></Description>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
 			<Import><![CDATA[import java.text.SimpleDateFormat;
-//import javax.measure.quantity.RadioactiveActivity;]]></Import>
+//import javax.measure.quantity.RadioactiveActivity;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.TextNode;
+import com.fasterxml.jackson.databind.node.NumericNode;
+import java.io.FileOutputStream;
+import java.util.stream.Stream; 
+
+import java.io.File;
+import java.io.IOException;]]></Import>
 			<StartupCode><![CDATA[hourOfYearStart=hourOfYearPerMonth[getMonth()] + (getDayOfMonth()-1)*24;
 
 c_motivationToScoring.put(OL_motivationOptions.NO_PRIORITY,0);
@@ -117,7 +129,7 @@ f_PositionHolons();
 chart_energiestroom.update();
 f_retrieveMainKPIsPreviousRun();
 traceln("On Startup end main "+this.getName()+" | "+System.currentTimeMillis());]]></StartupCode>
-			<DestroyCode><![CDATA[f_exportMainKPIs();]]></DestroyCode>
+			<DestroyCode><![CDATA[//f_exportMainKPIs();]]></DestroyCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1641891178633</Id>
@@ -211,6 +223,45 @@ traceln("On Startup end main "+this.getName()+" | "+System.currentTimeMillis());
 			</ScaleRuler>
 			<CurrentLevel>1641891178634</CurrentLevel>
 			<ConnectionsId>1641891178630</ConnectionsId>
+			<Outputs>
+				<Output>
+					<Id>1663682540626</Id>
+					<Name><![CDATA[o_outputTrigger]]></Name>
+					<X>850</X><Y>990</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Type><![CDATA[double]]></Type>
+					<UnitType><![CDATA[NONE]]></UnitType>
+					<Value Class="CodeValue">
+						<Code><![CDATA[f_returnOutputJSON(true)]]></Code>
+					</Value>
+					<ComputationMoment>ON_SIMULATION_END</ComputationMoment>
+					<ComputationTimeCode Class="CodeUnitValue">
+						<Code><![CDATA[]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[SECOND]]></Unit>
+					</ComputationTimeCode>
+					<ComputationDate>1663315200000</ComputationDate>
+				</Output>
+				<Output>
+					<Id>1663686223120</Id>
+					<Name><![CDATA[o_chargingProfileEVs_kW]]></Name>
+					<X>850</X><Y>1110</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Type><![CDATA[String]]></Type>
+					<UnitType><![CDATA[NONE]]></UnitType>
+					<ComputationMoment>MANUALLY</ComputationMoment>
+					<ComputationTimeCode Class="CodeUnitValue">
+						<Code><![CDATA[]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[SECOND]]></Unit>
+					</ComputationTimeCode>
+					<ComputationDate>1663315200000</ComputationDate>
+				</Output>
+			</Outputs>
 			<Variables>
 				<Variable Class="PlainVariable">
 					<Id>1643522964506</Id>
@@ -1067,6 +1118,21 @@ traceln("On Startup end main "+this.getName()+" | "+System.currentTimeMillis());
 						</InitialValue>
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1663682615835</Id>
+					<Name><![CDATA[v_chargingProfileEVs_kW]]></Name>
+					<X>850</X><Y>1050</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double[]]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[new double[8761] ]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1652790988351</Id>
 					<Name><![CDATA[p_DateFormat]]></Name>
@@ -1139,6 +1205,30 @@ traceln("On Startup end main "+this.getName()+" | "+System.currentTimeMillis());
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1654185375047</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1663684473753</Id>
+					<Name><![CDATA[j_dataOut]]></Name>
+					<X>850</X><Y>1080</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[DataOut]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[new DataOut()]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1663684473751</Id>
 							<EditorContolType>TEXT_BOX</EditorContolType>
 							<MinSliderValue><![CDATA[0]]></MinSliderValue>
 							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
@@ -1238,7 +1328,11 @@ v_nodePower_kW = v_subNodesTotalPower_kW + v_centralPvPower_kW + v_centralWindPo
 holonAgent.forEach(h -> h.f_updateEnergyBalance(dt_h));
 
 f_updateHistogram();
-f_nationaleKPIs();]]></Action>
+f_nationaleKPIs();
+//v_chargingProfileEVs[(int)time(HOUR)]=sum(EbuurtModel e : pop_buurten -> e.autos.laadvraag())
+v_chargingProfileEVs_kW[(int)time(HOUR)] = 0;
+pop_buurten.forEach(b -> v_chargingProfileEVs_kW[(int)time(HOUR)]+=b.autos.laadvraag());
+v_chargingProfileEVs_kW[(int)time(HOUR)] = roundToDecimal(v_chargingProfileEVs_kW[(int)time(HOUR)] , 1);]]></Action>
 				</Event>
 			</Events>
 			<Functions>
@@ -1420,6 +1514,98 @@ v_WijkTotaalCO2Change_pct = v_WijkTotaalCO2Old_kg > 0? 100 * ( eBuurtModel.v_Wij
 v_eBuurtSelfconsumptionChange_pct = v_eBuurtSelfconsumptionOld_pct > 0? 100 * ( v_ownUsageGeneratedEnergy_perc - v_eBuurtSelfconsumptionOld_pct ) / v_eBuurtSelfconsumptionOld_pct : 0; 
 
 */]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>RETURNS_VALUE</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1663682569079</Id>
+					<Name><![CDATA[f_returnOutputJSON]]></Name>
+					<Description><![CDATA[Executed on simulation end to export data.
+
+@author: JorritvandenHouten
+@since: Sprint 6]]></Description>
+					<X>850</X><Y>1020</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[writeToDisk]]></Name>
+						<Type><![CDATA[boolean]]></Type>
+					</Parameter>
+					<Body><![CDATA[ObjectMapper mapper = new ObjectMapper();
+
+j_dataOut.chargingProfileEVs=v_chargingProfileEVs_kW;
+/*
+//c_connectionOwners.parallelStream().forEach(c -> {
+traceln("connectionOwners left: "+pop_connectionOwners.size());
+traceln("connectionOwners in list: "+c_connectionOwners.size());
+for(ConnectionOwner c : pop_connectionOwners) {
+	try {
+		c.j_ConnectionOwnerData.updateData(c.p_actorID, c.p_actorType, c.p_parentActorID, c.p_energySupplier, c.v_ownedGridConnection, c.v_energySupplierDistrictHeat, c.v_electricityVolume_kWh, c.v_heatVolume_kWh, c.v_methaneVolume_kWh, c.v_hydrogenVolume_kWh, c.v_electricityContractType.toString(), c.v_heatContractType.toString(), c.v_methaneContractType.toString(), c.v_hydrogenContractType.toString(), c.v_balanceElectricity_eur, c.v_balanceHeat_eur, c.v_balanceMethane_eur, c.v_balanceHydrogen_eur);
+		J_ConnectionOwnerData data = c.j_ConnectionOwnerData;
+	//traceln(data);
+		j_dataOut.connectionOwnerData.add(data);
+	} catch (Exception e) {
+		e.printStackTrace();
+	}
+//});
+}
+
+double electricityImported_MWh = 0;
+double electricityExported_MWh = 0;
+for ( GridNode g : c_gridNodesHSMS ) {
+	electricityImported_MWh += g.v_electricityDrawn_kWh / 1000;
+	electricityExported_MWh += g.v_electricityDelivered_kWh / 1000;	
+}
+traceln("Electricity imported: "+ electricityImported_MWh);
+traceln("Electricity exported: "+ electricityExported_MWh);
+double modelRunDuration_s = roundToDecimal( ( System.currentTimeMillis() - v_timeOfModelStart_ms ) / 1000 - v_modelStartUpDuration_s, 3);
+j_experimentSettingsData.updateData( p_timeStep_h+"", 
+									v_timeStepsElapsed+"", 
+									time(HOUR) + "", 
+									v_modelStartUpDuration_s + "", 
+									modelRunDuration_s + "",
+									pop_gridNodes.size() + "", 
+									pop_gridConnections.size() + "", 
+									pop_energyAssets.size() + "",
+									pop_connectionOwners.size() + "",
+									pop_energySuppliers.size() + "", 
+									pop_energyHolons.size() + "",
+									pop_administrativeHolons.size() + "",
+									pop_gridOperators.size() + "",
+									1 + "",
+									roundToDecimal( electricityImported_MWh, 3 ) + "",
+									roundToDecimal( electricityExported_MWh, 3 ) + "" );
+									 
+j_dataOut.runSettingsData.add(j_experimentSettingsData);
+
+
+
+    //System.out.println(json);
+*/
+try {
+	String chargingProfileEVsString = mapper.writeValueAsString(j_dataOut.chargingProfileEVs);
+	//String settingsJson = mapper.writeValueAsString(j_dataOut.runSettingsData);
+	//update_o_outputConnectionOwnerJSON(AgentDataJson);
+	update_o_chargingProfileEVs_kW(chargingProfileEVsString);
+} catch(IOException e) {
+	e.printStackTrace();
+}
+
+try {    
+    if(writeToDisk) {
+    	traceln("succes");
+    	mapper.writeValue(
+		new File(".\\ChargingProfileEVsData.json"), j_dataOut.chargingProfileEVs);
+	}
+} catch (IOException e) {
+//   traceln("exception generating output");
+    e.printStackTrace();
+}
+
+return 1;
+]]></Body>
 				</Function>
 			</Functions>
 			<TableFunctions>
@@ -43721,7 +43907,7 @@ this.holonConnections.connectTo(sender_holon);
 	</Frame>
 	<Database>
 		<Logging>false</Logging>
-		<AutoExport>true</AutoExport>
+		<AutoExport>false</AutoExport>
 		<ShutdownCompact>false</ShutdownCompact>
 		<ImportSettings>
 			<ExternalConnection>
@@ -43927,6 +44113,24 @@ this.holonConnections.connectTo(sender_holon);
 		<Inputs>		
 		</Inputs>
 		<Outputs>
+    		<RunConfigurationOutput>
+				<Id>1663686244844</Id>
+				<Name><![CDATA[O charging profile E vs k W]]></Name>
+				<OutputReference>
+					<PackageName><![CDATA[ebuurt]]></PackageName>
+					<ClassName><![CDATA[Main]]></ClassName>
+					<ItemName><![CDATA[o_chargingProfileEVs_kW]]></ItemName>
+				</OutputReference>
+    		</RunConfigurationOutput>
+    		<RunConfigurationOutput>
+				<Id>1663687381509</Id>
+				<Name><![CDATA[O output trigger]]></Name>
+				<OutputReference>
+					<PackageName><![CDATA[ebuurt]]></PackageName>
+					<ClassName><![CDATA[Main]]></ClassName>
+					<ItemName><![CDATA[o_outputTrigger]]></ItemName>
+				</OutputReference>
+    		</RunConfigurationOutput>
 		</Outputs>
 	</RunConfiguration>
 	<Experiments>	
@@ -46972,6 +47176,9 @@ else {
 				<Parameter>
 					<ParameterName><![CDATA[p_nationalNumberOfHouseholds]]></ParameterName>
 				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[j_dataOut]]></ParameterName>
+				</Parameter>
 			</Parameters>			
 			<PresentationProperties>
 				<EnableZoomAndPanning>true</EnableZoomAndPanning>
@@ -47036,6 +47243,24 @@ public class J_Building implements Serializable {
 	 */ 
 	private static final long serialVersionUID = 1L;
 
+}]]></Text>
+		</JavaClass>
+		<!--   =========   Java Class   ========  -->
+		<JavaClass>
+			<Id>1663684706685</Id>
+			<Name><![CDATA[DataOut]]></Name>
+			<Text><![CDATA[/**
+ * DataOut
+ */	
+public class DataOut implements Serializable {
+	
+	public double[] chargingProfileEVs = new double[8761];
+	//public ArrayList runSettingsData = new ArrayList(1);
+
+//	public void clearData() {
+		//connectionOwnerData.clear();
+	//	runSettingsData.clear();
+	//}
 }]]></Text>
 		</JavaClass>
 	</JavaClasses>
@@ -47117,10 +47342,6 @@ public class J_Building implements Serializable {
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[../Data/Carrides.xlsx]]></Path>
-			<ReferencedFromUserCode>false</ReferencedFromUserCode>
-		</Resource>
-		<Resource>
 			<Path><![CDATA[AlbatrossProcessedVehicleTrips.xlsx]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
@@ -47149,6 +47370,6 @@ public class J_Building implements Serializable {
 		<VersionMinor>0</VersionMinor>
 		<VersionBuild>0</VersionBuild>
     </RequiredLibraryReference>
-	<CloudModelUuid><![CDATA[ddd0c8a5-6e3b-45f5-900a-c0363b67fd09]]></CloudModelUuid>
+	<CloudModelUuid><![CDATA[ead927da-5682-453c-9df8-40d174e4d2ce]]></CloudModelUuid>
 </Model>
 </AnyLogicWorkspace>
