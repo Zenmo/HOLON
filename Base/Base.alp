@@ -1258,7 +1258,7 @@ if (p_parallelize) {
 		c.f_updateIncentives();
 	}*/
 	// Calculate energy flows from bottom nodes up
-	for(GridConnection b : pop_gridConnections) { 
+	for(GridConnection b : c_gridConnections) { 
 		b.f_calculateEnergyBalance();
 	}
 }
@@ -1416,14 +1416,46 @@ for(HashMap data : parsedJSONGridConnections) {
 	ownerActorID = data.get ( "owner_actor" ).toString();
 	
 //	traceln("data: " + "id = " + netConnectionID + ", category = " + netConnectionCategory + ", connectionType = " + netConnectionType + ", parentElectric" + netConnectionParentElectric + ", parentHeat = " + netConnectionParentHeat + ", capacity = " + netConnectionCapacity + "owner_actor = "+ ownerActorID);
-   GridConnection GridConnection = add_pop_gridConnections(netConnectionCategory, netConnectionType, netConnectionCapacity, netConnectionParentElectric, netConnectionID, netConnectionParentHeat, null, null, null, null, ownerActorID, null, null);
-   c_gridConnections.add(GridConnection);
+   switch(netConnectionCategory) {
+	case HOUSE: 
+		traceln("instantiating GCHouse now, this is new!");
+ 		GCHouse GCHouse = add_gCHouses(netConnectionCategory, netConnectionType, netConnectionCapacity, netConnectionParentElectric, netConnectionID, netConnectionParentHeat, null, null, null, ownerActorID, null, null, null);
+ 		c_gridConnections.add(GCHouse);
+ 	break;
+ 	case BUILDING:
+ 		traceln("instantiating GCBuilding now, this is new!");
+ 		GCBuilding GCBuilding = add_gCBuildings(netConnectionCategory, netConnectionType, netConnectionCapacity, netConnectionParentElectric, netConnectionID, netConnectionParentHeat, null, null, null, ownerActorID, null, null);
+ 		c_gridConnections.add(GCBuilding);
+	break;
+	case DISTRICTHEATING:
+		traceln("instantiating GCDistrictHeating now, this is new!");
+ 		GCDistrictHeating GCDistrictHeating = add_gCDistrictHeatings(netConnectionCategory, netConnectionType, netConnectionCapacity, netConnectionParentElectric, netConnectionID, netConnectionParentHeat, null, null, null, ownerActorID, null, null);
+ 		c_gridConnections.add(GCDistrictHeating);
+	break;
+	case WINDFARM:
+		traceln("instantiating GCWindfarm now, this is new!");
+ 		GCWindfarm GCWindfarm = add_gCWindfarms(netConnectionCategory, netConnectionType, netConnectionCapacity, netConnectionParentElectric, netConnectionID, netConnectionParentHeat, null, null, null, ownerActorID, null, null);
+ 		c_gridConnections.add(GCWindfarm);
+ 	break;
+ 	case SOLARFARM:
+ 		traceln("instantiating GCDSolarfarm now, this is new!");
+ 		GCSolarfarm GCSolarfarm = add_gCSolarfarms(netConnectionCategory, netConnectionType, netConnectionCapacity, netConnectionParentElectric, netConnectionID, netConnectionParentHeat, null, null, null, ownerActorID, null, null);
+ 		c_gridConnections.add(GCSolarfarm);
+ 	break;
+ 	default:
+ 		traceln("No subagent defined for this gridConnection type!");
+ 	break;
+ }
+//	else if {
+//		GridConnection GridConnection = add_pop_gridConnections(netConnectionCategory, netConnectionType, netConnectionCapacity, netConnectionParentElectric, netConnectionID, netConnectionParentHeat, null, null, null, null, ownerActorID, null, null);
+//	   c_gridConnections.add(GridConnection);
+//	}
 }
-for (GridConnection g : pop_gridConnections) {
+for (GridConnection g : c_gridConnections) {
 	g.f_connectToParentNode();
 }	
 // assign heat supplier only after all relevant agent connections are made!
-for (GridConnection g: pop_gridConnections) {
+for (GridConnection g: c_gridConnections) {
 	if(g.p_parentNodeHeat instanceof GridNode && g.p_ownerActor instanceof ConnectionOwner) {
 			ConnectionOwner o = (ConnectionOwner)g.p_ownerActor;
 			List<GridConnection> heatSuppliers = filter( g.p_parentNodeHeat.subConnections.getConnections(), p -> p.p_netConnectionCategory.equals(DISTRICTHEATING));
@@ -1937,7 +1969,7 @@ j_experimentSettingsData.updateData( p_timeStep_h+"",
 									v_modelStartUpDuration_s + "", 
 									modelRunDuration_s + "",
 									pop_gridNodes.size() + "", 
-									pop_gridConnections.size() + "", 
+									c_gridConnections.size() + "", 
 									pop_energyAssets.size() + "",
 									pop_connectionOwners.size() + "",
 									pop_energySuppliers.size() + "", 
@@ -2385,9 +2417,6 @@ p_actorsConfigJSON = t_configActors.readString().replaceAll("^\"|\"$", "");]]></
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_HeatingAsset]]></Name>
-						</Parameter>
-						<Parameter>
-							<Name><![CDATA[p_EV]]></Name>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_parentNodeElectric]]></Name>
@@ -2984,6 +3013,494 @@ p_actorsConfigJSON = t_configActors.readString().replaceAll("^\"|\"$", "");]]></
 						</GenericParameterSubstituteReference>
 					</GenericParameterSubstitute>
 					<Parameters>
+					</Parameters>
+					<ReplicationFlag>true</ReplicationFlag>
+					<Replication Class="CodeValue">
+						<Code><![CDATA[100]]></Code>
+					</Replication>
+					<CollectionType>ARRAY_LIST_BASED</CollectionType>
+					<InEnvironment>true</InEnvironment>	
+					<InitialLocationType>AT_ANIMATION_POSITION</InitialLocationType>
+					<XCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</XCode>
+					<YCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</YCode>
+					<ZCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ZCode>
+					<ColumnCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ColumnCode>
+					<RowCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</RowCode>
+					<LatitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LatitudeCode>
+					<LongitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LongitudeCode>
+					<LocationNameCode Class="CodeValue">
+						<Code><![CDATA[""]]></Code>
+					</LocationNameCode>
+					<InitializationType>EMPTY</InitializationType>
+					<InitializationDatabaseTableQuery>
+						<TableReference>
+						</TableReference>
+					</InitializationDatabaseTableQuery>
+					<InitializationDatabaseType>ONE_AGENT_PER_DATABASE_RECORD</InitializationDatabaseType>
+					<QuantityColumn>
+					</QuantityColumn>
+				</EmbeddedObject>
+				<EmbeddedObject>
+					<Id>1663772677806</Id>
+					<Name><![CDATA[gCHouses]]></Name>
+					<X>230</X><Y>380</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<ActiveObjectClass>
+						<PackageName><![CDATA[base]]></PackageName>
+						<ClassName><![CDATA[GCHouse]]></ClassName>
+					</ActiveObjectClass>
+					<GenericParameterSubstitute>
+						<GenericParameterSubstituteReference>
+							<PackageName><![CDATA[base]]></PackageName>
+							<ClassName><![CDATA[GCHouse]]></ClassName>
+							<ItemName><![CDATA[1663772408665]]></ItemName>
+						</GenericParameterSubstituteReference>
+					</GenericParameterSubstitute>
+					<Parameters>
+						<Parameter>
+							<Name><![CDATA[p_netConnectionCategory]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_netConnectionType]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_capacity_kW]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_parentNodeElectricID]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_agentID]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_parentNodeHeatID]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_buildingTempAsset]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_HeatingAsset]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_EV]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_parentNodeElectric]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_ownerID]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_parentNodeHeat]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_ownerActor]]></Name>
+						</Parameter>
+					</Parameters>
+					<ReplicationFlag>true</ReplicationFlag>
+					<Replication Class="CodeValue">
+						<Code><![CDATA[100]]></Code>
+					</Replication>
+					<CollectionType>ARRAY_LIST_BASED</CollectionType>
+					<InEnvironment>true</InEnvironment>	
+					<InitialLocationType>AT_ANIMATION_POSITION</InitialLocationType>
+					<XCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</XCode>
+					<YCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</YCode>
+					<ZCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ZCode>
+					<ColumnCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ColumnCode>
+					<RowCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</RowCode>
+					<LatitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LatitudeCode>
+					<LongitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LongitudeCode>
+					<LocationNameCode Class="CodeValue">
+						<Code><![CDATA[""]]></Code>
+					</LocationNameCode>
+					<InitializationType>EMPTY</InitializationType>
+					<InitializationDatabaseTableQuery>
+						<TableReference>
+						</TableReference>
+					</InitializationDatabaseTableQuery>
+					<InitializationDatabaseType>ONE_AGENT_PER_DATABASE_RECORD</InitializationDatabaseType>
+					<QuantityColumn>
+					</QuantityColumn>
+				</EmbeddedObject>
+				<EmbeddedObject>
+					<Id>1663773716929</Id>
+					<Name><![CDATA[gCBuildings]]></Name>
+					<X>230</X><Y>400</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<ActiveObjectClass>
+						<PackageName><![CDATA[base]]></PackageName>
+						<ClassName><![CDATA[GCBuilding]]></ClassName>
+					</ActiveObjectClass>
+					<GenericParameterSubstitute>
+						<GenericParameterSubstituteReference>
+							<PackageName><![CDATA[base]]></PackageName>
+							<ClassName><![CDATA[GCBuilding]]></ClassName>
+							<ItemName><![CDATA[1663773690596]]></ItemName>
+						</GenericParameterSubstituteReference>
+					</GenericParameterSubstitute>
+					<Parameters>
+						<Parameter>
+							<Name><![CDATA[p_netConnectionCategory]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_netConnectionType]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_capacity_kW]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_parentNodeElectricID]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_agentID]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_parentNodeHeatID]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_buildingTempAsset]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_HeatingAsset]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_parentNodeElectric]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_ownerID]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_parentNodeHeat]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_ownerActor]]></Name>
+						</Parameter>
+					</Parameters>
+					<ReplicationFlag>true</ReplicationFlag>
+					<Replication Class="CodeValue">
+						<Code><![CDATA[100]]></Code>
+					</Replication>
+					<CollectionType>ARRAY_LIST_BASED</CollectionType>
+					<InEnvironment>true</InEnvironment>	
+					<InitialLocationType>AT_ANIMATION_POSITION</InitialLocationType>
+					<XCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</XCode>
+					<YCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</YCode>
+					<ZCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ZCode>
+					<ColumnCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ColumnCode>
+					<RowCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</RowCode>
+					<LatitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LatitudeCode>
+					<LongitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LongitudeCode>
+					<LocationNameCode Class="CodeValue">
+						<Code><![CDATA[""]]></Code>
+					</LocationNameCode>
+					<InitializationType>EMPTY</InitializationType>
+					<InitializationDatabaseTableQuery>
+						<TableReference>
+						</TableReference>
+					</InitializationDatabaseTableQuery>
+					<InitializationDatabaseType>ONE_AGENT_PER_DATABASE_RECORD</InitializationDatabaseType>
+					<QuantityColumn>
+					</QuantityColumn>
+				</EmbeddedObject>
+				<EmbeddedObject>
+					<Id>1663774441970</Id>
+					<Name><![CDATA[gCDistrictHeatings]]></Name>
+					<X>230</X><Y>420</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<ActiveObjectClass>
+						<PackageName><![CDATA[base]]></PackageName>
+						<ClassName><![CDATA[GCDistrictHeating]]></ClassName>
+					</ActiveObjectClass>
+					<GenericParameterSubstitute>
+						<GenericParameterSubstituteReference>
+							<PackageName><![CDATA[base]]></PackageName>
+							<ClassName><![CDATA[GCDistrictHeating]]></ClassName>
+							<ItemName><![CDATA[1663773810343]]></ItemName>
+						</GenericParameterSubstituteReference>
+					</GenericParameterSubstitute>
+					<Parameters>
+						<Parameter>
+							<Name><![CDATA[p_netConnectionCategory]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_netConnectionType]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_capacity_kW]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_parentNodeElectricID]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_agentID]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_parentNodeHeatID]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_buildingTempAsset]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_HeatingAsset]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_parentNodeElectric]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_ownerID]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_parentNodeHeat]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_ownerActor]]></Name>
+						</Parameter>
+					</Parameters>
+					<ReplicationFlag>true</ReplicationFlag>
+					<Replication Class="CodeValue">
+						<Code><![CDATA[100]]></Code>
+					</Replication>
+					<CollectionType>ARRAY_LIST_BASED</CollectionType>
+					<InEnvironment>true</InEnvironment>	
+					<InitialLocationType>AT_ANIMATION_POSITION</InitialLocationType>
+					<XCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</XCode>
+					<YCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</YCode>
+					<ZCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ZCode>
+					<ColumnCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ColumnCode>
+					<RowCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</RowCode>
+					<LatitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LatitudeCode>
+					<LongitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LongitudeCode>
+					<LocationNameCode Class="CodeValue">
+						<Code><![CDATA[""]]></Code>
+					</LocationNameCode>
+					<InitializationType>EMPTY</InitializationType>
+					<InitializationDatabaseTableQuery>
+						<TableReference>
+						</TableReference>
+					</InitializationDatabaseTableQuery>
+					<InitializationDatabaseType>ONE_AGENT_PER_DATABASE_RECORD</InitializationDatabaseType>
+					<QuantityColumn>
+					</QuantityColumn>
+				</EmbeddedObject>
+				<EmbeddedObject>
+					<Id>1663774461816</Id>
+					<Name><![CDATA[gCWindfarms]]></Name>
+					<X>230</X><Y>440</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<ActiveObjectClass>
+						<PackageName><![CDATA[base]]></PackageName>
+						<ClassName><![CDATA[GCWindfarm]]></ClassName>
+					</ActiveObjectClass>
+					<GenericParameterSubstitute>
+						<GenericParameterSubstituteReference>
+							<PackageName><![CDATA[base]]></PackageName>
+							<ClassName><![CDATA[GCWindfarm]]></ClassName>
+							<ItemName><![CDATA[1663773842877]]></ItemName>
+						</GenericParameterSubstituteReference>
+					</GenericParameterSubstitute>
+					<Parameters>
+						<Parameter>
+							<Name><![CDATA[p_netConnectionCategory]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_netConnectionType]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_capacity_kW]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_parentNodeElectricID]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_agentID]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_parentNodeHeatID]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_buildingTempAsset]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_HeatingAsset]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_parentNodeElectric]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_ownerID]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_parentNodeHeat]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_ownerActor]]></Name>
+						</Parameter>
+					</Parameters>
+					<ReplicationFlag>true</ReplicationFlag>
+					<Replication Class="CodeValue">
+						<Code><![CDATA[100]]></Code>
+					</Replication>
+					<CollectionType>ARRAY_LIST_BASED</CollectionType>
+					<InEnvironment>true</InEnvironment>	
+					<InitialLocationType>AT_ANIMATION_POSITION</InitialLocationType>
+					<XCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</XCode>
+					<YCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</YCode>
+					<ZCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ZCode>
+					<ColumnCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ColumnCode>
+					<RowCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</RowCode>
+					<LatitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LatitudeCode>
+					<LongitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LongitudeCode>
+					<LocationNameCode Class="CodeValue">
+						<Code><![CDATA[""]]></Code>
+					</LocationNameCode>
+					<InitializationType>EMPTY</InitializationType>
+					<InitializationDatabaseTableQuery>
+						<TableReference>
+						</TableReference>
+					</InitializationDatabaseTableQuery>
+					<InitializationDatabaseType>ONE_AGENT_PER_DATABASE_RECORD</InitializationDatabaseType>
+					<QuantityColumn>
+					</QuantityColumn>
+				</EmbeddedObject>
+				<EmbeddedObject>
+					<Id>1663774484695</Id>
+					<Name><![CDATA[gCSolarfarms]]></Name>
+					<X>230</X><Y>460</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<ActiveObjectClass>
+						<PackageName><![CDATA[base]]></PackageName>
+						<ClassName><![CDATA[GCSolarfarm]]></ClassName>
+					</ActiveObjectClass>
+					<GenericParameterSubstitute>
+						<GenericParameterSubstituteReference>
+							<PackageName><![CDATA[base]]></PackageName>
+							<ClassName><![CDATA[GCSolarfarm]]></ClassName>
+							<ItemName><![CDATA[1663773857866]]></ItemName>
+						</GenericParameterSubstituteReference>
+					</GenericParameterSubstitute>
+					<Parameters>
+						<Parameter>
+							<Name><![CDATA[p_netConnectionCategory]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_netConnectionType]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_capacity_kW]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_parentNodeElectricID]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_agentID]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_parentNodeHeatID]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_buildingTempAsset]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_HeatingAsset]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_parentNodeElectric]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_ownerID]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_parentNodeHeat]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_ownerActor]]></Name>
+						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
 					<Replication Class="CodeValue">
@@ -4014,73 +4531,6 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 					</Properties>
 				</Variable>
 				<Variable Class="PlainVariable">
-					<Id>1660140283372</Id>
-					<Name><![CDATA[v_tripDist_km]]></Name>
-					<X>600</X><Y>520</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[double]]></Type>        
-					</Properties>
-				</Variable>
-				<Variable Class="PlainVariable">
-					<Id>1660140329408</Id>
-					<Name><![CDATA[laadflexibiliteitTotVolgendVertrek_min]]></Name>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>600</X><Y>580</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[double]]></Type>        
-					</Properties>
-				</Variable>
-				<Variable Class="PlainVariable">
-					<Id>1660140329410</Id>
-					<Name><![CDATA[v_chargingTarget_kWh]]></Name>
-					<X>600</X><Y>450</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[double]]></Type>        
-					</Properties>
-				</Variable>
-				<Variable Class="PlainVariable">
-					<Id>1660140329412</Id>
-					<Name><![CDATA[v_minChargingTime_min]]></Name>
-					<X>600</X><Y>480</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[double]]></Type>        
-						<InitialValue Class="CodeValue">
-							<Code><![CDATA[0]]></Code>
-						</InitialValue>
-					</Properties>
-				</Variable>
-				<Variable Class="PlainVariable">
-					<Id>1660141988095</Id>
-					<Name><![CDATA[v_tripIndex]]></Name>
-					<X>600</X><Y>550</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[int]]></Type>        
-						<InitialValue Class="CodeValue">
-							<Code><![CDATA[0]]></Code>
-						</InitialValue>
-					</Properties>
-				</Variable>
-				<Variable Class="PlainVariable">
 					<Id>1660212770046</Id>
 					<Name><![CDATA[v_electricityDrawn_kWh]]></Name>
 					<X>50</X><Y>510</Y>
@@ -4401,30 +4851,6 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 					</Properties>                 
 				</Variable>
 				<Variable Class="Parameter">
-					<Id>1660135786716</Id>
-					<Name><![CDATA[p_EV]]></Name>
-					<X>640</X><Y>230</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[EnergyAsset]]></Type>
-						<UnitType><![CDATA[NONE]]></UnitType>
-						<SdArray>false</SdArray>
-						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[null]]></Code>
-						</DefaultValue>
-						<ParameterEditor>
-							<Id>1660135786714</Id>
-							<EditorContolType>TEXT_BOX</EditorContolType>
-							<MinSliderValue><![CDATA[0]]></MinSliderValue>
-							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
-							<DelimeterType>NO_DELIMETER</DelimeterType>
-						</ParameterEditor>
-					</Properties>                 
-				</Variable>
-				<Variable Class="Parameter">
 					<Id>1660641245957</Id>
 					<Name><![CDATA[p_parentNodeElectric]]></Name>
 					<X>50</X><Y>170</Y>
@@ -4647,131 +5073,7 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 					</Properties>
 
 				</Variable>
-				<Variable Class="CollectionVariable">
-					<Id>1660140283360</Id>
-					<Name><![CDATA[starttimes]]></Name>
-					<X>820</X><Y>390</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
-						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
-						<ElementClass><![CDATA[Double]]></ElementClass>
-						<ValueElementClass><![CDATA[String]]></ValueElementClass>
-					</Properties>
-
-				</Variable>
-				<Variable Class="CollectionVariable">
-					<Id>1660140283366</Id>
-					<Name><![CDATA[distances]]></Name>
-					<X>820</X><Y>447</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
-						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
-						<ElementClass><![CDATA[Double]]></ElementClass>
-						<ValueElementClass><![CDATA[String]]></ValueElementClass>
-					</Properties>
-
-				</Variable>
-				<Variable Class="CollectionVariable">
-					<Id>1660140283370</Id>
-					<Name><![CDATA[endtimes]]></Name>
-					<X>820</X><Y>420</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
-						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
-						<ElementClass><![CDATA[Double]]></ElementClass>
-						<ValueElementClass><![CDATA[String]]></ValueElementClass>
-					</Properties>
-
-				</Variable>
 			</Variables>
-			<Events>
-				<Event>
-					<Id>1660140283377</Id>
-					<Name><![CDATA[nextActivityStartTimer]]></Name>
-					<X>820</X><Y>507</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties TriggerType="timeout" Mode="userControls">
-						<Timeout Class="CodeUnitValue">
-							<Code><![CDATA[1d / 0d]]></Code>
-							<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
-						</Timeout>
-						<Rate Class="CodeUnitValue">
-							<Code><![CDATA[1]]></Code>
-							<Unit Class="RateUnits"><![CDATA[PER_MINUTE]]></Unit>
-						</Rate>
-						<OccurrenceAtTime>true</OccurrenceAtTime>
-						<OccurrenceDate>1643270400000</OccurrenceDate>
-						<OccurrenceTime Class="CodeUnitValue">
-							<Code><![CDATA[0]]></Code>
-							<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
-						</OccurrenceTime>
-						<RecurrenceCode Class="CodeUnitValue">
-							<Code><![CDATA[1]]></Code>
-							<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
-						</RecurrenceCode>
-						<Condition><![CDATA[false]]></Condition>
-					</Properties>
-					<Action><![CDATA[((J_EAEV)p_EV.p_energyAssetInstance).startTrip();]]></Action>
-				</Event>
-				<Event>
-					<Id>1660140283383</Id>
-					<Name><![CDATA[nextActivityEndTimer]]></Name>
-					<X>820</X><Y>537</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties TriggerType="timeout" Mode="userControls">
-						<Timeout Class="CodeUnitValue">
-							<Code><![CDATA[1d / 0d]]></Code>
-							<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
-						</Timeout>
-						<Rate Class="CodeUnitValue">
-							<Code><![CDATA[1]]></Code>
-							<Unit Class="RateUnits"><![CDATA[PER_MINUTE]]></Unit>
-						</Rate>
-						<OccurrenceAtTime>true</OccurrenceAtTime>
-						<OccurrenceDate>1643270400000</OccurrenceDate>
-						<OccurrenceTime Class="CodeUnitValue">
-							<Code><![CDATA[0]]></Code>
-							<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
-						</OccurrenceTime>
-						<RecurrenceCode Class="CodeUnitValue">
-							<Code><![CDATA[1]]></Code>
-							<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
-						</RecurrenceCode>
-						<Condition><![CDATA[false]]></Condition>
-					</Properties>
-					<Action><![CDATA[((J_EAEV)p_EV.p_energyAssetInstance).endTrip(v_tripDist_km);
-/*
-starttimes.add(starttimes.get(v_tripIndex) + 10080);
-endtimes.add(endtimes.get(v_tripIndex) + 10080);
-distances.add(distances.get(v_tripIndex));
-*/
-starttimes.set(v_tripIndex, starttimes.get(v_tripIndex) + 10080);
-endtimes.set(v_tripIndex, endtimes.get(v_tripIndex) + 10080);
-//distances.set(v_tripIndex, distances.get(v_tripIndex));
-
-v_tripIndex++;
-if (v_tripIndex > starttimes.size() - 1) {
-	v_tripIndex = 0;
-}
-
-f_bepaalFlexibiliteit();]]></Action>
-				</Event>
-			</Events>
 			<Functions>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -4919,12 +5221,7 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 	c_connectedStorageAssets.add(EA);
 	if (EA.p_energyAssetInstance instanceof J_EAStorageHeat) {
 		p_buildingTempAsset = EA;
-	} else if (EA.p_energyAssetInstance instanceof J_EAEV) {
-		p_EV = EA;
-		f_loadCarRides();
-		f_bepaalFlexibiliteit(); // Is this needed here? To set charging target at model start?
-		p_EV.v_powerFraction_fr = 1;
-	}
+	} 
 } else if (EA.p_energyAssetInstance instanceof J_EAConversion) {
 	c_connectedConversionAssets.add(EA);
 	if (EA.p_energyAssetInstance instanceof J_EAConversionGasBurner || EA.p_energyAssetInstance instanceof J_EAConversionHeatPump || EA.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet ) {
@@ -5066,91 +5363,6 @@ for(EnergyAsset s : c_connectedStorageAssets) {
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[
-]]></Body>
-				</Function>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1660140329403</Id>
-					<Name><![CDATA[f_bepaalFlexibiliteit]]></Name>
-					<X>600</X><Y>420</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[if (v_tripIndex >= starttimes.size()) {
-	v_minChargingTime_min = 0;
-	v_chargingTarget_kWh = 0;
-	//laadflexibiliteitTotVolgendVertrek_min = 0;
-	//peter zegt: dit hoort toch niet voor te komen. EVs moeten we loopen
-} 
-else {
-	J_EAEV p_EVinstance = (J_EAEV)p_EV.p_energyAssetInstance;
-	double maxLaadsnelheid_kW = p_EVinstance.getElectricCapacity_kW();
-	double maxBatterijCap_kWh = p_EVinstance.getStorageCapacity_kWh();
-	if (v_tripIndex > 0) {
-		if ( starttimes.get(v_tripIndex - 1) == starttimes.get(v_tripIndex)) { // Check for duplicate starttimes
-		// Peter zegt: Waarom is dit nodig? Er kunnen toch geen duplicates in voorkomen?
-			if (v_tripIndex + 1 < starttimes.size()) {
-				v_tripIndex++;
-			}
-			//traceln("!! Ride with duplicate starttime skipped!! auto " + this.getIndex() + " in buurt " + eBuurtModel.getIndex());			
-		}
-	}	
-	//tripDistance_km = min(distances.get(p_tripIndex), maxBatterijCap_kWh / energieverbruik_kWhpkm);
-	v_tripDist_km = distances.get(v_tripIndex);
-		
-	if (starttimes.get(v_tripIndex) - time( MINUTE ) < 0 ) { // start now! Ride should have already started...
-		traceln("!! Ride starts " +  - (starttimes.get(v_tripIndex) - time( MINUTE )) + " late !! auto " + this.getIndex() );
-		nextActivityStartTimer.restart( 0, MINUTE);
-		nextActivityEndTimer.restart(  endtimes.get(v_tripIndex) - starttimes.get(v_tripIndex) , MINUTE);	
-	} 
-	else {
-		nextActivityStartTimer.restart( starttimes.get(v_tripIndex) - time( MINUTE ), MINUTE);
-		nextActivityEndTimer.restart( endtimes.get(v_tripIndex) - time( MINUTE ), MINUTE);	
-	}
-	
-	//laadflexibiliteitTotVolgendVertrek_min = starttimes.get(v_tripIndex) - time(MINUTE);
-	
-	//TODO: hardcoded for now
-	double energyMargin_pct = 15.0;
-	double energyMargin_kWh = energyMargin_pct / 100.0 * maxBatterijCap_kWh;
-	double energyRequired_kWh = v_tripDist_km * p_EVinstance.getEnergyConsumption_kWhpmk();
-	//traceln("Battery size " + maxBatterijCap_kWh);
-	
-	v_chargingTarget_kWh = min( maxBatterijCap_kWh, energyRequired_kWh + energyMargin_kWh);
-	v_minChargingTime_min = max( 0 , ( v_chargingTarget_kWh - p_EVinstance.getCurrentStateOfCharge()*maxBatterijCap_kWh ) / maxLaadsnelheid_kW * 60 );
-}]]></Body>
-				</Function>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1660140636826</Id>
-					<Name><![CDATA[f_loadCarRides]]></Name>
-					<X>600</X><Y>390</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[int rowIndex =  getIndex() % 581;
-//traceln("rowIndex for gridConnection " + getIndex() + " is " + rowIndex);
-//if (rowIndex > 581 ) {
-//	rowIndex = uniform_discr(0, 582);
-//}
-
-int nbTrips = roundToInt(main.tripsExcel.getCellNumericValue("sheet1", rowIndex + 2, 2));
-
-for (int i = 0; i < nbTrips; i++){
-	starttimes.add(main.tripsExcel.getCellNumericValue("sheet1", rowIndex + 2, 3 + i * 3));
-	endtimes.add(main.tripsExcel.getCellNumericValue("sheet1", rowIndex + 2, 4 + i * 3));
-	distances.add(main.tripsExcel.getCellNumericValue("sheet1", rowIndex + 2, 5 + i * 3));
-}
-
-v_tripDist_km = distances.get(0);
-nextActivityStartTimer.restart( starttimes.get(0) - time( MINUTE ), MINUTE);
-nextActivityEndTimer.restart( endtimes.get(0) - starttimes.get(0) - time( MINUTE ), MINUTE);	
-
-
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -5693,7 +5905,7 @@ if(ProvidedParentConnection != null) {
 	superConnection.connectTo(myParentAgent);
 	((GridConnection) myParentAgent).f_connectToChild(this);
 } else {
-	myParentAgent = findFirst(main.pop_gridConnections, p->p.p_agentID.equals(p_parentAgentID));
+	myParentAgent = findFirst(main.c_gridConnections, p->p.p_agentID.equals(p_parentAgentID));
 
 	if( myParentAgent instanceof GridConnection ) {
 		myParentAgent = (GridConnection)myParentAgent;
@@ -6443,7 +6655,7 @@ List<GridNode> MSNetnodes = filter( main.pop_gridNodes, n -> n.p_nodeType == OL_
 List<GridNode> HeatNodes = filter( main.pop_gridNodes, n -> n.p_energyType == OL_EnergyCarrierType.HEAT );
 //List<NetConnection> Houses = filter( main.netConnections, b -> b.p_netConnectionCategory.equals("house") );
 //List<NetConnection> Windfarms = filter( main.netConnections, b -> b.p_netConnectionCategory.equals("windfarm") );
-List<GridConnection> NetConnections = filter( main.pop_gridConnections, n -> true );
+List<GridConnection> NetConnections = filter( main.c_gridConnections, n -> true );
 
 //traceln("HS "+HSNetnodes+" -> "+HSNetnodes.size());
 //traceln("MS "+MSNetnodes+" -> "+MSNetnodes.size());
@@ -13245,6 +13457,1723 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 			<Presentation>
 				<Level>
 					<Id>1660731384414</Id>
+					<Name><![CDATA[level]]></Name>
+					<X>0</X><Y>0</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<Z>0</Z>
+					<LevelVisibility>DIM_NON_CURRENT</LevelVisibility>
+
+
+				</Level>
+			</Presentation>
+
+		</ActiveObjectClass>
+		<!--   =========   Active Object Class   ========  -->
+		<ActiveObjectClass>
+			<Id>1663772408667</Id>
+			<Name><![CDATA[GCHouse]]></Name>
+			<AdditionalClassCode><![CDATA[@Override
+public void f_operateAssets(){
+	f_operateAssetsHouse();
+}
+
+@Override
+public void f_connectToChild(Agent ConnectingParentNode){
+	f_connectToChildHouse(ConnectingParentNode);
+}]]></AdditionalClassCode>
+			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
+			<ExtendsReference>
+				<PackageName><![CDATA[base]]></PackageName>
+				<ClassName><![CDATA[GridConnection]]></ClassName>
+			</ExtendsReference>
+			<Parameters>
+				<Parameter>
+					<Name><![CDATA[p_netConnectionCategory]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_netConnectionType]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_capacity_kW]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_parentNodeElectricID]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_agentID]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_parentNodeHeatID]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_buildingTempAsset]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_HeatingAsset]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_parentNodeElectric]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_ownerID]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_parentNodeHeat]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_ownerActor]]></Name>
+				</Parameter>
+			</Parameters>
+			<Generic>false</Generic>
+			<GenericParameter>
+				<Id>1663772408665</Id>
+				<Name><![CDATA[1663772408665]]></Name>
+				<GenericParameterValue Class="CodeValue">
+					<Code><![CDATA[T extends Agent]]></Code>
+				</GenericParameterValue>
+				<GenericParameterLabel><![CDATA[Generic parameter:]]></GenericParameterLabel>
+			</GenericParameter>
+			<FlowChartsUsage>ENTITY</FlowChartsUsage>
+			<SamplesToKeep>100</SamplesToKeep>
+			<LimitNumberOfArrayElements>false</LimitNumberOfArrayElements>
+			<ElementsLimitValue>100</ElementsLimitValue>
+			<MakeDefaultViewArea>true</MakeDefaultViewArea>
+			<SceneGridColor/>
+			<SceneBackgroundColor/>
+			<SceneSkybox>null</SceneSkybox>
+			<AgentProperties>
+	 			<SpaceType>CONTINUOUS</SpaceType>			
+				<EnvironmentDefinesInitialLocation>true</EnvironmentDefinesInitialLocation>
+				<RotateAnimationTowardsMovement>true</RotateAnimationTowardsMovement>
+				<RotateAnimationVertically>false</RotateAnimationVertically>
+				<VelocityCode Class="CodeUnitValue">
+					<Code><![CDATA[10]]></Code>
+					<Unit Class="SpeedUnits"><![CDATA[MPS]]></Unit>
+				</VelocityCode>
+				<PhysicalLength Class="CodeUnitValue">
+					<Code><![CDATA[1]]></Code>
+					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
+				</PhysicalLength>
+				<PhysicalWidth Class="CodeUnitValue">
+					<Code><![CDATA[1]]></Code>
+					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
+				</PhysicalWidth>
+				<PhysicalHeight Class="CodeUnitValue">
+					<Code><![CDATA[1]]></Code>
+					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
+				</PhysicalHeight>
+			</AgentProperties>
+			<EnvironmentProperties>
+					<EnableSteps>false</EnableSteps>
+					<StepDurationCode Class="CodeUnitValue">
+						<Code><![CDATA[1.0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[SECOND]]></Unit>
+					</StepDurationCode>
+					<SpaceType>CONTINUOUS</SpaceType>
+					<WidthCode><![CDATA[500]]></WidthCode>
+					<HeightCode><![CDATA[500]]></HeightCode>
+					<ZHeightCode><![CDATA[0]]></ZHeightCode>
+					<ColumnsCountCode><![CDATA[100]]></ColumnsCountCode>
+					<RowsCountCode><![CDATA[100]]></RowsCountCode>
+					<NeigborhoodType>MOORE</NeigborhoodType>
+					<LayoutType>USER_DEF</LayoutType>
+					<LayoutTypeApplyOnStartup>true</LayoutTypeApplyOnStartup>
+					<NetworkType>USER_DEF</NetworkType>
+					<NetworkTypeApplyOnStartup>true</NetworkTypeApplyOnStartup>
+					<ConnectionsPerAgentCode><![CDATA[2]]></ConnectionsPerAgentCode>
+					<ConnectionsRangeCode><![CDATA[50]]></ConnectionsRangeCode>
+					<NeighborLinkFractionCode><![CDATA[0.95]]></NeighborLinkFractionCode>
+					<MCode><![CDATA[10]]></MCode>
+			</EnvironmentProperties>
+			<DatasetsCreationProperties>
+				<AutoCreate>true</AutoCreate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1663833600000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</RecurrenceCode>
+			</DatasetsCreationProperties>
+			<ScaleRuler>
+				<Id>1663772408663</Id>
+				<Name><![CDATA[scale]]></Name>
+				<X>0</X><Y>-150</Y>
+				<PublicFlag>false</PublicFlag>
+				<PresentationFlag>false</PresentationFlag>
+				<ShowLabel>false</ShowLabel>
+				<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+				<Length>100</Length>
+				<Rotation>0</Rotation>
+				<ScaleType>BASED_ON_LENGTH</ScaleType>
+				<ModelLength>10</ModelLength>
+				<LengthUnits>METER</LengthUnits>
+				<Scale>10</Scale>
+				<InheritedFromParentAgentType>true</InheritedFromParentAgentType>
+			</ScaleRuler>
+			<CurrentLevel>1663772408666</CurrentLevel>
+			<ConnectionsId>1663772408662</ConnectionsId>
+			<Variables>
+				<Variable Class="PlainVariable">
+					<Id>1663833761124</Id>
+					<Name><![CDATA[v_tripDist_km]]></Name>
+					<X>630</X><Y>510</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1663833761128</Id>
+					<Name><![CDATA[v_chargingTarget_kWh]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>850</X><Y>680</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1663833761130</Id>
+					<Name><![CDATA[v_minChargingTime_min]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>850</X><Y>710</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1663833761132</Id>
+					<Name><![CDATA[v_tripIndex]]></Name>
+					<X>630</X><Y>540</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[int]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1663837187038</Id>
+					<Name><![CDATA[p_EV]]></Name>
+					<X>630</X><Y>480</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[EnergyAsset]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[null]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1663837187036</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1663833761110</Id>
+					<Name><![CDATA[starttimes]]></Name>
+					<X>850</X><Y>450</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
+						<ElementClass><![CDATA[Double]]></ElementClass>
+						<ValueElementClass><![CDATA[String]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1663833761115</Id>
+					<Name><![CDATA[distances]]></Name>
+					<X>850</X><Y>510</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
+						<ElementClass><![CDATA[Double]]></ElementClass>
+						<ValueElementClass><![CDATA[String]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1663833761118</Id>
+					<Name><![CDATA[endtimes]]></Name>
+					<X>850</X><Y>480</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
+						<ElementClass><![CDATA[Double]]></ElementClass>
+						<ValueElementClass><![CDATA[String]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
+			</Variables>
+			<Events>
+				<Event>
+					<Id>1663833761135</Id>
+					<Name><![CDATA[nextActivityStartTimer]]></Name>
+					<X>850</X><Y>540</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties TriggerType="timeout" Mode="userControls">
+						<Timeout Class="CodeUnitValue">
+							<Code><![CDATA[1d / 0d]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
+						</Timeout>
+						<Rate Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="RateUnits"><![CDATA[PER_MINUTE]]></Unit>
+						</Rate>
+						<OccurrenceAtTime>true</OccurrenceAtTime>
+						<OccurrenceDate>1643270400000</OccurrenceDate>
+						<OccurrenceTime Class="CodeUnitValue">
+							<Code><![CDATA[0]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
+						</OccurrenceTime>
+						<RecurrenceCode Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
+						</RecurrenceCode>
+						<Condition><![CDATA[false]]></Condition>
+					</Properties>
+					<Action><![CDATA[((J_EAEV)p_EV.p_energyAssetInstance).startTrip();]]></Action>
+				</Event>
+				<Event>
+					<Id>1663833761158</Id>
+					<Name><![CDATA[nextActivityEndTimer]]></Name>
+					<X>850</X><Y>570</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties TriggerType="timeout" Mode="userControls">
+						<Timeout Class="CodeUnitValue">
+							<Code><![CDATA[1d / 0d]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
+						</Timeout>
+						<Rate Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="RateUnits"><![CDATA[PER_MINUTE]]></Unit>
+						</Rate>
+						<OccurrenceAtTime>true</OccurrenceAtTime>
+						<OccurrenceDate>1643270400000</OccurrenceDate>
+						<OccurrenceTime Class="CodeUnitValue">
+							<Code><![CDATA[0]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
+						</OccurrenceTime>
+						<RecurrenceCode Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
+						</RecurrenceCode>
+						<Condition><![CDATA[false]]></Condition>
+					</Properties>
+					<Action><![CDATA[((J_EAEV)p_EV.p_energyAssetInstance).endTrip(v_tripDist_km);
+
+starttimes.set(v_tripIndex, starttimes.get(v_tripIndex) + 10080);
+endtimes.set(v_tripIndex, endtimes.get(v_tripIndex) + 10080);
+
+v_tripIndex++;
+
+if (v_tripIndex > starttimes.size() - 1) {
+	v_tripIndex = 0;
+}
+
+nextActivityStartTimer.restart( starttimes.get(v_tripIndex) - time( MINUTE ), MINUTE);
+nextActivityEndTimer.restart( endtimes.get(v_tripIndex) - time( MINUTE ), MINUTE);		
+v_tripDist_km = distances.get(v_tripIndex);
+
+//f_bepaalFlexibiliteit();]]></Action>
+				</Event>
+			</Events>
+			<Functions>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1663772484037</Id>
+					<Name><![CDATA[f_operateAssetsHouse]]></Name>
+					<X>640</X><Y>310</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[// basic fixed consumption profiles first
+for(EnergyAsset e : c_connectedConsumptionAssets) {
+	if(p_netConnectionCategory == OL_NetConnectionCategory.HOUSE && e.p_energyAssetType == OL_EnergyAssetType.OTHER_ELECTRICITY_CONSUMPTION) {
+		e.v_powerFraction_fr = main.v_currentHouseHoldOtherElectricityDemand_kW / e.p_energyAssetInstance.getElectricCapacity_kW();
+		//e.v_powerFraction_fr = 0;
+	} else {
+		e.v_powerFraction_fr = 0; // To disable DHW heat demand for now
+	}
+	// not steerable, just do their thing.
+}
+
+// basic fixed production profiles
+for(EnergyAsset e : c_connectedProductionAssets) {
+	if(e.p_energyAssetType == OL_EnergyAssetType.WINDMILL) {
+		e.v_powerFraction_fr = main.v_currentWindPowerNormalized_r;
+	}
+	else if(e.p_energyAssetType == OL_EnergyAssetType.PHOTOVOLTAIC) {
+		e.v_powerFraction_fr = main.v_currentSolarPowerNormalized_r;
+	}
+}
+
+// Flex assets: which assets need control, and what is the target? Heating, battery, EV-charging, district-heating, power to gas, etc.
+
+// House heating system super basic
+if ( p_buildingTempAsset != null && p_netConnectionCategory == OL_NetConnectionCategory.HOUSE ) {
+	//J_EAStorageHeat buildingTempInstance = (J_EAStorageHeat)p_buildingTempAsset.p_energyAssetInstance;
+	//traceln("HeatCapacity " + p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW());
+	double tempSetpoint_degC = 20;
+	double houseTemp = p_buildingTempAsset.p_energyAssetInstance.getCurrentTemperature();
+	p_buildingTempAsset.p_energyAssetInstance.updateAmbientTemperature(main.v_currentAmbientTemperature_degC);	
+	//traceln("house temp in house " + this.getId() + " is " + houseTemp);
+	if (houseTemp < tempSetpoint_degC) {
+		//traceln("heatCapacity heatingSystem " + p_spaceHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
+		double powerDemand_kW = (tempSetpoint_degC - houseTemp) * ((J_EAStorageHeat)p_buildingTempAsset.p_energyAssetInstance).getHeatCapacity_JpK() / 3.6e6;
+		p_HeatingAsset.v_powerFraction_fr = powerDemand_kW / p_HeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();
+		p_buildingTempAsset.v_powerFraction_fr = powerDemand_kW / p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW();
+		//traceln("Power fraction heating " + p_spaceHeatingAsset.v_powerFraction_fr);
+	} else {
+		p_HeatingAsset.v_powerFraction_fr = 0;
+		p_buildingTempAsset.v_powerFraction_fr = 0;
+	}
+}
+
+// District heating system, heating power based on temperature of buffer of heating system. (big or small) Heat transfer from DH_GridConnection to heat NetNode is based on temperature difference between heating-buffer and water in heating network
+if( this.p_netConnectionCategory == OL_NetConnectionCategory.DISTRICTHEATING ) {
+	double tempSetpoint_degC = 60;	
+	double storageTemp_degC = p_buildingTempAsset.p_energyAssetInstance.getCurrentTemperature();
+	//traceln("District heating storage temperature " + storageTemp_degC + " degC" + ", district heating network temperature " + p_parentNodeHeat.p_transportBuffer.getCurrentTemperature() + " deg C" );
+	double heatTransferToNetworkCoefficient_kWpK = 10;
+	double heatTransferToNetwork_kW = max(min(storageTemp_degC,tempSetpoint_degC)-p_parentNodeHeat.p_transportBuffer.getCurrentTemperature(), 0) * heatTransferToNetworkCoefficient_kWpK;
+	if (storageTemp_degC < tempSetpoint_degC) {
+		//traceln("heatCapacity heatingSystem " + p_spaceHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
+		double maxHeatingPower_kW = p_HeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();
+		p_HeatingAsset.v_powerFraction_fr = maxHeatingPower_kW/p_HeatingAsset.p_energyAssetInstance.getHeatCapacity_kW(); // Should be 1!
+		p_buildingTempAsset.v_powerFraction_fr = (maxHeatingPower_kW - heatTransferToNetwork_kW) / p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW();
+		//traceln("Power fraction heating " + p_spaceHeatingAsset.v_powerFraction_fr);
+	} else {
+		p_HeatingAsset.v_powerFraction_fr = 0;
+		p_buildingTempAsset.v_powerFraction_fr = - heatTransferToNetwork_kW / p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW();
+	}
+	//traceln("District heating power fraction " + p_HeatingAsset.v_powerFraction_fr);
+}
+
+// Conversion operation hard-coded test-value
+for(EnergyAsset s : c_connectedConversionAssets) {
+	if(s.p_energyAssetType == OL_EnergyAssetType.HEAT_PUMP_AIR) {
+		//s.p_EnergyAssetTypeString.updateParameters();
+		s.v_powerFraction_fr = 0;  // conversion value
+	}
+}
+]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1663833761120</Id>
+					<Name><![CDATA[f_bepaalFlexibiliteit]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>850</X><Y>650</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[J_EAEV p_EVinstance = (J_EAEV)p_EV.p_energyAssetInstance;
+double maxLaadsnelheid_kW = p_EVinstance.getElectricCapacity_kW();
+double maxBatterijCap_kWh = p_EVinstance.getStorageCapacity_kWh();
+double energyMargin_pct = 15.0;
+double energyMargin_kWh = energyMargin_pct / 100.0 * maxBatterijCap_kWh;
+double energyRequired_kWh = v_tripDist_km * p_EVinstance.getEnergyConsumption_kWhpmk();
+
+v_chargingTarget_kWh = min( maxBatterijCap_kWh, energyRequired_kWh + energyMargin_kWh);
+v_minChargingTime_min = max( 0 , ( v_chargingTarget_kWh - p_EVinstance.getCurrentStateOfCharge()*maxBatterijCap_kWh ) / maxLaadsnelheid_kW * 60 );
+]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1663833761122</Id>
+					<Name><![CDATA[f_loadCarRides]]></Name>
+					<X>630</X><Y>450</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[int rowIndex =  getIndex() % 581;
+
+int nbTrips = roundToInt(main.tripsExcel.getCellNumericValue("sheet1", rowIndex + 2, 2));
+
+for (int i = 0; i < nbTrips; i++){
+	starttimes.add(main.tripsExcel.getCellNumericValue("sheet1", rowIndex + 2, 3 + i * 3));
+	endtimes.add(main.tripsExcel.getCellNumericValue("sheet1", rowIndex + 2, 4 + i * 3));
+	distances.add(main.tripsExcel.getCellNumericValue("sheet1", rowIndex + 2, 5 + i * 3));
+}
+
+v_tripDist_km = distances.get(0);
+nextActivityStartTimer.restart( starttimes.get(0) - time( MINUTE ), MINUTE);
+nextActivityEndTimer.restart( endtimes.get(0) - starttimes.get(0) - time( MINUTE ), MINUTE);	
+
+
+]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1663840289034</Id>
+					<Name><![CDATA[f_connectToChildHouse]]></Name>
+					<X>240</X><Y>220</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[ConnectingParentNode]]></Name>
+						<Type><![CDATA[Agent]]></Type>
+					</Parameter>
+					<Body><![CDATA[subConnections.connectTo(ConnectingParentNode);
+EnergyAsset EA = (EnergyAsset) ConnectingParentNode;
+c_connectedEnergyAssets.add(EA);
+
+if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
+	c_connectedConsumptionAssets.add(EA);
+} else if (EA.p_energyAssetInstance instanceof J_EAProduction ) {
+	c_connectedProductionAssets.add(EA);
+} else if (EA.p_energyAssetInstance instanceof J_EAStorage ) {
+	c_connectedStorageAssets.add(EA);
+	if (EA.p_energyAssetInstance instanceof J_EAStorageHeat) {
+		p_buildingTempAsset = EA;
+	} else if (EA.p_energyAssetInstance instanceof J_EAEV) {
+		p_EV = EA;
+		f_loadCarRides();
+		//f_bepaalFlexibiliteit(); // Is this needed here? To set charging target at model start?
+		p_EV.v_powerFraction_fr = 1;
+	}
+} else if (EA.p_energyAssetInstance instanceof J_EAConversion) {
+	c_connectedConversionAssets.add(EA);
+	if (EA.p_energyAssetInstance instanceof J_EAConversionGasBurner || EA.p_energyAssetInstance instanceof J_EAConversionHeatPump || EA.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet ) {
+		p_HeatingAsset = EA;
+		//traceln("heatingAsset class " + p_spaceHeatingAsset.getClass().toString());
+	} 
+} else {
+	traceln("f_connectToChild in EnergyAsset: Exception! EnergyAsset " + ConnectingParentNode.getId() + " is of unknown type or null! ");
+}]]></Body>
+				</Function>
+			</Functions>
+			<AgentLinks>
+				<AgentLink>
+					<Id>1663772408662</Id>
+					<Name><![CDATA[connections]]></Name>
+					<X>50</X><Y>-50</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<HandleReceiveInConnections>false</HandleReceiveInConnections>
+					<AgentLinkType>COLLECTION_OF_LINKS</AgentLinkType>
+					<AgentLinkBidirectional>true</AgentLinkBidirectional>
+					<MessageType><![CDATA[Object]]></MessageType>
+					<LineStyle>SOLID</LineStyle>
+					<LineWidth>1</LineWidth>
+					<LineColor>-16777216</LineColor>
+					<LineZOrder>UNDER_AGENTS</LineZOrder>
+					<LineArrow>NONE</LineArrow>
+					<LineArrowPosition>END</LineArrowPosition>
+				</AgentLink>
+			</AgentLinks>
+
+			<ContainerLinks>
+				<ContainerLink>
+					<Id>1663772679600</Id>
+					<Name><![CDATA[main]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>50</X><Y>-100</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<ActiveObjectClass>
+						<PackageName><![CDATA[base]]></PackageName>
+						<ClassName><![CDATA[Main]]></ClassName>
+					</ActiveObjectClass>
+				</ContainerLink>
+			</ContainerLinks>
+
+			<Presentation>
+				<Level>
+					<Id>1663772408666</Id>
+					<Name><![CDATA[level]]></Name>
+					<X>0</X><Y>0</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<Z>0</Z>
+					<LevelVisibility>DIM_NON_CURRENT</LevelVisibility>
+
+
+				</Level>
+			</Presentation>
+
+		</ActiveObjectClass>
+		<!--   =========   Active Object Class   ========  -->
+		<ActiveObjectClass>
+			<Id>1663773690598</Id>
+			<Name><![CDATA[GCBuilding]]></Name>
+			<AdditionalClassCode><![CDATA[@Override
+public void f_operateAssets(){
+	f_operateAssetsBuilding();
+}]]></AdditionalClassCode>
+			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
+			<ExtendsReference>
+				<PackageName><![CDATA[base]]></PackageName>
+				<ClassName><![CDATA[GridConnection]]></ClassName>
+			</ExtendsReference>
+			<Parameters>
+				<Parameter>
+					<Name><![CDATA[p_netConnectionCategory]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_netConnectionType]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_capacity_kW]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_parentNodeElectricID]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_agentID]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_parentNodeHeatID]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_buildingTempAsset]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_HeatingAsset]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_parentNodeElectric]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_ownerID]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_parentNodeHeat]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_ownerActor]]></Name>
+				</Parameter>
+			</Parameters>
+			<Generic>false</Generic>
+			<GenericParameter>
+				<Id>1663773690596</Id>
+				<Name><![CDATA[1663773690596]]></Name>
+				<GenericParameterValue Class="CodeValue">
+					<Code><![CDATA[T extends Agent]]></Code>
+				</GenericParameterValue>
+				<GenericParameterLabel><![CDATA[Generic parameter:]]></GenericParameterLabel>
+			</GenericParameter>
+			<FlowChartsUsage>ENTITY</FlowChartsUsage>
+			<SamplesToKeep>100</SamplesToKeep>
+			<LimitNumberOfArrayElements>false</LimitNumberOfArrayElements>
+			<ElementsLimitValue>100</ElementsLimitValue>
+			<MakeDefaultViewArea>true</MakeDefaultViewArea>
+			<SceneGridColor/>
+			<SceneBackgroundColor/>
+			<SceneSkybox>null</SceneSkybox>
+			<AgentProperties>
+	 			<SpaceType>CONTINUOUS</SpaceType>			
+				<EnvironmentDefinesInitialLocation>true</EnvironmentDefinesInitialLocation>
+				<RotateAnimationTowardsMovement>true</RotateAnimationTowardsMovement>
+				<RotateAnimationVertically>false</RotateAnimationVertically>
+				<VelocityCode Class="CodeUnitValue">
+					<Code><![CDATA[10]]></Code>
+					<Unit Class="SpeedUnits"><![CDATA[MPS]]></Unit>
+				</VelocityCode>
+				<PhysicalLength Class="CodeUnitValue">
+					<Code><![CDATA[1]]></Code>
+					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
+				</PhysicalLength>
+				<PhysicalWidth Class="CodeUnitValue">
+					<Code><![CDATA[1]]></Code>
+					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
+				</PhysicalWidth>
+				<PhysicalHeight Class="CodeUnitValue">
+					<Code><![CDATA[1]]></Code>
+					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
+				</PhysicalHeight>
+			</AgentProperties>
+			<EnvironmentProperties>
+					<EnableSteps>false</EnableSteps>
+					<StepDurationCode Class="CodeUnitValue">
+						<Code><![CDATA[1.0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[SECOND]]></Unit>
+					</StepDurationCode>
+					<SpaceType>CONTINUOUS</SpaceType>
+					<WidthCode><![CDATA[500]]></WidthCode>
+					<HeightCode><![CDATA[500]]></HeightCode>
+					<ZHeightCode><![CDATA[0]]></ZHeightCode>
+					<ColumnsCountCode><![CDATA[100]]></ColumnsCountCode>
+					<RowsCountCode><![CDATA[100]]></RowsCountCode>
+					<NeigborhoodType>MOORE</NeigborhoodType>
+					<LayoutType>USER_DEF</LayoutType>
+					<LayoutTypeApplyOnStartup>true</LayoutTypeApplyOnStartup>
+					<NetworkType>USER_DEF</NetworkType>
+					<NetworkTypeApplyOnStartup>true</NetworkTypeApplyOnStartup>
+					<ConnectionsPerAgentCode><![CDATA[2]]></ConnectionsPerAgentCode>
+					<ConnectionsRangeCode><![CDATA[50]]></ConnectionsRangeCode>
+					<NeighborLinkFractionCode><![CDATA[0.95]]></NeighborLinkFractionCode>
+					<MCode><![CDATA[10]]></MCode>
+			</EnvironmentProperties>
+			<DatasetsCreationProperties>
+				<AutoCreate>true</AutoCreate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1663833600000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</RecurrenceCode>
+			</DatasetsCreationProperties>
+			<ScaleRuler>
+				<Id>1663773690594</Id>
+				<Name><![CDATA[scale]]></Name>
+				<X>0</X><Y>-150</Y>
+				<PublicFlag>false</PublicFlag>
+				<PresentationFlag>false</PresentationFlag>
+				<ShowLabel>false</ShowLabel>
+				<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+				<Length>100</Length>
+				<Rotation>0</Rotation>
+				<ScaleType>BASED_ON_LENGTH</ScaleType>
+				<ModelLength>10</ModelLength>
+				<LengthUnits>METER</LengthUnits>
+				<Scale>10</Scale>
+				<InheritedFromParentAgentType>true</InheritedFromParentAgentType>
+			</ScaleRuler>
+			<CurrentLevel>1663773690597</CurrentLevel>
+			<ConnectionsId>1663773690593</ConnectionsId>
+			<Functions>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1663773964560</Id>
+					<Name><![CDATA[f_operateAssetsBuilding]]></Name>
+					<X>640</X><Y>310</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[// basic fixed consumption profiles first
+for(EnergyAsset e : c_connectedConsumptionAssets) {
+	if(p_netConnectionCategory == OL_NetConnectionCategory.HOUSE && e.p_energyAssetType == OL_EnergyAssetType.OTHER_ELECTRICITY_CONSUMPTION) {
+		e.v_powerFraction_fr = main.v_currentHouseHoldOtherElectricityDemand_kW / e.p_energyAssetInstance.getElectricCapacity_kW();
+		//e.v_powerFraction_fr = 0;
+	} else {
+		e.v_powerFraction_fr = 0; // To disable DHW heat demand for now
+	}
+	// not steerable, just do their thing.
+}
+
+// basic fixed production profiles
+for(EnergyAsset e : c_connectedProductionAssets) {
+	if(e.p_energyAssetType == OL_EnergyAssetType.WINDMILL) {
+		e.v_powerFraction_fr = main.v_currentWindPowerNormalized_r;
+	}
+	else if(e.p_energyAssetType == OL_EnergyAssetType.PHOTOVOLTAIC) {
+		e.v_powerFraction_fr = main.v_currentSolarPowerNormalized_r;
+	}
+}
+
+// Flex assets: which assets need control, and what is the target? Heating, battery, EV-charging, district-heating, power to gas, etc.
+
+// House heating system super basic
+if ( p_buildingTempAsset != null && p_netConnectionCategory == OL_NetConnectionCategory.HOUSE ) {
+	//J_EAStorageHeat buildingTempInstance = (J_EAStorageHeat)p_buildingTempAsset.p_energyAssetInstance;
+	//traceln("HeatCapacity " + p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW());
+	double tempSetpoint_degC = 20;
+	double houseTemp = p_buildingTempAsset.p_energyAssetInstance.getCurrentTemperature();
+	p_buildingTempAsset.p_energyAssetInstance.updateAmbientTemperature(main.v_currentAmbientTemperature_degC);	
+	//traceln("house temp in house " + this.getId() + " is " + houseTemp);
+	if (houseTemp < tempSetpoint_degC) {
+		//traceln("heatCapacity heatingSystem " + p_spaceHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
+		double powerDemand_kW = (tempSetpoint_degC - houseTemp) * ((J_EAStorageHeat)p_buildingTempAsset.p_energyAssetInstance).getHeatCapacity_JpK() / 3.6e6;
+		p_HeatingAsset.v_powerFraction_fr = powerDemand_kW / p_HeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();
+		p_buildingTempAsset.v_powerFraction_fr = powerDemand_kW / p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW();
+		//traceln("Power fraction heating " + p_spaceHeatingAsset.v_powerFraction_fr);
+	} else {
+		p_HeatingAsset.v_powerFraction_fr = 0;
+		p_buildingTempAsset.v_powerFraction_fr = 0;
+	}
+}
+
+// District heating system, heating power based on temperature of buffer of heating system. (big or small) Heat transfer from DH_GridConnection to heat NetNode is based on temperature difference between heating-buffer and water in heating network
+if( this.p_netConnectionCategory == OL_NetConnectionCategory.DISTRICTHEATING ) {
+	double tempSetpoint_degC = 60;	
+	double storageTemp_degC = p_buildingTempAsset.p_energyAssetInstance.getCurrentTemperature();
+	//traceln("District heating storage temperature " + storageTemp_degC + " degC" + ", district heating network temperature " + p_parentNodeHeat.p_transportBuffer.getCurrentTemperature() + " deg C" );
+	double heatTransferToNetworkCoefficient_kWpK = 10;
+	double heatTransferToNetwork_kW = max(min(storageTemp_degC,tempSetpoint_degC)-p_parentNodeHeat.p_transportBuffer.getCurrentTemperature(), 0) * heatTransferToNetworkCoefficient_kWpK;
+	if (storageTemp_degC < tempSetpoint_degC) {
+		//traceln("heatCapacity heatingSystem " + p_spaceHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
+		double maxHeatingPower_kW = p_HeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();
+		p_HeatingAsset.v_powerFraction_fr = maxHeatingPower_kW/p_HeatingAsset.p_energyAssetInstance.getHeatCapacity_kW(); // Should be 1!
+		p_buildingTempAsset.v_powerFraction_fr = (maxHeatingPower_kW - heatTransferToNetwork_kW) / p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW();
+		//traceln("Power fraction heating " + p_spaceHeatingAsset.v_powerFraction_fr);
+	} else {
+		p_HeatingAsset.v_powerFraction_fr = 0;
+		p_buildingTempAsset.v_powerFraction_fr = - heatTransferToNetwork_kW / p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW();
+	}
+	//traceln("District heating power fraction " + p_HeatingAsset.v_powerFraction_fr);
+}
+
+// Conversion operation hard-coded test-value
+for(EnergyAsset s : c_connectedConversionAssets) {
+	if(s.p_energyAssetType == OL_EnergyAssetType.HEAT_PUMP_AIR) {
+		//s.p_EnergyAssetTypeString.updateParameters();
+		s.v_powerFraction_fr = 0;  // conversion value
+	}
+}]]></Body>
+				</Function>
+			</Functions>
+			<AgentLinks>
+				<AgentLink>
+					<Id>1663773690593</Id>
+					<Name><![CDATA[connections]]></Name>
+					<X>50</X><Y>-50</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<HandleReceiveInConnections>false</HandleReceiveInConnections>
+					<AgentLinkType>COLLECTION_OF_LINKS</AgentLinkType>
+					<AgentLinkBidirectional>true</AgentLinkBidirectional>
+					<MessageType><![CDATA[Object]]></MessageType>
+					<LineStyle>SOLID</LineStyle>
+					<LineWidth>1</LineWidth>
+					<LineColor>-16777216</LineColor>
+					<LineZOrder>UNDER_AGENTS</LineZOrder>
+					<LineArrow>NONE</LineArrow>
+					<LineArrowPosition>END</LineArrowPosition>
+				</AgentLink>
+			</AgentLinks>
+
+			<ContainerLinks>
+				<ContainerLink>
+					<Id>1663773721466</Id>
+					<Name><![CDATA[main]]></Name>
+					<X>50</X><Y>-100</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<ActiveObjectClass>
+						<PackageName><![CDATA[base]]></PackageName>
+						<ClassName><![CDATA[Main]]></ClassName>
+					</ActiveObjectClass>
+				</ContainerLink>
+			</ContainerLinks>
+
+			<Presentation>
+				<Level>
+					<Id>1663773690597</Id>
+					<Name><![CDATA[level]]></Name>
+					<X>0</X><Y>0</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<Z>0</Z>
+					<LevelVisibility>DIM_NON_CURRENT</LevelVisibility>
+
+
+				</Level>
+			</Presentation>
+
+		</ActiveObjectClass>
+		<!--   =========   Active Object Class   ========  -->
+		<ActiveObjectClass>
+			<Id>1663773810345</Id>
+			<Name><![CDATA[GCDistrictHeating]]></Name>
+			<AdditionalClassCode><![CDATA[@Override
+public void f_operateAssets(){
+	f_operateAssetsDistrictHeating();
+}]]></AdditionalClassCode>
+			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
+			<ExtendsReference>
+				<PackageName><![CDATA[base]]></PackageName>
+				<ClassName><![CDATA[GridConnection]]></ClassName>
+			</ExtendsReference>
+			<Parameters>
+				<Parameter>
+					<Name><![CDATA[p_netConnectionCategory]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_netConnectionType]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_capacity_kW]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_parentNodeElectricID]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_agentID]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_parentNodeHeatID]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_buildingTempAsset]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_HeatingAsset]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_parentNodeElectric]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_ownerID]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_parentNodeHeat]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_ownerActor]]></Name>
+				</Parameter>
+			</Parameters>
+			<Generic>false</Generic>
+			<GenericParameter>
+				<Id>1663773810343</Id>
+				<Name><![CDATA[1663773810343]]></Name>
+				<GenericParameterValue Class="CodeValue">
+					<Code><![CDATA[T extends Agent]]></Code>
+				</GenericParameterValue>
+				<GenericParameterLabel><![CDATA[Generic parameter:]]></GenericParameterLabel>
+			</GenericParameter>
+			<FlowChartsUsage>ENTITY</FlowChartsUsage>
+			<SamplesToKeep>100</SamplesToKeep>
+			<LimitNumberOfArrayElements>false</LimitNumberOfArrayElements>
+			<ElementsLimitValue>100</ElementsLimitValue>
+			<MakeDefaultViewArea>true</MakeDefaultViewArea>
+			<SceneGridColor/>
+			<SceneBackgroundColor/>
+			<SceneSkybox>null</SceneSkybox>
+			<AgentProperties>
+	 			<SpaceType>CONTINUOUS</SpaceType>			
+				<EnvironmentDefinesInitialLocation>true</EnvironmentDefinesInitialLocation>
+				<RotateAnimationTowardsMovement>true</RotateAnimationTowardsMovement>
+				<RotateAnimationVertically>false</RotateAnimationVertically>
+				<VelocityCode Class="CodeUnitValue">
+					<Code><![CDATA[10]]></Code>
+					<Unit Class="SpeedUnits"><![CDATA[MPS]]></Unit>
+				</VelocityCode>
+				<PhysicalLength Class="CodeUnitValue">
+					<Code><![CDATA[1]]></Code>
+					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
+				</PhysicalLength>
+				<PhysicalWidth Class="CodeUnitValue">
+					<Code><![CDATA[1]]></Code>
+					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
+				</PhysicalWidth>
+				<PhysicalHeight Class="CodeUnitValue">
+					<Code><![CDATA[1]]></Code>
+					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
+				</PhysicalHeight>
+			</AgentProperties>
+			<EnvironmentProperties>
+					<EnableSteps>false</EnableSteps>
+					<StepDurationCode Class="CodeUnitValue">
+						<Code><![CDATA[1.0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[SECOND]]></Unit>
+					</StepDurationCode>
+					<SpaceType>CONTINUOUS</SpaceType>
+					<WidthCode><![CDATA[500]]></WidthCode>
+					<HeightCode><![CDATA[500]]></HeightCode>
+					<ZHeightCode><![CDATA[0]]></ZHeightCode>
+					<ColumnsCountCode><![CDATA[100]]></ColumnsCountCode>
+					<RowsCountCode><![CDATA[100]]></RowsCountCode>
+					<NeigborhoodType>MOORE</NeigborhoodType>
+					<LayoutType>USER_DEF</LayoutType>
+					<LayoutTypeApplyOnStartup>true</LayoutTypeApplyOnStartup>
+					<NetworkType>USER_DEF</NetworkType>
+					<NetworkTypeApplyOnStartup>true</NetworkTypeApplyOnStartup>
+					<ConnectionsPerAgentCode><![CDATA[2]]></ConnectionsPerAgentCode>
+					<ConnectionsRangeCode><![CDATA[50]]></ConnectionsRangeCode>
+					<NeighborLinkFractionCode><![CDATA[0.95]]></NeighborLinkFractionCode>
+					<MCode><![CDATA[10]]></MCode>
+			</EnvironmentProperties>
+			<DatasetsCreationProperties>
+				<AutoCreate>true</AutoCreate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1663833600000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</RecurrenceCode>
+			</DatasetsCreationProperties>
+			<ScaleRuler>
+				<Id>1663773810341</Id>
+				<Name><![CDATA[scale]]></Name>
+				<X>0</X><Y>-150</Y>
+				<PublicFlag>false</PublicFlag>
+				<PresentationFlag>false</PresentationFlag>
+				<ShowLabel>false</ShowLabel>
+				<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+				<Length>100</Length>
+				<Rotation>0</Rotation>
+				<ScaleType>BASED_ON_LENGTH</ScaleType>
+				<ModelLength>10</ModelLength>
+				<LengthUnits>METER</LengthUnits>
+				<Scale>10</Scale>
+				<InheritedFromParentAgentType>true</InheritedFromParentAgentType>
+			</ScaleRuler>
+			<CurrentLevel>1663773810344</CurrentLevel>
+			<ConnectionsId>1663773810340</ConnectionsId>
+			<Functions>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1663773953770</Id>
+					<Name><![CDATA[f_operateAssetsDistrictHeating]]></Name>
+					<X>640</X><Y>310</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[// basic fixed consumption profiles first
+for(EnergyAsset e : c_connectedConsumptionAssets) {
+	if(p_netConnectionCategory == OL_NetConnectionCategory.HOUSE && e.p_energyAssetType == OL_EnergyAssetType.OTHER_ELECTRICITY_CONSUMPTION) {
+		e.v_powerFraction_fr = main.v_currentHouseHoldOtherElectricityDemand_kW / e.p_energyAssetInstance.getElectricCapacity_kW();
+		//e.v_powerFraction_fr = 0;
+	} else {
+		e.v_powerFraction_fr = 0; // To disable DHW heat demand for now
+	}
+	// not steerable, just do their thing.
+}
+
+// basic fixed production profiles
+for(EnergyAsset e : c_connectedProductionAssets) {
+	if(e.p_energyAssetType == OL_EnergyAssetType.WINDMILL) {
+		e.v_powerFraction_fr = main.v_currentWindPowerNormalized_r;
+	}
+	else if(e.p_energyAssetType == OL_EnergyAssetType.PHOTOVOLTAIC) {
+		e.v_powerFraction_fr = main.v_currentSolarPowerNormalized_r;
+	}
+}
+
+// Flex assets: which assets need control, and what is the target? Heating, battery, EV-charging, district-heating, power to gas, etc.
+
+// House heating system super basic
+if ( p_buildingTempAsset != null && p_netConnectionCategory == OL_NetConnectionCategory.HOUSE ) {
+	//J_EAStorageHeat buildingTempInstance = (J_EAStorageHeat)p_buildingTempAsset.p_energyAssetInstance;
+	//traceln("HeatCapacity " + p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW());
+	double tempSetpoint_degC = 20;
+	double houseTemp = p_buildingTempAsset.p_energyAssetInstance.getCurrentTemperature();
+	p_buildingTempAsset.p_energyAssetInstance.updateAmbientTemperature(main.v_currentAmbientTemperature_degC);	
+	//traceln("house temp in house " + this.getId() + " is " + houseTemp);
+	if (houseTemp < tempSetpoint_degC) {
+		//traceln("heatCapacity heatingSystem " + p_spaceHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
+		double powerDemand_kW = (tempSetpoint_degC - houseTemp) * ((J_EAStorageHeat)p_buildingTempAsset.p_energyAssetInstance).getHeatCapacity_JpK() / 3.6e6;
+		p_HeatingAsset.v_powerFraction_fr = powerDemand_kW / p_HeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();
+		p_buildingTempAsset.v_powerFraction_fr = powerDemand_kW / p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW();
+		//traceln("Power fraction heating " + p_spaceHeatingAsset.v_powerFraction_fr);
+	} else {
+		p_HeatingAsset.v_powerFraction_fr = 0;
+		p_buildingTempAsset.v_powerFraction_fr = 0;
+	}
+}
+
+// District heating system, heating power based on temperature of buffer of heating system. (big or small) Heat transfer from DH_GridConnection to heat NetNode is based on temperature difference between heating-buffer and water in heating network
+if( this.p_netConnectionCategory == OL_NetConnectionCategory.DISTRICTHEATING ) {
+	double tempSetpoint_degC = 60;	
+	double storageTemp_degC = p_buildingTempAsset.p_energyAssetInstance.getCurrentTemperature();
+	//traceln("District heating storage temperature " + storageTemp_degC + " degC" + ", district heating network temperature " + p_parentNodeHeat.p_transportBuffer.getCurrentTemperature() + " deg C" );
+	double heatTransferToNetworkCoefficient_kWpK = 10;
+	double heatTransferToNetwork_kW = max(min(storageTemp_degC,tempSetpoint_degC)-p_parentNodeHeat.p_transportBuffer.getCurrentTemperature(), 0) * heatTransferToNetworkCoefficient_kWpK;
+	if (storageTemp_degC < tempSetpoint_degC) {
+		//traceln("heatCapacity heatingSystem " + p_spaceHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
+		double maxHeatingPower_kW = p_HeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();
+		p_HeatingAsset.v_powerFraction_fr = maxHeatingPower_kW/p_HeatingAsset.p_energyAssetInstance.getHeatCapacity_kW(); // Should be 1!
+		p_buildingTempAsset.v_powerFraction_fr = (maxHeatingPower_kW - heatTransferToNetwork_kW) / p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW();
+		//traceln("Power fraction heating " + p_spaceHeatingAsset.v_powerFraction_fr);
+	} else {
+		p_HeatingAsset.v_powerFraction_fr = 0;
+		p_buildingTempAsset.v_powerFraction_fr = - heatTransferToNetwork_kW / p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW();
+	}
+	//traceln("District heating power fraction " + p_HeatingAsset.v_powerFraction_fr);
+}
+
+// Conversion operation hard-coded test-value
+for(EnergyAsset s : c_connectedConversionAssets) {
+	if(s.p_energyAssetType == OL_EnergyAssetType.HEAT_PUMP_AIR) {
+		//s.p_EnergyAssetTypeString.updateParameters();
+		s.v_powerFraction_fr = 0;  // conversion value
+	}
+}]]></Body>
+				</Function>
+			</Functions>
+			<AgentLinks>
+				<AgentLink>
+					<Id>1663773810340</Id>
+					<Name><![CDATA[connections]]></Name>
+					<X>50</X><Y>-50</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<HandleReceiveInConnections>false</HandleReceiveInConnections>
+					<AgentLinkType>COLLECTION_OF_LINKS</AgentLinkType>
+					<AgentLinkBidirectional>true</AgentLinkBidirectional>
+					<MessageType><![CDATA[Object]]></MessageType>
+					<LineStyle>SOLID</LineStyle>
+					<LineWidth>1</LineWidth>
+					<LineColor>-16777216</LineColor>
+					<LineZOrder>UNDER_AGENTS</LineZOrder>
+					<LineArrow>NONE</LineArrow>
+					<LineArrowPosition>END</LineArrowPosition>
+				</AgentLink>
+			</AgentLinks>
+
+			<ContainerLinks>
+				<ContainerLink>
+					<Id>1663774444750</Id>
+					<Name><![CDATA[main]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>50</X><Y>-100</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<ActiveObjectClass>
+						<PackageName><![CDATA[base]]></PackageName>
+						<ClassName><![CDATA[Main]]></ClassName>
+					</ActiveObjectClass>
+				</ContainerLink>
+			</ContainerLinks>
+
+			<Presentation>
+				<Level>
+					<Id>1663773810344</Id>
+					<Name><![CDATA[level]]></Name>
+					<X>0</X><Y>0</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<Z>0</Z>
+					<LevelVisibility>DIM_NON_CURRENT</LevelVisibility>
+
+
+				</Level>
+			</Presentation>
+
+		</ActiveObjectClass>
+		<!--   =========   Active Object Class   ========  -->
+		<ActiveObjectClass>
+			<Id>1663773842879</Id>
+			<Name><![CDATA[GCWindfarm]]></Name>
+			<AdditionalClassCode><![CDATA[@Override
+public void f_operateAssets(){
+	f_operateAssetsWindfarm();
+}]]></AdditionalClassCode>
+			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
+			<ExtendsReference>
+				<PackageName><![CDATA[base]]></PackageName>
+				<ClassName><![CDATA[GridConnection]]></ClassName>
+			</ExtendsReference>
+			<Parameters>
+				<Parameter>
+					<Name><![CDATA[p_netConnectionCategory]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_netConnectionType]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_capacity_kW]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_parentNodeElectricID]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_agentID]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_parentNodeHeatID]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_buildingTempAsset]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_HeatingAsset]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_parentNodeElectric]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_ownerID]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_parentNodeHeat]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_ownerActor]]></Name>
+				</Parameter>
+			</Parameters>
+			<Generic>false</Generic>
+			<GenericParameter>
+				<Id>1663773842877</Id>
+				<Name><![CDATA[1663773842877]]></Name>
+				<GenericParameterValue Class="CodeValue">
+					<Code><![CDATA[T extends Agent]]></Code>
+				</GenericParameterValue>
+				<GenericParameterLabel><![CDATA[Generic parameter:]]></GenericParameterLabel>
+			</GenericParameter>
+			<FlowChartsUsage>ENTITY</FlowChartsUsage>
+			<SamplesToKeep>100</SamplesToKeep>
+			<LimitNumberOfArrayElements>false</LimitNumberOfArrayElements>
+			<ElementsLimitValue>100</ElementsLimitValue>
+			<MakeDefaultViewArea>true</MakeDefaultViewArea>
+			<SceneGridColor/>
+			<SceneBackgroundColor/>
+			<SceneSkybox>null</SceneSkybox>
+			<AgentProperties>
+	 			<SpaceType>CONTINUOUS</SpaceType>			
+				<EnvironmentDefinesInitialLocation>true</EnvironmentDefinesInitialLocation>
+				<RotateAnimationTowardsMovement>true</RotateAnimationTowardsMovement>
+				<RotateAnimationVertically>false</RotateAnimationVertically>
+				<VelocityCode Class="CodeUnitValue">
+					<Code><![CDATA[10]]></Code>
+					<Unit Class="SpeedUnits"><![CDATA[MPS]]></Unit>
+				</VelocityCode>
+				<PhysicalLength Class="CodeUnitValue">
+					<Code><![CDATA[1]]></Code>
+					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
+				</PhysicalLength>
+				<PhysicalWidth Class="CodeUnitValue">
+					<Code><![CDATA[1]]></Code>
+					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
+				</PhysicalWidth>
+				<PhysicalHeight Class="CodeUnitValue">
+					<Code><![CDATA[1]]></Code>
+					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
+				</PhysicalHeight>
+			</AgentProperties>
+			<EnvironmentProperties>
+					<EnableSteps>false</EnableSteps>
+					<StepDurationCode Class="CodeUnitValue">
+						<Code><![CDATA[1.0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[SECOND]]></Unit>
+					</StepDurationCode>
+					<SpaceType>CONTINUOUS</SpaceType>
+					<WidthCode><![CDATA[500]]></WidthCode>
+					<HeightCode><![CDATA[500]]></HeightCode>
+					<ZHeightCode><![CDATA[0]]></ZHeightCode>
+					<ColumnsCountCode><![CDATA[100]]></ColumnsCountCode>
+					<RowsCountCode><![CDATA[100]]></RowsCountCode>
+					<NeigborhoodType>MOORE</NeigborhoodType>
+					<LayoutType>USER_DEF</LayoutType>
+					<LayoutTypeApplyOnStartup>true</LayoutTypeApplyOnStartup>
+					<NetworkType>USER_DEF</NetworkType>
+					<NetworkTypeApplyOnStartup>true</NetworkTypeApplyOnStartup>
+					<ConnectionsPerAgentCode><![CDATA[2]]></ConnectionsPerAgentCode>
+					<ConnectionsRangeCode><![CDATA[50]]></ConnectionsRangeCode>
+					<NeighborLinkFractionCode><![CDATA[0.95]]></NeighborLinkFractionCode>
+					<MCode><![CDATA[10]]></MCode>
+			</EnvironmentProperties>
+			<DatasetsCreationProperties>
+				<AutoCreate>true</AutoCreate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1663833600000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</RecurrenceCode>
+			</DatasetsCreationProperties>
+			<ScaleRuler>
+				<Id>1663773842875</Id>
+				<Name><![CDATA[scale]]></Name>
+				<X>0</X><Y>-150</Y>
+				<PublicFlag>false</PublicFlag>
+				<PresentationFlag>false</PresentationFlag>
+				<ShowLabel>false</ShowLabel>
+				<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+				<Length>100</Length>
+				<Rotation>0</Rotation>
+				<ScaleType>BASED_ON_LENGTH</ScaleType>
+				<ModelLength>10</ModelLength>
+				<LengthUnits>METER</LengthUnits>
+				<Scale>10</Scale>
+				<InheritedFromParentAgentType>true</InheritedFromParentAgentType>
+			</ScaleRuler>
+			<CurrentLevel>1663773842878</CurrentLevel>
+			<ConnectionsId>1663773842874</ConnectionsId>
+			<Functions>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1663773942523</Id>
+					<Name><![CDATA[f_operateAssetsWindfarm]]></Name>
+					<X>640</X><Y>310</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[// basic fixed consumption profiles first
+for(EnergyAsset e : c_connectedConsumptionAssets) {
+	if(p_netConnectionCategory == OL_NetConnectionCategory.HOUSE && e.p_energyAssetType == OL_EnergyAssetType.OTHER_ELECTRICITY_CONSUMPTION) {
+		e.v_powerFraction_fr = main.v_currentHouseHoldOtherElectricityDemand_kW / e.p_energyAssetInstance.getElectricCapacity_kW();
+		//e.v_powerFraction_fr = 0;
+	} else {
+		e.v_powerFraction_fr = 0; // To disable DHW heat demand for now
+	}
+	// not steerable, just do their thing.
+}
+
+// basic fixed production profiles
+for(EnergyAsset e : c_connectedProductionAssets) {
+	if(e.p_energyAssetType == OL_EnergyAssetType.WINDMILL) {
+		e.v_powerFraction_fr = main.v_currentWindPowerNormalized_r;
+	}
+	else if(e.p_energyAssetType == OL_EnergyAssetType.PHOTOVOLTAIC) {
+		e.v_powerFraction_fr = main.v_currentSolarPowerNormalized_r;
+	}
+}
+
+// Flex assets: which assets need control, and what is the target? Heating, battery, EV-charging, district-heating, power to gas, etc.
+
+// House heating system super basic
+if ( p_buildingTempAsset != null && p_netConnectionCategory == OL_NetConnectionCategory.HOUSE ) {
+	//J_EAStorageHeat buildingTempInstance = (J_EAStorageHeat)p_buildingTempAsset.p_energyAssetInstance;
+	//traceln("HeatCapacity " + p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW());
+	double tempSetpoint_degC = 20;
+	double houseTemp = p_buildingTempAsset.p_energyAssetInstance.getCurrentTemperature();
+	p_buildingTempAsset.p_energyAssetInstance.updateAmbientTemperature(main.v_currentAmbientTemperature_degC);	
+	//traceln("house temp in house " + this.getId() + " is " + houseTemp);
+	if (houseTemp < tempSetpoint_degC) {
+		//traceln("heatCapacity heatingSystem " + p_spaceHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
+		double powerDemand_kW = (tempSetpoint_degC - houseTemp) * ((J_EAStorageHeat)p_buildingTempAsset.p_energyAssetInstance).getHeatCapacity_JpK() / 3.6e6;
+		p_HeatingAsset.v_powerFraction_fr = powerDemand_kW / p_HeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();
+		p_buildingTempAsset.v_powerFraction_fr = powerDemand_kW / p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW();
+		//traceln("Power fraction heating " + p_spaceHeatingAsset.v_powerFraction_fr);
+	} else {
+		p_HeatingAsset.v_powerFraction_fr = 0;
+		p_buildingTempAsset.v_powerFraction_fr = 0;
+	}
+}
+
+// District heating system, heating power based on temperature of buffer of heating system. (big or small) Heat transfer from DH_GridConnection to heat NetNode is based on temperature difference between heating-buffer and water in heating network
+if( this.p_netConnectionCategory == OL_NetConnectionCategory.DISTRICTHEATING ) {
+	double tempSetpoint_degC = 60;	
+	double storageTemp_degC = p_buildingTempAsset.p_energyAssetInstance.getCurrentTemperature();
+	//traceln("District heating storage temperature " + storageTemp_degC + " degC" + ", district heating network temperature " + p_parentNodeHeat.p_transportBuffer.getCurrentTemperature() + " deg C" );
+	double heatTransferToNetworkCoefficient_kWpK = 10;
+	double heatTransferToNetwork_kW = max(min(storageTemp_degC,tempSetpoint_degC)-p_parentNodeHeat.p_transportBuffer.getCurrentTemperature(), 0) * heatTransferToNetworkCoefficient_kWpK;
+	if (storageTemp_degC < tempSetpoint_degC) {
+		//traceln("heatCapacity heatingSystem " + p_spaceHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
+		double maxHeatingPower_kW = p_HeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();
+		p_HeatingAsset.v_powerFraction_fr = maxHeatingPower_kW/p_HeatingAsset.p_energyAssetInstance.getHeatCapacity_kW(); // Should be 1!
+		p_buildingTempAsset.v_powerFraction_fr = (maxHeatingPower_kW - heatTransferToNetwork_kW) / p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW();
+		//traceln("Power fraction heating " + p_spaceHeatingAsset.v_powerFraction_fr);
+	} else {
+		p_HeatingAsset.v_powerFraction_fr = 0;
+		p_buildingTempAsset.v_powerFraction_fr = - heatTransferToNetwork_kW / p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW();
+	}
+	//traceln("District heating power fraction " + p_HeatingAsset.v_powerFraction_fr);
+}
+
+// Conversion operation hard-coded test-value
+for(EnergyAsset s : c_connectedConversionAssets) {
+	if(s.p_energyAssetType == OL_EnergyAssetType.HEAT_PUMP_AIR) {
+		//s.p_EnergyAssetTypeString.updateParameters();
+		s.v_powerFraction_fr = 0;  // conversion value
+	}
+}]]></Body>
+				</Function>
+			</Functions>
+			<AgentLinks>
+				<AgentLink>
+					<Id>1663773842874</Id>
+					<Name><![CDATA[connections]]></Name>
+					<X>50</X><Y>-50</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<HandleReceiveInConnections>false</HandleReceiveInConnections>
+					<AgentLinkType>COLLECTION_OF_LINKS</AgentLinkType>
+					<AgentLinkBidirectional>true</AgentLinkBidirectional>
+					<MessageType><![CDATA[Object]]></MessageType>
+					<LineStyle>SOLID</LineStyle>
+					<LineWidth>1</LineWidth>
+					<LineColor>-16777216</LineColor>
+					<LineZOrder>UNDER_AGENTS</LineZOrder>
+					<LineArrow>NONE</LineArrow>
+					<LineArrowPosition>END</LineArrowPosition>
+				</AgentLink>
+			</AgentLinks>
+
+			<ContainerLinks>
+				<ContainerLink>
+					<Id>1663774465365</Id>
+					<Name><![CDATA[main]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>50</X><Y>-100</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<ActiveObjectClass>
+						<PackageName><![CDATA[base]]></PackageName>
+						<ClassName><![CDATA[Main]]></ClassName>
+					</ActiveObjectClass>
+				</ContainerLink>
+			</ContainerLinks>
+
+			<Presentation>
+				<Level>
+					<Id>1663773842878</Id>
+					<Name><![CDATA[level]]></Name>
+					<X>0</X><Y>0</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<Z>0</Z>
+					<LevelVisibility>DIM_NON_CURRENT</LevelVisibility>
+
+
+				</Level>
+			</Presentation>
+
+		</ActiveObjectClass>
+		<!--   =========   Active Object Class   ========  -->
+		<ActiveObjectClass>
+			<Id>1663773857868</Id>
+			<Name><![CDATA[GCSolarfarm]]></Name>
+			<AdditionalClassCode><![CDATA[@Override
+public void f_operateAssets(){
+	f_operateAssetsSolarfarm();
+}]]></AdditionalClassCode>
+			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
+			<ExtendsReference>
+				<PackageName><![CDATA[base]]></PackageName>
+				<ClassName><![CDATA[GridConnection]]></ClassName>
+			</ExtendsReference>
+			<Parameters>
+				<Parameter>
+					<Name><![CDATA[p_netConnectionCategory]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_netConnectionType]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_capacity_kW]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_parentNodeElectricID]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_agentID]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_parentNodeHeatID]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_buildingTempAsset]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_HeatingAsset]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_parentNodeElectric]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_ownerID]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_parentNodeHeat]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_ownerActor]]></Name>
+				</Parameter>
+			</Parameters>
+			<Generic>false</Generic>
+			<GenericParameter>
+				<Id>1663773857866</Id>
+				<Name><![CDATA[1663773857866]]></Name>
+				<GenericParameterValue Class="CodeValue">
+					<Code><![CDATA[T extends Agent]]></Code>
+				</GenericParameterValue>
+				<GenericParameterLabel><![CDATA[Generic parameter:]]></GenericParameterLabel>
+			</GenericParameter>
+			<FlowChartsUsage>ENTITY</FlowChartsUsage>
+			<SamplesToKeep>100</SamplesToKeep>
+			<LimitNumberOfArrayElements>false</LimitNumberOfArrayElements>
+			<ElementsLimitValue>100</ElementsLimitValue>
+			<MakeDefaultViewArea>true</MakeDefaultViewArea>
+			<SceneGridColor/>
+			<SceneBackgroundColor/>
+			<SceneSkybox>null</SceneSkybox>
+			<AgentProperties>
+	 			<SpaceType>CONTINUOUS</SpaceType>			
+				<EnvironmentDefinesInitialLocation>true</EnvironmentDefinesInitialLocation>
+				<RotateAnimationTowardsMovement>true</RotateAnimationTowardsMovement>
+				<RotateAnimationVertically>false</RotateAnimationVertically>
+				<VelocityCode Class="CodeUnitValue">
+					<Code><![CDATA[10]]></Code>
+					<Unit Class="SpeedUnits"><![CDATA[MPS]]></Unit>
+				</VelocityCode>
+				<PhysicalLength Class="CodeUnitValue">
+					<Code><![CDATA[1]]></Code>
+					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
+				</PhysicalLength>
+				<PhysicalWidth Class="CodeUnitValue">
+					<Code><![CDATA[1]]></Code>
+					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
+				</PhysicalWidth>
+				<PhysicalHeight Class="CodeUnitValue">
+					<Code><![CDATA[1]]></Code>
+					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
+				</PhysicalHeight>
+			</AgentProperties>
+			<EnvironmentProperties>
+					<EnableSteps>false</EnableSteps>
+					<StepDurationCode Class="CodeUnitValue">
+						<Code><![CDATA[1.0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[SECOND]]></Unit>
+					</StepDurationCode>
+					<SpaceType>CONTINUOUS</SpaceType>
+					<WidthCode><![CDATA[500]]></WidthCode>
+					<HeightCode><![CDATA[500]]></HeightCode>
+					<ZHeightCode><![CDATA[0]]></ZHeightCode>
+					<ColumnsCountCode><![CDATA[100]]></ColumnsCountCode>
+					<RowsCountCode><![CDATA[100]]></RowsCountCode>
+					<NeigborhoodType>MOORE</NeigborhoodType>
+					<LayoutType>USER_DEF</LayoutType>
+					<LayoutTypeApplyOnStartup>true</LayoutTypeApplyOnStartup>
+					<NetworkType>USER_DEF</NetworkType>
+					<NetworkTypeApplyOnStartup>true</NetworkTypeApplyOnStartup>
+					<ConnectionsPerAgentCode><![CDATA[2]]></ConnectionsPerAgentCode>
+					<ConnectionsRangeCode><![CDATA[50]]></ConnectionsRangeCode>
+					<NeighborLinkFractionCode><![CDATA[0.95]]></NeighborLinkFractionCode>
+					<MCode><![CDATA[10]]></MCode>
+			</EnvironmentProperties>
+			<DatasetsCreationProperties>
+				<AutoCreate>true</AutoCreate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1663833600000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</RecurrenceCode>
+			</DatasetsCreationProperties>
+			<ScaleRuler>
+				<Id>1663773857864</Id>
+				<Name><![CDATA[scale]]></Name>
+				<X>0</X><Y>-150</Y>
+				<PublicFlag>false</PublicFlag>
+				<PresentationFlag>false</PresentationFlag>
+				<ShowLabel>false</ShowLabel>
+				<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+				<Length>100</Length>
+				<Rotation>0</Rotation>
+				<ScaleType>BASED_ON_LENGTH</ScaleType>
+				<ModelLength>10</ModelLength>
+				<LengthUnits>METER</LengthUnits>
+				<Scale>10</Scale>
+				<InheritedFromParentAgentType>true</InheritedFromParentAgentType>
+			</ScaleRuler>
+			<CurrentLevel>1663773857867</CurrentLevel>
+			<ConnectionsId>1663773857863</ConnectionsId>
+			<Functions>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1663773930414</Id>
+					<Name><![CDATA[f_operateAssetsSolarfarm]]></Name>
+					<X>640</X><Y>310</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[// basic fixed consumption profiles first
+for(EnergyAsset e : c_connectedConsumptionAssets) {
+	if(p_netConnectionCategory == OL_NetConnectionCategory.HOUSE && e.p_energyAssetType == OL_EnergyAssetType.OTHER_ELECTRICITY_CONSUMPTION) {
+		e.v_powerFraction_fr = main.v_currentHouseHoldOtherElectricityDemand_kW / e.p_energyAssetInstance.getElectricCapacity_kW();
+		//e.v_powerFraction_fr = 0;
+	} else {
+		e.v_powerFraction_fr = 0; // To disable DHW heat demand for now
+	}
+	// not steerable, just do their thing.
+}
+
+// basic fixed production profiles
+for(EnergyAsset e : c_connectedProductionAssets) {
+	if(e.p_energyAssetType == OL_EnergyAssetType.WINDMILL) {
+		e.v_powerFraction_fr = main.v_currentWindPowerNormalized_r;
+	}
+	else if(e.p_energyAssetType == OL_EnergyAssetType.PHOTOVOLTAIC) {
+		e.v_powerFraction_fr = main.v_currentSolarPowerNormalized_r;
+	}
+}
+
+// Flex assets: which assets need control, and what is the target? Heating, battery, EV-charging, district-heating, power to gas, etc.
+
+// House heating system super basic
+if ( p_buildingTempAsset != null && p_netConnectionCategory == OL_NetConnectionCategory.HOUSE ) {
+	//J_EAStorageHeat buildingTempInstance = (J_EAStorageHeat)p_buildingTempAsset.p_energyAssetInstance;
+	//traceln("HeatCapacity " + p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW());
+	double tempSetpoint_degC = 20;
+	double houseTemp = p_buildingTempAsset.p_energyAssetInstance.getCurrentTemperature();
+	p_buildingTempAsset.p_energyAssetInstance.updateAmbientTemperature(main.v_currentAmbientTemperature_degC);	
+	//traceln("house temp in house " + this.getId() + " is " + houseTemp);
+	if (houseTemp < tempSetpoint_degC) {
+		//traceln("heatCapacity heatingSystem " + p_spaceHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
+		double powerDemand_kW = (tempSetpoint_degC - houseTemp) * ((J_EAStorageHeat)p_buildingTempAsset.p_energyAssetInstance).getHeatCapacity_JpK() / 3.6e6;
+		p_HeatingAsset.v_powerFraction_fr = powerDemand_kW / p_HeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();
+		p_buildingTempAsset.v_powerFraction_fr = powerDemand_kW / p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW();
+		//traceln("Power fraction heating " + p_spaceHeatingAsset.v_powerFraction_fr);
+	} else {
+		p_HeatingAsset.v_powerFraction_fr = 0;
+		p_buildingTempAsset.v_powerFraction_fr = 0;
+	}
+}
+
+// District heating system, heating power based on temperature of buffer of heating system. (big or small) Heat transfer from DH_GridConnection to heat NetNode is based on temperature difference between heating-buffer and water in heating network
+if( this.p_netConnectionCategory == OL_NetConnectionCategory.DISTRICTHEATING ) {
+	double tempSetpoint_degC = 60;	
+	double storageTemp_degC = p_buildingTempAsset.p_energyAssetInstance.getCurrentTemperature();
+	//traceln("District heating storage temperature " + storageTemp_degC + " degC" + ", district heating network temperature " + p_parentNodeHeat.p_transportBuffer.getCurrentTemperature() + " deg C" );
+	double heatTransferToNetworkCoefficient_kWpK = 10;
+	double heatTransferToNetwork_kW = max(min(storageTemp_degC,tempSetpoint_degC)-p_parentNodeHeat.p_transportBuffer.getCurrentTemperature(), 0) * heatTransferToNetworkCoefficient_kWpK;
+	if (storageTemp_degC < tempSetpoint_degC) {
+		//traceln("heatCapacity heatingSystem " + p_spaceHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
+		double maxHeatingPower_kW = p_HeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();
+		p_HeatingAsset.v_powerFraction_fr = maxHeatingPower_kW/p_HeatingAsset.p_energyAssetInstance.getHeatCapacity_kW(); // Should be 1!
+		p_buildingTempAsset.v_powerFraction_fr = (maxHeatingPower_kW - heatTransferToNetwork_kW) / p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW();
+		//traceln("Power fraction heating " + p_spaceHeatingAsset.v_powerFraction_fr);
+	} else {
+		p_HeatingAsset.v_powerFraction_fr = 0;
+		p_buildingTempAsset.v_powerFraction_fr = - heatTransferToNetwork_kW / p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW();
+	}
+	//traceln("District heating power fraction " + p_HeatingAsset.v_powerFraction_fr);
+}
+
+// Conversion operation hard-coded test-value
+for(EnergyAsset s : c_connectedConversionAssets) {
+	if(s.p_energyAssetType == OL_EnergyAssetType.HEAT_PUMP_AIR) {
+		//s.p_EnergyAssetTypeString.updateParameters();
+		s.v_powerFraction_fr = 0;  // conversion value
+	}
+}]]></Body>
+				</Function>
+			</Functions>
+			<AgentLinks>
+				<AgentLink>
+					<Id>1663773857863</Id>
+					<Name><![CDATA[connections]]></Name>
+					<X>50</X><Y>-50</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<HandleReceiveInConnections>false</HandleReceiveInConnections>
+					<AgentLinkType>COLLECTION_OF_LINKS</AgentLinkType>
+					<AgentLinkBidirectional>true</AgentLinkBidirectional>
+					<MessageType><![CDATA[Object]]></MessageType>
+					<LineStyle>SOLID</LineStyle>
+					<LineWidth>1</LineWidth>
+					<LineColor>-16777216</LineColor>
+					<LineZOrder>UNDER_AGENTS</LineZOrder>
+					<LineArrow>NONE</LineArrow>
+					<LineArrowPosition>END</LineArrowPosition>
+				</AgentLink>
+			</AgentLinks>
+
+			<ContainerLinks>
+				<ContainerLink>
+					<Id>1663774487514</Id>
+					<Name><![CDATA[main]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>50</X><Y>-100</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<ActiveObjectClass>
+						<PackageName><![CDATA[base]]></PackageName>
+						<ClassName><![CDATA[Main]]></ClassName>
+					</ActiveObjectClass>
+				</ContainerLink>
+			</ContainerLinks>
+
+			<Presentation>
+				<Level>
+					<Id>1663773857867</Id>
 					<Name><![CDATA[level]]></Name>
 					<X>0</X><Y>0</Y>
 					<Label><X>10</X><Y>0</Y></Label>
