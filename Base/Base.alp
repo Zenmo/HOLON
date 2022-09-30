@@ -14,7 +14,7 @@
 	<OptionLists>
 		<OptionList>
 			<Id>1658478100573</Id>
-			<Name><![CDATA[OL_NetNodeType]]></Name>
+			<Name><![CDATA[OL_GridNodeType]]></Name>
 			<Option>
 				<Id>1658478100574</Id>
 				<Name><![CDATA[HSMS]]></Name>
@@ -62,7 +62,7 @@
 		</OptionList>
 		<OptionList>
 			<Id>1659118262286</Id>
-			<Name><![CDATA[OL_NetConnectionCategory]]></Name>
+			<Name><![CDATA[OL_GridConnectionCategory]]></Name>
 			<Option>
 				<Id>1659118262287</Id>
 				<Name><![CDATA[HOUSE]]></Name>
@@ -86,7 +86,7 @@
 		</OptionList>
 		<OptionList>
 			<Id>1659118272924</Id>
-			<Name><![CDATA[OL_NetConnectionType]]></Name>
+			<Name><![CDATA[OL_GridConnectionType]]></Name>
 			<Option>
 				<Id>1659118284642</Id>
 				<Name><![CDATA[DETACHED]]></Name>
@@ -125,6 +125,14 @@
 			</Option>
 			<Option>
 				<Id>1661512420149</Id>
+				<Name><![CDATA[GASFIRED]]></Name>
+			</Option>
+			<Option>
+				<Id>1664543832529</Id>
+				<Name><![CDATA[HEATPUMP_GASPEAK]]></Name>
+			</Option>
+			<Option>
+				<Id>1664543845215</Id>
 				<Name><![CDATA[NONE]]></Name>
 			</Option>
 		</OptionList>
@@ -293,15 +301,15 @@
 			<Name><![CDATA[OL_EAPresetConversionAssets]]></Name>
 			<Option>
 				<Id>1659711661606</Id>
-				<Name><![CDATA[House_heatpump_S]]></Name>
+				<Name><![CDATA[House_heatpump_MT_S]]></Name>
 			</Option>
 			<Option>
 				<Id>1659711661607</Id>
-				<Name><![CDATA[House_heatpump_M]]></Name>
+				<Name><![CDATA[House_heatpump_MT_M]]></Name>
 			</Option>
 			<Option>
 				<Id>1659711661608</Id>
-				<Name><![CDATA[House_heatpump_L]]></Name>
+				<Name><![CDATA[House_heatpump_MT_L]]></Name>
 			</Option>
 			<Option>
 				<Id>1659711661609</Id>
@@ -318,6 +326,10 @@
 			<Option>
 				<Id>1660131437985</Id>
 				<Name><![CDATA[House_DH_heatdeliveryset]]></Name>
+			</Option>
+			<Option>
+				<Id>1664544072424</Id>
+				<Name><![CDATA[DH_heat_pump_HT_S]]></Name>
 			</Option>
 		</OptionList>
 		<OptionList>
@@ -393,7 +405,7 @@
 			</Option>
 			<Option>
 				<Id>1660055439251</Id>
-				<Name><![CDATA[District_Heating_heat_buffer_S]]></Name>
+				<Name><![CDATA[District_Heating_heat_buffer_HT_S]]></Name>
 			</Option>
 			<Option>
 				<Id>1664536366729</Id>
@@ -825,7 +837,7 @@ traceln("*** main duration *** "+ v_modelStartUpDuration_s+" s");]]></StartupCod
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[1]]></Code>
+							<Code><![CDATA[0.25]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1658496701673</Id>
@@ -1434,7 +1446,7 @@ for (EnergyHolon a : pop_energyHolons) {
 // values by calling the corresponding keys
 
 String nodeID;
-OL_NetNodeType nodetype;
+OL_GridNodeType nodetype;
 OL_EnergyCarrierType energytype;
 String nodeparent;
 int nodecapacity;
@@ -1443,7 +1455,7 @@ String nodeoperator;
 for(HashMap data : parsedJSONGridNodes)
 {
    	nodeID = data.get("id").toString();
-	nodetype = OL_NetNodeType.valueOf((String)data.get("type2"));
+	nodetype = OL_GridNodeType.valueOf((String)data.get("type2"));
 	energytype = OL_EnergyCarrierType.valueOf((String)data.get("type"));
 	nodeparent = (String) data.get("parent");
 	nodecapacity = (Integer)data.get("capacity_kw");
@@ -1481,8 +1493,8 @@ for( GridNode g : pop_gridNodes ) {
 
 // 2. add agents to population from database: NetConnections
 String gridConnectionID;
-OL_NetConnectionCategory gridConnectionCategory;
-OL_NetConnectionType gridConnectionType;
+OL_GridConnectionCategory gridConnectionCategory;
+OL_GridConnectionType gridConnectionType;
 String gridConnectionParentElectric;
 String gridConnectionParentHeat="";
 Double gridConnectionCapacity;
@@ -1490,8 +1502,8 @@ String ownerActorID;
 
 for(HashMap data : parsedJSONGridConnections) {
 //    traceln("data = "+data);
-	gridConnectionCategory = OL_NetConnectionCategory.valueOf((String)data.get( "type" ));
-    gridConnectionType = OL_NetConnectionType.valueOf((String)data.get( "type2" ));
+	gridConnectionCategory = OL_GridConnectionCategory.valueOf((String)data.get( "type" ));
+    gridConnectionType = OL_GridConnectionType.valueOf((String)data.get( "type2" ));
     gridConnectionParentElectric = data.get( "parent_electric" ).toString();
     gridConnectionParentHeat = (String)data.get( "parent_heat" );
     gridConnectionCapacity = roundToDecimal((Integer)data.get( "capacity_kw" )+0.0,2);
@@ -1536,7 +1548,7 @@ for (GridConnection g : c_gridConnections) {
 for (GridConnection g: c_gridConnections) {
 	if(g.p_parentNodeHeat instanceof GridNode && g.p_ownerActor instanceof ConnectionOwner) {
 			ConnectionOwner o = (ConnectionOwner)g.p_ownerActor;
-			List<GridConnection> heatSuppliers = filter( g.p_parentNodeHeat.subConnections.getConnections(), p -> p.p_netConnectionCategory.equals(DISTRICTHEATING));
+			List<GridConnection> heatSuppliers = filter( g.p_parentNodeHeat.subConnections.getConnections(), p -> p.p_gridConnectionCategory.equals(DISTRICTHEATING));
 //			traceln("connection id: "+g.p_agentID+", heatEnergySupplier: "+heatSuppliers+ ", owneractor: "+heatSuppliers.get(0).p_ownerActor); 
 			o.v_energySupplierDistrictHeat = heatSuppliers.get(0).p_ownerActor;
 	
@@ -1701,18 +1713,19 @@ sheet1.importFromExternalDB(sourceConnection, "params", "params", true, true);
 
 for (GridConnection n : c_gridConnections) {
 //	traceln("NetConnection for AssetConfiguration: "+n.p_agentID);
-	OL_NetConnectionCategory netConnectionCategory = n.p_netConnectionCategory;
-	OL_NetConnectionType netConnectionType = n.p_netConnectionType;
+	OL_GridConnectionCategory gridConnectionCategory = n.p_gridConnectionCategory;
+	OL_GridConnectionType gridConnectionType = n.p_gridConnectionType;
 	//Double capacityElectricity_kW = 0.0;
 	//Double capacityHeat_kW = 0.0;
 
-	if( netConnectionCategory == OL_NetConnectionCategory.HOUSE ) {
+	if( gridConnectionCategory == OL_GridConnectionCategory.HOUSE ) {
 		// testing import of default energyAsset
 		f_addPresetConsumptionAsset( n, OL_EAPresetConsumptionAssets.House_other_electricity);
 		f_addPresetConsumptionAsset( n, OL_EAPresetConsumptionAssets.House_hot_water );
 		f_addPresetProductionAsset( n, OL_EAPresetProductionAssets.House_solarpanels_M);
 		//f_addPresetStorageAsset( n, OL_EAPresetStorageAssets.House_battery);
 		f_addPresetStorageAsset( n, OL_EAPresetStorageAssets.House_heatmodel_A);
+		
 		if( n.p_parentNodeHeatID != null ) {
 			f_addPresetConversionAsset( n, OL_EAPresetConversionAssets.House_DH_heatdeliveryset );
 		}
@@ -1722,8 +1735,8 @@ for (GridConnection n : c_gridConnections) {
 		f_addPresetStorageAsset( n, OL_EAPresetStorageAssets.EV);
 	}
 
-	if( netConnectionCategory == OL_NetConnectionCategory.BUILDING ) {
-		switch(netConnectionType) {
+	if( gridConnectionCategory == OL_GridConnectionCategory.BUILDING ) {
+		switch(gridConnectionType) {
 			case OFFICE:
 				f_addPresetConsumptionAsset( n, OL_EAPresetConsumptionAssets.Office_other_electricity);
 			break;
@@ -1734,22 +1747,40 @@ for (GridConnection n : c_gridConnections) {
 				traceln("not a valid building type!");
 			break;
 		}
+		
+		if( n.p_parentNodeHeatID != null ) {
+			f_addPresetConversionAsset( n, OL_EAPresetConversionAssets.House_DH_heatdeliveryset );
+		}
+		else {
+			f_addPresetConversionAsset( n, OL_EAPresetConversionAssets.House_gas_burner);
+		}
 	}
 
-	if( netConnectionCategory == OL_NetConnectionCategory.DISTRICTHEATING )  {
-		f_addPresetConversionAsset( n, OL_EAPresetConversionAssets.DH_gas_burner_S );
-		f_addPresetStorageAsset( n, OL_EAPresetStorageAssets.District_Heating_heat_buffer_S );
+	if( gridConnectionCategory == OL_GridConnectionCategory.DISTRICTHEATING )  {
+		f_addPresetStorageAsset( n, OL_EAPresetStorageAssets.District_Heating_heat_buffer_HT_S );
+		
+		switch( gridConnectionType ) {
+			case GASFIRED:
+				f_addPresetConversionAsset( n, OL_EAPresetConversionAssets.DH_gas_burner_S );
+			break;
+			case HEATPUMP_GASPEAK:
+				f_addPresetConversionAsset( n, OL_EAPresetConversionAssets.DH_heat_pump_HT_S );
+			break;
+			default:
+				traceln("no such DH heat source modeled yet");
+			break;
+		}
 	}
 }
 
 for(GridNode g : c_gridNodesHeat) {
-	OL_NetNodeType nodeType = g.p_nodeType;
+	OL_GridNodeType nodeType = g.p_nodeType;
 	
-	if( nodeType == OL_NetNodeType.HT ) {
+	if( nodeType == OL_GridNodeType.HT ) {
 		traceln("f_addDefaultEnergyAssets debug: heat network storage asset added for gridNode "+g.toString());
 		f_addPresetStorageAsset( g, OL_EAPresetStorageAssets.District_Heating_network_HT_S );
 	}
-	else if( nodeType == OL_NetNodeType.MT ) {
+	else if( nodeType == OL_GridNodeType.MT ) {
 		traceln("f_addDefaultEnergyAssets debug: heat network storage asset added for gridNode "+g.toString());
 		f_addPresetStorageAsset( g, OL_EAPresetStorageAssets.District_Heating_network_MT_S );
 	}	
@@ -1874,16 +1905,18 @@ OL_EnergyAssetType assetType = null;
 double capacityElectricity_kW = 0;
 double capacityHeat_kW = 0;
 double eta_r = 0;
+double deliveryTemp_degC = 0;
 
 for( Tuple tup : data ) {
 assetType = tup.get( conversion_assets.energy_asset_type );
 capacityElectricity_kW = tup.get( conversion_assets.capacity_electricity_kw );
 capacityHeat_kW = tup.get( conversion_assets.capacity_heat_kw );
 eta_r = tup.get( conversion_assets.eta_r );
+deliveryTemp_degC = tup.get( conversion_assets.delivery_temp_deg_c );
 }
 
 EnergyAsset e = add_pop_energyAssets( null, parentAgentID, assetType );
-e.f_instantiateConverterAsset( assetType, capacityElectricity_kW, capacityHeat_kW, eta_r  );
+e.f_instantiateConverterAsset( assetType, capacityElectricity_kW, capacityHeat_kW, eta_r, deliveryTemp_degC  );
 e.f_connectToParentNode( ownerAgent );]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -2003,7 +2036,7 @@ maxTemperature_degC = tup.get( storage_assets.max_temp_degc);
 setTemperature_degC = tup.get( storage_assets.set_temp_degc);
 }
 
-
+traceln("f_addPresetStorageAsset: Preset Storage Asset added: " + storageAssetPreset+", stateOfCharge = " + stateOfCharge_r+", minT = "+minTemperature_degC+", maxT = "+ maxTemperature_degC + ", setT = "+ setTemperature_degC);
 EnergyAsset e = add_pop_energyAssets( null, parentAgentID, assetType );
 e.f_instantiateStorageAsset( assetType, capacityElectricity_kW, capacityHeat_kW, stateOfCharge_r, lossFactor_WpK, chargeCapacity_kWh, heatCapacity_JpK, minTemperature_degC, maxTemperature_degC, setTemperature_degC );
 e.f_connectToParentNode( ownerAgent );]]></Body>
@@ -2560,10 +2593,10 @@ p_actorsConfigJSON = t_configActors.readString().replaceAll("^\"|\"$", "");]]></
 					</GenericParameterSubstitute>
 					<Parameters>
 						<Parameter>
-							<Name><![CDATA[p_netConnectionCategory]]></Name>
+							<Name><![CDATA[p_gridConnectionCategory]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_netConnectionType]]></Name>
+							<Name><![CDATA[p_gridConnectionType]]></Name>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_capacity_kW]]></Name>
@@ -3240,10 +3273,10 @@ p_actorsConfigJSON = t_configActors.readString().replaceAll("^\"|\"$", "");]]></
 					</GenericParameterSubstitute>
 					<Parameters>
 						<Parameter>
-							<Name><![CDATA[p_netConnectionCategory]]></Name>
+							<Name><![CDATA[p_gridConnectionCategory]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_netConnectionType]]></Name>
+							<Name><![CDATA[p_gridConnectionType]]></Name>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_capacity_kW]]></Name>
@@ -3346,10 +3379,10 @@ p_actorsConfigJSON = t_configActors.readString().replaceAll("^\"|\"$", "");]]></
 					</GenericParameterSubstitute>
 					<Parameters>
 						<Parameter>
-							<Name><![CDATA[p_netConnectionCategory]]></Name>
+							<Name><![CDATA[p_gridConnectionCategory]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_netConnectionType]]></Name>
+							<Name><![CDATA[p_gridConnectionType]]></Name>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_capacity_kW]]></Name>
@@ -3443,10 +3476,10 @@ p_actorsConfigJSON = t_configActors.readString().replaceAll("^\"|\"$", "");]]></
 					</GenericParameterSubstitute>
 					<Parameters>
 						<Parameter>
-							<Name><![CDATA[p_netConnectionCategory]]></Name>
+							<Name><![CDATA[p_gridConnectionCategory]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_netConnectionType]]></Name>
+							<Name><![CDATA[p_gridConnectionType]]></Name>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_capacity_kW]]></Name>
@@ -3540,10 +3573,10 @@ p_actorsConfigJSON = t_configActors.readString().replaceAll("^\"|\"$", "");]]></
 					</GenericParameterSubstitute>
 					<Parameters>
 						<Parameter>
-							<Name><![CDATA[p_netConnectionCategory]]></Name>
+							<Name><![CDATA[p_gridConnectionCategory]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_netConnectionType]]></Name>
+							<Name><![CDATA[p_gridConnectionType]]></Name>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_capacity_kW]]></Name>
@@ -3637,10 +3670,10 @@ p_actorsConfigJSON = t_configActors.readString().replaceAll("^\"|\"$", "");]]></
 					</GenericParameterSubstitute>
 					<Parameters>
 						<Parameter>
-							<Name><![CDATA[p_netConnectionCategory]]></Name>
+							<Name><![CDATA[p_gridConnectionCategory]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_netConnectionType]]></Name>
+							<Name><![CDATA[p_gridConnectionType]]></Name>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_capacity_kW]]></Name>
@@ -4196,7 +4229,7 @@ if (p_energyType.equals(OL_EnergyCarrierType.HEAT)) {
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[OL_NetNodeType]]></Type>
+						<Type><![CDATA[OL_GridNodeType]]></Type>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<ParameterEditor>
@@ -5131,14 +5164,14 @@ subConnections.sendToAllConnected(msg);]]></OnReceive>
 				</Variable>
 				<Variable Class="Parameter">
 					<Id>1658499438204</Id>
-					<Name><![CDATA[p_netConnectionCategory]]></Name>
+					<Name><![CDATA[p_gridConnectionCategory]]></Name>
 					<X>50</X><Y>50</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[OL_NetConnectionCategory]]></Type>
+						<Type><![CDATA[OL_GridConnectionCategory]]></Type>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<ParameterEditor>
@@ -5153,14 +5186,14 @@ subConnections.sendToAllConnected(msg);]]></OnReceive>
 				</Variable>
 				<Variable Class="Parameter">
 					<Id>1658500076242</Id>
-					<Name><![CDATA[p_netConnectionType]]></Name>
+					<Name><![CDATA[p_gridConnectionType]]></Name>
 					<X>50</X><Y>80</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[OL_NetConnectionType]]></Type>
+						<Type><![CDATA[OL_GridConnectionType]]></Type>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<ParameterEditor>
@@ -5720,7 +5753,7 @@ traceln("NetConnection connecting to " + numberOfEnergyAssets + " EnergyAssets")
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[// basic fixed consumption profiles first
 for(EnergyAsset e : c_connectedConsumptionAssets) {
-	if(p_netConnectionCategory == OL_NetConnectionCategory.HOUSE && e.p_energyAssetType == OL_EnergyAssetType.OTHER_ELECTRICITY_CONSUMPTION) {
+	if(p_gridConnectionCategory == OL_GridConnectionCategory.HOUSE && e.p_energyAssetType == OL_EnergyAssetType.OTHER_ELECTRICITY_CONSUMPTION) {
 		e.v_powerFraction_fr = main.v_currentHouseHoldOtherElectricityDemand_fr / e.p_energyAssetInstance.getElectricCapacity_kW();
 		//e.v_powerFraction_fr = 0;
 	} else {
@@ -5742,7 +5775,7 @@ for(EnergyAsset e : c_connectedProductionAssets) {
 // Flex assets: which assets need control, and what is the target? Heating, battery, EV-charging, district-heating, power to gas, etc.
 
 // House heating system super basic
-if ( p_buildingTempAsset != null && p_netConnectionCategory == OL_NetConnectionCategory.HOUSE ) {
+if ( p_buildingTempAsset != null && p_gridConnectionCategory == OL_GridConnectionCategory.HOUSE ) {
 	//J_EAStorageHeat buildingTempInstance = (J_EAStorageHeat)p_buildingTempAsset.p_energyAssetInstance;
 	//traceln("HeatCapacity " + p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW());
 	double tempSetpoint_degC = 20;
@@ -5762,7 +5795,7 @@ if ( p_buildingTempAsset != null && p_netConnectionCategory == OL_NetConnectionC
 }
 
 // District heating system, heating power based on temperature of buffer of heating system. (big or small) Heat transfer from DH_GridConnection to heat NetNode is based on temperature difference between heating-buffer and water in heating network
-if( this.p_netConnectionCategory == OL_NetConnectionCategory.DISTRICTHEATING ) {
+if( this.p_gridConnectionCategory == OL_GridConnectionCategory.DISTRICTHEATING ) {
 	double tempSetpoint_degC = 60;	
 	double storageTemp_degC = p_buildingTempAsset.p_energyAssetInstance.getCurrentTemperature();
 	//traceln("District heating storage temperature " + storageTemp_degC + " degC" + ", district heating network temperature " + p_parentNodeHeat.p_transportBuffer.getCurrentTemperature() + " deg C" );
@@ -6389,7 +6422,7 @@ else {
 		((GridNode) myParentAgent).f_connectToChild(this);
 	}
 	else {
-		traceln("f_connectToParentNode in EnergyAsset: no parent to connect to!");
+		traceln("f_connectToParentNode in EnergyAsset: no parent to connect to! "+this.toString() );
 	}
 }
 ]]></Body>
@@ -6499,6 +6532,10 @@ if(p_energyAssetInstance instanceof J_EAConsumption) {
 						<Name><![CDATA[eta_r]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
+					<Parameter>
+						<Name><![CDATA[deliveryTemp_degC]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
 					<Body><![CDATA[switch(assetType) {
 	case GAS_BURNER:
 		p_energyAssetInstance = (J_EAConversionGasBurner)p_energyAssetInstance;
@@ -6506,7 +6543,11 @@ if(p_energyAssetInstance instanceof J_EAConsumption) {
 	break;
 	case HEAT_PUMP_AIR: //EnergyAsset ownerAssetAgent, double capacityElectricity_kW, double eta_r, double baseTemperature_degC, double outputTemperature_degC
 		p_energyAssetInstance = (J_EAConversionHeatPump)p_energyAssetInstance;
-		p_energyAssetInstance = new J_EAConversionHeatPump( this, capacityElectric_kW, eta_r,main.v_currentAmbientTemperature_degC,60 );
+		p_energyAssetInstance = new J_EAConversionHeatPump( this, capacityElectric_kW, eta_r, main.v_currentAmbientTemperature_degC, deliveryTemp_degC );
+	break;
+	case HEAT_PUMP_GROUND:
+		p_energyAssetInstance = (J_EAConversionHeatPump)p_energyAssetInstance;
+		p_energyAssetInstance = new J_EAConversionHeatPump( this, capacityElectric_kW, eta_r, main.p_undergroundTemperature_degC, deliveryTemp_degC );
 	break;
 	case HEAT_DELIVERY_SET: 
 		p_energyAssetInstance = (J_EAConversionHeatDeliverySet)p_energyAssetInstance;
@@ -7123,8 +7164,8 @@ double minx = 100;
 double maxx = minx + 800;
 
 // count the number of HS/MS and MS/LS nodes for spacing
-List<GridNode> HSNetnodes = filter( main.pop_gridNodes, n -> n.p_nodeType == OL_NetNodeType.HSMS  );
-List<GridNode> MSNetnodes = filter( main.pop_gridNodes, n -> n.p_nodeType == OL_NetNodeType.MSLS );
+List<GridNode> HSNetnodes = filter( main.pop_gridNodes, n -> n.p_nodeType == OL_GridNodeType.HSMS  );
+List<GridNode> MSNetnodes = filter( main.pop_gridNodes, n -> n.p_nodeType == OL_GridNodeType.MSLS );
 List<GridNode> HeatNodes = filter( main.pop_gridNodes, n -> n.p_energyType == OL_EnergyCarrierType.HEAT );
 //List<NetConnection> Houses = filter( main.netConnections, b -> b.p_netConnectionCategory.equals("house") );
 //List<NetConnection> Windfarms = filter( main.netConnections, b -> b.p_netConnectionCategory.equals("windfarm") );
@@ -7147,7 +7188,7 @@ for ( Iterator<GridNode> it = HSNetnodes.iterator(); it.hasNext(); index++ )
 //    traceln(netnode + ":" + index);
     String nodeName = netnode.p_agentID;
     String parent = netnode.p_parentNodeID;
-    OL_NetNodeType nodeType = netnode.p_nodeType;
+    OL_GridNodeType nodeType = netnode.p_nodeType;
 	UI_GridNode hs = add_uI_GridNodes( nodeName, nodeType );
 	hs.setXY( ( minx + ( xinterval / 2 ) + ( index * xinterval ) ) , ylevel);
 	hs.realAgent.connectTo(netnode);
@@ -7166,7 +7207,7 @@ for ( Iterator<GridNode> it = MSNetnodes.iterator(); it.hasNext(); index++ )
     GridNode netnode = it.next();
 //    traceln(netnode + ":" + index);
 	String nodeName = netnode.p_agentID;
-	OL_NetNodeType nodeType = netnode.p_nodeType;
+	OL_GridNodeType nodeType = netnode.p_nodeType;
     String parent = netnode.p_parentNodeID;
 	UI_GridNode ms = add_uI_GridNodes( nodeName, nodeType );
 	ms.setXY( ( minx + ( xinterval / 2 ) + ( index * xinterval ) ) , ylevel);
@@ -7186,7 +7227,7 @@ for ( Iterator<GridNode> it = HeatNodes.iterator(); it.hasNext(); index++ )
     GridNode netnode = it.next();
 //    traceln(netnode + ":" + index);
 	String nodeName = netnode.p_agentID;
-	OL_NetNodeType nodeType = netnode.p_nodeType;
+	OL_GridNodeType nodeType = netnode.p_nodeType;
     String parent = netnode.p_parentNodeID;
 	UI_GridNode hn = add_uI_GridNodes( nodeName, nodeType );
 	hn.setXY( ( minx + ( xinterval / 2 ) + ( index * xinterval ) ) , ylevel);
@@ -7205,8 +7246,8 @@ for ( Iterator<GridConnection> it = NetConnections.iterator(); it.hasNext(); ind
     GridConnection netconnection = it.next();
 //    traceln(netnode + ":" + index);
 	String netConnectionName = netconnection.p_agentID;
-	OL_NetConnectionCategory netConnectionCategory = netconnection.p_netConnectionCategory;
-	OL_NetConnectionType netConnectionType = netconnection.p_netConnectionType;
+	OL_GridConnectionCategory netConnectionCategory = netconnection.p_gridConnectionCategory;
+	OL_GridConnectionType netConnectionType = netconnection.p_gridConnectionType;
     String parentElectric = netconnection.p_parentNodeElectricID;
     String parentHeat = netconnection.p_parentNodeHeatID;
 	UI_GridConnection nc = add_uI_GridConnections( netConnectionName, netConnectionCategory, netConnectionType );
@@ -7225,7 +7266,7 @@ for ( Iterator<GridConnection> it = NetConnections.iterator(); it.hasNext(); ind
 		nc.connectTo(q);
 
 		// district heating plants line up to heat node
-		if( netConnectionCategory == OL_NetConnectionCategory.DISTRICTHEATING ) {
+		if( netConnectionCategory == OL_GridConnectionCategory.DISTRICTHEATING ) {
 			double parentx = q.getX() ;
 			double parenty = q.getY();
 			nc.setXY( parentx +50 , parenty - 50 );
@@ -7970,7 +8011,7 @@ v_energySupplierBalanceTotal_eur = v_energySupplierBalanceElectricity_eur + v_en
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[OL_NetNodeType]]></Type>
+						<Type><![CDATA[OL_GridNodeType]]></Type>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<ParameterEditor>
@@ -8367,7 +8408,7 @@ t_nodetype.setText(p_nodeType);]]></Body>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[OL_NetConnectionCategory]]></Type>
+						<Type><![CDATA[OL_GridConnectionCategory]]></Type>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<ParameterEditor>
@@ -8388,7 +8429,7 @@ t_nodetype.setText(p_nodeType);]]></Body>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[OL_NetConnectionType]]></Type>
+						<Type><![CDATA[OL_GridConnectionType]]></Type>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<ParameterEditor>
@@ -14049,10 +14090,10 @@ public void f_connectToChild(Agent ConnectingParentNode){
 			</ExtendsReference>
 			<Parameters>
 				<Parameter>
-					<Name><![CDATA[p_netConnectionCategory]]></Name>
+					<Name><![CDATA[p_gridConnectionCategory]]></Name>
 				</Parameter>
 				<Parameter>
-					<Name><![CDATA[p_netConnectionType]]></Name>
+					<Name><![CDATA[p_gridConnectionType]]></Name>
 				</Parameter>
 				<Parameter>
 					<Name><![CDATA[p_capacity_kW]]></Name>
@@ -15127,10 +15168,10 @@ public void f_operateAssets(){
 			</ExtendsReference>
 			<Parameters>
 				<Parameter>
-					<Name><![CDATA[p_netConnectionCategory]]></Name>
+					<Name><![CDATA[p_gridConnectionCategory]]></Name>
 				</Parameter>
 				<Parameter>
-					<Name><![CDATA[p_netConnectionType]]></Name>
+					<Name><![CDATA[p_gridConnectionType]]></Name>
 				</Parameter>
 				<Parameter>
 					<Name><![CDATA[p_capacity_kW]]></Name>
@@ -15268,7 +15309,7 @@ public void f_operateAssets(){
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[// basic fixed consumption profiles first
 for(EnergyAsset e : c_connectedConsumptionAssets) {
-	if(p_netConnectionCategory == OL_NetConnectionCategory.BUILDING && e.p_energyAssetType == OL_EnergyAssetType.OTHER_ELECTRICITY_CONSUMPTION) {
+	if(p_gridConnectionCategory == OL_GridConnectionCategory.BUILDING && e.p_energyAssetType == OL_EnergyAssetType.OTHER_ELECTRICITY_CONSUMPTION) {
 		e.v_powerFraction_fr = main.v_currentBuildingOtherElectricityDemand_fr;
 		//e.v_powerFraction_fr = 0;
 	} else {
@@ -15290,7 +15331,7 @@ for(EnergyAsset e : c_connectedProductionAssets) {
 // Flex assets: which assets need control, and what is the target? Heating, battery, EV-charging, district-heating, power to gas, etc.
 
 // House heating system super basic
-if ( p_buildingTempAsset != null && p_netConnectionCategory == OL_NetConnectionCategory.HOUSE ) {
+if ( p_buildingTempAsset != null && p_gridConnectionCategory == OL_GridConnectionCategory.HOUSE ) {
 	//J_EAStorageHeat buildingTempInstance = (J_EAStorageHeat)p_buildingTempAsset.p_energyAssetInstance;
 	//traceln("HeatCapacity " + p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW());
 	double tempSetpoint_degC = 20;
@@ -15310,7 +15351,7 @@ if ( p_buildingTempAsset != null && p_netConnectionCategory == OL_NetConnectionC
 }
 
 // District heating system, heating power based on temperature of buffer of heating system. (big or small) Heat transfer from DH_GridConnection to heat NetNode is based on temperature difference between heating-buffer and water in heating network
-if( this.p_netConnectionCategory == OL_NetConnectionCategory.DISTRICTHEATING ) {
+if( this.p_gridConnectionCategory == OL_GridConnectionCategory.DISTRICTHEATING ) {
 	double tempSetpoint_degC = 60;	
 	double storageTemp_degC = p_buildingTempAsset.p_energyAssetInstance.getCurrentTemperature();
 	//traceln("District heating storage temperature " + storageTemp_degC + " degC" + ", district heating network temperature " + p_parentNodeHeat.p_transportBuffer.getCurrentTemperature() + " deg C" );
@@ -15409,10 +15450,10 @@ public void f_operateAssets(){
 			</ExtendsReference>
 			<Parameters>
 				<Parameter>
-					<Name><![CDATA[p_netConnectionCategory]]></Name>
+					<Name><![CDATA[p_gridConnectionCategory]]></Name>
 				</Parameter>
 				<Parameter>
-					<Name><![CDATA[p_netConnectionType]]></Name>
+					<Name><![CDATA[p_gridConnectionType]]></Name>
 				</Parameter>
 				<Parameter>
 					<Name><![CDATA[p_capacity_kW]]></Name>
@@ -15608,13 +15649,14 @@ for(EnergyAsset e : c_connectedProductionAssets) {
 // Flex assets: which assets need control, and what is the target? Heating, battery, EV-charging, district-heating, power to gas, etc.
 
 // District heating system, heating power based on temperature of buffer of heating system. (big or small) Heat transfer from DH_GridConnection to heat NetNode is based on temperature difference between heating-buffer and water in heating network
-if( this.p_netConnectionCategory == OL_NetConnectionCategory.DISTRICTHEATING ) {
-	double tempSetpoint_degC = 60;	
+if( this.p_gridConnectionCategory == OL_GridConnectionCategory.DISTRICTHEATING ) {
+	double tempSetpoint_degC = p_buildingTempAsset.p_energyAssetInstance.getSetTemperature_degC();	
 	double storageTemp_degC = p_buildingTempAsset.p_energyAssetInstance.getCurrentTemperature();
 	//traceln("District heating storage temperature " + storageTemp_degC + " degC" + ", district heating network temperature " + p_parentNodeHeat.p_transportBuffer.getCurrentTemperature() + " deg C" );
 	double heatTransferToNetworkCoefficient_kWpK = 10;
 	double heatTransferToNetwork_kW = max(min(storageTemp_degC,tempSetpoint_degC)-p_parentNodeHeat.p_transportBuffer.getCurrentTemperature(), 0) * heatTransferToNetworkCoefficient_kWpK;
 	
+	traceln("GCDistrictHeating f_Operate..() "+this.toString()+"|| storageTemp_degC = "+storageTemp_degC);
 	if (storageTemp_degC < tempSetpoint_degC) {
 		//traceln("heatCapacity heatingSystem " + p_spaceHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
 		double maxHeatingPower_kW = p_HeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();
@@ -15625,8 +15667,6 @@ if( this.p_netConnectionCategory == OL_NetConnectionCategory.DISTRICTHEATING ) {
 		p_HeatingAsset.v_powerFraction_fr = 0;
 		p_buildingTempAsset.v_powerFraction_fr = - heatTransferToNetwork_kW / p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW();
 	}
-	
-	
 	//traceln("District heating power fraction " + p_HeatingAsset.v_powerFraction_fr);
 }
 /*
@@ -15711,10 +15751,10 @@ public void f_operateAssets(){
 			</ExtendsReference>
 			<Parameters>
 				<Parameter>
-					<Name><![CDATA[p_netConnectionCategory]]></Name>
+					<Name><![CDATA[p_gridConnectionCategory]]></Name>
 				</Parameter>
 				<Parameter>
-					<Name><![CDATA[p_netConnectionType]]></Name>
+					<Name><![CDATA[p_gridConnectionType]]></Name>
 				</Parameter>
 				<Parameter>
 					<Name><![CDATA[p_capacity_kW]]></Name>
@@ -15852,7 +15892,7 @@ public void f_operateAssets(){
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[// basic fixed consumption profiles first
 for(EnergyAsset e : c_connectedConsumptionAssets) {
-	if(p_netConnectionCategory == OL_NetConnectionCategory.HOUSE && e.p_energyAssetType == OL_EnergyAssetType.OTHER_ELECTRICITY_CONSUMPTION) {
+	if(p_gridConnectionCategory == OL_GridConnectionCategory.HOUSE && e.p_energyAssetType == OL_EnergyAssetType.OTHER_ELECTRICITY_CONSUMPTION) {
 		e.v_powerFraction_fr = main.v_currentHouseHoldOtherElectricityDemand_fr / e.p_energyAssetInstance.getElectricCapacity_kW();
 		//e.v_powerFraction_fr = 0;
 	} else {
@@ -15994,10 +16034,10 @@ public void f_operateAssets(){
 			</ExtendsReference>
 			<Parameters>
 				<Parameter>
-					<Name><![CDATA[p_netConnectionCategory]]></Name>
+					<Name><![CDATA[p_gridConnectionCategory]]></Name>
 				</Parameter>
 				<Parameter>
-					<Name><![CDATA[p_netConnectionType]]></Name>
+					<Name><![CDATA[p_gridConnectionType]]></Name>
 				</Parameter>
 				<Parameter>
 					<Name><![CDATA[p_capacity_kW]]></Name>
@@ -16135,7 +16175,7 @@ public void f_operateAssets(){
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[// basic fixed consumption profiles first
 for(EnergyAsset e : c_connectedConsumptionAssets) {
-	if(p_netConnectionCategory == OL_NetConnectionCategory.HOUSE && e.p_energyAssetType == OL_EnergyAssetType.OTHER_ELECTRICITY_CONSUMPTION) {
+	if(p_gridConnectionCategory == OL_GridConnectionCategory.HOUSE && e.p_energyAssetType == OL_EnergyAssetType.OTHER_ELECTRICITY_CONSUMPTION) {
 		e.v_powerFraction_fr = main.v_currentHouseHoldOtherElectricityDemand_fr / e.p_energyAssetInstance.getElectricCapacity_kW();
 		//e.v_powerFraction_fr = 0;
 	} else {
@@ -16157,7 +16197,7 @@ for(EnergyAsset e : c_connectedProductionAssets) {
 // Flex assets: which assets need control, and what is the target? Heating, battery, EV-charging, district-heating, power to gas, etc.
 
 // House heating system super basic
-if ( p_buildingTempAsset != null && p_netConnectionCategory == OL_NetConnectionCategory.HOUSE ) {
+if ( p_buildingTempAsset != null && p_gridConnectionCategory == OL_GridConnectionCategory.HOUSE ) {
 	//J_EAStorageHeat buildingTempInstance = (J_EAStorageHeat)p_buildingTempAsset.p_energyAssetInstance;
 	//traceln("HeatCapacity " + p_buildingTempAsset.p_energyAssetInstance.getHeatCapacity_kW());
 	double tempSetpoint_degC = 20;
@@ -16177,7 +16217,7 @@ if ( p_buildingTempAsset != null && p_netConnectionCategory == OL_NetConnectionC
 }
 
 // District heating system, heating power based on temperature of buffer of heating system. (big or small) Heat transfer from DH_GridConnection to heat NetNode is based on temperature difference between heating-buffer and water in heating network
-if( this.p_netConnectionCategory == OL_NetConnectionCategory.DISTRICTHEATING ) {
+if( this.p_gridConnectionCategory == OL_GridConnectionCategory.DISTRICTHEATING ) {
 	double tempSetpoint_degC = 60;	
 	double storageTemp_degC = p_buildingTempAsset.p_energyAssetInstance.getCurrentTemperature();
 	//traceln("District heating storage temperature " + storageTemp_degC + " degC" + ", district heating network temperature " + p_parentNodeHeat.p_transportBuffer.getCurrentTemperature() + " deg C" );
@@ -16445,7 +16485,7 @@ for(EnergyAsset s : c_connectedConversionAssets) {
 		<AnimationProperties>
 			<StopNever>true</StopNever>
 			<ExecutionMode>realTimeScaled</ExecutionMode>
-			<RealTimeScale>50.0</RealTimeScale>
+			<RealTimeScale>0.002</RealTimeScale>
 			<EnableZoomAndPanning>true</EnableZoomAndPanning>
 			<EnableDeveloperPanel>false</EnableDeveloperPanel>
 			<ShowDeveloperPanelOnStart>false</ShowDeveloperPanelOnStart>
@@ -16649,7 +16689,7 @@ for(EnergyAsset s : c_connectedConversionAssets) {
 				<Title><![CDATA[MainModel : Simulation]]></Title>	
 				<EnableDeveloperPanel>true</EnableDeveloperPanel>
 				<ShowDeveloperPanelOnStart>false</ShowDeveloperPanelOnStart>
-				<RealTimeScale>50.0</RealTimeScale>
+				<RealTimeScale>0.002</RealTimeScale>
 			</PresentationProperties>
 			<ModelTimeProperties>
 				<StopOption><![CDATA[Stop at specified time]]></StopOption>
@@ -17192,6 +17232,10 @@ public class J_EA {
     	return energyUsed_kWh;    	
     }
 
+    public double getSetTemperature_degC() {
+    	return 0;
+    }
+    
 	@Override
 	public String toString() {
 		return
@@ -17463,6 +17507,11 @@ public class J_EAStorageHeat extends base.J_EAStorage implements Serializable {
 	public double getCurrentTemperature() {
 		return temperature_degC;
 	}
+	
+	@Override
+	public double getSetTemperature_degC() {
+		return setTemperature_degC;
+	}
 
 	public double getStorageCapacity() {
 		return storageCapacity_kWh;
@@ -17521,6 +17570,8 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
 	    this.eta_r = eta_r;
 	    this.baseTemperature_degC = baseTemperature_degC;
 	    this.outputTemperature_degC = outputTemperature_degC;
+	    this.efficiency_r = eta_r * ( 273.15 + outputTemperature_degC ) / ( outputTemperature_degC - baseTemperature_degC );
+	    this.capacityHeat_kW = capacityElectric_kW * efficiency_r;
 	}
 
 	public void updateParameters(double baseTemperature_degC, double outputTemperature_degC) {
