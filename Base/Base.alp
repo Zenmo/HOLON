@@ -4,7 +4,7 @@
 	         AnyLogic Project File 
 *************************************************	         
 -->
-<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.8.0.202208091057" AlpVersion="8.7.5">
+<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.7.12.202205250339" AlpVersion="8.7.5">
 <Model>
 	<Id>1658477103134</Id>
 	<Name><![CDATA[Base]]></Name>
@@ -509,8 +509,7 @@ import java.util.Hashtable.*;
 
 import java.io.File;
 import java.io.IOException;]]></Import>
-			<StartupCode><![CDATA[//
-double startTime = System.currentTimeMillis();
+			<StartupCode><![CDATA[double startTime = System.currentTimeMillis();
 v_timeOfModelStart_ms = startTime;
 traceln("*** main start *** "+startTime);
 
@@ -1308,33 +1307,20 @@ traceln("*** main duration *** "+ v_modelStartUpDuration_s+" s");]]></StartupCod
 						</RecurrenceCode>
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
-					<Action><![CDATA[// update tijdreeksen in leesbare variabelen
-v_currentHouseHoldOtherElectricityDemand_fr = tf_p_house_e_demand_other(time(HOUR));
-v_currentBuildingOtherElectricityDemand_fr = tf_p_building_e_demand_other(time(HOUR));
-v_currentHouseHoldHotWaterDemand_fr = tf_p_house_h_demand_hot_water(time(HOUR));
-v_currentWindPowerNormalized_r = tf_p_wind_e_normalized(time(HOUR));
-v_currentSolarPowerNormalized_r = tf_p_solar_e_normalized(time(HOUR));
-v_currentAmbientTemperature_degC = tf_ambientTemperature_degC(time(HOUR));
+					<Action><![CDATA[// Update tijdreeksen in leesbare variabelen
+double tijdstap = time(HOUR);
+v_currentHouseHoldOtherElectricityDemand_fr = tf_p_house_e_demand_other(tijdstap);
+v_currentBuildingOtherElectricityDemand_fr = tf_p_building_e_demand_other(tijdstap);
+v_currentHouseHoldHotWaterDemand_fr = tf_p_house_h_demand_hot_water(tijdstap);
+v_currentWindPowerNormalized_r = tf_p_wind_e_normalized(tijdstap);
+v_currentSolarPowerNormalized_r = tf_p_solar_e_normalized(tijdstap);
+v_currentAmbientTemperature_degC = tf_ambientTemperature_degC(tijdstap);
 
-// Update incentives based on energyflows from previous timestep (or start with 'initial incentives')
-// Propagate incentives from energySuppiers/holons via connectionOwners to energyManagers in netConnections
-nationalEnergyMarket.f_updateEnergyPrice();
-for (EnergySupplier e : pop_energySuppliers) {
-	e.f_updateEnergyPrice();
-}
-for (GridOperator g : pop_gridOperators) {
-	//e.f_updateGridTariff();
-	g.f_setPriceBandsExperiment();
-}
-for (EnergyHolon e : pop_energyHolons) {
-	//e.f_updateEnergyPrice();
-	//e.f_updateOtherIncentives();
-	e.f_setPriceBandsExperiment();
-}
+// Update elektriciteitsprijzen
+f_setElectricityPrices();
 
-for (ConnectionOwner c : pop_connectionOwners) {
-	c.f_updateIncentives();
-}
+//
+
 if (p_parallelize) {
 	/*c_connectionOwners.parallelStream().forEach(c -> {
 		c.f_updateIncentives();
@@ -2154,6 +2140,36 @@ return 1;
 p_gridConnectionConfigJSON = t_configGridConnections.readString().replaceAll("^\"|\"$", "");
 p_energyAssetsConfigJSON = t_configEnergyAssets.readString().replaceAll("^\"|\"$", "");
 p_actorsConfigJSON = t_configActors.readString().replaceAll("^\"|\"$", "");]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1664894248130</Id>
+					<Name><![CDATA[f_setElectricityPrices]]></Name>
+					<X>270</X><Y>510</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[// Update incentives based on energyflows from previous timestep (or start with 'initial incentives')
+// Propagate incentives from energySuppiers/holons via connectionOwners to energyManagers in netConnections
+nationalEnergyMarket.f_updateEnergyPrice();
+for (EnergySupplier e : pop_energySuppliers) {
+	e.f_updateEnergyPrice();
+}
+for (GridOperator g : pop_gridOperators) {
+	//e.f_updateGridTariff();
+	g.f_setPriceBandsExperiment();
+}
+for (EnergyHolon e : pop_energyHolons) {
+	//e.f_updateEnergyPrice();
+	//e.f_updateOtherIncentives();
+	e.f_setPriceBandsExperiment();
+}
+
+for (ConnectionOwner c : pop_connectionOwners) {
+	c.f_updateIncentives();
+}]]></Body>
 				</Function>
 			</Functions>
 			<TableFunctions>
