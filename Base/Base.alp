@@ -2209,7 +2209,6 @@ v_currentAmbientTemperature_degC = tf_ambientTemperature_degC(tijdstap);]]></Bod
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[for(GridConnection gc : c_gridConnections) { 
-	gc.f_resetFlows();
 	gc.f_operateFixedConsumptionAssets();
 	gc.f_operateFlexAssets();
 	gc.f_updateFlows();
@@ -5826,7 +5825,7 @@ v_heatDelivered_kWh += max(-v_currentPowerHeat_kW, 0)*main.p_timeStep_h;
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1664961185842</Id>
 					<Name><![CDATA[f_operateFixedConsumptionAssets]]></Name>
-					<X>450</X><Y>350</Y>
+					<X>240</X><Y>340</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -5838,7 +5837,7 @@ v_heatDelivered_kWh += max(-v_currentPowerHeat_kW, 0)*main.p_timeStep_h;
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1664961435385</Id>
 					<Name><![CDATA[f_operateFlexAssets]]></Name>
-					<X>450</X><Y>370</Y>
+					<X>240</X><Y>360</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -5847,9 +5846,9 @@ v_heatDelivered_kWh += max(-v_currentPowerHeat_kW, 0)*main.p_timeStep_h;
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1664961625653</Id>
-					<Name><![CDATA[f_resetFlows]]></Name>
-					<X>450</X><Y>330</Y>
+					<Id>1664966781827</Id>
+					<Name><![CDATA[f_updateFlows]]></Name>
+					<X>240</X><Y>380</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -5857,19 +5856,9 @@ v_heatDelivered_kWh += max(-v_currentPowerHeat_kW, 0)*main.p_timeStep_h;
 					<Body><![CDATA[v_currentPowerElectricity_kW = 0;
 v_currentPowerMethane_kW = 0;
 v_currentPowerHydrogen_kW = 0;
-v_currentPowerHeat_kW = 0;]]></Body>
-				</Function>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1664966781827</Id>
-					<Name><![CDATA[f_updateFlows]]></Name>
-					<X>450</X><Y>390</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[for( EnergyAsset EA : c_connectedEnergyAssets ){
+v_currentPowerHeat_kW = 0;
+
+for( EnergyAsset EA : c_connectedEnergyAssets ){
 	v_currentPowerElectricity_kW += EA.v_currentConsumptionElectricity_kW - EA.v_currentProductionElectricity_kW;
 	v_currentPowerMethane_kW += EA.v_currentConsumptionMethane_kW - EA.v_currentProductionMethane_kW;
 	v_currentPowerHydrogen_kW += EA.v_currentConsumptionHydrogen_kW - EA.v_currentProductionHydrogen_kW;
@@ -6678,7 +6667,6 @@ p_energyAssetType = assetType;]]></Body>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
 					<Body><![CDATA[v_powerFraction_fr = powerFraction;
-
 v_currentProductionElectricity_kW = 0;
 v_currentConsumptionElectricity_kW = 0;
 p_energyAssetInstance.resetFlows();
@@ -14367,7 +14355,7 @@ public void f_operateFlexAssets(){
 				<Variable Class="PlainVariable">
 					<Id>1664176258798</Id>
 					<Name><![CDATA[v_currentChargingPower]]></Name>
-					<X>1210</X><Y>400</Y>
+					<X>1050</X><Y>300</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -14673,7 +14661,7 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 						<Type><![CDATA[J_EAEV]]></Type>
 					</Parameter>
 					<Body><![CDATA[if ( ev.getCurrentStateOfCharge() < 1 ) {
-	ev.charge( p_baseChargingSpeed );
+	p_EV.f_updateElectricityFlows( p_baseChargingSpeed );
 	v_currentChargingPower = p_baseChargingSpeed;
 }]]></Body>
 				</Function>
@@ -14701,7 +14689,7 @@ boolean insufficientSOCForNextTrip = requiredEnergyNextTrip_kWh > currentEnergy_
 if ( SOC < 1 ) {
 	if ( hoursToNextDeparture < 4 && (extremelyLowSOC || insufficientSOCForNextTrip)) {
 		v_currentChargingPower = p_baseChargingSpeed;
-
+		p_EV.f_updateElectricityFlows( p_baseChargingSpeed );
 	}
 	else {
 		//double[] priceAndPowerAvailable = v_electricityPriceProfile.getMarginalPrice( v_currentPowerElectricity_kW );
@@ -14713,7 +14701,7 @@ if ( SOC < 1 ) {
 }]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>RETURNS_VALUE</ReturnModificator>
+					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1664103973484</Id>
 					<Name><![CDATA[f_chargeSelfconsumption]]></Name>
@@ -14735,23 +14723,18 @@ boolean insufficientSOCForNextTrip = requiredEnergyNextTrip_kWh > currentEnergy_
 
 if ( SOC < 1 ) {
 	if ( hoursToNextDeparture < 4 && (extremelyLowSOC || insufficientSOCForNextTrip)) {
-		ev.charge( p_baseChargingSpeed );
-		return p_baseChargingSpeed;
+		p_EV.f_updateElectricityFlows( p_baseChargingSpeed );
+		v_currentChargingPower = p_baseChargingSpeed;
 	}
 	//else if ( false ){
 		//ev.charge( min( chargingAllowanceFromGC_kW, p_baseChargingSpeed ));
 		//return min( chargingAllowanceFromGC_kW, p_baseChargingSpeed );
 	//}
-	else {
-		return 0;
-	}
 }
-else {
-	return 0;
-}]]></Body>
+]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>RETURNS_VALUE</ReturnModificator>
+					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1664103994669</Id>
 					<Name><![CDATA[f_chargeBidirectional]]></Name>
@@ -14773,20 +14756,15 @@ boolean insufficientSOCForNextTrip = requiredEnergyNextTrip_kWh > currentEnergy_
 
 if ( SOC < 1 ) {
 	if ( hoursToNextDeparture < 4 && (extremelyLowSOC || insufficientSOCForNextTrip)) {
-		ev.charge( p_baseChargingSpeed );
-		return p_baseChargingSpeed;
+		p_EV.f_updateElectricityFlows( p_baseChargingSpeed );
+		v_currentChargingPower = p_baseChargingSpeed;
 	}
 	else if ( false ){
-		ev.charge( p_baseChargingSpeed );
-		return p_baseChargingSpeed;
-	}
-	else {
-		return 0;
+		p_EV.f_updateElectricityFlows( p_baseChargingSpeed );
+		v_currentChargingPower = p_baseChargingSpeed;
 	}
 }
-else {
-	return 0;
-}]]></Body>
+]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -14930,11 +14908,15 @@ if ( p_EV != null ) {
 			case BIDIRECTIONAL:
 				f_chargeBidirectional(ev);
 			break;
-		} 
+		}
 	}
-data_chargingPower.add( v_currentChargingPower );
-data_evAvailability.add( ev.getAvailability() ? 10 : 0 );
-plot_charging.updateData();
+	else {
+		p_EV.f_updateElectricityFlows( 0 ); 
+		v_currentChargingPower = 0;
+	}
+	data_chargingPower.add( v_currentChargingPower );
+	data_evAvailability.add( ev.getAvailability() ? 10 : 0 );
+	plot_charging.updateData();
 }
 ]]></Body>
 				</Function>
@@ -17439,8 +17421,8 @@ public class J_EAEV extends base.J_EAStorage implements Serializable {
 		this.energyConsumption_kWhpmk = energyConsumption_kWhpmk;
     }
     
-    public void charge(double chargingPower_kW) {
-    	//@Gillis, geen availability if statement nodig, deze laadfunctie wordt alleen aangeroepen als hij ook werkelijk thuis is.
+    public double[] charge(double chargingPower_kW) {
+    	// Geen availability if statement nodig, deze laadfunctie wordt alleen aangeroepen als hij ook werkelijk thuis is.
     	double deltaEnergy_kWh;
 
     	deltaEnergy_kWh = ( chargingPower_kW * timestep_h ) ;
@@ -17453,16 +17435,19 @@ public class J_EAEV extends base.J_EAStorage implements Serializable {
 		electricityConsumption_kW = max(-finalChargingPower_kW, 0);
 		updateStateOfCharge( finalChargingPower_kW );
 		
-		//returnEnergyFlows() nodig hier? 
+		return returnEnergyFlows(); 
     }
-
+    
 	@Override
 	public void calculateLoss() {
 		//no loss for electric batteries modeled.
 	}
 
-	@Override
+	@Override // momenteel verwijzen we door naar de charge funcite ipv deze operate. Die doen eigenlijk ehtzelfde maar neemt kW als input. De ratio input in deze functie wordt door de laadmodule als vermogen meegegeven
 	public double[] operate(double ratioOfChargeCapacity_r) {
+		return charge(ratioOfChargeCapacity_r);
+		
+		/*
 		if (availability) {
 	    	double discharge_kW = 0;
 	    	double deltaEnergy_kWh;   // to check the request with the energy currently in storage
@@ -17483,6 +17468,7 @@ public class J_EAEV extends base.J_EAStorage implements Serializable {
 		//double[] arr = {electricityProduction_kW, methaneProduction_kW, hydrogenProduction_kW, heatProduction_kW, electricityConsumption_kW, methaneConsumption_kW, hydrogenConsumption_kW, heatConsumption_kW };
     	//return arr;
 		return returnEnergyFlows();
+		*/
 	}
 
 	@Override
