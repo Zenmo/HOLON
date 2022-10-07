@@ -1,7 +1,7 @@
 # Experiments module
 
 The experiments module allows you to define your experiment in a config file and run one or
-multiple experiments sequentially. No more adjusting classes!
+multiple experiments sequentially. No more adjusting classes! Based on the existing scripts.
 
 
 ## Starting up

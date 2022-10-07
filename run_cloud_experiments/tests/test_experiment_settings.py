@@ -4,6 +4,6 @@ def test_setting():
     settings = ExperimentSettings.load()
 
     for setting in settings.all():
-        assert 'showProgress' in setting
+        assert 'show_progress' in setting
         assert 'name' in setting
         assert setting['timestep_hours'] > 0

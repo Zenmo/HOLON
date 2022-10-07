@@ -17,7 +17,7 @@ class AnyLogicExperiment(Outcomes):
         outputs = self.client.run_simulation()
         endTime_ms = round(time.time() * 1000)
 
-        print("\tAvailable outputs: ", outputs.names())
+        print("\tAvailable outputs: \n\t\t -", '\n\t\t - '.join(outputs.names()))
         self.outcomes = outputs
 
         if self.experiment.log_exceptions:
