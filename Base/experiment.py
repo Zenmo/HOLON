@@ -7,6 +7,7 @@ class Experiment:
     gridConnectionConfigData = ''
     energyAssetConfigData = ''
     actorsConfigData = ''
+    policyConfigData = ''
 
     # constructor
     def __init__(self, path, experiment_name, model_name, experiment_configxlsx, timestep_hours, forceUnCached, progressUpdates, parallelize):
@@ -37,5 +38,6 @@ class Experiment:
         self.gridConnectionConfigData = config_jsons.gridConnectionConfigJSONs
         self.energyAssetConfigData = config_jsons.energyAssetsConfigJSONs
         self.actorsConfigData = config_jsons.actorsConfigJSONs
+        self.policyConfigData = config_jsons.policyConfigJSONs
 
         

@@ -6,6 +6,7 @@ class ConfigJSONs:
     gridConnectionConfigJSONs = ''
     energyAssetsConfigJSONs = ''
     actorsConfigJSONs = ''
+    policyConfigJSONs = ''
 
     # constructor
     def __init__(self, experiment):
@@ -44,6 +45,7 @@ class ConfigJSONs:
         self.gridConnectionConfigJSONs = self.processExcelSheet('config_gridConnections')
         self.energyAssetsConfigJSONs = self.processExcelSheet('config_energyAssets')
         self.actorsConfigJSONs = self.processExcelSheet('config_actors')
+        self.policyConfigJSONs = self.processExcelSheet('config_policies')
 
 
     #if __name__ == "__main__":
