@@ -16,7 +16,7 @@ conda activate anylogicexperiments
 
 ## Starting up
 
-Go to the `config` folder and copy the `config.yml` file to `config.local.yml`. Specify
+Go to the `config` folder and copy the `config.example.yml` file to `config.yml`. Specify
 your secret API key to connect to the AnyLogic Cloud there.
 
 Next define your experiments in the `experiments.yml` file. There is an example there to help you.

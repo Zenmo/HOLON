@@ -10,4 +10,4 @@ class Config(dict):
             doc = yaml.load(f, Loader=yaml.FullLoader)
         return cls(doc)
 
-config = Config.load('config/config.local.yml')
+config = Config.load('config/config.yml')
