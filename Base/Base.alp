@@ -215,6 +215,10 @@
 				<Id>1665501776892</Id>
 				<Name><![CDATA[HYDROGEN_FURNACE]]></Name>
 			</Option>
+			<Option>
+				<Id>1666267116036</Id>
+				<Name><![CDATA[BOILER]]></Name>
+			</Option>
 		</OptionList>
 		<OptionList>
 			<Id>1659525715752</Id>
@@ -382,6 +386,10 @@
 			<Option>
 				<Id>1665500969196</Id>
 				<Name><![CDATA[Industrial_hydrogen_furnace]]></Name>
+			</Option>
+			<Option>
+				<Id>1666267164287</Id>
+				<Name><![CDATA[DH_boiler_L]]></Name>
 			</Option>
 		</OptionList>
 		<OptionList>
@@ -570,6 +578,10 @@
 			<Option>
 				<Id>1665501223992</Id>
 				<Name><![CDATA[HYDROGENFIRED]]></Name>
+			</Option>
+			<Option>
+				<Id>1666258251099</Id>
+				<Name><![CDATA[HEATPUMP_BOILERPEAK]]></Name>
 			</Option>
 		</OptionList>
 		<OptionList>
@@ -1718,8 +1730,9 @@ for(HashMap data : parsedJSONGridConnections) {
 	 	case INDUSTRY:
 	 		GCIndustry GCIndustry = add_gCIndustries(gridConnectionCategory, gridConnectionType, gridConnectionCapacity, gridConnectionParentElectric, gridConnectionID, gridConnectionParentHeat, null, null, null, ownerActorID, null, null, null, gridConnectionHeatingType);
 	 		c_gridConnections.add(GCIndustry);
+	 	break;
 	 	default:
-	 		traceln("No subagent defined for this gridConnection type!");
+	 		traceln("No subagent defined for this gridConnection type!" + gridConnectionCategory);
 	 	break;
  	}
 //	else if {
@@ -1988,7 +2001,12 @@ for (GridConnection n : c_gridConnections) {
 				f_addPresetConversionAsset( n, OL_EAPresetConversionAssets.DH_gas_burner_S );
 			break;
 			case HEATPUMP_GASPEAK:
-				f_addPresetConversionAsset( n, OL_EAPresetConversionAssets.DH_heat_pump_HT_S );
+				f_addPresetConversionAsset( n, OL_EAPresetConversionAssets.DH_heat_pump_HT_S );				
+				f_addPresetConversionAsset( n, OL_EAPresetConversionAssets.DH_gas_burner_S );
+			break;
+			case HEATPUMP_BOILERPEAK:
+				f_addPresetConversionAsset( n, OL_EAPresetConversionAssets.DH_heat_pump_HT_S );				
+				f_addPresetConversionAsset( n, OL_EAPresetConversionAssets.DH_boiler_L );
 			break;
 			default:
 				traceln("no such DH heat source modeled yet");
@@ -2030,11 +2048,11 @@ for(GridNode g : c_gridNodesHeat) {
 	OL_GridNodeType nodeType = g.p_nodeType;
 	
 	if( nodeType == OL_GridNodeType.HT ) {
-		traceln("f_addDefaultEnergyAssets debug: heat network storage asset added for gridNode "+g.toString());
+		//traceln("f_addDefaultEnergyAssets debug: heat network storage asset added for gridNode "+g.toString());
 		f_addPresetStorageAsset( g, OL_EAPresetStorageAssets.District_Heating_network_HT_S );
 	}
 	else if( nodeType == OL_GridNodeType.MT ) {
-		traceln("f_addDefaultEnergyAssets debug: heat network storage asset added for gridNode "+g.toString());
+		//traceln("f_addDefaultEnergyAssets debug: heat network storage asset added for gridNode "+g.toString());
 		f_addPresetStorageAsset( g, OL_EAPresetStorageAssets.District_Heating_network_MT_S );
 	}	
 }	
@@ -2165,12 +2183,12 @@ double deliveryTemp_degC = 0;
 String ambientTempType = "";
 
 for( Tuple tup : data ) {
-assetType = tup.get( conversion_assets.energy_asset_type );
-capacityElectricity_kW = tup.get( conversion_assets.capacity_electricity_kw );
-capacityHeat_kW = tup.get( conversion_assets.capacity_heat_kw );
-eta_r = tup.get( conversion_assets.eta_r );
-deliveryTemp_degC = tup.get( conversion_assets.delivery_temp_deg_c );
-ambientTempType = tup.get( conversion_assets.ambient_temp_type );
+	assetType = tup.get( conversion_assets.energy_asset_type );
+	capacityElectricity_kW = tup.get( conversion_assets.capacity_electricity_kw );
+	capacityHeat_kW = tup.get( conversion_assets.capacity_heat_kw );
+	eta_r = tup.get( conversion_assets.eta_r );
+	deliveryTemp_degC = tup.get( conversion_assets.delivery_temp_deg_c );
+	ambientTempType = tup.get( conversion_assets.ambient_temp_type );
 }
 
 EnergyAsset e = add_pop_energyAssets( null, parentAgentID, assetType );
@@ -2377,7 +2395,7 @@ j_experimentSettingsData.updateData( p_timeStep_h+"",
 									 
 j_dataOut.runSettingsData.add(j_experimentSettingsData);
 
-
+traceln("Model run duration: " + modelRunDuration_s + " seconds");
 
     //System.out.println(json);
 try {
@@ -5623,7 +5641,7 @@ for( Agent a : subConnections.getConnections() )
 if (p_energyType.equals(OL_EnergyCarrierType.HEAT)) { // Thermal load goes into transportBuffer
 	double v_powerFraction_fr = -v_currentLoadHeat_kW / p_transportBuffer.getHeatCapacity_kW();
 	p_transportBuffer.operate(v_powerFraction_fr);
-	traceln("DistrictHeating network water temperature " + p_transportBuffer.getCurrentTemperature() + " deg C, buffer power fraction " + v_powerFraction_fr * 100 + " %");
+	//traceln("DistrictHeating network water temperature " + p_transportBuffer.getCurrentTemperature() + " deg C, buffer power fraction " + v_powerFraction_fr * 100 + " %, transportbuffer HeatCapacity_kW " + p_transportBuffer.getHeatCapacity_kW());
 }
 
 //traceln("GridNode " + p_agentID + " update at time " + time(HOUR));
@@ -6812,7 +6830,7 @@ for( EnergyAsset EA : c_connectedEnergyAssets ){
 	v_currentPowerElectricity_kW += EA.v_currentConsumptionElectricity_kW - EA.v_currentProductionElectricity_kW;
 	v_currentPowerMethane_kW += EA.v_currentConsumptionMethane_kW - EA.v_currentProductionMethane_kW;
 	v_currentPowerHydrogen_kW += EA.v_currentConsumptionHydrogen_kW - EA.v_currentProductionHydrogen_kW;
-	v_currentPowerHeat_kW += EA.v_currentConsumptionHeat_kW -  EA.v_currentProductionHeat_kW;
+	v_currentPowerHeat_kW += EA.v_currentConsumptionHeat_kW - EA.v_currentProductionHeat_kW;
 }
 
 f_connectionMetering();
@@ -7354,30 +7372,29 @@ if( ProvidedParentConnection instanceof GridConnection ) {
 	myParentAgent = (GridConnection)myParentAgent;
 	superConnection.connectTo(myParentAgent);
 	((GridConnection) myParentAgent).f_connectToChild(this);
-} 
-else if( ProvidedParentConnection instanceof GridNode ) {
+} else if( ProvidedParentConnection instanceof GridNode ) {
 	myParentAgent = ProvidedParentConnection;
 	myParentAgent = (GridNode)myParentAgent;
 	superConnection.connectTo(myParentAgent);
 	((GridNode) myParentAgent).f_connectToChild(this);
-} 
-else {
+} else {
 	myParentAgent = findFirst(main.c_gridConnections, p->p.p_agentID.equals(p_parentAgentID));
-	//traceln("found myParentAgent: "+myParentAgent.toString());
 	if( myParentAgent != null && myParentAgent instanceof GridConnection ) {
+		//traceln("found myParentAgent gridConnection: " + myParentAgent.toString());
 		myParentAgent = (GridConnection)myParentAgent;
 		superConnection.connectTo(myParentAgent);
 		((GridConnection) myParentAgent).f_connectToChild(this);
-	}
-	myParentAgent = findFirst(main.c_gridNodes, p->p.p_agentID.equals(p_parentAgentID));
+	} else {
+		myParentAgent = findFirst(main.c_gridNodes, p->p.p_agentID.equals(p_parentAgentID));
 	
-	if (myParentAgent != null && myParentAgent instanceof GridNode ) {
-		myParentAgent = (GridNode)myParentAgent;
-		superConnection.connectTo(myParentAgent);
-		((GridNode) myParentAgent).f_connectToChild(this);
-	}
-	else {
-		traceln("f_connectToParentNode in EnergyAsset: no parent to connect to! "+this.toString() );
+		if (myParentAgent != null && myParentAgent instanceof GridNode ) {
+			//traceln("found myParentAgent gridNode: " + myParentAgent.toString());
+			myParentAgent = (GridNode)myParentAgent;
+			superConnection.connectTo(myParentAgent);
+			((GridNode) myParentAgent).f_connectToChild(this);
+		} else {
+			traceln("f_connectToParentNode in EnergyAsset: no parent to connect to! "+this.toString() );
+		}
 	}
 }
 ]]></Body>
@@ -7497,6 +7514,10 @@ v_currentStateOfCharge_r = (p_energyAssetInstance.getCurrentStateOfCharge());
 		p_energyAssetInstance = (J_EAConversionHeatPump)p_energyAssetInstance;
 		p_energyAssetInstance = new J_EAConversionHeatPump( this, capacityElectric_kW, eta_r, main.p_undergroundTemperature_degC, deliveryTemp_degC, ambientTempType );
 	break;
+	case BOILER:
+		p_energyAssetInstance = (J_EAConversionBoiler)p_energyAssetInstance;
+		p_energyAssetInstance = new J_EAConversionBoiler( this, capacityElectric_kW, eta_r, main.p_timeStep_h);
+	break;
 	case HEAT_DELIVERY_SET: 
 		p_energyAssetInstance = (J_EAConversionHeatDeliverySet)p_energyAssetInstance;
 		p_energyAssetInstance = new J_EAConversionHeatDeliverySet( this, capacityHeat_kW, eta_r );
@@ -7510,7 +7531,7 @@ v_currentStateOfCharge_r = (p_energyAssetInstance.getCurrentStateOfCharge());
 		p_energyAssetInstance = new J_EAConversionHydrogenBurner( this, capacityHeat_kW, eta_r, main.p_timeStep_h );
 	break;
 	default:
-//		traceln("exception: not a valid conversion asset!");
+		traceln("exception: not a valid conversion asset!");
 	break;
 }
 
@@ -16656,6 +16677,11 @@ public void f_operateFlexAssets(){
 			<AdditionalClassCode><![CDATA[@Override
 public void f_operateFlexAssets(){
 	f_operateAssetsDistrictHeating();
+}
+
+@Override
+public void f_connectToChild(Agent ConnectingChildNode){
+	f_connectToChildDistrictHeating(ConnectingChildNode);
 }]]></AdditionalClassCode>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
 			<ExtendsReference>
@@ -16903,7 +16929,6 @@ if ( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionGasBur
 	p_primaryHeatingAsset.f_updateAllFlows(p_primaryHeatingAsset.v_powerFraction_fr);
 	p_ThermalStorageAsset.f_updateAllFlows(p_ThermalStorageAsset.v_powerFraction_fr);
 } else if ( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatPump & p_secondaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionBoiler) { // Heatpump and eboiler, use energysurpluss
-
 	//v_bufferTemp_degC = storageTemp_degC;
 	double maxHeatPumpPower_kW = p_primaryHeatingAsset.p_energyAssetInstance.getElectricCapacity_kW();
 	((J_EAConversionHeatPump)p_primaryHeatingAsset.p_energyAssetInstance).updateParameters(main.p_undergroundTemperature_degC, storageTemp_degC); // update heatpump temp levels!
@@ -16937,17 +16962,84 @@ if ( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionGasBur
 	}	
 	double TotalHeatingPower_kWt = p_primaryHeatingAsset.v_powerFraction_fr * p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() + 
 		p_secondaryHeatingAsset.v_powerFraction_fr * p_secondaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() ;// + p_backupHeatingAsset.v_powerFraction_fr * p_backupHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();
+	
+	//traceln("Heatpump heating power: " + p_primaryHeatingAsset.v_powerFraction_fr * p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() + " kW, boiler heating power: " + p_secondaryHeatingAsset.v_powerFraction_fr * p_secondaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() + " kW, total heating power: " + TotalHeatingPower_kWt + " kW");
 	//traceln("Total thermal heating power " + TotalHeatingPower_kWt + "primary power fraction: " + p_primaryHeatingAsset.v_powerFraction_fr
 	//	+ " secondary power fraction: " + p_secondaryHeatingAsset.v_powerFraction_fr
 	//	+ " backup power fraction: " + p_backupHeatingAsset.v_powerFraction_fr );
 	p_ThermalStorageAsset.v_powerFraction_fr = (TotalHeatingPower_kWt - heatTransferToNetwork_kW) / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW();	
+	
 	p_primaryHeatingAsset.f_updateAllFlows(p_primaryHeatingAsset.v_powerFraction_fr);
 	p_secondaryHeatingAsset.f_updateAllFlows(p_secondaryHeatingAsset.v_powerFraction_fr);
 	p_ThermalStorageAsset.f_updateAllFlows(p_ThermalStorageAsset.v_powerFraction_fr);
+	//traceln("GCDistrictHeating f_operateAssetsDistrictHeating debug: heatTransferToNetwork_kW = "+heatTransferToNetwork_kW );
+
+}
+traceln("District heating " + p_parentNodeHeatID + " storage temperature " + storageTemp_degC + " degC" + ", district heating network temperature " + p_parentNodeHeat.p_transportBuffer.getCurrentTemperature() + " deg C" );	
+]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1666266296956</Id>
+					<Name><![CDATA[f_connectToChildDistrictHeating]]></Name>
+					<X>250</X><Y>220</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[ConnectingChildNode]]></Name>
+						<Type><![CDATA[Agent]]></Type>
+					</Parameter>
+					<Body><![CDATA[subConnections.connectTo(ConnectingChildNode);
+EnergyAsset EA = (EnergyAsset) ConnectingChildNode;
+c_connectedEnergyAssets.add(EA);
+
+if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
+	c_connectedConsumptionAssets.add(EA);
+} else if (EA.p_energyAssetInstance instanceof J_EAProduction ) {
+	c_connectedProductionAssets.add(EA);
+} else if (EA.p_energyAssetInstance instanceof J_EAStorage ) {
+	c_connectedStorageAssets.add(EA);
+	if (EA.p_energyAssetInstance instanceof J_EAStorageHeat) {
+		p_ThermalStorageAsset = EA;
+	} 
+} else if (EA.p_energyAssetInstance instanceof J_EAConversion) {
+	c_connectedConversionAssets.add(EA);
+	if (EA.p_energyAssetInstance instanceof J_EAConversionGasBurner || EA.p_energyAssetInstance instanceof J_EAConversionHeatPump || EA.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet || EA.p_energyAssetInstance instanceof J_EAConversionBoiler ) {
+		if (p_primaryHeatingAsset == null) {
+			p_primaryHeatingAsset = EA;
+		} else if (p_secondaryHeatingAsset == null) {
+			p_secondaryHeatingAsset = EA;
+		} else {
+			traceln("District Heating gridconnection already has two heating systems!");
+		}
+		//traceln("heatingAsset class " + p_spaceHeatingAsset.getClass().toString());
+	} 
+} else {
+	traceln("f_connectToChild in EnergyAsset: Exception! EnergyAsset " + ConnectingChildNode.getId() + " is of unknown type or null! ");
 }
 
-traceln("GCDistrictHeating f_operateAssetsDistrictHeating debug: heatTransferToNetwork_kW = "+heatTransferToNetwork_kW );
-traceln("District heating storage temperature " + storageTemp_degC + " degC" + ", district heating network temperature " + p_parentNodeHeat.p_transportBuffer.getCurrentTemperature() + " deg C" );
+
+/*
+// create a local list of energyAssets connected to its netConnection Agent for easy reference
+List<EnergyAsset> connectedEnergyAssets = subConnections.getConnections();
+
+int numberOfEnergyAssets = connectedEnergyAssets.size();
+for( int i = 0; i < numberOfEnergyAssets; i++ ) {
+	if( connectedEnergyAssets.get(i) instanceof EnergyAsset ) {
+		c_connectedEnergyAssets.add(connectedEnergyAssets.get(i));
+
+	}
+}
+
+List<EnergyAsset> consumptionAssets = filter(c_connectedEnergyAssets, b -> b.p_energyAssetInstance instanceof J_EAConsumption);
+List<EnergyAsset> productionAssets = filter(c_connectedEnergyAssets, b -> b.p_energyAssetInstance instanceof J_EAProduction);
+List<EnergyAsset> storageAssets = filter(c_connectedEnergyAssets, b -> b.p_energyAssetInstance instanceof J_EAStorage);
+List<EnergyAsset> conversionAssets = filter(c_connectedEnergyAssets, b -> b.p_energyAssetInstance instanceof J_EAConversion);
+traceln("NetConnection connecting to " + numberOfEnergyAssets + " EnergyAssets");
+*/
 ]]></Body>
 				</Function>
 			</Functions>
@@ -18659,11 +18751,11 @@ for( EnergyAsset c : c_connectedConversionAssets ) {
 			</Parameters>			
 			<PresentationProperties>
 				<EnableZoomAndPanning>true</EnableZoomAndPanning>
-				<ExecutionMode><![CDATA[realTimeScaled]]></ExecutionMode>
+				<ExecutionMode><![CDATA[virtualTime]]></ExecutionMode>
 				<Title><![CDATA[MainModel : Simulation]]></Title>	
 				<EnableDeveloperPanel>true</EnableDeveloperPanel>
 				<ShowDeveloperPanelOnStart>false</ShowDeveloperPanelOnStart>
-				<RealTimeScale>0.002</RealTimeScale>
+				<RealTimeScale>1.0</RealTimeScale>
 			</PresentationProperties>
 			<ModelTimeProperties>
 				<StopOption><![CDATA[Stop at specified time]]></StopOption>
@@ -19560,11 +19652,13 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
 		this.baseTemperature_degC = baseTemperature_degC;
 		this.outputTemperature_degC = outputTemperature_degC;
 		efficiency_r = eta_r * ( 273.15 + outputTemperature_degC ) / ( outputTemperature_degC - baseTemperature_degC );
+	    this.capacityHeat_kW = capacityElectric_kW * efficiency_r;
 	}
 
 	public void updateAmbientTemp(double baseTemperature_degC) {
 		this.outputTemperature_degC = outputTemperature_degC;
 		efficiency_r = eta_r * ( 273.15 + outputTemperature_degC ) / ( outputTemperature_degC - this.baseTemperature_degC );
+	    this.capacityHeat_kW = capacityElectric_kW * efficiency_r;
 	}
 	
 	@Override
@@ -19572,12 +19666,17 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
     	this.electricityConsumption_kW = ratioOfCapacity * capacityElectric_kW;
     	this.heatProduction_kW = electricityConsumption_kW * efficiency_r;
     	
-    	this.energyUsed_kWh += timestep_h * (electricityConsumption_kW - heatProduction_kW); // This represents 'losses'! For a heat-pump, this is actually energy 'production'!
+    	this.energyUsed_kWh += timestep_h * (electricityConsumption_kW - heatProduction_kW); // This represents 'losses'! For a heat-pump, this is actually energy production, due to the greater-than-one efficiency!
     	//double[] arr = {this.electricityProduction_kW, this.methaneProduction_kW, this.hydrogenProduction_kW, this.heatProduction_kW, this.electricityConsumption_kW, this.methaneConsumption_kW, this.hydrogenConsumption_kW, this.heatConsumption_kW };
     	//return arr;
-    	traceln("J_EAConversionHeatPump operate function debug | operating @ "+ratioOfCapacity*100+" % capacity ** capacityElectric_kW = "+capacityElectric_kW+", eta_r = "+eta_r+", baseTemperature_degC = "+baseTemperature_degC+", deliveryTemp_degC = "+outputTemperature_degC+", efficiency_r = "+efficiency_r+", capacityHeat_kW = "+capacityHeat_kW+". ");
+    	//traceln("J_EAConversionHeatPump operate function debug | operating @ "+ratioOfCapacity*100+" % capacity ** capacityElectric_kW = "+capacityElectric_kW+", eta_r = "+eta_r+", baseTemperature_degC = "+baseTemperature_degC+", deliveryTemp_degC = "+outputTemperature_degC+", efficiency_r = "+efficiency_r+", capacityHeat_kW = "+capacityHeat_kW+". ");
     	return returnEnergyFlows();
 	}
+	
+	@Override
+    public double getHeatCapacity_kW() {
+    	return efficiency_r * capacityElectric_kW;
+    }
 
 	@Override
 	public String toString() {
