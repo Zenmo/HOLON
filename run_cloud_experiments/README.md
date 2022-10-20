@@ -3,6 +3,16 @@
 The experiments module allows you to define your experiment in a config file and run one or
 multiple experiments sequentially. No more adjusting classes! Based on the existing scripts.
 
+## Installation
+
+### Conda
+This will create and activate the an environment that includes all the requirements.
+```bash
+conda env create -f environment.yml
+conda activate anylogicexperiments
+```
+
+### Pipenv
 
 ## Starting up
 
