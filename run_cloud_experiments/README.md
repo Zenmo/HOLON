@@ -25,6 +25,10 @@ pipenv install
 
 Go to the `config` folder and copy the `config.example.yml` file to `config.yml`. Specify
 your secret API key to connect to the AnyLogic Cloud there.
+```bash
+# ~/run_cloud_experiments
+cp ./config/config.example.yml ./config/config.yml
+```
 
 Next define your experiments in the `experiments.yml` file. There is an example there to help you.
 
