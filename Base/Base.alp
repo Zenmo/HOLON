@@ -6122,6 +6122,21 @@ subConnections.sendToAllConnected(msg);]]></OnReceive>
 						<Type><![CDATA[TreeMap<Double, Double>]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1666282164534</Id>
+					<Name><![CDATA[v_previousPowerElectricity_kW]]></Name>
+					<X>250</X><Y>250</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1658499438204</Id>
 					<Name><![CDATA[p_gridConnectionCategory]]></Name>
@@ -6626,7 +6641,12 @@ if( myParentEnergySupplier instanceof EnergySupplier) {
 	superConnection.connectTo(myParentEnergySupplier);
 	myParentEnergySupplier.f_connectToChild(this);
 }
-]]></Body>
+EnergyHolon myParentEnergyHolon = findFirst(main.pop_energyHolons, p->p.p_actorID.equals(p_ownerID)) ;
+if( myParentEnergyHolon instanceof EnergyHolon) {
+	p_ownerActor = myParentEnergyHolon;
+	superConnection.connectTo(myParentEnergyHolon);
+	myParentEnergyHolon.f_connectToChild(this);
+}]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -6832,7 +6852,7 @@ for( EnergyAsset EA : c_connectedEnergyAssets ){
 	v_currentPowerHydrogen_kW += EA.v_currentConsumptionHydrogen_kW - EA.v_currentProductionHydrogen_kW;
 	v_currentPowerHeat_kW += EA.v_currentConsumptionHeat_kW - EA.v_currentProductionHeat_kW;
 }
-
+v_previousPowerElectricity_kW = v_currentPowerElectricity_kW;
 f_connectionMetering();
 
 // Total Energy Use and Production
@@ -13347,6 +13367,21 @@ Operator]]></Text>
 						<Type><![CDATA[TreeMap<Double, Double>]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1666281611364</Id>
+					<Name><![CDATA[v_electricitySurpluss_kW]]></Name>
+					<X>40</X><Y>460</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1660736326709</Id>
 					<Name><![CDATA[p_actorID]]></Name>
@@ -13580,7 +13615,9 @@ for(Agent a :  subConnections.getConnections() ) {
 //		traceln("Collecting current energy transfer from child HOLONs not yet implemented");
 	}
 	
-}]]></Body>
+}
+
+v_electricitySurpluss_kW = -v_electricityVolume_kWh / main.p_timeStep_h;]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>RETURNS_VALUE</ReturnModificator>
@@ -16911,12 +16948,12 @@ double heatTransferToNetworkCoefficient_kWpK = 10;
 double heatTransferToNetwork_kW = max(min(storageTemp_degC,tempSetpoint_degC)-p_parentNodeHeat.p_transportBuffer.getCurrentTemperature(), 0) * heatTransferToNetworkCoefficient_kWpK;
 
 double electricitySurplussHolon_kW = 0;
-/* 
+ 
 if (p_ownerActor instanceof EnergyHolon){	
 	electricitySurplussHolon_kW = ((EnergyHolon)p_ownerActor).v_electricitySurpluss_kW + v_previousPowerElectricity_kW; // From last timestep! So compensate for own electric power
-	//traceln("DH function! Electricity surpluss in HOLON: " + electricitySurplussHolon_kW + ", own power " + v_previousPowerElectricity_kW,1 );
+	traceln("DH function! Electricity surpluss in HOLON: " + electricitySurplussHolon_kW + ", own power " + v_previousPowerElectricity_kW,1 );
 } 
-*/
+
 
 if ( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionGasBurner & p_secondaryHeatingAsset == null) { // Only gas burner, use simple thermostat controller
 	if (storageTemp_degC < tempSetpoint_degC) {
