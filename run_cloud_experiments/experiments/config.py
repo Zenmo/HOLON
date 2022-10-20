@@ -1,4 +1,6 @@
+from pathlib import Path
 import yaml
+
 
 class Config(dict):
     def __init__(self, *args, **kwargs):
@@ -10,4 +12,4 @@ class Config(dict):
             doc = yaml.load(f, Loader=yaml.FullLoader)
         return cls(doc)
 
-config = Config.load('config/config.yml')
+config = Config.load(Path(__file__).parent.parent / 'config/config.yml')
