@@ -8,11 +8,18 @@ multiple experiments sequentially. No more adjusting classes! Based on the exist
 ### Conda
 This will create and activate the an environment that includes all the requirements.
 ```bash
+# ~/run_cloud_experiments
 conda env create -f environment.yml
 conda activate anylogicexperiments
 ```
 
 ### Pipenv
+
+```bash
+# ~/run_cloud_experiments
+pip install --user pipenv
+pipenv install
+```
 
 ## Starting up
 
