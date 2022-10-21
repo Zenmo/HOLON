@@ -1,4 +1,7 @@
-class Inputs():
+from anylogiccloudclient.client.cloud_error import CloudError
+
+
+class Inputs:
     @property
     def inputs(self):
         return self._inputs
@@ -11,15 +14,24 @@ class Inputs():
         self._set_local()
 
     def _version(self, model_name):
-        return self.client.get_latest_model_version(model_name)
+        try:
+            return self.client.get_latest_model_version(model_name)
+        except CloudError as e:
+            raise KeyError(
+                f"Could not retrieve the model you specified for this model_name: '{model_name}'."
+                + f" Please check whether the model is shared (as dev) with you at {self.client.host_url}."
+                + f" Caught CloudError: {e}"
+            )
 
     def _set_config_sheets(self):
         for input in self.experiment.inputs:
-            self._set_config_sheet(input['anylogic_key'], input['file'])
+            self._set_config_sheet(input["anylogic_key"], input["file"])
 
     def _set_config_sheet(self, input_name, config_sheet):
         try:
-            self._inputs.set_input(input_name, self.experiment.config_json_for(config_sheet))
+            self._inputs.set_input(
+                input_name, self.experiment.config_json_for(config_sheet)
+            )
         except StopIteration:
             raise KeyError(f"Input {input_name} is unkown to the model")
 
