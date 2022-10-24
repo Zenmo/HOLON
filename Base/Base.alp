@@ -1969,6 +1969,10 @@ for (GridConnection n : c_gridConnections) {
 		else if(heatingType == OL_GridConnectionHeatingType.GASBURNER ) {
 			f_addPresetConversionAsset( n, OL_EAPresetConversionAssets.House_gas_burner);
 		}
+		else if(heatingType == OL_GridConnectionHeatingType.HEATPUMP_GASPEAK) {
+			f_addPresetConversionAsset( n, OL_EAPresetConversionAssets.House_heatpump_MT_M);
+			f_addPresetConversionAsset( n, OL_EAPresetConversionAssets.House_gas_burner);
+		}
 		f_addPresetStorageAsset( n, OL_EAPresetStorageAssets.EV);
 	}
 
@@ -13612,6 +13616,10 @@ for(Agent a :  subConnections.getConnections() ) {
 		v_heatVolume_kWh += n.v_heatVolume_kWh;
 		v_methaneVolume_kWh += n.v_methaneVolume_kWh;
 	} else if (a instanceof EnergyHolon) {
+		EnergyHolon n = (EnergyHolon)a;
+		v_electricityVolume_kWh += n.v_electricityVolume_kWh;
+		v_heatVolume_kWh += n.v_heatVolume_kWh;
+		v_methaneVolume_kWh += n.v_methaneVolume_kWh;
 //		traceln("Collecting current energy transfer from child HOLONs not yet implemented");
 	}
 	
@@ -16102,20 +16110,57 @@ combinedPrice = supplierPrice + currentGridPrice + holonPrice;
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[if ( p_ThermalStorageAsset != null ) {
-	double tempSetpoint_degC = 20;
+	double tempSetpoint_degC = 20; // This line doesn't have to be evaluated every timestep!
 	double houseTemp = p_ThermalStorageAsset.p_energyAssetInstance.getCurrentTemperature();
 	p_ThermalStorageAsset.p_energyAssetInstance.updateAmbientTemperature(main.v_currentAmbientTemperature_degC);	
-
-//	traceln("f_manageHeatingAssets houseTemp = " + houseTemp);
-	if (houseTemp < tempSetpoint_degC) {
-		double powerDemand_kW = (tempSetpoint_degC - houseTemp) * ((J_EAStorageHeat)p_ThermalStorageAsset.p_energyAssetInstance).getHeatCapacity_JpK() / 3.6e6;
-//		traceln("f_manageHeating Assets houseTemp = " + houseTemp + ", powerDemand_kW = "+powerDemand_kW);
-		p_primaryHeatingAsset.v_powerFraction_fr = powerDemand_kW / p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();
-		p_ThermalStorageAsset.v_powerFraction_fr = powerDemand_kW / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW();
-	} 
-	else {
-		p_primaryHeatingAsset.v_powerFraction_fr = 0;
-		p_ThermalStorageAsset.v_powerFraction_fr = 0;
+	if ( p_secondaryHeatingAsset == null ) { // Just one heating asset
+		if ( p_primaryHeatingAsset== null )  {
+			traceln("No heating assets for house " + p_agentID);
+		} else {
+			if ( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionGasBurner) { // when there is only a gas burner
+			//	traceln("f_manageHeatingAssets houseTemp = " + houseTemp);
+				if (houseTemp < tempSetpoint_degC) {
+					double powerDemand_kW = (tempSetpoint_degC - houseTemp) * ((J_EAStorageHeat)p_ThermalStorageAsset.p_energyAssetInstance).getHeatCapacity_JpK() / 3.6e6;
+			//		traceln("f_manageHeating Assets houseTemp = " + houseTemp + ", powerDemand_kW = "+powerDemand_kW);
+					p_primaryHeatingAsset.v_powerFraction_fr = powerDemand_kW / p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();
+					p_ThermalStorageAsset.v_powerFraction_fr = powerDemand_kW / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW();
+				} 
+				else {
+					p_primaryHeatingAsset.v_powerFraction_fr = 0;
+					p_ThermalStorageAsset.v_powerFraction_fr = 0;
+				}
+			} 
+		}
+	} else { // Two heating assets
+		if ( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatPump & p_secondaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionGasBurner) { // Heatpump and gasburner, switch based on heatpump COP)
+			if (houseTemp < tempSetpoint_degC) {
+				((J_EAConversionHeatPump)p_primaryHeatingAsset.p_energyAssetInstance).updateAmbientTemp(main.v_currentAmbientTemperature_degC); // update heatpump temp levels!
+				double HP_COP = ((J_EAConversionHeatPump)p_primaryHeatingAsset.p_energyAssetInstance).getCOP();
+				double COP_tres = 3.5; // TODO: Make data agnostic! Also, this line doesn't have to be evaluated every timestep.
+				double powerDemand_kW = (tempSetpoint_degC - houseTemp) * ((J_EAStorageHeat)p_ThermalStorageAsset.p_energyAssetInstance).getHeatCapacity_JpK() / 3.6e6;
+				if ( HP_COP < COP_tres ) { // switch to gasburner when HP COP is below treshold
+					traceln("Hybrid HP: Switching to gas burner");
+					p_secondaryHeatingAsset.v_powerFraction_fr = powerDemand_kW / p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();			
+					p_primaryHeatingAsset.v_powerFraction_fr = 0;
+				} else { // heatpump when COP is above treshold
+					traceln("Hybrid HP: Using heatpump with COP " + HP_COP);
+					p_primaryHeatingAsset.v_powerFraction_fr = powerDemand_kW / p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();			
+					p_secondaryHeatingAsset.v_powerFraction_fr = 0;
+				}
+		//		traceln("f_manageHeating Assets houseTemp = " + houseTemp + ", powerDemand_kW = "+powerDemand_kW);
+				p_primaryHeatingAsset.v_powerFraction_fr = powerDemand_kW / p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();
+				p_ThermalStorageAsset.v_powerFraction_fr = powerDemand_kW / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW();
+			} 
+			else {
+				p_primaryHeatingAsset.v_powerFraction_fr = 0;
+				p_ThermalStorageAsset.v_powerFraction_fr = 0;
+			}
+		} else {
+			traceln("Unsupported combination of heatings systems in house " + p_agentID);
+			p_primaryHeatingAsset.v_powerFraction_fr = 0;
+			p_ThermalStorageAsset.v_powerFraction_fr = 0;		
+		}
+	p_secondaryHeatingAsset.f_updateAllFlows(p_secondaryHeatingAsset.v_powerFraction_fr);
 	}
 }
 
@@ -16124,12 +16169,14 @@ p_ThermalStorageAsset.f_updateAllFlows(p_ThermalStorageAsset.v_powerFraction_fr)
 
 
 // Conversion operation hard-coded test-value
+/*
 for(EnergyAsset s : c_connectedConversionAssets) {
 	if(s.p_energyAssetType == OL_EnergyAssetType.HEAT_PUMP_AIR) {
 		//s.p_EnergyAssetTypeString.updateParameters();
 		s.v_powerFraction_fr = 0;  // conversion value
 	}
-}]]></Body>
+}*/
+]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -16227,7 +16274,13 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 } else if (EA.p_energyAssetInstance instanceof J_EAConversion) {
 	c_connectedConversionAssets.add(EA);
 	if (EA.p_energyAssetInstance instanceof J_EAConversionGasBurner || EA.p_energyAssetInstance instanceof J_EAConversionHeatPump || EA.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet ) {
-		p_primaryHeatingAsset = EA;
+		if (p_primaryHeatingAsset == null) {
+			p_primaryHeatingAsset = EA;
+		} else if (p_secondaryHeatingAsset == null) {
+			p_secondaryHeatingAsset = EA;
+		} else {
+			traceln("House " + p_agentID + " already has two heating systems!");
+		}
 		//traceln("heatingAsset class " + p_spaceHeatingAsset.getClass().toString());
 	} 
 } else {
@@ -19693,9 +19746,13 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
 	}
 
 	public void updateAmbientTemp(double baseTemperature_degC) {
-		this.outputTemperature_degC = outputTemperature_degC;
+		this.baseTemperature_degC = baseTemperature_degC;
 		efficiency_r = eta_r * ( 273.15 + outputTemperature_degC ) / ( outputTemperature_degC - this.baseTemperature_degC );
 	    this.capacityHeat_kW = capacityElectric_kW * efficiency_r;
+	}
+	
+	public double getCOP() {
+		return this.efficiency_r;
 	}
 	
 	@Override
