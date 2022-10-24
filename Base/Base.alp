@@ -5136,7 +5136,7 @@ if (p_energyType.equals(OL_EnergyCarrierType.HEAT)) {
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1665061187538</Id>
-					<Name><![CDATA[v_congestedLastTimestep]]></Name>
+					<Name><![CDATA[v_congested]]></Name>
 					<X>800</X><Y>240</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -5740,10 +5740,7 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 			owner.v_buyCongestionPrice_eurpkWh = price_eurpkWh;
 			owner.v_congestionTariffAllowance_kW = allowance_kW;
 			owner.v_congestionTariff = true;
-			owner.v_congestionPriceRecentlyChanged = true;
-	}
-	else {
-		owner.v_congestionPriceRecentlyChanged = false;
+			owner.v_updatePriceBands = true;
 	}
 }]]></Body>
 				</Function>
@@ -5770,12 +5767,9 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 	ConnectionOwner owner = ((ConnectionOwner)gc.p_ownerActor);
 	if( !owner.v_congestionTariff ) {
 		owner.v_congestionTariff = true;
-		owner.v_congestionPriceRecentlyChanged = true;
+		owner.v_updatePriceBands = true;
 		owner.v_sellCongestionPrice_eurpkWh = price_eurpkWh;
-		owner.v_congestionTariffAllowance_kW = 0;
-	}
-	else {
-		owner.v_congestionPriceRecentlyChanged = false;
+		owner.v_congestionTariffAllowance_kW = -allowance_kW;
 	}
 }]]></Body>
 				</Function>
@@ -5784,6 +5778,7 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1666560316436</Id>
 					<Name><![CDATA[f_resetCongestionTariffs]]></Name>
+					<Description><![CDATA[Gridoperator roept deze functie alleen aan als deze node vorige tijdstap congested was maar nu niet meer.]]></Description>
 					<X>800</X><Y>360</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -5791,15 +5786,11 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[for (GridConnection gc: c_electricityGridConnections){
 	ConnectionOwner owner = ((ConnectionOwner)gc.p_ownerActor);
-	if( owner.v_congestionTariff = true ) {
-			owner.v_congestionTariff = false;
-			owner.v_congestionPriceRecentlyChanged = true;
-			owner.v_buyCongestionPrice_eurpkWh = 0;
-			owner.v_congestionTariffAllowance_kW = 0;
-	}
-	else {
-		owner.v_congestionPriceRecentlyChanged = false;
-	}
+	owner.v_congestionTariff = false;
+	owner.v_updatePriceBands = true;
+	owner.v_buyCongestionPrice_eurpkWh = 0;
+	owner.v_sellCongestionPrice_eurpkWh = 0;
+	owner.v_congestionTariffAllowance_kW = 0;
 }]]></Body>
 				</Function>
 			</Functions>
@@ -11025,7 +11016,7 @@ t_nodetype.setText(p_nodeType);]]></Body>
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[OL_ContractType]]></Type>        
 						<InitialValue Class="CodeValue">
-							<Code><![CDATA[ELECTRICITY_FIXED]]></Code>
+							<Code><![CDATA[OL_ContractType.ELECTRICITY_FIXED]]></Code>
 						</InitialValue>
 					</Properties>
 				</Variable>
@@ -11231,9 +11222,6 @@ t_nodetype.setText(p_nodeType);]]></Body>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[double]]></Type>        
-						<InitialValue Class="CodeValue">
-							<Code><![CDATA[0.2]]></Code>
-						</InitialValue>
 					</Properties>
 				</Variable>
 				<Variable Class="PlainVariable">
@@ -11273,15 +11261,12 @@ t_nodetype.setText(p_nodeType);]]></Body>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[double]]></Type>        
-						<InitialValue Class="CodeValue">
-							<Code><![CDATA[0.2]]></Code>
-						</InitialValue>
 					</Properties>
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1666531537644</Id>
 					<Name><![CDATA[v_sellCongestionPrice_eurpkWh]]></Name>
-					<X>240</X><Y>550</Y>
+					<X>240</X><Y>570</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -11296,7 +11281,7 @@ t_nodetype.setText(p_nodeType);]]></Body>
 				<Variable Class="PlainVariable">
 					<Id>1666531542032</Id>
 					<Name><![CDATA[v_buyCongestionPrice_eurpkWh]]></Name>
-					<X>240</X><Y>570</Y>
+					<X>240</X><Y>550</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -11325,16 +11310,17 @@ t_nodetype.setText(p_nodeType);]]></Body>
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1666531581003</Id>
-					<Name><![CDATA[v_congestionPriceRecentlyChanged]]></Name>
+					<Name><![CDATA[v_updatePriceBands]]></Name>
+					<Description><![CDATA[Not visible as it is swtiched on and of in between timesteps ( for fixed tarifs at least)]]></Description>
 					<X>660</X><Y>570</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
+					<PresentationFlag>false</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[boolean]]></Type>        
 						<InitialValue Class="CodeValue">
-							<Code><![CDATA[false]]></Code>
+							<Code><![CDATA[true]]></Code>
 						</InitialValue>
 					</Properties>
 				</Variable>
@@ -11611,12 +11597,16 @@ for(GridConnection n :  subConnections.getConnections() ) {
 if (v_electricityContractType == OL_ContractType.ELECTRICITY_VARIABLE) {
 	if (p_energySupplier instanceof EnergySupplier) {
 		v_electricityBuyPrice_eurpkWh =((EnergySupplier)p_energySupplier).f_getEnergyPrice(v_electricityContractType);
+		v_electricitySellPrice_eurpkWh = -v_electricityBuyPrice_eurpkWh;
 	} else if (p_energySupplier instanceof EnergyHolon) {
 		v_electricityBuyPrice_eurpkWh =((EnergyHolon)p_energySupplier).f_getEnergyPrice(v_electricityContractType);
+		v_electricitySellPrice_eurpkWh = -v_electricityBuyPrice_eurpkWh;
 	}
 }
 
-f_setElectricityPriceBands();
+if( v_updatePriceBands ){
+	f_setElectricityPriceBands();
+}
 
 // Update energy balance
 v_electricitySurpluss_kW = 0;
@@ -11647,28 +11637,21 @@ for(GridConnection c : subConnections.getConnections()){
 	break;
 	case ELECTRICITY_FIXED:
 	// we gaan er hieronder vanuit dat de energiebelasting bij de fixed e price in zit. Itt bij het variabele tarief
-		if (v_congestionPriceRecentlyChanged){
-			v_currentPriceBands = new TreeMap<Double, Double>();
-			if(v_congestionTariff){
-				//In geval van salderen (dus we moeten nog invoeren dat salderen aan of uit kan)
-				v_currentPriceBands.put(-999.0, main.p_fixedElectricityPrice_eurpkWh + v_sellCongestionPrice_eurpkWh);
-				v_currentPriceBands.put(0.0, 0.0);
-				v_currentPriceBands.put(999.0, main.p_fixedElectricityPrice_eurpkWh + v_buyCongestionPrice_eurpkWh);
-				if (v_congestionTariffAllowance_kW != 0){
-					v_currentPriceBands.put( v_congestionTariffAllowance_kW,  main.p_fixedElectricityPrice_eurpkWh );
-				}
-			}
-			else {
-				v_currentPriceBands.put(-999.0, main.p_fixedElectricityPrice_eurpkWh);
-				v_currentPriceBands.put(0.0, 0.0);
-				v_currentPriceBands.put(999.0, main.p_fixedElectricityPrice_eurpkWh);
-			}
+		v_updatePriceBands = false;
+		v_currentPriceBands = new TreeMap<Double, Double>();
+		//In geval van salderen (dus we moeten nog invoeren dat salderen aan of uit kan)
+		v_currentPriceBands.put(-999.0, - main.p_fixedElectricityPrice_eurpkWh + v_sellCongestionPrice_eurpkWh);
+		v_currentPriceBands.put(0.0, 0.0);
+		v_currentPriceBands.put(999.0, main.p_fixedElectricityPrice_eurpkWh + v_buyCongestionPrice_eurpkWh);
+		if (v_congestionTariffAllowance_kW != 0){
+			v_currentPriceBands.put( v_congestionTariffAllowance_kW,  main.p_fixedElectricityPrice_eurpkWh );
 		}
 	break;
 	default:
 		//traceln("Connection owner --> f_setPriceBands --> grid owner doenst have electricity contract");
 	break;
 }
+
 	]]></Body>
 				</Function>
 			</Functions>
@@ -15152,34 +15135,29 @@ else {
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[for( GridNode n : c_electricityGridNodes ){
 	if ( n.v_currentLoadElectricity_kW > v_congestionThreshold_fr * n.p_capacity_kW  ){
-		//traceln(n.p_agentID + " is overheating due to consumption");
 		if( b_congestionPricingConsumption ) {
 			n.f_setConsumptionCongestionTariff(v_congestionPriceConsumption_eurpkWh, v_congestionAllowanceLevel_kW);
-			//traceln(n.p_agentID+" has set congestion tariff bands for congestion");
 		}
-		n.v_congestedLastTimestep = true;
+		n.v_congested = true;
 		n.v_congestionMode = "Overconsumption";
 		if (!c_congestedGNConsumption.contains(n)){ c_congestedGNConsumption.add(n); }
 	}
 	else if ( n.v_currentLoadElectricity_kW < -  v_congestionThreshold_fr * n.p_capacity_kW ){
-		//traceln(n.p_agentID + " is overheating due to production");
 		if( b_congestionPricingProduction ) {
-			n.f_setProductionCongestionTariff(v_congestionPriceProduction_eurpkWh, v_congestionAllowanceLevel_kW);
-			//traceln(n.p_agentID+" has set congestion tariff bands for congestion");
+			n.f_setProductionCongestionTariff(v_congestionPriceProduction_eurpkWh, 5); // momenteel zijn er GEEN allowance levels voor production
 		}
-		n.v_congestedLastTimestep = true;
+		n.v_congested = true;
 		n.v_congestionMode = "Overproduction";
 		if (!c_congestedGNProduction.contains(n)){ c_congestedGNProduction.add(n); }
 	}
 	else {
-		if ( n.v_congestedLastTimestep ){
+		if ( n.v_congested ){
 			n.f_resetCongestionTariffs();
-			n.v_congestedLastTimestep = false;
+			n.v_congested = false;
 			n.v_congestionMode = "None";
 			if (c_congestedGNProduction.contains(n)){ c_congestedGNProduction.remove(c_congestedGNProduction.indexOf(n));}
 			if (c_congestedGNConsumption.contains(n)){ c_congestedGNConsumption.remove(c_congestedGNConsumption.indexOf(n));}
 		}
-		//traceln(n.p_agentID + " is operating within capacity limits");
 	}
 }
 
@@ -18924,7 +18902,7 @@ for( EnergyAsset c : c_connectedConversionAssets ) {
 			</Parameters>			
 			<PresentationProperties>
 				<EnableZoomAndPanning>true</EnableZoomAndPanning>
-				<ExecutionMode><![CDATA[virtualTime]]></ExecutionMode>
+				<ExecutionMode><![CDATA[realTimeScaled]]></ExecutionMode>
 				<Title><![CDATA[MainModel : Simulation]]></Title>	
 				<EnableDeveloperPanel>true</EnableDeveloperPanel>
 				<ShowDeveloperPanelOnStart>false</ShowDeveloperPanelOnStart>
