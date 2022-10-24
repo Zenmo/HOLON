@@ -2640,7 +2640,7 @@ for(GridOperator g : pop_gridOperators) {
 	g.v_congestionPriceProduction_eurpkWh = v_congestionPrice;
 	g.v_congestionThreshold_fr = v_congestionThreshold;
 	g.b_congestionPricingConsumption = b_congestionPricingConsumption;
-	g.b_congestionPricingProduction = b_congestionPricingProduction;
+	g.b_congestionPricingProduction = true;//b_congestionPricingProduction;
 }
 ]]></Body>
 				</Function>
@@ -15152,7 +15152,6 @@ else {
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[for( GridNode n : c_electricityGridNodes ){
 	if ( n.v_currentLoadElectricity_kW > v_congestionThreshold_fr * n.p_capacity_kW  ){
-		c_congestedGNConsumption.add(n);
 		//traceln(n.p_agentID + " is overheating due to consumption");
 		if( b_congestionPricingConsumption ) {
 			n.f_setConsumptionCongestionTariff(v_congestionPriceConsumption_eurpkWh, v_congestionAllowanceLevel_kW);
@@ -15160,9 +15159,9 @@ else {
 		}
 		n.v_congestedLastTimestep = true;
 		n.v_congestionMode = "Overconsumption";
+		if (!c_congestedGNConsumption.contains(n)){ c_congestedGNConsumption.add(n); }
 	}
 	else if ( n.v_currentLoadElectricity_kW < -  v_congestionThreshold_fr * n.p_capacity_kW ){
-		c_congestedGNProduction.add(n);
 		//traceln(n.p_agentID + " is overheating due to production");
 		if( b_congestionPricingProduction ) {
 			n.f_setProductionCongestionTariff(v_congestionPriceProduction_eurpkWh, v_congestionAllowanceLevel_kW);
@@ -15170,14 +15169,15 @@ else {
 		}
 		n.v_congestedLastTimestep = true;
 		n.v_congestionMode = "Overproduction";
+		if (!c_congestedGNProduction.contains(n)){ c_congestedGNProduction.add(n); }
 	}
 	else {
 		if ( n.v_congestedLastTimestep ){
 			n.f_resetCongestionTariffs();
 			n.v_congestedLastTimestep = false;
 			n.v_congestionMode = "None";
-			c_congestedGNProduction.remove(n);
-			c_congestedGNConsumption.remove(n);
+			if (c_congestedGNProduction.contains(n)){ c_congestedGNProduction.remove(c_congestedGNProduction.indexOf(n));}
+			if (c_congestedGNConsumption.contains(n)){ c_congestedGNConsumption.remove(c_congestedGNConsumption.indexOf(n));}
 		}
 		//traceln(n.p_agentID + " is operating within capacity limits");
 	}
