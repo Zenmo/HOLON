@@ -5149,6 +5149,18 @@ if (p_energyType.equals(OL_EnergyCarrierType.HEAT)) {
 						</InitialValue>
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1666594510176</Id>
+					<Name><![CDATA[v_congestionMode]]></Name>
+					<X>800</X><Y>270</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[String]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1658477613290</Id>
 					<Name><![CDATA[p_agentID]]></Name>
@@ -5523,10 +5535,16 @@ if( myParentGridOperator instanceof GridOperator) {
 					</Parameter>
 					<Body><![CDATA[subConnections.connectTo(ConnectingChildNode);
 
+if ( ConnectingChildNode instanceof GCHouse ||
+	 ConnectingChildNode instanceof GCBuilding ||
+	 ConnectingChildNode instanceof GCIndustry)
+	 {
+	 c_electricityGridConnections.add( (GridConnection)ConnectingChildNode );
+}
+
 if( ConnectingChildNode instanceof EnergyAsset ) {
 	EnergyAsset EA = (EnergyAsset) ConnectingChildNode;
 	c_connectedEnergyAssets.add(EA);
-
 	if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 		c_connectedConsumptionAssets.add(EA);
 	} else if (EA.p_energyAssetInstance instanceof J_EAProduction ) {
@@ -5702,7 +5720,7 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1666556555538</Id>
 					<Name><![CDATA[f_setConsumptionCongestionTariff]]></Name>
-					<X>800</X><Y>270</Y>
+					<X>800</X><Y>300</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>false</PresentationFlag>
@@ -5734,7 +5752,7 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1666556578433</Id>
 					<Name><![CDATA[f_setProductionCongestionTariff]]></Name>
-					<X>800</X><Y>300</Y>
+					<X>800</X><Y>330</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>false</PresentationFlag>
@@ -5766,7 +5784,7 @@ v_heatDelivered_kWh += max(-v_currentLoadHeat_kW, 0)*main.p_timeStep_h;]]></Body
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1666560316436</Id>
 					<Name><![CDATA[f_resetCongestionTariffs]]></Name>
-					<X>800</X><Y>330</Y>
+					<X>800</X><Y>360</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -15037,6 +15055,36 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 					</Properties>
 
 				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1666594012871</Id>
+					<Name><![CDATA[c_congestedGNProduction]]></Name>
+					<X>280</X><Y>50</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
+						<ElementClass><![CDATA[GridNode]]></ElementClass>
+						<ValueElementClass><![CDATA[String]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1666594046997</Id>
+					<Name><![CDATA[c_congestedGNConsumption]]></Name>
+					<X>280</X><Y>70</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
+						<ElementClass><![CDATA[GridNode]]></ElementClass>
+						<ValueElementClass><![CDATA[String]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
 			</Variables>
 			<Functions>
 				<Function AccessType="default" StaticFunction="false">
@@ -15104,24 +15152,33 @@ else {
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[for( GridNode n : c_electricityGridNodes ){
 	if ( n.v_currentLoadElectricity_kW > v_congestionThreshold_fr * n.p_capacity_kW  ){
+		c_congestedGNConsumption.add(n);
 		//traceln(n.p_agentID + " is overheating due to consumption");
 		if( b_congestionPricingConsumption ) {
 			n.f_setConsumptionCongestionTariff(v_congestionPriceConsumption_eurpkWh, v_congestionAllowanceLevel_kW);
 			//traceln(n.p_agentID+" has set congestion tariff bands for congestion");
 		}
 		n.v_congestedLastTimestep = true;
+		n.v_congestionMode = "Overconsumption";
 	}
 	else if ( n.v_currentLoadElectricity_kW < -  v_congestionThreshold_fr * n.p_capacity_kW ){
+		c_congestedGNProduction.add(n);
 		//traceln(n.p_agentID + " is overheating due to production");
-		if( b_congestionPricingConsumption ) {
+		if( b_congestionPricingProduction ) {
 			n.f_setProductionCongestionTariff(v_congestionPriceProduction_eurpkWh, v_congestionAllowanceLevel_kW);
 			//traceln(n.p_agentID+" has set congestion tariff bands for congestion");
 		}
 		n.v_congestedLastTimestep = true;
+		n.v_congestionMode = "Overproduction";
 	}
 	else {
-		n.f_resetCongestionTariffs();
-		n.v_congestedLastTimestep = false;
+		if ( n.v_congestedLastTimestep ){
+			n.f_resetCongestionTariffs();
+			n.v_congestedLastTimestep = false;
+			n.v_congestionMode = "None";
+			c_congestedGNProduction.remove(n);
+			c_congestedGNConsumption.remove(n);
+		}
 		//traceln(n.p_agentID + " is operating within capacity limits");
 	}
 }
@@ -17040,7 +17097,7 @@ double electricitySurplussHolon_kW = 0;
  
 if (p_ownerActor instanceof EnergyHolon){	
 	electricitySurplussHolon_kW = ((EnergyHolon)p_ownerActor).v_electricitySurpluss_kW + v_previousPowerElectricity_kW; // From last timestep! So compensate for own electric power
-	traceln("DH function! Electricity surpluss in HOLON: " + electricitySurplussHolon_kW + ", own power " + v_previousPowerElectricity_kW,1 );
+	//traceln("DH function! Electricity surpluss in HOLON: " + electricitySurplussHolon_kW + ", own power " + v_previousPowerElectricity_kW,1 );
 } 
 
 
@@ -17101,7 +17158,7 @@ if ( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionGasBur
 	//traceln("GCDistrictHeating f_operateAssetsDistrictHeating debug: heatTransferToNetwork_kW = "+heatTransferToNetwork_kW );
 
 }
-traceln("District heating " + p_parentNodeHeatID + " storage temperature " + storageTemp_degC + " degC" + ", district heating network temperature " + p_parentNodeHeat.p_transportBuffer.getCurrentTemperature() + " deg C" );	
+//traceln("District heating " + p_parentNodeHeatID + " storage temperature " + storageTemp_degC + " degC" + ", district heating network temperature " + p_parentNodeHeat.p_transportBuffer.getCurrentTemperature() + " deg C" );	
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
