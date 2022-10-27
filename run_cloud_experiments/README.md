@@ -29,6 +29,12 @@ your secret API key to connect to the AnyLogic Cloud there.
 # ~/run_cloud_experiments
 cp ./config/config.example.yml ./config/config.yml
 ```
+Go to the `config` folder and copy the `experiments.example.yml` file to `experiments.yml`. Specify
+your experiments there
+```bash
+# ~/run_cloud_experiments
+cp ./config/experiments.example.yml ./config/experiments.yml
+```
 
 Next define your experiments in the `experiments.yml` file. There is an example there to help you.
 
