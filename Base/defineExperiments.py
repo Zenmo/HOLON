@@ -9,21 +9,21 @@ showProgress = False
 parallelize = False
 
 ##
-# Experiment default
-# experiment_default = exp.Experiment(|
-#     path,
-#     "default",
-#     "BaseParTest",
-#     # "BaseParallel",
-#     "db_backboneConfig.xlsx",
-#     1,
-#     forceUncached,
-#     showProgress,
-#     parallelize,
-# )
-# experiment_default.printSettings()
-# experiment_default.generateConfigJSONs()
-# experiment_default.actorsConfigData
+# #Experiment default
+experiment_default = exp.Experiment(
+    path,
+    "default",
+    "BaseParTest",
+    # "BaseParallel",
+    "db_backboneConfig.xlsx",
+    1,
+     forceUncached,
+     showProgress,
+     parallelize,
+ )
+experiment_default.printSettings()
+experiment_default.generateConfigJSONs()
+experiment_default.actorsConfigData
 
 # # Run experiment in AnyLogic Cloud
 # api_experiment_default = api.AnyLogicExperiment(experiment_default)
