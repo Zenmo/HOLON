@@ -33,6 +33,7 @@ class Experiment:
             yield "P force uncached", random.random()
         if self.parallelize:
             yield "P parallelize", self.parallelize
+        yield "P import local config jsons", False
 
     def config_json_for(self, sheet_name):
         '''Returns a JSON containing the config information'''
