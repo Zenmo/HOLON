@@ -14,6 +14,9 @@ class InputJSON:
             self._write()
         return json.loads(self.data)
 
-    def _write(self):
+    def _write(self, formatted: bool = False):
         with open(self.write_to_path, "w") as outfile:
-            outfile.writelines([self.data])
+            if formatted:
+                outfile.write(json.dumps(json.loads(self.data), indent=2))
+            else:
+                outfile.writelines([self.data])
