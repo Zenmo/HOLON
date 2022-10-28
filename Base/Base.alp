@@ -89,7 +89,7 @@
 			</Option>
 			<Option>
 				<Id>1666957097189</Id>
-				<Name><![CDATA[DISTRICTBATTERY]]></Name>
+				<Name><![CDATA[GRIDBATTERY]]></Name>
 			</Option>
 		</OptionList>
 		<OptionList>
@@ -152,8 +152,8 @@
 				<Name><![CDATA[INDUSTRY_OTHER]]></Name>
 			</Option>
 			<Option>
-				<Id>1666950841617</Id>
-				<Name><![CDATA[INDUSTRY]]></Name>
+				<Id>1666967705762</Id>
+				<Name><![CDATA[LOGISTICS]]></Name>
 			</Option>
 		</OptionList>
 		<OptionList>
@@ -489,7 +489,7 @@
 			</Option>
 			<Option>
 				<Id>1666959280721</Id>
-				<Name><![CDATA[District_Battery_500_kWh]]></Name>
+				<Name><![CDATA[Grid_battery]]></Name>
 			</Option>
 		</OptionList>
 		<OptionList>
@@ -1968,9 +1968,9 @@ for(HashMap data : parsedJSONGridConnections) {
 	 		GCIndustry GCIndustry = add_gCIndustries(gridConnectionCategory, gridConnectionType, gridConnectionCapacity, gridConnectionParentElectric, gridConnectionID, gridConnectionParentHeat, null, null, null, ownerActorID, null, null, null, gridConnectionHeatingType);
 	 		c_gridConnections.add(GCIndustry);
 	 	break;
-	 	case DISTRICTBATTERY:
-	 		GCDistrictBattery GCDistrictBattery = add_gCDistrictBatteries(gridConnectionCategory, gridConnectionType, gridConnectionCapacity, gridConnectionParentElectric, gridConnectionID, gridConnectionParentHeat, null, null, null, ownerActorID, null, null, null, gridConnectionHeatingType);
-	 		c_gridConnections.add(GCDistrictBattery);
+	 	case GRIDBATTERY:
+	 		GCGridBattery GCGridBattery = add_gCGridBatteries(gridConnectionCategory, gridConnectionType, gridConnectionCapacity, gridConnectionParentElectric, gridConnectionID, gridConnectionParentHeat, null, null, null, ownerActorID, null, null, null, gridConnectionHeatingType);
+	 		c_gridConnections.add(GCGridBattery);
 	 	break;
 	 	default:
 	 		traceln("No subagent defined for this gridConnection type!" + gridConnectionCategory);
@@ -2246,6 +2246,9 @@ for (GridConnection n : c_gridConnections) {
 				f_addPresetConsumptionAsset( n, OL_EAPresetConsumptionAssets.Office_other_electricity);
 			break;
 			case STORE:
+				f_addPresetConsumptionAsset( n, OL_EAPresetConsumptionAssets.Store_other_electricity);
+			break;
+			case LOGISTICS:
 				f_addPresetConsumptionAsset( n, OL_EAPresetConsumptionAssets.Store_other_electricity);
 			break;
 			default:
@@ -4933,7 +4936,7 @@ for(GridNode m : c_gridNodesMSLS ) {
 				</EmbeddedObject>
 				<EmbeddedObject>
 					<Id>1666957373353</Id>
-					<Name><![CDATA[gCDistrictBatteries]]></Name>
+					<Name><![CDATA[gCGridBatteries]]></Name>
 					<X>300</X><Y>160</Y>
 					<Label><X>15</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -4941,12 +4944,12 @@ for(GridNode m : c_gridNodesMSLS ) {
 					<ShowLabel>true</ShowLabel>
 					<ActiveObjectClass>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[GCDistrictBattery]]></ClassName>
+						<ClassName><![CDATA[GCGridBattery]]></ClassName>
 					</ActiveObjectClass>
 					<GenericParameterSubstitute>
 						<GenericParameterSubstituteReference>
 							<PackageName><![CDATA[base]]></PackageName>
-							<ClassName><![CDATA[GCDistrictBattery]]></ClassName>
+							<ClassName><![CDATA[GCGridBattery]]></ClassName>
 							<ItemName><![CDATA[1666956363817]]></ItemName>
 						</GenericParameterSubstituteReference>
 					</GenericParameterSubstitute>
@@ -10123,7 +10126,7 @@ t_nodetype.setText(p_nodeType);]]></Body>
   industry.setVisible(true);
   industry.setPos(0, 0, 0);
   break;
-  case DISTRICTBATTERY:
+  case GRIDBATTERY:
   battery.setVisible(true);
   battery.setPos(0, 0, 0);
   break;
@@ -19388,10 +19391,10 @@ for( EnergyAsset c : c_connectedConversionAssets ) {
 		<!--   =========   Active Object Class   ========  -->
 		<ActiveObjectClass>
 			<Id>1666956363819</Id>
-			<Name><![CDATA[GCDistrictBattery]]></Name>
+			<Name><![CDATA[GCGridBattery]]></Name>
 			<AdditionalClassCode><![CDATA[@Override
 public void f_connectToChild(Agent ConnectingParentNode){
-	f_connectToChildDistrictBattery(ConnectingParentNode);
+	f_connectToChildGridBattery(ConnectingParentNode);
 }
 
 //@Override
@@ -19400,7 +19403,7 @@ public void f_connectToChild(Agent ConnectingParentNode){
 //}
 @Override 
 public void f_operateFlexAssets(){
-	f_operateAssetsDistrictBattery();
+	f_runFlexAssets();
 }]]></AdditionalClassCode>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
 			<ExtendsReference>
@@ -19551,8 +19554,8 @@ public void f_operateFlexAssets(){
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1666956397906</Id>
-					<Name><![CDATA[f_connectToChildDistrictBattery]]></Name>
-					<X>250</X><Y>220</Y>
+					<Name><![CDATA[f_connectToChildGridBattery]]></Name>
+					<X>530</X><Y>210</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19615,12 +19618,32 @@ traceln("NetConnection connecting to " + numberOfEnergyAssets + " EnergyAssets")
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1666956527771</Id>
-					<Name><![CDATA[f_operateAssetsDistrictBattery]]></Name>
+					<Name><![CDATA[f_runFlexAssets]]></Name>
 					<X>740</X><Y>230</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1666967854749</Id>
+					<Name><![CDATA[f_runFixedConsumptionAssets]]></Name>
+					<X>740</X><Y>210</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[for(EnergyAsset e : c_connectedConsumptionAssets) {
+	if( e.p_energyAssetType == OL_EnergyAssetType.OTHER_ELECTRICITY_CONSUMPTION ) {
+		e.f_updateElectricityFlows( main.v_currentBuildingOtherElectricityDemand_fr );
+	}
+	else {
+		traceln("household has other consumption assets than 'other electricity consumption'");
+		e.v_powerFraction_fr = 0;
+	}
+}]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
