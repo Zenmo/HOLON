@@ -87,6 +87,10 @@
 				<Id>1665480199198</Id>
 				<Name><![CDATA[INDUSTRY]]></Name>
 			</Option>
+			<Option>
+				<Id>1666957097189</Id>
+				<Name><![CDATA[DISTRICTBATTERY]]></Name>
+			</Option>
 		</OptionList>
 		<OptionList>
 			<Id>1659118272924</Id>
@@ -482,6 +486,10 @@
 			<Option>
 				<Id>1664541052353</Id>
 				<Name><![CDATA[District_Heating_network_MT_S]]></Name>
+			</Option>
+			<Option>
+				<Id>1666959280721</Id>
+				<Name><![CDATA[District_Battery_500_kWh]]></Name>
 			</Option>
 		</OptionList>
 		<OptionList>
@@ -1960,6 +1968,10 @@ for(HashMap data : parsedJSONGridConnections) {
 	 		GCIndustry GCIndustry = add_gCIndustries(gridConnectionCategory, gridConnectionType, gridConnectionCapacity, gridConnectionParentElectric, gridConnectionID, gridConnectionParentHeat, null, null, null, ownerActorID, null, null, null, gridConnectionHeatingType);
 	 		c_gridConnections.add(GCIndustry);
 	 	break;
+	 	case DISTRICTBATTERY:
+	 		GCDistrictBattery GCDistrictBattery = add_gCDistrictBatteries(gridConnectionCategory, gridConnectionType, gridConnectionCapacity, gridConnectionParentElectric, gridConnectionID, gridConnectionParentHeat, null, null, null, ownerActorID, null, null, null, gridConnectionHeatingType);
+	 		c_gridConnections.add(GCDistrictBattery);
+	 	break;
 	 	default:
 	 		traceln("No subagent defined for this gridConnection type!" + gridConnectionCategory);
 	 	break;
@@ -1984,17 +1996,40 @@ for (GridConnection g: c_gridConnections) {
 }
 //String energyAssetID;
 OL_EACategories assetCategory;
-OL_EnergyAssetType assetType;
 String assetParentID;
-double capacityElectric_kW;
-double capacityHeat_kW;
+//double capacityElectric_kW;
+//double capacityHeat_kW;
 
 for(HashMap data : parsedJSONEnergyAssets) {
  //   traceln("data = "+data);
     assetCategory = OL_EACategories.valueOf( (String)data.get( "type" ) );
-    assetType = OL_EnergyAssetType.valueOf( (String)data.get( "type2" ) );
     assetParentID = (String)data.get( "parent" );
-    capacityElectric_kW = roundToDecimal((Integer)data.get( "capacity_electric_kw" ),2);
+   
+    if( assetCategory == PRODUCTION ) {
+    		//assetPresetName = (OL_EAPresetProductionAssets)assetPresetName;
+    		OL_EAPresetProductionAssets assetPresetName = OL_EAPresetProductionAssets.valueOf( (String)data.get( "type2" ) );
+    		f_addPresetProductionAsset(assetParentID, assetPresetName);
+    }
+    else if( assetCategory == CONSUMPTION ) {
+    		//assetPresetName = (OL_EAPresetConsumptionAssets)assetPresetName;
+    		OL_EAPresetConsumptionAssets assetPresetName = OL_EAPresetConsumptionAssets.valueOf( (String)data.get( "type2" ) );
+    		f_addPresetConsumptionAsset(assetParentID, assetPresetName);
+    }
+    else if( assetCategory == CONVERSION ) {
+    		// assetPresetName = (OL_EAPresetConversionAssets)assetPresetName;
+    		OL_EAPresetConversionAssets assetPresetName = OL_EAPresetConversionAssets.valueOf( (String)data.get( "type2" ) );
+    		f_addPresetConversionAsset(assetParentID, assetPresetName);
+    }
+    else if ( assetCategory == STORAGE) {
+			//assetPresetName = (OL_EAPresetStorageAssets)assetPresetName;
+    		OL_EAPresetStorageAssets assetPresetName = OL_EAPresetStorageAssets.valueOf( (String)data.get( "type2" ) );
+    		f_addPresetStorageAsset(assetParentID, assetPresetName);    	
+	}
+	else {
+    	traceln("f_configureBackbone exception: energyAsset not added (invalid Category)");
+	}
+    
+/*     capacityElectric_kW = roundToDecimal((Integer)data.get( "capacity_electric_kw" ),2);
     capacityHeat_kW = roundToDecimal((Integer)data.get( "capacity_heat_kw" ),2);
 
     EnergyAsset ea = add_pop_energyAssets(null, assetParentID, assetType);  // let op: andere volgorde van argumenten. Nog fixen?
@@ -2010,7 +2045,7 @@ for(HashMap data : parsedJSONEnergyAssets) {
  //   		traceln("f_configureBackbone: no energy asset of this instantiated yet!");
     	break;
     }
-
+*/
 }
 ]]></Body>
 				</Function>
@@ -2331,7 +2366,7 @@ p_undergroundTemperature_degC = (double) selectFrom(params)
 					<ShowLabel>true</ShowLabel>
 					<Parameter>
 						<Name><![CDATA[ownerAgent]]></Name>
-						<Type><![CDATA[Agent]]></Type>
+						<Type><![CDATA[Object]]></Type>
 					</Parameter>
 					<Parameter>
 						<Name><![CDATA[consumptionAssetPreset]]></Name>
@@ -2343,9 +2378,13 @@ if( ownerAgent instanceof GridConnection ) {
 	ownerAgent = (GridConnection)ownerAgent;
 	parentAgentID = ((GridConnection) ownerAgent).p_agentID;
 }
-else {
+else if(ownerAgent instanceof GridNode ){
 	ownerAgent = (GridNode)ownerAgent;
 	parentAgentID = ((GridNode) ownerAgent).p_agentID;
+}
+else {
+	parentAgentID = ownerAgent.toString();
+	ownerAgent = (GridConnection)findFirst(c_gridConnections, p->p.p_agentID.equals(parentAgentID));
 }
 
 List< Tuple > data = selectFrom( consumption_assets ).where( consumption_assets.name.eq( consumptionAssetPreset ) ).
@@ -2366,7 +2405,7 @@ for( Tuple tup : data ) {
 
 EnergyAsset e = add_pop_energyAssets( null, parentAgentID,  assetType );
 e.f_instantiateConsumerAsset( assetType, yearlyDemandElectricity_kWh, yearlyDemandHeat_kWh );
-e.f_connectToParentNode( ownerAgent );
+e.f_connectToParentNode( (Agent)ownerAgent );
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -2388,7 +2427,7 @@ e.f_connectToParentNode( ownerAgent );
 					<ShowLabel>true</ShowLabel>
 					<Parameter>
 						<Name><![CDATA[ownerAgent]]></Name>
-						<Type><![CDATA[Agent]]></Type>
+						<Type><![CDATA[Object]]></Type>
 					</Parameter>
 					<Parameter>
 						<Name><![CDATA[conversionAssetPreset]]></Name>
@@ -2400,9 +2439,13 @@ if( ownerAgent instanceof GridConnection ) {
 	ownerAgent = (GridConnection)ownerAgent;
 	parentAgentID = ((GridConnection) ownerAgent).p_agentID;
 }
-else {
+else if( ownerAgent instanceof GridNode ){
 	ownerAgent = (GridNode)ownerAgent;
 	parentAgentID = ((GridNode) ownerAgent).p_agentID;
+}
+else {
+	parentAgentID = ownerAgent.toString();
+	ownerAgent = (GridConnection)findFirst(c_gridConnections, p->p.p_agentID.equals(parentAgentID));
 }
 
 List< Tuple > data = selectFrom( conversion_assets ).where( conversion_assets.name.eq( conversionAssetPreset ) ).
@@ -2426,7 +2469,7 @@ for( Tuple tup : data ) {
 
 EnergyAsset e = add_pop_energyAssets( null, parentAgentID, assetType );
 e.f_instantiateConverterAsset( assetType, capacityElectricity_kW, capacityHeat_kW, eta_r, deliveryTemp_degC, ambientTempType  );
-e.f_connectToParentNode( ownerAgent );]]></Body>
+e.f_connectToParentNode( (Agent)ownerAgent );]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -2447,7 +2490,7 @@ e.f_connectToParentNode( ownerAgent );]]></Body>
 					<ShowLabel>true</ShowLabel>
 					<Parameter>
 						<Name><![CDATA[ownerAgent]]></Name>
-						<Type><![CDATA[Agent]]></Type>
+						<Type><![CDATA[Object]]></Type>
 					</Parameter>
 					<Parameter>
 						<Name><![CDATA[productionAssetPreset]]></Name>
@@ -2459,9 +2502,13 @@ if( ownerAgent instanceof GridConnection ) {
 	ownerAgent = (GridConnection)ownerAgent;
 	parentAgentID = ((GridConnection) ownerAgent).p_agentID;
 }
-else {
+else if( ownerAgent instanceof GridNode ){
 	ownerAgent = (GridNode)ownerAgent;
 	parentAgentID = ((GridNode) ownerAgent).p_agentID;
+}
+else {
+	parentAgentID = ownerAgent.toString();
+	ownerAgent = (GridConnection)findFirst(c_gridConnections, p->p.p_agentID.equals(parentAgentID));
 }
 
 List< Tuple > data = selectFrom( production_assets ).where( production_assets.name.eq( productionAssetPreset ) ).
@@ -2479,7 +2526,7 @@ for( Tuple tup : data ) {
 
 EnergyAsset e = add_pop_energyAssets( null, parentAgentID, assetType );
 e.f_instantiateProducerAsset( assetType, capacityElectricity_kW, capacityHeat_kW );
-e.f_connectToParentNode( ownerAgent );
+e.f_connectToParentNode( (Agent)ownerAgent );
 c_productionAssets.add(e);
 ]]></Body>
 				</Function>
@@ -2502,13 +2549,13 @@ c_productionAssets.add(e);
 					<ShowLabel>true</ShowLabel>
 					<Parameter>
 						<Name><![CDATA[ownerAgent]]></Name>
-						<Type><![CDATA[Agent]]></Type>
+						<Type><![CDATA[Object]]></Type>
 					</Parameter>
 					<Parameter>
 						<Name><![CDATA[storageAssetPreset]]></Name>
 						<Type><![CDATA[OL_EAPresetStorageAssets]]></Type>
 					</Parameter>
-					<Body><![CDATA[String parentAgentID = "";
+					<Body><![CDATA[String parentAgentID;
 
 if( ownerAgent instanceof GridConnection ) {
 	ownerAgent = (GridConnection)ownerAgent;
@@ -2517,6 +2564,10 @@ if( ownerAgent instanceof GridConnection ) {
 else if ( ownerAgent instanceof GridNode ) {
 	ownerAgent = (GridNode)ownerAgent;
 	parentAgentID = ((GridNode) ownerAgent).p_agentID;
+}
+else {
+	parentAgentID = ownerAgent.toString();
+	ownerAgent = (GridConnection)findFirst(c_gridConnections, p->p.p_agentID.equals(parentAgentID));
 }
 
 List< Tuple > data = selectFrom( storage_assets ).where( storage_assets.name.eq( storageAssetPreset ) ).
@@ -2551,7 +2602,7 @@ ambientTempType = tup.get( storage_assets.ambient_temp_type);
 //traceln("f_addPresetStorageAsset: Preset Storage Asset added: " + storageAssetPreset+", stateOfCharge = " + stateOfCharge_r+", minT = "+minTemperature_degC+", maxT = "+ maxTemperature_degC + ", setT = "+ setTemperature_degC+", ambientTempType = "+ambientTempType);
 EnergyAsset e = add_pop_energyAssets( null, parentAgentID, assetType );
 e.f_instantiateStorageAsset( assetType, capacityElectricity_kW, capacityHeat_kW, stateOfCharge_r, lossFactor_WpK, chargeCapacity_kWh, heatCapacity_JpK, minTemperature_degC, maxTemperature_degC, setTemperature_degC, ambientTempType );
-e.f_connectToParentNode( ownerAgent );
+e.f_connectToParentNode( (Agent)ownerAgent );
 
 // update static ambient temperature once for underground types
 if( ambientTempType != null && ambientTempType.equals("GROUND") ) {
@@ -2830,10 +2881,10 @@ final double currentImport_kWh = roundToDecimal( currentElectricityImport_kW * p
 final double currentExport_kWh = roundToDecimal( currentElectricityExport_kW * p_timeStep_h, 2 );
 int timeIndex = (int)floor( time(HOUR) );
 
-c_globalElectricityImportProfile_kWhph.computeIfAbsent( timeIndex, k -> currentImport_kWh );
 c_globalElectricityImportProfile_kWhph.computeIfPresent( timeIndex, (key, val) -> roundToDecimal( val + currentImport_kWh, 2 ));
-c_globalElectricityExportProfile_kWhph.computeIfAbsent( timeIndex, k -> currentExport_kWh );
-c_globalElectricityExportProfile_kWhph.computeIfPresent( timeIndex, (key, val) -> roundToDecimal( val + currentExport_kWh, 2 ));]]></Body>
+c_globalElectricityImportProfile_kWhph.computeIfAbsent( timeIndex, k -> currentImport_kWh );
+c_globalElectricityExportProfile_kWhph.computeIfPresent( timeIndex, (key, val) -> roundToDecimal( val + currentExport_kWh, 2 ));
+c_globalElectricityExportProfile_kWhph.computeIfAbsent( timeIndex, k -> currentExport_kWh );]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -4791,6 +4842,112 @@ for(GridNode m : c_gridNodesMSLS ) {
 							<PackageName><![CDATA[base]]></PackageName>
 							<ClassName><![CDATA[GCIndustry]]></ClassName>
 							<ItemName><![CDATA[1665480522862]]></ItemName>
+						</GenericParameterSubstituteReference>
+					</GenericParameterSubstitute>
+					<Parameters>
+						<Parameter>
+							<Name><![CDATA[p_gridConnectionCategory]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_gridConnectionType]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_capacity_kW]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_parentNodeElectricID]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_agentID]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_parentNodeHeatID]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_ThermalStorageAsset]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_primaryHeatingAsset]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_parentNodeElectric]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_ownerID]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_parentNodeHeat]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_ownerActor]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_primaryHeatingAssetRem]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_secondaryHeatingAsset]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_heatingType]]></Name>
+						</Parameter>
+					</Parameters>
+					<ReplicationFlag>true</ReplicationFlag>
+					<Replication Class="CodeValue">
+						<Code><![CDATA[100]]></Code>
+					</Replication>
+					<CollectionType>ARRAY_LIST_BASED</CollectionType>
+					<InEnvironment>true</InEnvironment>	
+					<InitialLocationType>AT_ANIMATION_POSITION</InitialLocationType>
+					<XCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</XCode>
+					<YCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</YCode>
+					<ZCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ZCode>
+					<ColumnCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ColumnCode>
+					<RowCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</RowCode>
+					<LatitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LatitudeCode>
+					<LongitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LongitudeCode>
+					<LocationNameCode Class="CodeValue">
+						<Code><![CDATA[""]]></Code>
+					</LocationNameCode>
+					<InitializationType>EMPTY</InitializationType>
+					<InitializationDatabaseTableQuery>
+						<TableReference>
+						</TableReference>
+					</InitializationDatabaseTableQuery>
+					<InitializationDatabaseType>ONE_AGENT_PER_DATABASE_RECORD</InitializationDatabaseType>
+					<QuantityColumn>
+					</QuantityColumn>
+				</EmbeddedObject>
+				<EmbeddedObject>
+					<Id>1666957373353</Id>
+					<Name><![CDATA[gCDistrictBatteries]]></Name>
+					<X>300</X><Y>160</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<ActiveObjectClass>
+						<PackageName><![CDATA[base]]></PackageName>
+						<ClassName><![CDATA[GCDistrictBattery]]></ClassName>
+					</ActiveObjectClass>
+					<GenericParameterSubstitute>
+						<GenericParameterSubstituteReference>
+							<PackageName><![CDATA[base]]></PackageName>
+							<ClassName><![CDATA[GCDistrictBattery]]></ClassName>
+							<ItemName><![CDATA[1666956363817]]></ItemName>
 						</GenericParameterSubstituteReference>
 					</GenericParameterSubstitute>
 					<Parameters>
@@ -8642,14 +8799,6 @@ for( UI_GridNode n : uI_GridNodes )
 double minx = 100;
 double maxx = minx + 800;
 
-// count the number of HS/MS and MS/LS nodes for spacing
-List<GridNode> HSNetnodes = filter( main.pop_gridNodes, n -> n.p_nodeType == OL_GridNodeType.HSMS  );
-List<GridNode> MSNetnodes = filter( main.pop_gridNodes, n -> n.p_nodeType == OL_GridNodeType.MSLS );
-List<GridNode> HeatNodes = filter( main.pop_gridNodes, n -> n.p_energyType == OL_EnergyCarrierType.HEAT );
-//List<NetConnection> Houses = filter( main.netConnections, b -> b.p_netConnectionCategory.equals("house") );
-//List<NetConnection> Windfarms = filter( main.netConnections, b -> b.p_netConnectionCategory.equals("windfarm") );
-List<GridConnection> NetConnections = filter( main.c_gridConnections, n -> true );
-
 //traceln("HS "+HSNetnodes+" -> "+HSNetnodes.size());
 //traceln("MS "+MSNetnodes+" -> "+MSNetnodes.size());
 //traceln("Houses "+Houses+" -> "+Houses.size());
@@ -8657,20 +8806,20 @@ List<GridConnection> NetConnections = filter( main.c_gridConnections, n -> true 
 //traceln("NetConnections "+NetConnections+" -> "+NetConnections.size());
 
 // draw upper level HS stations
-double ylevel = 100;
-double xinterval = ( maxx - minx ) / HSNetnodes.size();
+double ylevel = 0;
+double xinterval = ( maxx - minx ) / (1 + main.c_gridNodesHSMS.size());
 
 int index = 0;
-for ( Iterator<GridNode> it = HSNetnodes.iterator(); it.hasNext(); index++ )
+for ( int i = 0; i < main.c_gridNodesHSMS.size(); i++ )
 {
-    GridNode netnode = it.next();
 //    traceln(netnode + ":" + index);
-    String nodeName = netnode.p_agentID;
-    String parent = netnode.p_parentNodeID;
-    OL_GridNodeType nodeType = netnode.p_nodeType;
+    GridNode g = ((GridNode)main.c_gridNodesHSMS.get(i));
+    String nodeName = g.p_agentID;
+    String parent = g.p_parentNodeID;
+    OL_GridNodeType nodeType = g.p_nodeType;
 	UI_GridNode hs = add_uI_GridNodes( nodeName, nodeType );
-	hs.setXY( ( minx + ( xinterval / 2 ) + ( index * xinterval ) ) , ylevel);
-	hs.realAgent.connectTo(netnode);
+	hs.setXY( ( minx + (( i + 1) * xinterval ) ) , ylevel);
+	hs.realAgent.connectTo( g );
 	//if( parent!=null ){
 	//	UI_NetNode p = filter( uI_NetNodes, o -> o.p_nodeID.equals(parent) ).get(0);
 	//	hs.connectTo(p);
@@ -8679,66 +8828,70 @@ for ( Iterator<GridNode> it = HSNetnodes.iterator(); it.hasNext(); index++ )
 
 // draw mid level MS stations
 ylevel = 200;
-xinterval = ( maxx - minx ) / MSNetnodes.size();
+xinterval = ( maxx - minx ) / (1 + main.c_gridNodesMSLS.size());
 index = 0;
-for ( Iterator<GridNode> it = MSNetnodes.iterator(); it.hasNext(); index++ )
+for ( int i = 0; i < main.c_gridNodesMSLS.size(); i++ )
 {
-    GridNode netnode = it.next();
-//    traceln(netnode + ":" + index);
-	String nodeName = netnode.p_agentID;
-	OL_GridNodeType nodeType = netnode.p_nodeType;
-    String parent = netnode.p_parentNodeID;
+    //    traceln(netnode + ":" + index);
+	GridNode m = ((GridNode)main.c_gridNodesMSLS.get(i));
+	String nodeName = m.p_agentID;
+	OL_GridNodeType nodeType = m.p_nodeType;
+    String parent = m.p_parentNodeID;
 	UI_GridNode ms = add_uI_GridNodes( nodeName, nodeType );
-	ms.setXY( ( minx + ( xinterval / 2 ) + ( index * xinterval ) ) , ylevel);
-	ms.realAgent.connectTo(netnode);
+	ms.setXY( ( minx + (( i + 1) * xinterval ) ) , ylevel);
+	ms.realAgent.connectTo( m );
 	if( parent!=null ){
 		UI_GridNode p = filter( uI_GridNodes, q -> q.p_nodeID.equals(parent) ).get(0);
-		ms.connectTo(p);
+		ms.connectTo( p );
 	}
 }
 
 // draw heat nodes
 ylevel = 500;
-xinterval = ( maxx - minx ) / HeatNodes.size(); // TODO: make this the average x-coordinate of netconnections with this node as a parent?
+xinterval = ( maxx - minx ) / (1 + main.c_gridNodesHeat.size()); // TODO: make this the average x-coordinate of netconnections with this node as a parent?
 index = 0;
-for ( Iterator<GridNode> it = HeatNodes.iterator(); it.hasNext(); index++ )
+for ( int i = 0; i < main.c_gridNodesHeat.size(); i++ )
 {
-    GridNode netnode = it.next();
-//    traceln(netnode + ":" + index);
-	String nodeName = netnode.p_agentID;
-	OL_GridNodeType nodeType = netnode.p_nodeType;
-    String parent = netnode.p_parentNodeID;
+    //    traceln(netnode + ":" + index);
+	GridNode h = ((GridNode)main.c_gridNodesHeat.get(i));
+	String nodeName = h.p_agentID;
+	OL_GridNodeType nodeType = h.p_nodeType;
+    String parent = h.p_parentNodeID;
 	UI_GridNode hn = add_uI_GridNodes( nodeName, nodeType );
-	hn.setXY( ( minx + ( xinterval / 2 ) + ( index * xinterval ) ) , ylevel);
-	hn.realAgent.connectTo(netnode);
+	hn.setXY( ( minx + (( i + 1) * xinterval ) ) , ylevel);
+	hn.realAgent.connectTo( h );
 	hn.netNodeVisual.setFillColor(mistyRose);
 	if( parent!=null ){
 		UI_GridNode p = filter( uI_GridNodes, q -> q.p_nodeID.equals(parent) ).get(0);
-		hn.connectTo(p);
+		hn.connectTo( p );
 	}
 }
 
+
 // draw buildings
-//ylevel = 400;
-for ( Iterator<GridConnection> it = NetConnections.iterator(); it.hasNext(); index++ )
+double ylevelOffset = 150;
+xinterval = ( ( maxx - minx ) / (1 + main.c_gridConnections.size())); // TODO: make this the average x-coordinate of netconnections with this node as a parent?
+
+for ( int i = 0; i < main.c_gridConnections.size(); i++ )
 {
-    GridConnection netconnection = it.next();
-//    traceln(netnode + ":" + index);
-	String netConnectionName = netconnection.p_agentID;
-	OL_GridConnectionCategory netConnectionCategory = netconnection.p_gridConnectionCategory;
-	OL_GridConnectionType netConnectionType = netconnection.p_gridConnectionType;
-    String parentElectric = netconnection.p_parentNodeElectricID;
-    String parentHeat = netconnection.p_parentNodeHeatID;
+	GridConnection g = ((GridConnection)main.c_gridConnections.get(i));
+	//    traceln(netnode + ":" + index);
+	String netConnectionName = g.p_agentID;
+	OL_GridConnectionCategory netConnectionCategory = g.p_gridConnectionCategory;
+	OL_GridConnectionType netConnectionType = g.p_gridConnectionType;
+    String parentElectric = g.p_parentNodeElectricID;
+    String parentHeat = g.p_parentNodeHeatID;
 	UI_GridConnection nc = add_uI_GridConnections( netConnectionName, netConnectionCategory, netConnectionType );
 
-	nc.realAgent.connectTo( netconnection );
-	traceln("parent input filter "+filter( uI_GridNodes, o -> o.p_nodeID.equals(parentElectric) ).get(0));
+	nc.realAgent.connectTo( g );
+	//traceln("parent input filter "+filter( uI_GridNodes, o -> o.p_nodeID.equals(parentElectric) ).get(0));
 	if( parentElectric != null ){
 		UI_GridNode p = filter( uI_GridNodes, o -> o.p_nodeID.equals(parentElectric) ).get(0);
 		nc.connectTo(p);
-		double parentx = p.getX() ;
+		double parentx = p.getX();
 		double parenty = p.getY();
-		nc.setXY( parentx, parenty + 150 );
+		nc.setXY( ( parentx + ( Math.random()) * xinterval ) , parenty + ylevelOffset);
+//		nc.setXY( parentx - 20, parenty + ylevelOffset );
 	}
 	if( parentHeat != null ){
 		UI_GridNode q = filter( uI_GridNodes, o -> o.p_nodeID.equals(parentHeat) ).get(0);
@@ -8748,7 +8901,7 @@ for ( Iterator<GridConnection> it = NetConnections.iterator(); it.hasNext(); ind
 		if( netConnectionCategory == OL_GridConnectionCategory.DISTRICTHEATING ) {
 			double parentx = q.getX() ;
 			double parenty = q.getY();
-			nc.setXY( parentx +50 , parenty - 50 );
+			nc.setXY( parentx + 50 , parenty - 50 );
 		}
 	}
 	nc.f_setNetConnectionVisual();
@@ -8786,7 +8939,7 @@ List<ConnectionOwner> Actors = filter( main.pop_connectionOwners, n -> true );
 List<ConnectionOwner> Households = filter( main.pop_connectionOwners, n -> n.p_actorType.equals("household") );
 List<ConnectionOwner> Commercials = filter( main.pop_connectionOwners, n -> n.p_actorType.equals("commercial") );
 List<EnergySupplier> EnergySuppliers = filter( main.pop_energySuppliers, n -> n.p_actorType.equals("energysupplier") );
-List<EnergyHolon> Holons = filter( main.pop_energyHolons, n -> n.p_actorType.equals("holon") );
+List<EnergyHolon> Holons = filter( main.pop_energyHolons, n -> true );
 
 traceln("KPIVisuals f_plotActors(): number of households: "+ Households.size());
 traceln("KPIVisuals f_plotActors(): number of commercials: "+ Commercials.size());
@@ -8807,8 +8960,9 @@ if( p_individualMode ) {
 		UI_Actor holonActor = add_uI_Actors(actorType, parent, actorID);
 		holonActor.setXY(  ( minx + ( xinterval / 2 ) + ( index * xinterval ) ), ylevel);
 		holonActor.realAgent.connectTo(holon);
-		holonActor.holon.setPos(0,0,0);
-		holonActor.holon.setVisible(true);
+		holonActor.holonvisual.setPos(0,0,0);
+		holonActor.holonvisual.setVisible(true);
+		holonActor.holonName.setText("holon: "+actorID);
 	}
 	
 	// energysuppliers	
@@ -9968,6 +10122,10 @@ t_nodetype.setText(p_nodeType);]]></Body>
   case INDUSTRY:
   industry.setVisible(true);
   industry.setPos(0, 0, 0);
+  break;
+  case DISTRICTBATTERY:
+  battery.setVisible(true);
+  battery.setPos(0, 0, 0);
   break;
   default:
   error( "Invalid netConnection category: " + p_netConnectionCategory );
@@ -11699,6 +11857,156 @@ t_nodetype.setText(p_nodeType);]]></Body>
 			</Presentation>
 
 				</Group>
+				<Group>
+					<Id>1666960162547</Id>
+					<Name><![CDATA[battery]]></Name>
+					<X>-65</X><Y>82</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>false</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+
+			<Presentation>
+				<Group>
+					<Id>1666959479845</Id>
+					<Name><![CDATA[lorry]]></Name>
+					<X>2</X><Y>-2</Y>
+					<Label><X>5.111</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+
+			<Presentation>
+				<Rectangle>
+					<Id>1666959479857</Id>
+					<Name><![CDATA[_ps91]]></Name>
+					<X>-15</X><Y>-4</Y>
+					<Label><X>10</X><Y>10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<Width>1.2</Width>
+					<Height>12</Height>
+					<Rotation>0.0</Rotation>
+					<FillColor>-12566464</FillColor>
+					<FillMaterial>null</FillMaterial>
+				</Rectangle>
+				<Rectangle>
+					<Id>1666959479859</Id>
+					<Name><![CDATA[_ps92]]></Name>
+					<X>-13.8</X><Y>-4.5</Y>
+					<Label><X>10</X><Y>10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor>-16777216</LineColor>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<Width>17.8</Width>
+					<Height>13.5</Height>
+					<Rotation>0.0</Rotation>
+					<FillColor>-10496</FillColor>
+					<FillMaterial>null</FillMaterial>
+				</Rectangle>
+			</Presentation>
+
+				</Group>
+				<Group>
+					<Id>1666960122044</Id>
+					<Name><![CDATA[group]]></Name>
+					<X>-2</X><Y>1</Y>
+					<Label><X>8.182</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+
+			<Presentation>
+				<Polyline>
+					<Id>1666960021761</Id>
+					<Name><![CDATA[polyline]]></Name>
+					<X>0</X><Y>-6.222</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor>-16777216</LineColor>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor/>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>-3.273</X><Y>5.333</Y><Z>0</Z></Point>
+					   <Point><X>0.818</X><Y>3.556</Y><Z>0</Z></Point>
+					   <Point><X>-2.455</X><Y>10.667</Y><Z>0</Z></Point>
+					   <Point><X>-0.409</X><Y>8.933</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>false</Closed>
+				</Polyline>
+				<Line>
+					<Id>1666960064950</Id>
+					<Name><![CDATA[line]]></Name>
+					<X>-2.373</X><Y>4.267</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor>-16777216</LineColor>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<Dx>0</Dx>
+					<Dy>-3</Dy>
+					<Dz>0</Dz>
+				</Line>
+			</Presentation>
+
+				</Group>
+			</Presentation>
+
+				</Group>
 			</Presentation>
 
 				</Level>
@@ -13231,145 +13539,6 @@ Operator]]></Text>
 
 				</Group>
 				<Group>
-					<Id>1660578495070</Id>
-					<Name><![CDATA[holon]]></Name>
-					<Description><![CDATA[Individuele agentvisualisatie voor UI_Actor-agent van type holon.
-
-@since: Sprint 6
-@author: Jorrit]]></Description>
-					<X>-220</X><Y>0</Y>
-					<Label><X>2.458</X><Y>0</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>false</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<Rotation>0.0</Rotation>
-
-			<Presentation>
-				<Curve ControlPoints="true">
-					<Id>1660578495072</Id>
-					<Name><![CDATA[_ps300]]></Name>
-					<X>-9.831</X><Y>-7.75</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<ZHeight>10</ZHeight>
-					<LineWidth>1</LineWidth>
-					<LineColor>-11702146</LineColor>
-					<LineMaterial>null</LineMaterial>
-					<LineStyle>SOLID</LineStyle>
-					<BeginArrowSize>1</BeginArrowSize>
-					<BeginArrowStyle>0</BeginArrowStyle>
-					<EndArrowSize>1</EndArrowSize>
-					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-5383962</FillColor>
-					<FillMaterial>null</FillMaterial>
-					<Points>
-					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
-					   <Point><X>2.703</X><Y>-2.5</Y><Z>0</Z></Point>
-					   <Point><X>5.653</X><Y>0.5</Y><Z>0</Z></Point>
-					   <Point><X>5.653</X><Y>0.5</Y><Z>0</Z></Point>
-					   <Point><X>5.653</X><Y>0.5</Y><Z>0</Z></Point>
-					   <Point><X>6.39</X><Y>-3</Y><Z>0</Z></Point>
-					   <Point><X>11.059</X><Y>-3</Y><Z>0</Z></Point>
-					   <Point><X>15.729</X><Y>-3</Y><Z>0</Z></Point>
-					   <Point><X>16.712</X><Y>1.5</Y><Z>0</Z></Point>
-					   <Point><X>16.712</X><Y>1.5</Y><Z>0</Z></Point>
-					   <Point><X>16.712</X><Y>1.5</Y><Z>0</Z></Point>
-					   <Point><X>20.153</X><Y>-0.5</Y><Z>0</Z></Point>
-					   <Point><X>21.873</X><Y>3</Y><Z>0</Z></Point>
-					   <Point><X>23.839</X><Y>6.5</Y><Z>0</Z></Point>
-					   <Point><X>20.398</X><Y>8</Y><Z>0</Z></Point>
-					   <Point><X>20.398</X><Y>8</Y><Z>0</Z></Point>
-					   <Point><X>20.398</X><Y>8</Y><Z>0</Z></Point>
-					   <Point><X>22.856</X><Y>10.5</Y><Z>0</Z></Point>
-					   <Point><X>20.89</X><Y>13.25</Y><Z>0</Z></Point>
-					   <Point><X>18.678</X><Y>16</Y><Z>0</Z></Point>
-					   <Point><X>14.5</X><Y>14</Y><Z>0</Z></Point>
-					   <Point><X>14.5</X><Y>14</Y><Z>0</Z></Point>
-					   <Point><X>14.5</X><Y>14</Y><Z>0</Z></Point>
-					   <Point><X>13.271</X><Y>17.5</Y><Z>0</Z></Point>
-					   <Point><X>9.093</X><Y>17.5</Y><Z>0</Z></Point>
-					   <Point><X>5.161</X><Y>17.5</Y><Z>0</Z></Point>
-					   <Point><X>4.178</X><Y>13.75</Y><Z>0</Z></Point>
-					   <Point><X>4.178</X><Y>13.75</Y><Z>0</Z></Point>
-					   <Point><X>4.178</X><Y>13.75</Y><Z>0</Z></Point>
-					   <Point><X>1.72</X><Y>15.25</Y><Z>0</Z></Point>
-					   <Point><X>-0.737</X><Y>12.75</Y><Z>0</Z></Point>
-					   <Point><X>-3.686</X><Y>8.75</Y><Z>0</Z></Point>
-					   <Point><X>0</X><Y>5.75</Y><Z>0</Z></Point>
-					   <Point><X>0</X><Y>5.75</Y><Z>0</Z></Point>
-					   <Point><X>0</X><Y>5.75</Y><Z>0</Z></Point>
-					   <Point><X>-2.703</X><Y>2.5</Y><Z>0</Z></Point>
-					</Points>
-					<Closed>true</Closed>
-				</Curve>
-				<Curve ControlPoints="true">
-					<Id>1660578495074</Id>
-					<Name><![CDATA[_ps301]]></Name>
-					<X>-9.093</X><Y>-6.5</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Z>0</Z>
-					<ZHeight>10</ZHeight>
-					<LineWidth>1</LineWidth>
-					<LineColor/>
-					<LineMaterial>null</LineMaterial>
-					<LineStyle>SOLID</LineStyle>
-					<BeginArrowSize>1</BeginArrowSize>
-					<BeginArrowStyle>0</BeginArrowStyle>
-					<EndArrowSize>1</EndArrowSize>
-					<EndArrowStyle>0</EndArrowStyle>
-					<FillColor>-1</FillColor>
-					<FillMaterial>null</FillMaterial>
-					<Points>
-					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
-					   <Point><X>2.212</X><Y>-2.5</Y><Z>0</Z></Point>
-					   <Point><X>5.161</X><Y>0.5</Y><Z>0</Z></Point>
-					   <Point><X>5.161</X><Y>0.5</Y><Z>0</Z></Point>
-					   <Point><X>5.161</X><Y>0.5</Y><Z>0</Z></Point>
-					   <Point><X>5.898</X><Y>-3.5</Y><Z>0</Z></Point>
-					   <Point><X>10.322</X><Y>-3.5</Y><Z>0</Z></Point>
-					   <Point><X>14.254</X><Y>-3.25</Y><Z>0</Z></Point>
-					   <Point><X>14.746</X><Y>0.5</Y><Z>0</Z></Point>
-					   <Point><X>14.746</X><Y>0.5</Y><Z>0</Z></Point>
-					   <Point><X>14.746</X><Y>0.5</Y><Z>0</Z></Point>
-					   <Point><X>14.254</X><Y>-2.75</Y><Z>0</Z></Point>
-					   <Point><X>10.322</X><Y>-3</Y><Z>0</Z></Point>
-					   <Point><X>6.636</X><Y>-3.25</Y><Z>0</Z></Point>
-					   <Point><X>5.161</X><Y>1.25</Y><Z>0</Z></Point>
-					   <Point><X>5.161</X><Y>1.25</Y><Z>0</Z></Point>
-					   <Point><X>5.161</X><Y>1.25</Y><Z>0</Z></Point>
-					   <Point><X>2.458</X><Y>-1.25</Y><Z>0</Z></Point>
-					   <Point><X>0.492</X><Y>0.5</Y><Z>0</Z></Point>
-					   <Point><X>-1.229</X><Y>2</Y><Z>0</Z></Point>
-					   <Point><X>0.737</X><Y>4.75</Y><Z>0</Z></Point>
-					   <Point><X>0.737</X><Y>4.75</Y><Z>0</Z></Point>
-					   <Point><X>0.737</X><Y>4.75</Y><Z>0</Z></Point>
-					   <Point><X>-1.966</X><Y>7.25</Y><Z>0</Z></Point>
-					   <Point><X>-0.983</X><Y>10.5</Y><Z>0</Z></Point>
-					   <Point><X>-2.703</X><Y>7.5</Y><Z>0</Z></Point>
-					   <Point><X>0.246</X><Y>4.5</Y><Z>0</Z></Point>
-					   <Point><X>0.246</X><Y>4.5</Y><Z>0</Z></Point>
-					   <Point><X>0.246</X><Y>4.5</Y><Z>0</Z></Point>
-					   <Point><X>-2.212</X><Y>2.5</Y><Z>0</Z></Point>
-					</Points>
-					<Closed>true</Closed>
-				</Curve>
-			</Presentation>
-
-				</Group>
-				<Group>
 					<Id>1660578537153</Id>
 					<Name><![CDATA[commercial]]></Name>
 					<Description><![CDATA[Individuele agentvisualisatie voor UI_Actor-agent van type commercial. 
@@ -13683,10 +13852,163 @@ Supplier]]></Text>
 			</Presentation>
 
 				</Group>
+				<Group>
+					<Id>1666964112699</Id>
+					<Name><![CDATA[holonvisual]]></Name>
+					<X>-210</X><Y>10</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>false</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+
+			<Presentation>
+				<Group>
+					<Id>1660578495070</Id>
+					<Name><![CDATA[holon]]></Name>
+					<Description><![CDATA[Individuele agentvisualisatie voor UI_Actor-agent van type holon.
+
+@since: Sprint 6
+@author: Jorrit]]></Description>
+					<X>-10</X><Y>-10</Y>
+					<Label><X>2.458</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+
+			<Presentation>
+				<Curve ControlPoints="true">
+					<Id>1660578495072</Id>
+					<Name><![CDATA[_ps300]]></Name>
+					<X>-9.831</X><Y>-7.75</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor>-11702146</LineColor>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>-5383962</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>2.703</X><Y>-2.5</Y><Z>0</Z></Point>
+					   <Point><X>5.653</X><Y>0.5</Y><Z>0</Z></Point>
+					   <Point><X>5.653</X><Y>0.5</Y><Z>0</Z></Point>
+					   <Point><X>5.653</X><Y>0.5</Y><Z>0</Z></Point>
+					   <Point><X>6.39</X><Y>-3</Y><Z>0</Z></Point>
+					   <Point><X>11.059</X><Y>-3</Y><Z>0</Z></Point>
+					   <Point><X>15.729</X><Y>-3</Y><Z>0</Z></Point>
+					   <Point><X>16.712</X><Y>1.5</Y><Z>0</Z></Point>
+					   <Point><X>16.712</X><Y>1.5</Y><Z>0</Z></Point>
+					   <Point><X>16.712</X><Y>1.5</Y><Z>0</Z></Point>
+					   <Point><X>20.153</X><Y>-0.5</Y><Z>0</Z></Point>
+					   <Point><X>21.873</X><Y>3</Y><Z>0</Z></Point>
+					   <Point><X>23.839</X><Y>6.5</Y><Z>0</Z></Point>
+					   <Point><X>20.398</X><Y>8</Y><Z>0</Z></Point>
+					   <Point><X>20.398</X><Y>8</Y><Z>0</Z></Point>
+					   <Point><X>20.398</X><Y>8</Y><Z>0</Z></Point>
+					   <Point><X>22.856</X><Y>10.5</Y><Z>0</Z></Point>
+					   <Point><X>20.89</X><Y>13.25</Y><Z>0</Z></Point>
+					   <Point><X>18.678</X><Y>16</Y><Z>0</Z></Point>
+					   <Point><X>14.5</X><Y>14</Y><Z>0</Z></Point>
+					   <Point><X>14.5</X><Y>14</Y><Z>0</Z></Point>
+					   <Point><X>14.5</X><Y>14</Y><Z>0</Z></Point>
+					   <Point><X>13.271</X><Y>17.5</Y><Z>0</Z></Point>
+					   <Point><X>9.093</X><Y>17.5</Y><Z>0</Z></Point>
+					   <Point><X>5.161</X><Y>17.5</Y><Z>0</Z></Point>
+					   <Point><X>4.178</X><Y>13.75</Y><Z>0</Z></Point>
+					   <Point><X>4.178</X><Y>13.75</Y><Z>0</Z></Point>
+					   <Point><X>4.178</X><Y>13.75</Y><Z>0</Z></Point>
+					   <Point><X>1.72</X><Y>15.25</Y><Z>0</Z></Point>
+					   <Point><X>-0.737</X><Y>12.75</Y><Z>0</Z></Point>
+					   <Point><X>-3.686</X><Y>8.75</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>5.75</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>5.75</Y><Z>0</Z></Point>
+					   <Point><X>0</X><Y>5.75</Y><Z>0</Z></Point>
+					   <Point><X>-2.703</X><Y>2.5</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Curve>
+				<Curve ControlPoints="true">
+					<Id>1660578495074</Id>
+					<Name><![CDATA[_ps301]]></Name>
+					<X>-9.093</X><Y>-6.5</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<BeginArrowSize>1</BeginArrowSize>
+					<BeginArrowStyle>0</BeginArrowStyle>
+					<EndArrowSize>1</EndArrowSize>
+					<EndArrowStyle>0</EndArrowStyle>
+					<FillColor>-1</FillColor>
+					<FillMaterial>null</FillMaterial>
+					<Points>
+					   <Point><X>0</X><Y>0</Y><Z>0</Z></Point>
+					   <Point><X>2.212</X><Y>-2.5</Y><Z>0</Z></Point>
+					   <Point><X>5.161</X><Y>0.5</Y><Z>0</Z></Point>
+					   <Point><X>5.161</X><Y>0.5</Y><Z>0</Z></Point>
+					   <Point><X>5.161</X><Y>0.5</Y><Z>0</Z></Point>
+					   <Point><X>5.898</X><Y>-3.5</Y><Z>0</Z></Point>
+					   <Point><X>10.322</X><Y>-3.5</Y><Z>0</Z></Point>
+					   <Point><X>14.254</X><Y>-3.25</Y><Z>0</Z></Point>
+					   <Point><X>14.746</X><Y>0.5</Y><Z>0</Z></Point>
+					   <Point><X>14.746</X><Y>0.5</Y><Z>0</Z></Point>
+					   <Point><X>14.746</X><Y>0.5</Y><Z>0</Z></Point>
+					   <Point><X>14.254</X><Y>-2.75</Y><Z>0</Z></Point>
+					   <Point><X>10.322</X><Y>-3</Y><Z>0</Z></Point>
+					   <Point><X>6.636</X><Y>-3.25</Y><Z>0</Z></Point>
+					   <Point><X>5.161</X><Y>1.25</Y><Z>0</Z></Point>
+					   <Point><X>5.161</X><Y>1.25</Y><Z>0</Z></Point>
+					   <Point><X>5.161</X><Y>1.25</Y><Z>0</Z></Point>
+					   <Point><X>2.458</X><Y>-1.25</Y><Z>0</Z></Point>
+					   <Point><X>0.492</X><Y>0.5</Y><Z>0</Z></Point>
+					   <Point><X>-1.229</X><Y>2</Y><Z>0</Z></Point>
+					   <Point><X>0.737</X><Y>4.75</Y><Z>0</Z></Point>
+					   <Point><X>0.737</X><Y>4.75</Y><Z>0</Z></Point>
+					   <Point><X>0.737</X><Y>4.75</Y><Z>0</Z></Point>
+					   <Point><X>-1.966</X><Y>7.25</Y><Z>0</Z></Point>
+					   <Point><X>-0.983</X><Y>10.5</Y><Z>0</Z></Point>
+					   <Point><X>-2.703</X><Y>7.5</Y><Z>0</Z></Point>
+					   <Point><X>0.246</X><Y>4.5</Y><Z>0</Z></Point>
+					   <Point><X>0.246</X><Y>4.5</Y><Z>0</Z></Point>
+					   <Point><X>0.246</X><Y>4.5</Y><Z>0</Z></Point>
+					   <Point><X>-2.212</X><Y>2.5</Y><Z>0</Z></Point>
+					</Points>
+					<Closed>true</Closed>
+				</Curve>
+			</Presentation>
+
+				</Group>
 				<Text>
 					<Id>1666951919737</Id>
 					<Name><![CDATA[holonName]]></Name>
-					<X>-220</X><Y>10</Y>
+					<X>-10</X><Y>0</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -13704,6 +14026,9 @@ Supplier]]></Text>
 					</Font>
 					<Alignment>LEFT</Alignment>
 				</Text>
+			</Presentation>
+
+				</Group>
 			</Presentation>
 
 				</Level>
@@ -17536,6 +17861,7 @@ public void f_connectToChild(Agent ConnectingChildNode){
 				<Variable Class="PlainVariable">
 					<Id>1664534447977</Id>
 					<Name><![CDATA[b_incentiveNationalPrice]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>660</X><Y>260</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -17551,6 +17877,7 @@ public void f_connectToChild(Agent ConnectingChildNode){
 				<Variable Class="PlainVariable">
 					<Id>1664534582189</Id>
 					<Name><![CDATA[b_incentiveGridNodePrice]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>660</X><Y>280</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -17566,6 +17893,7 @@ public void f_connectToChild(Agent ConnectingChildNode){
 				<Variable Class="PlainVariable">
 					<Id>1664534594839</Id>
 					<Name><![CDATA[b_incentiveHolonPrice]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>660</X><Y>300</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -19042,6 +19370,301 @@ for( EnergyAsset c : c_connectedConversionAssets ) {
 			<Presentation>
 				<Level>
 					<Id>1665480522863</Id>
+					<Name><![CDATA[level]]></Name>
+					<X>0</X><Y>0</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<Z>0</Z>
+					<LevelVisibility>DIM_NON_CURRENT</LevelVisibility>
+
+
+				</Level>
+			</Presentation>
+
+		</ActiveObjectClass>
+		<!--   =========   Active Object Class   ========  -->
+		<ActiveObjectClass>
+			<Id>1666956363819</Id>
+			<Name><![CDATA[GCDistrictBattery]]></Name>
+			<AdditionalClassCode><![CDATA[@Override
+public void f_connectToChild(Agent ConnectingParentNode){
+	f_connectToChildDistrictBattery(ConnectingParentNode);
+}
+
+//@Override
+//public void f_operateFixedConsumptionAssets(){
+//	f_runFixedConsumptionAssets();
+//}
+@Override 
+public void f_operateFlexAssets(){
+	f_operateAssetsDistrictBattery();
+}]]></AdditionalClassCode>
+			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
+			<ExtendsReference>
+				<PackageName><![CDATA[base]]></PackageName>
+				<ClassName><![CDATA[GridConnection]]></ClassName>
+			</ExtendsReference>
+			<Parameters>
+				<Parameter>
+					<Name><![CDATA[p_gridConnectionCategory]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_gridConnectionType]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_capacity_kW]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_parentNodeElectricID]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_agentID]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_parentNodeHeatID]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_ThermalStorageAsset]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_primaryHeatingAsset]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_parentNodeElectric]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_ownerID]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_parentNodeHeat]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_ownerActor]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_primaryHeatingAssetRem]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_secondaryHeatingAsset]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_heatingType]]></Name>
+				</Parameter>
+			</Parameters>
+			<Generic>false</Generic>
+			<GenericParameter>
+				<Id>1666956363817</Id>
+				<Name><![CDATA[1666956363817]]></Name>
+				<GenericParameterValue Class="CodeValue">
+					<Code><![CDATA[T extends Agent]]></Code>
+				</GenericParameterValue>
+				<GenericParameterLabel><![CDATA[Generic parameter:]]></GenericParameterLabel>
+			</GenericParameter>
+			<FlowChartsUsage>ENTITY</FlowChartsUsage>
+			<SamplesToKeep>100</SamplesToKeep>
+			<LimitNumberOfArrayElements>false</LimitNumberOfArrayElements>
+			<ElementsLimitValue>100</ElementsLimitValue>
+			<MakeDefaultViewArea>true</MakeDefaultViewArea>
+			<SceneGridColor/>
+			<SceneBackgroundColor/>
+			<SceneSkybox>null</SceneSkybox>
+			<AgentProperties>
+	 			<SpaceType>CONTINUOUS</SpaceType>			
+				<EnvironmentDefinesInitialLocation>true</EnvironmentDefinesInitialLocation>
+				<RotateAnimationTowardsMovement>true</RotateAnimationTowardsMovement>
+				<RotateAnimationVertically>false</RotateAnimationVertically>
+				<VelocityCode Class="CodeUnitValue">
+					<Code><![CDATA[10]]></Code>
+					<Unit Class="SpeedUnits"><![CDATA[MPS]]></Unit>
+				</VelocityCode>
+				<PhysicalLength Class="CodeUnitValue">
+					<Code><![CDATA[1]]></Code>
+					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
+				</PhysicalLength>
+				<PhysicalWidth Class="CodeUnitValue">
+					<Code><![CDATA[1]]></Code>
+					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
+				</PhysicalWidth>
+				<PhysicalHeight Class="CodeUnitValue">
+					<Code><![CDATA[1]]></Code>
+					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
+				</PhysicalHeight>
+			</AgentProperties>
+			<EnvironmentProperties>
+					<EnableSteps>false</EnableSteps>
+					<StepDurationCode Class="CodeUnitValue">
+						<Code><![CDATA[1.0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[SECOND]]></Unit>
+					</StepDurationCode>
+					<SpaceType>CONTINUOUS</SpaceType>
+					<WidthCode><![CDATA[500]]></WidthCode>
+					<HeightCode><![CDATA[500]]></HeightCode>
+					<ZHeightCode><![CDATA[0]]></ZHeightCode>
+					<ColumnsCountCode><![CDATA[100]]></ColumnsCountCode>
+					<RowsCountCode><![CDATA[100]]></RowsCountCode>
+					<NeigborhoodType>MOORE</NeigborhoodType>
+					<LayoutType>USER_DEF</LayoutType>
+					<LayoutTypeApplyOnStartup>true</LayoutTypeApplyOnStartup>
+					<NetworkType>USER_DEF</NetworkType>
+					<NetworkTypeApplyOnStartup>true</NetworkTypeApplyOnStartup>
+					<ConnectionsPerAgentCode><![CDATA[2]]></ConnectionsPerAgentCode>
+					<ConnectionsRangeCode><![CDATA[50]]></ConnectionsRangeCode>
+					<NeighborLinkFractionCode><![CDATA[0.95]]></NeighborLinkFractionCode>
+					<MCode><![CDATA[10]]></MCode>
+			</EnvironmentProperties>
+			<DatasetsCreationProperties>
+				<AutoCreate>true</AutoCreate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1667030400000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</RecurrenceCode>
+			</DatasetsCreationProperties>
+			<ScaleRuler>
+				<Id>1666956363815</Id>
+				<Name><![CDATA[scale]]></Name>
+				<X>0</X><Y>-150</Y>
+				<PublicFlag>false</PublicFlag>
+				<PresentationFlag>false</PresentationFlag>
+				<ShowLabel>false</ShowLabel>
+				<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+				<Length>100</Length>
+				<Rotation>0</Rotation>
+				<ScaleType>BASED_ON_LENGTH</ScaleType>
+				<ModelLength>10</ModelLength>
+				<LengthUnits>METER</LengthUnits>
+				<Scale>10</Scale>
+				<InheritedFromParentAgentType>true</InheritedFromParentAgentType>
+			</ScaleRuler>
+			<CurrentLevel>1666956363818</CurrentLevel>
+			<ConnectionsId>1666956363814</ConnectionsId>
+			<Functions>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1666956397906</Id>
+					<Name><![CDATA[f_connectToChildDistrictBattery]]></Name>
+					<X>250</X><Y>220</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[ConnectingChildNode]]></Name>
+						<Type><![CDATA[Agent]]></Type>
+					</Parameter>
+					<Body><![CDATA[subConnections.connectTo(ConnectingChildNode);
+EnergyAsset EA = (EnergyAsset) ConnectingChildNode;
+c_connectedEnergyAssets.add(EA);
+
+if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
+	c_connectedConsumptionAssets.add(EA);
+} else if (EA.p_energyAssetInstance instanceof J_EAProduction ) {
+	c_connectedProductionAssets.add(EA);
+} else if (EA.p_energyAssetInstance instanceof J_EAStorage ) {
+	c_connectedStorageAssets.add(EA);
+	if (EA.p_energyAssetInstance instanceof J_EAStorageHeat) {
+		p_ThermalStorageAsset = EA;
+	} 
+} else if (EA.p_energyAssetInstance instanceof J_EAConversion) {
+	c_connectedConversionAssets.add(EA);
+	if (EA.p_energyAssetInstance instanceof J_EAConversionGasBurner || EA.p_energyAssetInstance instanceof J_EAConversionHeatPump || EA.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet || EA.p_energyAssetInstance instanceof J_EAConversionBoiler ) {
+		if (p_primaryHeatingAsset == null) {
+			p_primaryHeatingAsset = EA;
+		} else if (p_secondaryHeatingAsset == null) {
+			p_secondaryHeatingAsset = EA;
+		} else {
+			traceln("District Heating gridconnection already has two heating systems!");
+		}
+		//traceln("heatingAsset class " + p_spaceHeatingAsset.getClass().toString());
+	} 
+} else {
+	traceln("f_connectToChild in EnergyAsset: Exception! EnergyAsset " + ConnectingChildNode.getId() + " is of unknown type or null! ");
+}
+
+
+/*
+// create a local list of energyAssets connected to its netConnection Agent for easy reference
+List<EnergyAsset> connectedEnergyAssets = subConnections.getConnections();
+
+int numberOfEnergyAssets = connectedEnergyAssets.size();
+for( int i = 0; i < numberOfEnergyAssets; i++ ) {
+	if( connectedEnergyAssets.get(i) instanceof EnergyAsset ) {
+		c_connectedEnergyAssets.add(connectedEnergyAssets.get(i));
+
+	}
+}
+
+List<EnergyAsset> consumptionAssets = filter(c_connectedEnergyAssets, b -> b.p_energyAssetInstance instanceof J_EAConsumption);
+List<EnergyAsset> productionAssets = filter(c_connectedEnergyAssets, b -> b.p_energyAssetInstance instanceof J_EAProduction);
+List<EnergyAsset> storageAssets = filter(c_connectedEnergyAssets, b -> b.p_energyAssetInstance instanceof J_EAStorage);
+List<EnergyAsset> conversionAssets = filter(c_connectedEnergyAssets, b -> b.p_energyAssetInstance instanceof J_EAConversion);
+traceln("NetConnection connecting to " + numberOfEnergyAssets + " EnergyAssets");
+*/
+]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1666956527771</Id>
+					<Name><![CDATA[f_operateAssetsDistrictBattery]]></Name>
+					<X>740</X><Y>230</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+				</Function>
+			</Functions>
+			<AgentLinks>
+				<AgentLink>
+					<Id>1666956363814</Id>
+					<Name><![CDATA[connections]]></Name>
+					<X>50</X><Y>-50</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<HandleReceiveInConnections>false</HandleReceiveInConnections>
+					<AgentLinkType>COLLECTION_OF_LINKS</AgentLinkType>
+					<AgentLinkBidirectional>true</AgentLinkBidirectional>
+					<MessageType><![CDATA[Object]]></MessageType>
+					<LineStyle>SOLID</LineStyle>
+					<LineWidth>1</LineWidth>
+					<LineColor>-16777216</LineColor>
+					<LineZOrder>UNDER_AGENTS</LineZOrder>
+					<LineArrow>NONE</LineArrow>
+					<LineArrowPosition>END</LineArrowPosition>
+				</AgentLink>
+			</AgentLinks>
+
+			<ContainerLinks>
+				<ContainerLink>
+					<Id>1666957377035</Id>
+					<Name><![CDATA[main]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>50</X><Y>-100</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<ActiveObjectClass>
+						<PackageName><![CDATA[base]]></PackageName>
+						<ClassName><![CDATA[Main]]></ClassName>
+					</ActiveObjectClass>
+				</ContainerLink>
+			</ContainerLinks>
+
+			<Presentation>
+				<Level>
+					<Id>1666956363818</Id>
 					<Name><![CDATA[level]]></Name>
 					<X>0</X><Y>0</Y>
 					<Label><X>10</X><Y>0</Y></Label>
