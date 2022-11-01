@@ -4,7 +4,7 @@
 	         AnyLogic Project File 
 *************************************************	         
 -->
-<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.8.0.202208091057" AlpVersion="8.7.5">
+<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.8.1.202210270952" AlpVersion="8.7.7">
 <Model>
 	<Id>1658477103134</Id>
 	<Name><![CDATA[Base]]></Name>
@@ -1855,6 +1855,21 @@ traceln("*** main duration *** "+ v_modelStartUpDuration_s+" s");]]></StartupCod
 					</Properties>
 
 				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1667300034779</Id>
+					<Name><![CDATA[c_totalBatteryUnitsInstalled]]></Name>
+					<X>-560</X><Y>890</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[LinkedHashMap]]></CollectionClass>
+						<ElementClass><![CDATA[String]]></ElementClass>
+						<ValueElementClass><![CDATA[Double]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
 			</Variables>
 			<Events>
 				<Event>
@@ -2678,7 +2693,7 @@ double capacityElectricity_kW = 0;
 double capacityHeat_kW = 0;
 double stateOfCharge_r = 0;
 double lossFactor_WpK = 0;
-double chargeCapacity_kWh = 0;
+double storageCapacity_kWh = 0;
 double heatCapacity_JpK = 0;
 double minTemperature_degC = 0;
 double maxTemperature_degC = 0;
@@ -2691,7 +2706,7 @@ capacityElectricity_kW = tup.get( storage_assets.capacity_electricity_kw );
 capacityHeat_kW = tup.get( storage_assets.capacity_heat_kw );
 stateOfCharge_r =  tup.get( storage_assets.state_of_charge_r );
 lossFactor_WpK =  tup.get( storage_assets.loss_factor_wpk );
-chargeCapacity_kWh =  tup.get( storage_assets.charge_capacity_kwh );
+storageCapacity_kWh =  tup.get( storage_assets.storage_capacity_kwh );
 heatCapacity_JpK =  tup.get( storage_assets.heat_capacity_jpk );
 minTemperature_degC = tup.get( storage_assets.min_temp_degc);
 maxTemperature_degC = tup.get( storage_assets.max_temp_degc);
@@ -2701,8 +2716,8 @@ ambientTempType = tup.get( storage_assets.ambient_temp_type);
 
 //traceln("f_addPresetStorageAsset: Preset Storage Asset added: " + storageAssetPreset+", stateOfCharge = " + stateOfCharge_r+", minT = "+minTemperature_degC+", maxT = "+ maxTemperature_degC + ", setT = "+ setTemperature_degC+", ambientTempType = "+ambientTempType);
 EnergyAsset e = add_pop_energyAssets( null, parentAgentID, assetType, storageAssetPreset.toString() );
-traceln("f_addPresetStorageAsset "+ assetType +" "+ capacityElectricity_kW + " " + capacityHeat_kW + " "+  stateOfCharge_r + " " + lossFactor_WpK +" " + chargeCapacity_kWh + " " + heatCapacity_JpK + " "+  minTemperature_degC + " " + maxTemperature_degC + "" +  setTemperature_degC + "" +  ambientTempType );
-e.f_instantiateStorageAsset( assetType, capacityElectricity_kW, capacityHeat_kW, stateOfCharge_r, lossFactor_WpK, chargeCapacity_kWh, heatCapacity_JpK, minTemperature_degC, maxTemperature_degC, setTemperature_degC, ambientTempType );
+traceln("f_addPresetStorageAsset "+ assetType +" "+ capacityElectricity_kW + " " + capacityHeat_kW + " "+  stateOfCharge_r + " " + lossFactor_WpK +" " + storageCapacity_kWh + " " + heatCapacity_JpK + " "+  minTemperature_degC + " " + maxTemperature_degC + "" +  setTemperature_degC + "" +  ambientTempType );
+e.f_instantiateStorageAsset( assetType, capacityElectricity_kW, capacityHeat_kW, stateOfCharge_r, lossFactor_WpK, storageCapacity_kWh, heatCapacity_JpK, minTemperature_degC, maxTemperature_degC, setTemperature_degC, ambientTempType );
 e.f_connectToParentNode( (Agent)ownerAgent );
 c_storageAssets.add(e);
 
@@ -2753,6 +2768,7 @@ j_totalCostData.updateData( roundToDecimal( v_gridNodePeakLoadElectricityHSMS_kW
 							v_totalMethaneExport_MWh,
 							v_totalHydrogenImport_MWh,
 							v_totalHydrogenExport_MWh,
+							c_totalBatteryUnitsInstalled,
 							c_totalBatteryChargeAmount_MWh,
 							c_totalBatteryDischargeAmount_MWh,
 							c_totalBatteryInstalledCapacity_MWh
@@ -3115,6 +3131,9 @@ v_totalBatteryInstalledCapacity_MWh = 0;
 for(EnergyAsset e : c_storageAssets ) {
 	if( e.p_energyAssetInstance instanceof J_EAStorageElectric ) {
 		//traceln("triggered!!"+e.p_energyAssetInstance.toString());
+		
+		c_totalBatteryUnitsInstalled.computeIfPresent( e.p_defaultEnergyAssetPresetName, (key, val) ->val + 1.0 );
+		c_totalBatteryUnitsInstalled.computeIfAbsent( e.p_defaultEnergyAssetPresetName, k -> 1.0 );
 		
 		c_totalBatteryChargeAmount_MWh.computeIfPresent( e.p_defaultEnergyAssetPresetName, (key, val) -> roundToDecimal( val + ((J_EAStorageElectric)e.p_energyAssetInstance).getTotalChargeAmount() / 1000, 2 ));
 		c_totalBatteryChargeAmount_MWh.computeIfAbsent( e.p_defaultEnergyAssetPresetName, k -> ((J_EAStorageElectric)e.p_energyAssetInstance).getTotalChargeAmount() / 1000 );
@@ -21034,7 +21053,7 @@ public class J_EAStorageElectric extends base.J_EAStorage implements Serializabl
 			"capacityElectric_kW = " + this.capacityElectric_kW +" "+
 			"capacityHeat_kW = " + this.capacityHeat_kW +" "+
 			"stateOfCharge_r = " + this.stateOfCharge_r+" "+
-			"chargeCapacity_kWh = " + this.storageCapacity_kWh +" "+
+			"storageCapacity_kWh = " + this.storageCapacity_kWh +" "+
 			"discharged_kWh " + this.discharged_kWh+" "+
 			"charged_kWh " + this.charged_kWh+" ";
 	}
@@ -21325,7 +21344,7 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
 			<Text><![CDATA[/**
  * J_EAEV
  */
-public class J_EAEV extends base.J_EAStorage implements Serializable {
+public class J_EAEV extends base.J_EAStorageElectric implements Serializable {
 
 	//EnergyAsset ownerAsset;
 	// protected EnergyAsset ownerAsset;
@@ -21337,7 +21356,7 @@ public class J_EAEV extends base.J_EAStorage implements Serializable {
 	//private double capacityElectricity_kW;
 	//private double capacityHeat_kW = 0;
 	public OL_EnergyCarrierType storageMedium = OL_EnergyCarrierType.ELECTRICITY;
-	private double storageCapacity_kWh;
+	//private double storageCapacity_kWh;
 	private double stateOfCharge_r;
 	private double lossFactor_r = 0;
 //	private double timestep_h;
@@ -21896,6 +21915,7 @@ public class J_TotalCostData implements Serializable {
 	public double totalMethaneExport_MWh;
 	public double totalHydrogenImport_MWh;
 	public double totalHydrogenExport_MWh;
+	public Map<String,Double> totalBatteryUnitsInstalled = new LinkedHashMap<String,Double>();
 	public Map<String,Double> totalBatteryChargeAmount_MWh = new LinkedHashMap<String,Double>();
 	public Map<String,Double> totalBatteryDischargeAmount_MWh = new LinkedHashMap<String,Double>();
 	public Map<String,Double> totalBatteryInstalledCapacity_MWh = new LinkedHashMap<String,Double>();
@@ -21909,7 +21929,7 @@ public class J_TotalCostData implements Serializable {
     /**
      * Constructor initializing the fields
      */
-    public J_TotalCostData( double v_gridNodeLoadElectricityHSMS_kW, double v_gridNodeLoadElectricityMSLS_kW, LinkedHashMap<Integer,Double> c_globalElectricityImportProfile_kWhph, LinkedHashMap<Integer,Double> c_globalElectricityExportProfile_kWhph, double totalElectricityImport_MWh, double totalElectricityExport_MWh, double totalMethaneImport_MWh, double totalMethaneExport_MWh, double totalHydrogenImport_MWh, double totalHydrogenExport_MWh, LinkedHashMap<String,Double> totalBatteryChargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryDischargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryInstalledCapacity_MWh) {
+    public J_TotalCostData( double v_gridNodeLoadElectricityHSMS_kW, double v_gridNodeLoadElectricityMSLS_kW, LinkedHashMap<Integer,Double> c_globalElectricityImportProfile_kWhph, LinkedHashMap<Integer,Double> c_globalElectricityExportProfile_kWhph, double totalElectricityImport_MWh, double totalElectricityExport_MWh, double totalMethaneImport_MWh, double totalMethaneExport_MWh, double totalHydrogenImport_MWh, double totalHydrogenExport_MWh, LinkedHashMap<String,Double> totalBatteryUnitsInstalled, LinkedHashMap<String,Double> totalBatteryChargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryDischargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryInstalledCapacity_MWh) {
 		this.HSMSPeakLoadElectricity_kW = v_gridNodeLoadElectricityHSMS_kW;
 		this.MSLSPeakLoadElectricity_kW = v_gridNodeLoadElectricityMSLS_kW;
 		this.SystemHourlyElectricityImport_kWh = c_globalElectricityImportProfile_kWhph;
@@ -21922,6 +21942,7 @@ public class J_TotalCostData implements Serializable {
 		this.totalMethaneExport_MWh = totalMethaneExport_MWh;
 		this.totalHydrogenImport_MWh = totalHydrogenImport_MWh;
 		this.totalHydrogenExport_MWh = totalHydrogenExport_MWh;
+		this.totalBatteryUnitsInstalled = totalBatteryUnitsInstalled;
 		this.totalBatteryChargeAmount_MWh = totalBatteryChargeAmount_MWh;
 		this.totalBatteryDischargeAmount_MWh = totalBatteryDischargeAmount_MWh;
 		this.totalBatteryInstalledCapacity_MWh = totalBatteryInstalledCapacity_MWh;
@@ -21943,12 +21964,13 @@ public class J_TotalCostData implements Serializable {
 			"totalMethaneExport_MWh = " + totalMethaneExport_MWh + " " +
 			"totalHydrogenImport_MWh = " + totalHydrogenImport_MWh + " " +
 			"totalHydrogenExport_MWh = " + totalHydrogenExport_MWh + " "+
+			"totalBatteryUnitsInstalled = " + totalBatteryUnitsInstalled + " "+
 			"totalBatteryChargeAmount_MWh = " + totalBatteryChargeAmount_MWh + " "+
 			"totalBatteryDischargeAmount_MWh = " + totalBatteryDischargeAmount_MWh + " "+
 			"totalBatteryInstalledCapacity_MWh = " + totalBatteryInstalledCapacity_MWh + " ";
 	}
 	
-	public void updateData( double v_gridNodePeakLoadElectricityHSMS_kW, double v_gridNodePeakLoadElectricityMSLS_kW, LinkedHashMap<Integer,Double> c_globalElectricityImportProfile_kWhph, LinkedHashMap<Integer,Double> c_globalElectricityExportProfile_kWhph, double totalElectricityImport_MWh, double totalElectricityExport_MWh, double totalMethaneImport_MWh, double totalMethaneExport_MWh, double totalHydrogenImport_MWh, double totalHydrogenExport_MWh, LinkedHashMap<String,Double> totalBatteryChargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryDischargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryInstalledCapacity_MWh) {
+	public void updateData( double v_gridNodePeakLoadElectricityHSMS_kW, double v_gridNodePeakLoadElectricityMSLS_kW, LinkedHashMap<Integer,Double> c_globalElectricityImportProfile_kWhph, LinkedHashMap<Integer,Double> c_globalElectricityExportProfile_kWhph, double totalElectricityImport_MWh, double totalElectricityExport_MWh, double totalMethaneImport_MWh, double totalMethaneExport_MWh, double totalHydrogenImport_MWh, double totalHydrogenExport_MWh, LinkedHashMap<String,Double> totalBatteryUnitsInstalled, LinkedHashMap<String,Double> totalBatteryChargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryDischargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryInstalledCapacity_MWh) {
 		this.HSMSPeakLoadElectricity_kW = v_gridNodePeakLoadElectricityHSMS_kW;
 		this.MSLSPeakLoadElectricity_kW = v_gridNodePeakLoadElectricityMSLS_kW;
 		this.SystemHourlyElectricityImport_kWh = c_globalElectricityImportProfile_kWhph;
@@ -21961,6 +21983,7 @@ public class J_TotalCostData implements Serializable {
 		this.totalMethaneExport_MWh = roundToDecimal( totalMethaneExport_MWh, 2 );
 		this.totalHydrogenImport_MWh = roundToDecimal( totalHydrogenImport_MWh, 2 );
 		this.totalHydrogenExport_MWh = roundToDecimal( totalHydrogenExport_MWh, 2 );
+		this.totalBatteryUnitsInstalled = totalBatteryUnitsInstalled;
 		this.totalBatteryChargeAmount_MWh = totalBatteryChargeAmount_MWh;
 		this.totalBatteryDischargeAmount_MWh = totalBatteryDischargeAmount_MWh;
 		this.totalBatteryInstalledCapacity_MWh = totalBatteryInstalledCapacity_MWh;
