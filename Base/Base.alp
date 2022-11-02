@@ -355,6 +355,10 @@
 				<Id>1665497737982</Id>
 				<Name><![CDATA[Industry_other_heat]]></Name>
 			</Option>
+			<Option>
+				<Id>1667399177906</Id>
+				<Name><![CDATA[Logistics_fleet_hgv_E]]></Name>
+			</Option>
 		</OptionList>
 		<OptionList>
 			<Id>1659711659517</Id>
@@ -489,7 +493,7 @@
 			</Option>
 			<Option>
 				<Id>1666959280721</Id>
-				<Name><![CDATA[Grid_battery]]></Name>
+				<Name><![CDATA[Grid_battery_1MWh]]></Name>
 			</Option>
 		</OptionList>
 		<OptionList>
@@ -1190,6 +1194,18 @@ traceln("*** main duration *** "+ v_modelStartUpDuration_s+" s");]]></StartupCod
 					<Id>1666979627442</Id>
 					<Name><![CDATA[v_totalBatteryInstalledCapacity_MWh]]></Name>
 					<X>-560</X><Y>810</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1667397284001</Id>
+					<Name><![CDATA[v_currentLogisticsFleetEDemand_fr]]></Name>
+					<X>500</X><Y>270</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2929,6 +2945,7 @@ v_currentIndustrySteelElectricityDemand_fr = tf_p_industry_steel_e_demand(tijdst
 v_currentIndustrySteelHeatDemand_fr = tf_p_industry_steel_h_demand(tijdstap);
 v_currentIndustryOtherElectricityDemand_fr = tf_p_industry_other_e_demand(tijdstap);
 v_currentIndustryOtherHeatDemand_fr = tf_p_industry_other_h_demand(tijdstap);
+v_currentLogisticsFleetEDemand_fr = tf_p_logistics_fleet_e_hgv(tijdstap);
 
 for( EnergyAsset e : c_ambientAirDependentAssets ) {
 	if( e.p_energyAssetInstance instanceof J_EAStorageHeat ) {
@@ -3526,6 +3543,39 @@ for(EnergyAsset e : c_storageAssets ) {
 								<PackageName><![CDATA[base]]></PackageName>
 								<ClassName><![CDATA[profiles]]></ClassName>
 								<ItemName><![CDATA[industry_other_h_demand]]></ItemName>
+							</ValueColumnReference>
+					</ValuesQuery>
+// arguments and values
+					<Argument><![CDATA[0.0]]></Argument>
+					<Value><![CDATA[0.0]]></Value>
+				</TableFunction>
+				<TableFunction AccessType="public" StaticFunction="false">
+					<Id>1667396912514</Id>
+					<Name><![CDATA[tf_p_logistics_fleet_e_hgv]]></Name>
+					<X>-930</X><Y>360</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<InterpolationMethod>LINEAR</InterpolationMethod>
+					<OutOfRangeBehaviour>REPEATING</OutOfRangeBehaviour>
+					<OutOfRangeCustomValue><![CDATA[0.0]]></OutOfRangeCustomValue>
+					<ApproximationOrder><![CDATA[1]]></ApproximationOrder>
+					<LoadFromDatabase><![CDATA[true]]></LoadFromDatabase>
+					<ValuesQuery>
+						<TableReference>
+							<PackageName><![CDATA[base]]></PackageName>
+							<ClassName><![CDATA[profiles]]></ClassName>
+						</TableReference>
+							<ArgumentColumnReference>
+								<PackageName><![CDATA[base]]></PackageName>
+								<ClassName><![CDATA[profiles]]></ClassName>
+								<ItemName><![CDATA[t_h]]></ItemName>
+							</ArgumentColumnReference>
+							<ValueColumnReference>
+								<PackageName><![CDATA[base]]></PackageName>
+								<ClassName><![CDATA[profiles]]></ClassName>
+								<ItemName><![CDATA[logistics_fleet_e_hgv]]></ItemName>
 							</ValueColumnReference>
 					</ValuesQuery>
 // arguments and values
@@ -17845,6 +17895,8 @@ public void f_operateFlexAssets(){
 					<Body><![CDATA[for(EnergyAsset e : c_connectedConsumptionAssets) {
 	if( e.p_energyAssetType == OL_EnergyAssetType.OTHER_ELECTRICITY_CONSUMPTION ) {
 		e.f_updateElectricityFlows( main.v_currentBuildingOtherElectricityDemand_fr );
+	} else if( e.p_defaultEnergyAssetPresetName.equals("Logistics_fleet_hgv_E") ) {
+		e.f_updateElectricityFlows( main.v_currentLogisticsFleetEDemand_fr );
 	}
 	else {
 		traceln("household has other consumption assets than 'other electricity consumption'");
