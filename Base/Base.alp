@@ -1919,7 +1919,12 @@ f_calculateFinancialFlows();
 // Update elektriciteitsprijzen
 f_determinePricesForNextTimestep();
 
-v_timeStepsElapsed ++;]]></Action>
+if (b_addKpiVisuals) {
+	kpiVisuals(0).f_updateVisuals();
+}
+
+v_timeStepsElapsed ++;
+]]></Action>
 				</Event>
 			</Events>
 			<Functions>
@@ -2914,19 +2919,20 @@ for (ConnectionOwner c : pop_connectionOwners) {
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[double tijdstap = time(HOUR);
-v_currentHouseHoldOtherElectricityDemand_fr = tf_p_house_e_demand_other(tijdstap);
-v_currentBuildingOtherElectricityDemand_fr = tf_p_building_e_demand_other(tijdstap);
-v_currentHouseHoldHotWaterDemand_fr = tf_p_house_h_demand_hot_water(tijdstap);
-v_currentWindPowerNormalized_r = tf_p_wind_e_normalized(tijdstap);
-v_currentSolarPowerNormalized_r = tf_p_solar_e_normalized(tijdstap);
-v_currentAmbientTemperature_degC = tf_ambientTemperature_degC(tijdstap);
-v_currentIndustrySteelElectricityDemand_fr = tf_p_industry_steel_e_demand(tijdstap);
-v_currentIndustrySteelHeatDemand_fr = tf_p_industry_steel_h_demand(tijdstap);
-v_currentIndustryOtherElectricityDemand_fr = tf_p_industry_other_e_demand(tijdstap);
-v_currentIndustryOtherHeatDemand_fr = tf_p_industry_other_h_demand(tijdstap);
-v_currentLogisticsFleetEDemand_fr = tf_p_logistics_fleet_e_hgv(tijdstap);
+					<Body><![CDATA[double t_h = v_timeStepsElapsed * p_timeStep_h; 
 
+v_currentHouseHoldOtherElectricityDemand_fr = tf_p_house_e_demand_other(t_h);
+v_currentBuildingOtherElectricityDemand_fr = tf_p_building_e_demand_other(t_h);
+v_currentHouseHoldHotWaterDemand_fr = tf_p_house_h_demand_hot_water(t_h);
+v_currentWindPowerNormalized_r = tf_p_wind_e_normalized(t_h);
+v_currentSolarPowerNormalized_r = tf_p_solar_e_normalized(t_h);
+v_currentAmbientTemperature_degC = tf_ambientTemperature_degC(t_h);
+v_currentIndustrySteelElectricityDemand_fr = tf_p_industry_steel_e_demand(t_h);
+v_currentIndustrySteelHeatDemand_fr = tf_p_industry_steel_h_demand(t_h);
+v_currentIndustryOtherElectricityDemand_fr = tf_p_industry_other_e_demand(t_h);
+v_currentIndustryOtherHeatDemand_fr = tf_p_industry_other_h_demand(t_h);
+v_currentLogisticsFleetEDemand_fr = tf_p_logistics_fleet_e_hgv(t_h);
+//traceln("Time hour " + time(HOUR) + ", t_h " + t_h + ", fleet demand " + v_currentLogisticsFleetEDemand_fr);
 for( EnergyAsset e : c_ambientAirDependentAssets ) {
 	if( e.p_energyAssetInstance instanceof J_EAStorageHeat ) {
 		((J_EAStorageHeat)e.p_energyAssetInstance).updateAmbientTemperature( v_currentAmbientTemperature_degC );
@@ -3538,7 +3544,7 @@ for(EnergyAsset e : c_storageAssets ) {
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<InterpolationMethod>LINEAR</InterpolationMethod>
-					<OutOfRangeBehaviour>REPEATING</OutOfRangeBehaviour>
+					<OutOfRangeBehaviour>NEAREST</OutOfRangeBehaviour>
 					<OutOfRangeCustomValue><![CDATA[0.0]]></OutOfRangeCustomValue>
 					<ApproximationOrder><![CDATA[1]]></ApproximationOrder>
 					<LoadFromDatabase><![CDATA[true]]></LoadFromDatabase>
@@ -9040,6 +9046,7 @@ v_currentConsumptionElectricity_kW=arr[4];
 
 @since: Sprint 6
 @author: Jorrit]]></Description>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>-120</X><Y>170</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -9082,7 +9089,7 @@ f_checkModelConsistency();]]></Action>
 @return: none
 @since: Sprint 6
 @author: Jorrit]]></Description>
-					<X>-270</X><Y>70</Y>
+					<X>-270</X><Y>200</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -9113,7 +9120,7 @@ v_holonTotalPower_kW = v_batteryPower_kW + v_fleetCharging_kW + v_PVproduction_k
 @return: none
 @since: Sprint 6
 @author: Jorrit]]></Description>
-					<X>-270</X><Y>50</Y>
+					<X>-270</X><Y>260</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -9395,7 +9402,7 @@ Both energy and financial checks can be done.
 @params: none
 @author: Jorrit
 @since: Sprint 6]]></Description>
-					<X>-280</X><Y>270</Y>
+					<X>-270</X><Y>180</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -9454,6 +9461,26 @@ v_energySupplierBalanceHeat_eur = heatBalance_eur;
 v_energySupplierBalanceMethane_eur = methaneBalance_eur;
 v_energySupplierBalanceHydrogen_eur = hydrogenBalance_eur;
 v_energySupplierBalanceTotal_eur = v_energySupplierBalanceElectricity_eur + v_energySupplierBalanceHeat_eur + v_energySupplierBalanceMethane_eur + v_energySupplierBalanceHydrogen_eur;]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1667471363262</Id>
+					<Name><![CDATA[f_updateVisuals]]></Name>
+					<Description><![CDATA[Goal of the function is to retrieve information from the model and store this in the allotted variables to enable model consistency checks and validation.
+Both energy and financial checks can be done.
+
+@params: none
+@author: Jorrit
+@since: Sprint 6]]></Description>
+					<X>-270</X><Y>140</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[f_gatherEnergyFlows();
+f_checkModelConsistency();
+pl_HolonEnergyBalance.updateData();]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -9834,14 +9861,14 @@ v_energySupplierBalanceTotal_eur = v_energySupplierBalanceElectricity_eur + v_en
 				</Text>
     			<TimePlot>
 					<Id>1667408002171</Id>
-					<Name><![CDATA[plot]]></Name>
-					<X>20</X><Y>240</Y>
+					<Name><![CDATA[pl_HolonEnergyBalance]]></Name>
+					<X>0</X><Y>140</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<AutoUpdate>true</AutoUpdate>
+					<AutoUpdate>false</AutoUpdate>
 					<OccurrenceAtTime>true</OccurrenceAtTime>
 					<OccurrenceDate>1667462400000</OccurrenceDate>
 					<OccurrenceTime Class="CodeUnitValue">
@@ -9853,15 +9880,15 @@ v_energySupplierBalanceTotal_eur = v_energySupplierBalanceElectricity_eur + v_en
 						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
 					</RecurrenceCode>
 					<EmbeddedIcon>false</EmbeddedIcon>
-					<Width>530</Width>
-					<Height>350</Height>
+					<Width>430</Width>
+					<Height>360</Height>
 					<BackgroundColor/>
 					<BorderColor/>
 					<ChartArea>
 						<XOffset>50</XOffset>
 						<YOffset>30</YOffset>
-						<Width>450</Width>
-						<Height>260</Height>
+						<Width>350</Width>
+						<Height>240</Height>
 						<BackgroundColor>-1</BackgroundColor>
 						<BorderColor>-16777216</BorderColor>
 						<GridColor>-12566464</GridColor>
@@ -9869,7 +9896,7 @@ v_energySupplierBalanceTotal_eur = v_energySupplierBalanceElectricity_eur + v_en
 					<Legend>
 						<Place>SOUTH</Place>
 						<TextColor>-16777216</TextColor>
-						<Size>30</Size>
+						<Size>60</Size>
 					</Legend>
 					<Labels>
 						<HorLabelsPosition>DEFAULT</HorLabelsPosition>
@@ -9925,7 +9952,7 @@ v_energySupplierBalanceTotal_eur = v_energySupplierBalanceElectricity_eur + v_en
 						<LineWidth>1.0</LineWidth>
 					</DatasetExpression>
 					<DatasetExpression>  
-						<Title><![CDATA[Holon total power]]></Title>
+						<Title><![CDATA[Holon grid load]]></Title>
 					<Id>0</Id>
 					<Expression><![CDATA[my_dataset4]]></Expression>
 					<Color>-16777216</Color>
@@ -9935,7 +9962,7 @@ v_energySupplierBalanceTotal_eur = v_energySupplierBalanceElectricity_eur + v_en
 						<LineWidth>1.0</LineWidth>
 					</DatasetExpression>
 					<DatasetExpression>  
-						<Title><![CDATA[Holon available capacity]]></Title>
+						<Title><![CDATA[Holon grid capacity positive]]></Title>
 					<Id>0</Id>
 					<Expression><![CDATA[my_dataset5]]></Expression>
 					<Color>-65536</Color>
@@ -9945,7 +9972,7 @@ v_energySupplierBalanceTotal_eur = v_energySupplierBalanceElectricity_eur + v_en
 						<LineWidth>1.0</LineWidth>
 					</DatasetExpression>
 					<DatasetExpression>  
-						<Title><![CDATA[Dataset Title 6]]></Title>
+						<Title><![CDATA[Holon grid capacity negative]]></Title>
 					<Id>0</Id>
 					<Expression><![CDATA[my_dataset6]]></Expression>
 					<Color>-65536</Color>
@@ -20150,7 +20177,7 @@ traceln("NetConnection connecting to " + numberOfEnergyAssets + " EnergyAssets")
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[double currentBatteryStateOfCharge = p_batteryAsset.p_energyAssetInstance.getCurrentStateOfCharge();
 
-//f_balanceHolonLoad(currentBatteryStateOfCharge);
+f_balanceHolonLoad(currentBatteryStateOfCharge);
 
 p_batteryAsset.f_updateElectricityFlows(p_batteryAsset.v_powerFraction_fr);
 ]]></Body>
@@ -20184,7 +20211,7 @@ p_batteryAsset.f_updateElectricityFlows(p_batteryAsset.v_powerFraction_fr);
 
 @author: JorritvandenHouten
 @since: 28-10-2022]]></Description>
-					<X>870</X><Y>280</Y>
+					<X>740</X><Y>280</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -20196,7 +20223,7 @@ p_batteryAsset.f_updateElectricityFlows(p_batteryAsset.v_powerFraction_fr);
 					<Body><![CDATA[if(p_ownerActor instanceof ConnectionOwner) {
 	if(((ConnectionOwner)p_ownerActor).p_holonParent instanceof EnergyHolon ) {
 		double currentHolonElectricitySurplus_kW = ((ConnectionOwner)p_ownerActor).p_holonParent.v_electricitySurplus_kW + v_previousPowerElectricity_kW;
-		double HolonConnectionCapacity_kW = 0.9*((ConnectionOwner)p_ownerActor).p_holonParent.v_connectionCapacity_kW;
+		double HolonConnectionCapacity_kW = 0.85*((ConnectionOwner)p_ownerActor).p_holonParent.v_connectionCapacity_kW;
 		double chargeSetpoint_kW = 0;
 		if(currentHolonElectricitySurplus_kW - HolonConnectionCapacity_kW > 0) { // Bigger surpluss than can be exported via grid
 			if (currentBatteryStateOfCharge < 1 ) {
@@ -20205,7 +20232,7 @@ p_batteryAsset.f_updateElectricityFlows(p_batteryAsset.v_powerFraction_fr);
 				} else { // else use only what can't be exported
 					chargeSetpoint_kW = currentHolonElectricitySurplus_kW - HolonConnectionCapacity_kW;
 				}
-				traceln("Battery charging fast due to HOLON overproduction and moderate SOC, charge setpoint");
+				//traceln("Battery charging fast due to HOLON overproduction and moderate SOC, charge setpoint");
 			} else {
 				traceln("**!! Battery not able to prevent congestion due to overproduction!!**");
 				chargeSetpoint_kW = 0;		
@@ -20213,21 +20240,21 @@ p_batteryAsset.f_updateElectricityFlows(p_batteryAsset.v_powerFraction_fr);
 		} else if(currentHolonElectricitySurplus_kW > 0 ) { // when there is a moderate surpluss in the holon (within grid bounds)
 			if (currentBatteryStateOfCharge < 0.6) {
 				chargeSetpoint_kW = currentHolonElectricitySurplus_kW + HolonConnectionCapacity_kW;
-				traceln("Battery opportunity charging due to HOLON surpluss and low SOC, charge setpoint");
+				//traceln("Battery opportunity charging due to HOLON surpluss and low SOC, charge setpoint");
 			} else if(currentBatteryStateOfCharge < 0.9) { // when there is a nett surpluss in the holon (within grid bounds)
 				chargeSetpoint_kW = currentHolonElectricitySurplus_kW;
-				traceln("Battery opportunity charging due to HOLON surpluss and low SOC, charge setpoint");
+				//traceln("Battery opportunity charging due to HOLON surpluss and low SOC, charge setpoint");
 			} else {
-				traceln("Moderate surpluss is HOLON but battery already at high SOC");
+				//traceln("Moderate surpluss is HOLON but battery already at high SOC");
 				chargeSetpoint_kW = 0;
 			}
 		} else if (-currentHolonElectricitySurplus_kW - HolonConnectionCapacity_kW > 0) { // When there is too much demand, battery must supply
 			if (currentBatteryStateOfCharge > 0.7) { // If battery is nearly full, supply max power
 				chargeSetpoint_kW = currentHolonElectricitySurplus_kW;
-				traceln("Battery supplying high power due to overconsumption in HOLON and high SOC");
+				//traceln("Battery supplying high power due to overconsumption in HOLON and high SOC");
 			} else if (currentBatteryStateOfCharge > 0){ // else use only what can't be imported
 				chargeSetpoint_kW = currentHolonElectricitySurplus_kW + HolonConnectionCapacity_kW;
-				traceln("Battery supplying power due to overconsumption in HOLON");
+				//traceln("Battery supplying power due to overconsumption in HOLON");
 			} else {
 				traceln("**!! Battery not able to prevent congestion due to overconsumption!!**");
 				chargeSetpoint_kW = 0;
@@ -20235,20 +20262,23 @@ p_batteryAsset.f_updateElectricityFlows(p_batteryAsset.v_powerFraction_fr);
 		} else if(-currentHolonElectricitySurplus_kW > 0 ) { // when there is a small shortage
 			if (currentBatteryStateOfCharge > 0.8) {
 				chargeSetpoint_kW = currentHolonElectricitySurplus_kW;
-				traceln("Battery supplying power due to high SoC and moderate HOLON  demand");
+				//traceln("Battery supplying power due to high SoC and moderate HOLON  demand");
 			} else if(currentBatteryStateOfCharge < 0.6) { // when battery is undercharged, charge the battery at available grid capacity
 				chargeSetpoint_kW = HolonConnectionCapacity_kW+currentHolonElectricitySurplus_kW;
-				traceln("Battery charging due to low SoC and moderate HOLON demand");
+				//traceln("Battery charging due to low SoC and moderate HOLON demand");
 			} else { // Else zero power to battery
 				chargeSetpoint_kW = 0;
-				traceln("Battery passive");
+				//traceln("Battery passive");
 			}
 		} else { // Else zero power to battery
 			chargeSetpoint_kW = 0;
-			traceln("Battery passive");
+			//traceln("Battery passive");
+		}
+		if (time(HOUR) == 0){
+			chargeSetpoint_kW = -1000;
 		}
 		p_batteryAsset.v_powerFraction_fr = max(-1,min(1, chargeSetpoint_kW / p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW())); // Convert to powerFraction and limit power
-		traceln("HOLON surpluss " + currentHolonElectricitySurplus_kW + "kW, Battery charging power " + p_batteryAsset.v_powerFraction_fr*p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW() + " kW at " + currentBatteryStateOfCharge*100 + " % SOC");
+		//traceln("HOLON surpluss " + currentHolonElectricitySurplus_kW + "kW, Battery charging power " + p_batteryAsset.v_powerFraction_fr*p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW() + " kW at " + currentBatteryStateOfCharge*100 + " % SOC");
 	}
 }]]></Body>
 				</Function>
