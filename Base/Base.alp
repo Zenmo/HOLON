@@ -20225,7 +20225,7 @@ p_batteryAsset.f_updateElectricityFlows(p_batteryAsset.v_powerFraction_fr);
 		double currentHolonElectricitySurplus_kW = ((ConnectionOwner)p_ownerActor).p_holonParent.v_electricitySurplus_kW + v_previousPowerElectricity_kW;
 		double HolonConnectionCapacity_kW = 0.85*((ConnectionOwner)p_ownerActor).p_holonParent.v_connectionCapacity_kW;
 		double chargeSetpoint_kW = 0;
-		if(currentHolonElectricitySurplus_kW - HolonConnectionCapacity_kW > 0) { // Bigger surpluss than can be exported via grid
+		if(currentHolonElectricitySurplus_kW > HolonConnectionCapacity_kW) { // Bigger surpluss than can be exported via grid
 			if (currentBatteryStateOfCharge < 1 ) {
 				if (currentBatteryStateOfCharge < 0.7) { // If battery is not very full, use all surpluss
 					chargeSetpoint_kW = currentHolonElectricitySurplus_kW;
@@ -20237,7 +20237,19 @@ p_batteryAsset.f_updateElectricityFlows(p_batteryAsset.v_powerFraction_fr);
 				traceln("**!! Battery not able to prevent congestion due to overproduction!!**");
 				chargeSetpoint_kW = 0;		
 			}	
-		} else if(currentHolonElectricitySurplus_kW > 0 ) { // when there is a moderate surpluss in the holon (within grid bounds)
+		} else if(abs(currentHolonElectricitySurplus_kW) < HolonConnectionCapacity_kW ) { // when there is a small shortage or surpluss, aim for 90% battery charge
+			if(currentBatteryStateOfCharge < 0.6) { // when battery is undercharged, charge the battery at available grid capacity
+				chargeSetpoint_kW = HolonConnectionCapacity_kW+currentHolonElectricitySurplus_kW;
+				//traceln("Battery charging due to low SoC and moderate HOLON demand");			
+			//} else if (currentBatteryStateOfCharge > 0.8) {
+			//	chargeSetpoint_kW = currentHolonElectricitySurplus_kW;
+				//traceln("Battery supplying power due to high SoC and moderate HOLON  demand");
+			} else { // Else module power based on SOC. Power should be zero at 0.8 SOC
+				chargeSetpoint_kW = (HolonConnectionCapacity_kW+currentHolonElectricitySurplus_kW) * (1 - (currentBatteryStateOfCharge - 0.6)/0.3);
+				chargeSetpoint_kW = max(chargeSetpoint_kW, currentHolonElectricitySurplus_kW - HolonConnectionCapacity_kW); // Don't allow too much discharging!
+				traceln("Modulating battery during demand phase, SOC " + currentBatteryStateOfCharge + ", charge setpoint " + chargeSetpoint_kW);
+			}
+		/*} else if(currentHolonElectricitySurplus_kW > 0 ) { // when there is a moderate surpluss in the holon (within grid bounds)
 			if (currentBatteryStateOfCharge < 0.6) {
 				chargeSetpoint_kW = currentHolonElectricitySurplus_kW + HolonConnectionCapacity_kW;
 				//traceln("Battery opportunity charging due to HOLON surpluss and low SOC, charge setpoint");
@@ -20247,10 +20259,11 @@ p_batteryAsset.f_updateElectricityFlows(p_batteryAsset.v_powerFraction_fr);
 			} else {
 				//traceln("Moderate surpluss is HOLON but battery already at high SOC");
 				chargeSetpoint_kW = 0;
-			}
-		} else if (-currentHolonElectricitySurplus_kW - HolonConnectionCapacity_kW > 0) { // When there is too much demand, battery must supply
+			} */
+		} else if (-currentHolonElectricitySurplus_kW > HolonConnectionCapacity_kW ) { // When there is too much demand, battery must supply
 			if (currentBatteryStateOfCharge > 0.7) { // If battery is nearly full, supply max power
-				chargeSetpoint_kW = currentHolonElectricitySurplus_kW;
+				chargeSetpoint_kW = currentHolonElectricitySurplus_kW * (currentBatteryStateOfCharge-0.7)/0.3 + (HolonConnectionCapacity_kW + currentHolonElectricitySurplus_kW) * (1 - (currentBatteryStateOfCharge - 0.7)/0.3);
+				traceln("Modulating battery during shortage phase, SOC " + currentBatteryStateOfCharge + ", charge setpoint " + chargeSetpoint_kW);
 				//traceln("Battery supplying high power due to overconsumption in HOLON and high SOC");
 			} else if (currentBatteryStateOfCharge > 0){ // else use only what can't be imported
 				chargeSetpoint_kW = currentHolonElectricitySurplus_kW + HolonConnectionCapacity_kW;
@@ -20259,17 +20272,7 @@ p_batteryAsset.f_updateElectricityFlows(p_batteryAsset.v_powerFraction_fr);
 				traceln("**!! Battery not able to prevent congestion due to overconsumption!!**");
 				chargeSetpoint_kW = 0;
 			}
-		} else if(-currentHolonElectricitySurplus_kW > 0 ) { // when there is a small shortage
-			if (currentBatteryStateOfCharge > 0.8) {
-				chargeSetpoint_kW = currentHolonElectricitySurplus_kW;
-				//traceln("Battery supplying power due to high SoC and moderate HOLON  demand");
-			} else if(currentBatteryStateOfCharge < 0.6) { // when battery is undercharged, charge the battery at available grid capacity
-				chargeSetpoint_kW = HolonConnectionCapacity_kW+currentHolonElectricitySurplus_kW;
-				//traceln("Battery charging due to low SoC and moderate HOLON demand");
-			} else { // Else zero power to battery
-				chargeSetpoint_kW = 0;
-				//traceln("Battery passive");
-			}
+
 		} else { // Else zero power to battery
 			chargeSetpoint_kW = 0;
 			//traceln("Battery passive");
