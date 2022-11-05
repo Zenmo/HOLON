@@ -19930,7 +19930,7 @@ traceln("NetConnection connecting to " + numberOfEnergyAssets + " EnergyAssets")
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[double currentBatteryStateOfCharge = p_batteryAsset.p_energyAssetInstance.getCurrentStateOfCharge();
 
-f_balanceHolonLoad(currentBatteryStateOfCharge);
+f_balanceHolonLoadV2(currentBatteryStateOfCharge);
 
 p_batteryAsset.f_updateElectricityFlows(p_batteryAsset.v_powerFraction_fr);
 ]]></Body>
@@ -19964,7 +19964,7 @@ p_batteryAsset.f_updateElectricityFlows(p_batteryAsset.v_powerFraction_fr);
 
 @author: JorritvandenHouten
 @since: 28-10-2022]]></Description>
-					<X>740</X><Y>280</Y>
+					<X>740</X><Y>290</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19975,8 +19975,10 @@ p_batteryAsset.f_updateElectricityFlows(p_batteryAsset.v_powerFraction_fr);
 					</Parameter>
 					<Body><![CDATA[if(p_ownerActor instanceof ConnectionOwner) {
 	if(((ConnectionOwner)p_ownerActor).p_holonParent instanceof EnergyHolon ) {
+	
 		double currentHolonElectricitySurplus_kW = ((ConnectionOwner)p_ownerActor).p_holonParent.v_electricitySurplus_kW + v_previousPowerElectricity_kW;
 		double HolonConnectionCapacity_kW = 0.9*((ConnectionOwner)p_ownerActor).p_holonParent.v_connectionCapacity_kW;
+		
 		double chargeSetpoint_kW = 0;
 		if(abs(currentHolonElectricitySurplus_kW) < HolonConnectionCapacity_kW ) { // when there is a small shortage or surpluss, aim for 90% battery charge
 			if(currentBatteryStateOfCharge < 0.6) { // when battery is undercharged, charge the battery at available grid capacity
@@ -20032,6 +20034,47 @@ p_batteryAsset.f_updateElectricityFlows(p_batteryAsset.v_powerFraction_fr);
 			chargeSetpoint_kW = 0;
 			//traceln("Battery passive");
 		}
+		if (time(HOUR) == 0){
+			chargeSetpoint_kW = -1000;
+		}
+		p_batteryAsset.v_powerFraction_fr = max(-1,min(1, chargeSetpoint_kW / p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW())); // Convert to powerFraction and limit power
+		//traceln("HOLON surpluss " + currentHolonElectricitySurplus_kW + "kW, Battery charging power " + p_batteryAsset.v_powerFraction_fr*p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW() + " kW at " + currentBatteryStateOfCharge*100 + " % SOC");
+	}
+}]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1667632551574</Id>
+					<Name><![CDATA[f_balanceHolonLoadV2]]></Name>
+					<Description><![CDATA[Simpele regeling voor balancering van holon-load.
+
+@author: JorritvandenHouten
+@since: 28-10-2022]]></Description>
+					<X>740</X><Y>320</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[currentBatteryStateOfCharge]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
+					<Body><![CDATA[if(p_ownerActor instanceof ConnectionOwner) {
+	if(((ConnectionOwner)p_ownerActor).p_holonParent instanceof EnergyHolon ) {
+	
+		double currentHolonElectricitySurplus_kW = ((ConnectionOwner)p_ownerActor).p_holonParent.v_electricitySurplus_kW + v_previousPowerElectricity_kW;
+		double HolonConnectionCapacity_kW = 0.9*((ConnectionOwner)p_ownerActor).p_holonParent.v_connectionCapacity_kW; // Use only 90% of capacity for robustness against delay
+		double availableChargePower_kW = currentHolonElectricitySurplus_kW + HolonConnectionCapacity_kW; // Max battery charging power within grid capacity
+		double availableDischargePower_kW = currentHolonElectricitySurplus_kW - HolonConnectionCapacity_kW; // Max discharging power within grid capacity
+		double SOC_setp_fr = 0.6 + 0.2 * Math.sin(2*Math.PI*(time(HOUR)-12)/24); // Sinusoidal setpoint: aim for low SOC at 6:00h, high SOC at 18:00h. 
+		//traceln("SOC setpoint at " + getHourOfDay() + " h is " + SOC_setp_fr*100 + "%");
+		double FeedbackGain_kWpSOC = 1.5 * p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW(); // How strongly to aim for SOC setpoint
+		double FeedforwardGain_kWpKw = 0.8; // Feedforward based on current surpluss in holon
+		//double chargeOffset_kW = 100; // Charging 'bias', basically increases SOC setpoint slightly during the whole day.
+		double chargeSetpoint_kW = 0;
+		chargeSetpoint_kW = FeedforwardGain_kWpKw*currentHolonElectricitySurplus_kW + (SOC_setp_fr - currentBatteryStateOfCharge) * FeedbackGain_kWpSOC;
+		chargeSetpoint_kW = min(max(chargeSetpoint_kW, availableDischargePower_kW),availableChargePower_kW); // Don't allow too much (dis)charging!
 		if (time(HOUR) == 0){
 			chargeSetpoint_kW = -1000;
 		}
