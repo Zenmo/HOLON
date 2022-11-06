@@ -19102,6 +19102,20 @@ public void f_operateFlexAssets(){
 			</ScaleRuler>
 			<CurrentLevel>1665480522863</CurrentLevel>
 			<ConnectionsId>1665480522859</ConnectionsId>
+			<Variables>
+				<Variable Class="PlainVariable">
+					<Id>1667765348094</Id>
+					<Name><![CDATA[v_currentChargingPower_kW]]></Name>
+					<X>250</X><Y>270</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+			</Variables>
 			<Functions>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -19207,7 +19221,7 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[// Determine EV charging
-//f_manageCharging();
+f_manageCharging();
 
 // Determine house heating
 f_manageHeatingAssets();
@@ -19218,7 +19232,7 @@ f_manageHeatingAssets();
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1665501272194</Id>
 					<Name><![CDATA[f_manageHeatingAssets]]></Name>
-					<X>580</X><Y>260</Y>
+					<X>580</X><Y>280</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19240,6 +19254,28 @@ for( EnergyAsset c : c_connectedConversionAssets ) {
 }
 
 ]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1667763007558</Id>
+					<Name><![CDATA[f_manageCharging]]></Name>
+					<X>580</X><Y>260</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[v_currentChargingPower_kW = 0;
+for ( EnergyAsset EA : c_connectedVehicleAssets){
+	J_EAEV vehicle = (J_EAEV)EA.p_energyAssetInstance;
+	if( vehicle.getAvailability() && vehicle.getCurrentStateOfCharge() < 1) {
+		EA.f_updateElectricityFlows( 50 ); // HARDCODED QUICKLY 50 kW charging!
+		v_currentChargingPower_kW += 50;
+	} 
+	else{
+		EA.f_updateElectricityFlows( 0 ); 
+	}
+}]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
