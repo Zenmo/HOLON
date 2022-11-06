@@ -495,6 +495,10 @@
 				<Id>1666959280721</Id>
 				<Name><![CDATA[Grid_battery_1MWh]]></Name>
 			</Option>
+			<Option>
+				<Id>1667757454119</Id>
+				<Name><![CDATA[EHGV]]></Name>
+			</Option>
 		</OptionList>
 		<OptionList>
 			<Id>1660226249511</Id>
@@ -638,6 +642,22 @@
 			<Option>
 				<Id>1665487989742</Id>
 				<Name><![CDATA[NONE]]></Name>
+			</Option>
+		</OptionList>
+		<OptionList>
+			<Id>1667742453792</Id>
+			<Name><![CDATA[OL_MobilityPatternType]]></Name>
+			<Option>
+				<Id>1667742462468</Id>
+				<Name><![CDATA[INDUSTRY]]></Name>
+			</Option>
+			<Option>
+				<Id>1667742466151</Id>
+				<Name><![CDATA[HOUSEHOLD]]></Name>
+			</Option>
+			<Option>
+				<Id>1667742486158</Id>
+				<Name><![CDATA[BUS]]></Name>
 			</Option>
 		</OptionList>
 	</OptionLists>
@@ -2047,7 +2067,7 @@ for(HashMap data : parsedJSONGridConnections) {
 	//traceln("data: " + "id = " + gridConnectionID + ", category = " + gridConnectionCategory + ", connectionType = " + gridConnectionType + ", parentElectric" + gridConnectionParentElectric + ", parentHeat = " + gridConnectionParentHeat + ", capacity = " + gridConnectionCapacity + "owner_actor = "+ ownerActorID);
 	switch(gridConnectionCategory) {
 		case HOUSE: 
-	 		GCHouse GCHouse = add_gCHouses(gridConnectionCategory, gridConnectionType, gridConnectionCapacity, gridConnectionParentElectric, gridConnectionID, gridConnectionParentHeat, null, null, null, ownerActorID, null, null, null, gridConnectionHeatingType, null, uniform(0.1, 0.3), 7, gridConnectionIsolationLabel, null);
+	 		GCHouse GCHouse = add_gCHouses(gridConnectionCategory, gridConnectionType, gridConnectionCapacity, gridConnectionParentElectric, gridConnectionID, gridConnectionParentHeat, null, null, null, ownerActorID, null, null, null, gridConnectionHeatingType, gridConnectionIsolationLabel, null);
 			//add_gCHouses()
  			c_gridConnections.add(GCHouse);
 	 	break;
@@ -2661,8 +2681,8 @@ c_productionAssets.add(e);
 						<Name><![CDATA[storageAssetPreset]]></Name>
 						<Type><![CDATA[OL_EAPresetStorageAssets]]></Type>
 					</Parameter>
-					<Body><![CDATA[String parentAgentID;
-
+					<Body><![CDATA[//Determine parent agent
+String parentAgentID;
 if( ownerAgent instanceof GridConnection ) {
 	ownerAgent = (GridConnection)ownerAgent;
 	parentAgentID = ((GridConnection) ownerAgent).p_agentID;
@@ -2676,6 +2696,8 @@ else {
 	ownerAgent = (GridConnection)findFirst(c_gridConnections, p->p.p_agentID.equals(parentAgentID));
 }
 
+
+//Get preset input from DB
 List< Tuple > data = selectFrom( storage_assets ).where( storage_assets.name.eq( storageAssetPreset ) ).
 list();
 
@@ -2691,25 +2713,27 @@ double minTemperature_degC = 0;
 double maxTemperature_degC = 0;
 double setTemperature_degC = 0;
 String ambientTempType = "";
+double energyConsumption_kWhpkm = 0;
 
 for( Tuple tup : data ) {
-assetType = tup.get( storage_assets.energy_asset_type );
-capacityElectricity_kW = tup.get( storage_assets.capacity_electricity_kw );
-capacityHeat_kW = tup.get( storage_assets.capacity_heat_kw );
-stateOfCharge_r =  tup.get( storage_assets.state_of_charge_r );
-lossFactor_WpK =  tup.get( storage_assets.loss_factor_wpk );
-storageCapacity_kWh =  tup.get( storage_assets.storage_capacity_kwh );
-heatCapacity_JpK =  tup.get( storage_assets.heat_capacity_jpk );
-minTemperature_degC = tup.get( storage_assets.min_temp_degc);
-maxTemperature_degC = tup.get( storage_assets.max_temp_degc);
-setTemperature_degC = tup.get( storage_assets.set_temp_degc);
-ambientTempType = tup.get( storage_assets.ambient_temp_type);
+	assetType = tup.get( storage_assets.energy_asset_type );
+	capacityElectricity_kW = tup.get( storage_assets.capacity_electricity_kw );	
+	capacityHeat_kW = tup.get( storage_assets.capacity_heat_kw );
+	stateOfCharge_r =  tup.get( storage_assets.state_of_charge_r );
+	lossFactor_WpK =  tup.get( storage_assets.loss_factor_wpk );
+	storageCapacity_kWh =  tup.get( storage_assets.storage_capacity_kwh );
+	heatCapacity_JpK =  tup.get( storage_assets.heat_capacity_jpk );
+	minTemperature_degC = tup.get( storage_assets.min_temp_degc);
+	maxTemperature_degC = tup.get( storage_assets.max_temp_degc);
+	setTemperature_degC = tup.get( storage_assets.set_temp_degc);
+	ambientTempType = tup.get( storage_assets.ambient_temp_type);
+	energyConsumption_kWhpkm = tup.get (storage_assets.energy_consumption_kwhpkm);
 }
 
 //traceln("f_addPresetStorageAsset: Preset Storage Asset added: " + storageAssetPreset+", stateOfCharge = " + stateOfCharge_r+", minT = "+minTemperature_degC+", maxT = "+ maxTemperature_degC + ", setT = "+ setTemperature_degC+", ambientTempType = "+ambientTempType);
 EnergyAsset e = add_pop_energyAssets( null, parentAgentID, assetType, storageAssetPreset.toString() );
 traceln("f_addPresetStorageAsset "+ assetType +" "+ capacityElectricity_kW + " " + capacityHeat_kW + " "+  stateOfCharge_r + " " + lossFactor_WpK +" " + storageCapacity_kWh + " " + heatCapacity_JpK + " "+  minTemperature_degC + " " + maxTemperature_degC + "" +  setTemperature_degC + "" +  ambientTempType );
-e.f_instantiateStorageAsset( assetType, capacityElectricity_kW, capacityHeat_kW, stateOfCharge_r, lossFactor_WpK, storageCapacity_kWh, heatCapacity_JpK, minTemperature_degC, maxTemperature_degC, setTemperature_degC, ambientTempType );
+e.f_instantiateStorageAsset( assetType, capacityElectricity_kW, capacityHeat_kW, stateOfCharge_r, lossFactor_WpK, storageCapacity_kWh, heatCapacity_JpK, minTemperature_degC, maxTemperature_degC, setTemperature_degC, ambientTempType, energyConsumption_kWhpkm );
 e.f_connectToParentNode( (Agent)ownerAgent );
 c_storageAssets.add(e);
 
@@ -3048,7 +3072,7 @@ boolean b_congestionPricingProduction = Boolean.parseBoolean( policyMap.get("Gri
 
 // configure actor policy values
 for( GCHouse h : gCHouses ) {
-	h.v_chargingAttitude = DefaultEVChargingAttitude;
+	//h.v_chargingAttitude = DefaultEVChargingAttitude;
 }
 
 for(GridOperator g : pop_gridOperators) {
@@ -3626,7 +3650,7 @@ for(EnergyAsset e : c_storageAssets ) {
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[MVPCase1BedrijventerreinBasic_config_energyAssets.txt]]></ClassName>
+						<ClassName><![CDATA[MVPCase1BedrijventerreinBasic_config_energyAssets TESTCONFIG.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -3652,15 +3676,31 @@ for(EnergyAsset e : c_storageAssets ) {
 				</TextFile>
 				<ExcelFile>
 					<Id>1660141188744</Id>
-					<Name><![CDATA[tripsExcel]]></Name>
+					<Name><![CDATA[inputHouseholdTrips]]></Name>
 					<X>-450</X><Y>80</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>false</PresentationFlag>
+					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
 						<ClassName><![CDATA[AlbatrossProcessedVehicleTrips.xlsx]]></ClassName>
+					</ResourceReference>
+					<SaveInSnapshot>false</SaveInSnapshot>
+					<LoadOnStartup>true</LoadOnStartup>
+					<SaveOnDispose>true</SaveOnDispose>
+				</ExcelFile>
+				<ExcelFile>
+					<Id>1667758923284</Id>
+					<Name><![CDATA[inputTruckTrips]]></Name>
+					<X>-450</X><Y>60</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<ResourceReference>
+						<PackageName><![CDATA[base]]></PackageName>
+						<ClassName><![CDATA[inputTruckTripPatterns.xlsx]]></ClassName>
 					</ResourceReference>
 					<SaveInSnapshot>false</SaveInSnapshot>
 					<LoadOnStartup>true</LoadOnStartup>
@@ -5230,6 +5270,77 @@ for(EnergyAsset e : c_storageAssets ) {
 					<QuantityColumn>
 					</QuantityColumn>
 				</EmbeddedObject>
+				<EmbeddedObject>
+					<Id>1667745003892</Id>
+					<Name><![CDATA[mobilityTrackers]]></Name>
+					<X>60</X><Y>270</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<PresentationId>1667745003893</PresentationId>
+					<ActiveObjectClass>
+						<PackageName><![CDATA[base]]></PackageName>
+						<ClassName><![CDATA[MobilityTracker]]></ClassName>
+					</ActiveObjectClass>
+					<GenericParameterSubstitute>
+						<GenericParameterSubstituteReference>
+							<PackageName><![CDATA[base]]></PackageName>
+							<ClassName><![CDATA[MobilityTracker]]></ClassName>
+							<ItemName><![CDATA[1667726338855]]></ItemName>
+						</GenericParameterSubstituteReference>
+					</GenericParameterSubstitute>
+					<Parameters>
+						<Parameter>
+							<Name><![CDATA[p_mobilityPatternType]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_gridConnection]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_vehicleIndex]]></Name>
+						</Parameter>
+					</Parameters>
+					<ReplicationFlag>true</ReplicationFlag>
+					<Replication Class="CodeValue">
+						<Code><![CDATA[100]]></Code>
+					</Replication>
+					<CollectionType>ARRAY_LIST_BASED</CollectionType>
+					<InEnvironment>true</InEnvironment>	
+					<InitialLocationType>AT_ANIMATION_POSITION</InitialLocationType>
+					<XCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</XCode>
+					<YCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</YCode>
+					<ZCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ZCode>
+					<ColumnCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ColumnCode>
+					<RowCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</RowCode>
+					<LatitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LatitudeCode>
+					<LongitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LongitudeCode>
+					<LocationNameCode Class="CodeValue">
+						<Code><![CDATA[""]]></Code>
+					</LocationNameCode>
+					<InitializationType>EMPTY</InitializationType>
+					<InitializationDatabaseTableQuery>
+						<TableReference>
+						</TableReference>
+					</InitializationDatabaseTableQuery>
+					<InitializationDatabaseType>ONE_AGENT_PER_DATABASE_RECORD</InitializationDatabaseType>
+					<QuantityColumn>
+					</QuantityColumn>
+				</EmbeddedObject>
 			</EmbeddedObjects>
 
 			<Presentation>
@@ -5332,73 +5443,6 @@ for(EnergyAsset e : c_storageAssets ) {
 					</Font>
 					<Alignment>LEFT</Alignment>
 				</Text>
-    			<TimePlot>
-					<Id>1664178405797</Id>
-					<Name><![CDATA[plot_chargingPower]]></Name>
-					<X>1140</X><Y>20</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<AutoUpdate>true</AutoUpdate>
-					<OccurrenceAtTime>true</OccurrenceAtTime>
-					<OccurrenceDate>1664179200000</OccurrenceDate>
-					<OccurrenceTime Class="CodeUnitValue">
-						<Code><![CDATA[0]]></Code>
-						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
-					</OccurrenceTime>
-					<RecurrenceCode Class="CodeUnitValue">
-						<Code><![CDATA[0.25]]></Code>
-						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
-					</RecurrenceCode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Width>430</Width>
-					<Height>210</Height>
-					<BackgroundColor/>
-					<BorderColor/>
-					<ChartArea>
-						<XOffset>50</XOffset>
-						<YOffset>30</YOffset>
-						<Width>350</Width>
-						<Height>120</Height>
-						<BackgroundColor>-1</BackgroundColor>
-						<BorderColor>-16777216</BorderColor>
-						<GridColor>-12566464</GridColor>
-					</ChartArea>
-					<Legend>
-						<Place>SOUTH</Place>
-						<TextColor>-16777216</TextColor>
-						<Size>30</Size>
-					</Legend>
-					<Labels>
-						<HorLabelsPosition>DEFAULT</HorLabelsPosition>
-						<VerLabelsPosition>DEFAULT</VerLabelsPosition>
-						<TextColor>-12566464</TextColor>
-					</Labels>
-					<ShowLegend>true</ShowLegend>
-					<TimeWindowsMovementType>MOVEMENT_WITH_TIME</TimeWindowsMovementType>		
-					<TimeWindowUnits>HOUR</TimeWindowUnits>
-					<VerScaleFromExpression><![CDATA[0]]></VerScaleFromExpression>
-					<VerScaleToExpression><![CDATA[1]]></VerScaleToExpression>
-					<VerScaleType>AUTO</VerScaleType>
-					<DrawLine>true</DrawLine>
-					<Interpolation>LINEAR</Interpolation>
-					<DatasetExpression>  
-						<Title><![CDATA[Cumulative Charging Demand]]></Title>
-					<Id>0</Id>
-					<Expression><![CDATA[my_dataset]]></Expression>
-					<Color>-2448096</Color>
-					<Expression2><![CDATA[sum(gCHouses, x -> x.v_currentChargingPower_kW)]]></Expression2>
-					<Expression2Flag>true</Expression2Flag>
-						<PointStyle>NONE</PointStyle>
-						<LineWidth>1.0</LineWidth>
-					</DatasetExpression>
-					<SamplesToKeep>672</SamplesToKeep>
-					<TimeWindowExpression><![CDATA[168]]></TimeWindowExpression>
-					<FillAreaUnderLine>false</FillAreaUnderLine>
-					<LabelFormat>MODEL_TIME_UNITS</LabelFormat>
-    			</TimePlot>
 				<Rectangle>
 					<Id>1665052264314</Id>
 					<Name><![CDATA[rectangle1]]></Name>
@@ -5512,6 +5556,25 @@ for(EnergyAsset e : c_storageAssets ) {
 			</Presentation>
 
 				</Level>
+				<EmbeddedObjectPresentation>
+					<Id>1667745003893</Id>
+					<Name><![CDATA[mobilityTrackers_presentation]]></Name>
+					<X>160</X><Y>270</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<DrawingMode>AGENT_CURRENT_POSITION</DrawingMode>
+					<ScaleType>AUTOMATICALLY_CALCULATED</ScaleType>
+					<GISScaleForRealEmbeddedObjectPresentationSize>1000</GISScaleForRealEmbeddedObjectPresentationSize>
+					<GISScaleForFixedEmbeddedObjectPresentationSize>1000000000</GISScaleForFixedEmbeddedObjectPresentationSize>
+					<Latitude>0.0</Latitude>
+					<Longitude>0.0</Longitude>
+				</EmbeddedObjectPresentation>
 			</Presentation>
 
 		</ActiveObjectClass>
@@ -6923,6 +6986,22 @@ subConnections.sendToAllConnected(msg);]]></OnReceive>
 						</InitialValue>
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1667746610980</Id>
+					<Name><![CDATA[v_vehicleIndex]]></Name>
+					<Description><![CDATA[Wordt gebruikt om voertuigen aan assets te koppelen tijden initialisatie.]]></Description>
+					<X>860</X><Y>150</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>false</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[int]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1658499438204</Id>
 					<Name><![CDATA[p_gridConnectionCategory]]></Name>
@@ -7317,7 +7396,7 @@ subConnections.sendToAllConnected(msg);]]></OnReceive>
 				<Variable Class="CollectionVariable">
 					<Id>1659962626903</Id>
 					<Name><![CDATA[c_connectedEnergyAssets]]></Name>
-					<X>400</X><Y>-110</Y>
+					<X>650</X><Y>60</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -7332,7 +7411,7 @@ subConnections.sendToAllConnected(msg);]]></OnReceive>
 				<Variable Class="CollectionVariable">
 					<Id>1659962626907</Id>
 					<Name><![CDATA[c_connectedStorageAssets]]></Name>
-					<X>420</X><Y>-40</Y>
+					<X>670</X><Y>130</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -7347,7 +7426,7 @@ subConnections.sendToAllConnected(msg);]]></OnReceive>
 				<Variable Class="CollectionVariable">
 					<Id>1659962626909</Id>
 					<Name><![CDATA[c_connectedConsumptionAssets]]></Name>
-					<X>420</X><Y>-80</Y>
+					<X>670</X><Y>90</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -7362,7 +7441,7 @@ subConnections.sendToAllConnected(msg);]]></OnReceive>
 				<Variable Class="CollectionVariable">
 					<Id>1659962626911</Id>
 					<Name><![CDATA[c_connectedProductionAssets]]></Name>
-					<X>420</X><Y>-60</Y>
+					<X>670</X><Y>110</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -7377,7 +7456,37 @@ subConnections.sendToAllConnected(msg);]]></OnReceive>
 				<Variable Class="CollectionVariable">
 					<Id>1659962626913</Id>
 					<Name><![CDATA[c_connectedConversionAssets]]></Name>
-					<X>420</X><Y>-20</Y>
+					<X>670</X><Y>170</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
+						<ElementClass><![CDATA[EnergyAsset]]></ElementClass>
+						<ValueElementClass><![CDATA[String]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1667744410260</Id>
+					<Name><![CDATA[c_mobilityTrackers]]></Name>
+					<X>650</X><Y>30</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
+						<ElementClass><![CDATA[MobilityTracker]]></ElementClass>
+						<ValueElementClass><![CDATA[String]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1667746389220</Id>
+					<Name><![CDATA[c_connectedVehicleAssets]]></Name>
+					<X>690</X><Y>150</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -7437,58 +7546,6 @@ if( myParentEnergyHolon instanceof EnergyHolon) {
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1658751062480</Id>
-					<Name><![CDATA[f_calculateEnergyBalance]]></Name>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>50</X><Y>340</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[v_currentPowerElectricity_kW = 0;
-v_currentPowerMethane_kW = 0;
-v_currentPowerHydrogen_kW = 0;
-v_currentPowerHeat_kW = 0;
-
-f_operateAssets();
-// determine the net energy flows from all subconnections
-for( Agent a : subConnections.getConnections() )
-{
-	EnergyAsset EA = (EnergyAsset)a;
-	EA.f_updateEnergyAssetFlows();
-	double assetElectricityProduction_kW = EA.v_currentProductionElectricity_kW;
-	double assetMethaneProduction_kW = EA.v_currentProductionMethane_kW;
-	double assetHydrogenProduction_kW = EA.v_currentProductionHydrogen_kW;
-	double assetHeatProduction_kW = EA.v_currentProductionHeat_kW;
-
-	double assetElectricityConsumption_kW = EA.v_currentConsumptionElectricity_kW;
-	double assetMethaneConsumption_kW = EA.v_currentConsumptionMethane_kW;
-	double assetHydrogenConsumption_kW = EA.v_currentConsumptionHydrogen_kW;
-	double assetHeatConsumption_kW = EA.v_currentConsumptionHeat_kW;
-	
-	v_currentPowerElectricity_kW += assetElectricityConsumption_kW - assetElectricityProduction_kW;
-	v_currentPowerMethane_kW += assetMethaneConsumption_kW - assetMethaneProduction_kW;
-	v_currentPowerHydrogen_kW += assetHydrogenConsumption_kW - assetHydrogenProduction_kW;
-	v_currentPowerHeat_kW += assetHeatConsumption_kW - assetHeatProduction_kW;
-}
-
-f_connectionMetering();
-
-// Total Energy Use and Production
-v_totalEnergyUsed_kWh=0;
-v_totalEnergyProduced_kWh=0;
-for (EnergyAsset EA : c_connectedEnergyAssets ) {
-	double energyUse_kWh=EA.p_energyAssetInstance.getEnergyUsed_kWh();
-	v_totalEnergyUsed_kWh += max(0,energyUse_kWh);
-	v_totalEnergyProduced_kWh -= min(0,energyUse_kWh);
-}
-
-v_selfConsumption_fr = 1 - (v_electricityDelivered_kWh + v_heatDelivered_kWh + v_methaneDelivered_kWh + v_hydrogenDelivered_kWh ) / v_totalEnergyProduced_kWh;
-v_selfSufficiency_fr = 1 - (v_electricityDrawn_kWh + v_heatDrawn_kWh + v_methaneDrawn_kWh + v_hydrogenDrawn_kWh) / v_totalEnergyUsed_kWh; // Need to account for energy in storages!]]></Body>
-				</Function>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1658752229618</Id>
 					<Name><![CDATA[f_connectToChild]]></Name>
 					<X>50</X><Y>220</Y>
@@ -7543,19 +7600,6 @@ List<EnergyAsset> conversionAssets = filter(c_connectedEnergyAssets, b -> b.p_en
 traceln("NetConnection connecting to " + numberOfEnergyAssets + " EnergyAssets");
 */
 ]]></Body>
-				</Function>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1659962626915</Id>
-					<Name><![CDATA[f_operateAssets]]></Name>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>50</X><Y>370</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[traceln("ERROR: operate assets functie in gridconnection is aangeroepen vanuit parent agent");]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -8411,6 +8455,10 @@ p_energyAssetType = assetType;]]></Body>
 						<Name><![CDATA[ambientTempType]]></Name>
 						<Type><![CDATA[String]]></Type>
 					</Parameter>
+					<Parameter>
+						<Name><![CDATA[energyConsumption_kWhpkm]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
 					<Body><![CDATA[//energyAssetType	capacityElectricity_kW	capacityHeat_kW	stateOfCharge_r	minTemp_degC	maxTemp_degC	lossFactor_WpK	chargeCapacity_kWh	heatCapacity_JpK
 
 switch(assetType) {
@@ -8426,7 +8474,7 @@ switch(assetType) {
 	break;
 	case ELECTRIC_VEHICLE:
 	// EnergyAsset ownerAsset, double chargeCapacityElectricity_kW, double chargeCapacityHeat_kW, OL_EnergyCarrierType storageMedium, double capacity, double stateOfCharge, double lossFactor, double timestep_h
-	p_energyAssetInstance = new J_EAEV(this, capacityElectric_kW, chargeCapacity_kWh, InitialStateOfCharge_r, main.p_timeStep_h, uniform(0.2, 0.15));   // (EnergyAsset ownerAsset, double capacityElectricity_kW, double storageCapacity_kWh, double stateOfCharge_r, double timestep_h, energyConsumption_kWhpkm)
+	p_energyAssetInstance = new J_EAEV(this, capacityElectric_kW, chargeCapacity_kWh, InitialStateOfCharge_r, main.p_timeStep_h, energyConsumption_kWhpkm );   // (EnergyAsset ownerAsset, double capacityElectricity_kW, double storageCapacity_kWh, double stateOfCharge_r, double timestep_h, energyConsumption_kWhpkm)
 	break;
 	default:
 		traceln("exception: not a valid storage medium!");
@@ -16682,64 +16730,9 @@ public void f_operateFlexAssets(){
 			<ConnectionsId>1663772408662</ConnectionsId>
 			<Variables>
 				<Variable Class="PlainVariable">
-					<Id>1663833761124</Id>
-					<Name><![CDATA[v_tripDist_km]]></Name>
-					<X>1050</X><Y>110</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[double]]></Type>        
-					</Properties>
-				</Variable>
-				<Variable Class="PlainVariable">
-					<Id>1663833761128</Id>
-					<Name><![CDATA[v_chargingTarget_kWh]]></Name>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>1270</X><Y>280</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[double]]></Type>        
-					</Properties>
-				</Variable>
-				<Variable Class="PlainVariable">
-					<Id>1663833761130</Id>
-					<Name><![CDATA[v_minChargingTime_min]]></Name>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>1270</X><Y>310</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[double]]></Type>        
-						<InitialValue Class="CodeValue">
-							<Code><![CDATA[0]]></Code>
-						</InitialValue>
-					</Properties>
-				</Variable>
-				<Variable Class="PlainVariable">
-					<Id>1663833761132</Id>
-					<Name><![CDATA[v_tripIndex]]></Name>
-					<X>1050</X><Y>140</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[int]]></Type>        
-						<InitialValue Class="CodeValue">
-							<Code><![CDATA[0]]></Code>
-						</InitialValue>
-					</Properties>
-				</Variable>
-				<Variable Class="PlainVariable">
 					<Id>1664007705515</Id>
 					<Name><![CDATA[v_chargingAttitude]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>1050</X><Y>170</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -16755,6 +16748,7 @@ public void f_operateFlexAssets(){
 				<Variable Class="PlainVariable">
 					<Id>1664122071472</Id>
 					<Name><![CDATA[v_minimumDesiredSOC_fr]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>1050</X><Y>270</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -16770,6 +16764,7 @@ public void f_operateFlexAssets(){
 				<Variable Class="PlainVariable">
 					<Id>1664176258798</Id>
 					<Name><![CDATA[v_currentChargingPower_kW]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>1050</X><Y>300</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -16782,7 +16777,7 @@ public void f_operateFlexAssets(){
 				<Variable Class="PlainVariable">
 					<Id>1666622647972</Id>
 					<Name><![CDATA[v_currentHouseTemp_degC]]></Name>
-					<X>1050</X><Y>410</Y>
+					<X>460</X><Y>560</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -16794,21 +16789,19 @@ public void f_operateFlexAssets(){
 				<Variable Class="Parameter">
 					<Id>1663837187038</Id>
 					<Name><![CDATA[p_EV]]></Name>
-					<X>1050</X><Y>80</Y>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>1050</X><Y>20</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[EnergyAsset]]></Type>
+						<Type><![CDATA[Date]]></Type>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
-						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[null]]></Code>
-						</DefaultValue>
 						<ParameterEditor>
 							<Id>1663837187036</Id>
-							<EditorContolType>TEXT_BOX</EditorContolType>
+							<EditorContolType>CALENDAR</EditorContolType>
 							<MinSliderValue><![CDATA[0]]></MinSliderValue>
 							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
 							<DelimeterType>NO_DELIMETER</DelimeterType>
@@ -16818,6 +16811,7 @@ public void f_operateFlexAssets(){
 				<Variable Class="Parameter">
 					<Id>1664103816802</Id>
 					<Name><![CDATA[p_chargingPriceTreshold]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>1050</X><Y>210</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -16839,6 +16833,7 @@ public void f_operateFlexAssets(){
 				<Variable Class="Parameter">
 					<Id>1664116961212</Id>
 					<Name><![CDATA[p_baseChargingSpeed]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>1050</X><Y>240</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -16902,187 +16897,15 @@ public void f_operateFlexAssets(){
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
-				<Variable Class="CollectionVariable">
-					<Id>1663833761110</Id>
-					<Name><![CDATA[starttimes]]></Name>
-					<X>1270</X><Y>50</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
-						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
-						<ElementClass><![CDATA[Double]]></ElementClass>
-						<ValueElementClass><![CDATA[String]]></ValueElementClass>
-					</Properties>
-
-				</Variable>
-				<Variable Class="CollectionVariable">
-					<Id>1663833761115</Id>
-					<Name><![CDATA[distances]]></Name>
-					<X>1270</X><Y>110</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
-						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
-						<ElementClass><![CDATA[Double]]></ElementClass>
-						<ValueElementClass><![CDATA[String]]></ValueElementClass>
-					</Properties>
-
-				</Variable>
-				<Variable Class="CollectionVariable">
-					<Id>1663833761118</Id>
-					<Name><![CDATA[endtimes]]></Name>
-					<X>1270</X><Y>80</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
-						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
-						<ElementClass><![CDATA[Double]]></ElementClass>
-						<ValueElementClass><![CDATA[String]]></ValueElementClass>
-					</Properties>
-
-				</Variable>
 			</Variables>
-			<Events>
-				<Event>
-					<Id>1663833761135</Id>
-					<Name><![CDATA[nextActivityStartTimer]]></Name>
-					<X>1270</X><Y>140</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties TriggerType="timeout" Mode="userControls">
-						<Timeout Class="CodeUnitValue">
-							<Code><![CDATA[1d / 0d]]></Code>
-							<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
-						</Timeout>
-						<Rate Class="CodeUnitValue">
-							<Code><![CDATA[1]]></Code>
-							<Unit Class="RateUnits"><![CDATA[PER_MINUTE]]></Unit>
-						</Rate>
-						<OccurrenceAtTime>true</OccurrenceAtTime>
-						<OccurrenceDate>1643270400000</OccurrenceDate>
-						<OccurrenceTime Class="CodeUnitValue">
-							<Code><![CDATA[0]]></Code>
-							<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
-						</OccurrenceTime>
-						<RecurrenceCode Class="CodeUnitValue">
-							<Code><![CDATA[1]]></Code>
-							<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
-						</RecurrenceCode>
-						<Condition><![CDATA[false]]></Condition>
-					</Properties>
-					<Action><![CDATA[((J_EAEV)p_EV.p_energyAssetInstance).startTrip();]]></Action>
-				</Event>
-				<Event>
-					<Id>1663833761158</Id>
-					<Name><![CDATA[nextActivityEndTimer]]></Name>
-					<X>1270</X><Y>170</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties TriggerType="timeout" Mode="userControls">
-						<Timeout Class="CodeUnitValue">
-							<Code><![CDATA[1d / 0d]]></Code>
-							<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
-						</Timeout>
-						<Rate Class="CodeUnitValue">
-							<Code><![CDATA[1]]></Code>
-							<Unit Class="RateUnits"><![CDATA[PER_MINUTE]]></Unit>
-						</Rate>
-						<OccurrenceAtTime>true</OccurrenceAtTime>
-						<OccurrenceDate>1643270400000</OccurrenceDate>
-						<OccurrenceTime Class="CodeUnitValue">
-							<Code><![CDATA[0]]></Code>
-							<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
-						</OccurrenceTime>
-						<RecurrenceCode Class="CodeUnitValue">
-							<Code><![CDATA[1]]></Code>
-							<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
-						</RecurrenceCode>
-						<Condition><![CDATA[false]]></Condition>
-					</Properties>
-					<Action><![CDATA[((J_EAEV)p_EV.p_energyAssetInstance).endTrip(v_tripDist_km);
-
-starttimes.set(v_tripIndex, starttimes.get(v_tripIndex) + 10080);
-endtimes.set(v_tripIndex, endtimes.get(v_tripIndex) + 10080);
-
-v_tripIndex++;
-
-if (v_tripIndex > starttimes.size() - 1) {
-	v_tripIndex = 0;
-}
-
-nextActivityStartTimer.restart( starttimes.get(v_tripIndex) - time( MINUTE ), MINUTE);
-nextActivityEndTimer.restart( endtimes.get(v_tripIndex) - time( MINUTE ), MINUTE);		
-v_tripDist_km = distances.get(v_tripIndex);
-
-//f_bepaalFlexibiliteit();]]></Action>
-				</Event>
-			</Events>
 			<Functions>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1663833761120</Id>
-					<Name><![CDATA[f_bepaalFlexibiliteit]]></Name>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>1270</X><Y>250</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[J_EAEV p_EVinstance = (J_EAEV)p_EV.p_energyAssetInstance;
-double maxLaadsnelheid_kW = p_EVinstance.getElectricCapacity_kW();
-double maxBatterijCap_kWh = p_EVinstance.getStorageCapacity_kWh();
-double energyMargin_pct = 15.0;
-double energyMargin_kWh = energyMargin_pct / 100.0 * maxBatterijCap_kWh;
-double energyRequired_kWh = v_tripDist_km * p_EVinstance.getEnergyConsumption_kWhpmk();
-
-v_chargingTarget_kWh = min( maxBatterijCap_kWh, energyRequired_kWh + energyMargin_kWh);
-v_minChargingTime_min = max( 0 , ( v_chargingTarget_kWh - p_EVinstance.getCurrentStateOfCharge()*maxBatterijCap_kWh ) / maxLaadsnelheid_kW * 60 );
-]]></Body>
-				</Function>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1663833761122</Id>
-					<Name><![CDATA[f_loadCarRides]]></Name>
-					<X>1050</X><Y>50</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[int rowIndex =  getIndex() % 581;
-
-int nbTrips = roundToInt(main.tripsExcel.getCellNumericValue("sheet1", rowIndex + 2, 2));
-
-for (int i = 0; i < nbTrips; i++){
-	starttimes.add(main.tripsExcel.getCellNumericValue("sheet1", rowIndex + 2, 3 + i * 3));
-	endtimes.add(main.tripsExcel.getCellNumericValue("sheet1", rowIndex + 2, 4 + i * 3));
-	distances.add(main.tripsExcel.getCellNumericValue("sheet1", rowIndex + 2, 5 + i * 3));
-}
-
-v_tripDist_km = distances.get(0);
-nextActivityStartTimer.restart( starttimes.get(0) - time( MINUTE ), MINUTE);
-nextActivityEndTimer.restart( endtimes.get(0) - starttimes.get(0) - time( MINUTE ), MINUTE);	
-
-
-]]></Body>
-				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1664103942436</Id>
 					<Name><![CDATA[f_chargeSimple]]></Name>
-					<X>1480</X><Y>50</Y>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>1050</X><Y>50</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -17101,7 +16924,8 @@ nextActivityEndTimer.restart( endtimes.get(0) - starttimes.get(0) - time( MINUTE
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1664103963415</Id>
 					<Name><![CDATA[f_chargeCheap]]></Name>
-					<X>1480</X><Y>80</Y>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>1050</X><Y>80</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -17136,7 +16960,8 @@ if ( SOC < 1 ) {
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1664103973484</Id>
 					<Name><![CDATA[f_chargeSelfconsumption]]></Name>
-					<X>1480</X><Y>110</Y>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>1050</X><Y>110</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -17169,7 +16994,8 @@ if ( SOC < 1 ) {
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1664103994669</Id>
 					<Name><![CDATA[f_chargeBidirectional]]></Name>
-					<X>1480</X><Y>140</Y>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>1050</X><Y>140</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -17200,64 +17026,9 @@ if ( SOC < 1 ) {
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1664441911050</Id>
-					<Name><![CDATA[f_createElectricityPriceProfile]]></Name>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>790</X><Y>110</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[// electricity surplussen zitten volledig verwerkt in het prijssignaal.
-
-// Set buy levels
-double[] buyLevels = new double[] {5, p_capacity_kW};
-double[] buyPrices = new double[] {0.15, 0.6};
-
-// Set sell levels
-double[] sellLevels = new double[] {- p_capacity_kW};
-double[] sellPrices = new double[] {0.15};
-
-v_electricityPriceProfile = new ElectricityPriceProfile(sellPrices, buyPrices, sellLevels, buyLevels);
-
-
-//v_priceBandsCombined.clear();
-double supplierPrice = 0;
-double currentGridPrice = 0;
-double holonPrice = 0;
-double combinedPrice = 0;
-//double currentPower = v_currentPowerElectricity_kW;
-double currentPower = roundToDecimal( random() * 17, 2 );
-
-if(p_ownerActor instanceof ConnectionOwner) {
-	ConnectionOwner owner = (ConnectionOwner)p_ownerActor;
-	supplierPrice = owner.v_electricityPrice_eurpkWh;
-}
-
-if(v_priceBandsGridNode != null) {
-	currentGridPrice = v_priceBandsGridNode.floorEntry(currentPower).getValue();
-	double nextLevelKey = v_priceBandsGridNode.higherKey(currentPower);
-	double powerLeftInLevel = nextLevelKey - currentPower;
-	double nextLevelPrice = v_priceBandsGridNode.floorEntry(nextLevelKey).getValue();
-//	traceln("** ConnectionOwnerId: " + p_ownerID + " ** current powerlevel: " + currentPower + " kW, current grid price: " + currentGridPrice + " eur, power left within level: " + powerLeftInLevel + " kW, next powerlevel key: " + nextLevelKey + " kW, next level price: " + nextLevelPrice + " eur.");
-
-	if(v_priceBandsHolon != null) {
-			holonPrice = v_priceBandsHolon.floorEntry(currentPower).getValue();
-	}
-}
-
-// combinatie van prikkels in één prijs, hier via simpele optelling:
-combinedPrice = supplierPrice + currentGridPrice + holonPrice;
-//traceln("** ConnectionOwnerId: " + p_ownerID + " ** supplier price: " + supplierPrice + ", gridNode cost:" + currentGridPrice + ", holon price: " +  holonPrice + ", all price signals summed: " + combinedPrice + " eur!");
-
-]]></Body>
-				</Function>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1664441944336</Id>
 					<Name><![CDATA[f_runFixedConsumptionAssets]]></Name>
-					<X>790</X><Y>80</Y>
+					<X>790</X><Y>410</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -17280,7 +17051,7 @@ combinedPrice = supplierPrice + currentGridPrice + holonPrice;
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1664441996771</Id>
 					<Name><![CDATA[f_manageHeatingAssets]]></Name>
-					<X>820</X><Y>220</Y>
+					<X>820</X><Y>550</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -17370,7 +17141,8 @@ if ( p_agentID.equals("b1")) {
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1664442056289</Id>
 					<Name><![CDATA[f_manageCharging]]></Name>
-					<X>820</X><Y>190</Y>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>820</X><Y>520</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -17415,13 +17187,13 @@ if ( p_EV != null ) {
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1664963959146</Id>
 					<Name><![CDATA[f_runFlexAssets]]></Name>
-					<X>790</X><Y>140</Y>
+					<X>790</X><Y>440</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[// Determine EV charging
-f_manageCharging();
+//f_manageCharging();
 
 // Determine house heating
 f_manageHeatingAssets();
@@ -17432,7 +17204,7 @@ f_manageHeatingAssets();
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1665498948452</Id>
 					<Name><![CDATA[f_connectToChildHouse]]></Name>
-					<X>608</X><Y>263</Y>
+					<X>790</X><Y>340</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -17457,9 +17229,15 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 	if (EA.p_energyAssetInstance instanceof J_EAStorageHeat) {
 		p_ThermalStorageAsset = EA;
 	} else if (EA.p_energyAssetInstance instanceof J_EAEV) {
-		p_EV = EA;
-		f_loadCarRides();
-		p_EV.v_powerFraction_fr = 1;
+		c_connectedVehicleAssets.add( EA );
+		c_connectedVehicleAssets.get( v_vehicleIndex ).v_powerFraction_fr = 1;
+		MobilityTracker m = main.add_mobilityTrackers();
+		c_mobilityTrackers.add( m );
+		m.p_vehicleIndex = v_vehicleIndex;
+		m.p_gridConnection = this;
+		m.p_mobilityPatternType = HOUSEHOLD;
+		m.f_getData();
+		v_vehicleIndex ++;
 	}
 } else if (EA.p_energyAssetInstance instanceof J_EAConversion) {
 	c_connectedConversionAssets.add(EA);
@@ -17478,52 +17256,6 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 }]]></Body>
 				</Function>
 			</Functions>
-			<AnalysisData>
-    			<DataSet>
-					<Id>1664176017178</Id>
-					<Name><![CDATA[data_chargingPower]]></Name>
-					<X>1800</X><Y>520</Y>
-					<Label><X>15</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<AutoUpdate>false</AutoUpdate>
-					<OccurrenceAtTime>true</OccurrenceAtTime>
-					<OccurrenceDate>1664179200000</OccurrenceDate>
-					<OccurrenceTime Class="CodeUnitValue">
-						<Code><![CDATA[0]]></Code>
-						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
-					</OccurrenceTime>
-					<RecurrenceCode Class="CodeUnitValue">
-						<Code><![CDATA[1]]></Code>
-						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
-					</RecurrenceCode>
-					<FreezeXAxis>true</FreezeXAxis>
-					<SamplesToKeep>1400</SamplesToKeep>
-				</DataSet>
-    			<DataSet>
-					<Id>1664176032319</Id>
-					<Name><![CDATA[data_evAvailability]]></Name>
-					<X>1800</X><Y>550</Y>
-					<Label><X>15</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<AutoUpdate>false</AutoUpdate>
-					<OccurrenceAtTime>true</OccurrenceAtTime>
-					<OccurrenceDate>1664179200000</OccurrenceDate>
-					<OccurrenceTime Class="CodeUnitValue">
-						<Code><![CDATA[0]]></Code>
-						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
-					</OccurrenceTime>
-					<RecurrenceCode Class="CodeUnitValue">
-						<Code><![CDATA[1]]></Code>
-						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
-					</RecurrenceCode>
-					<FreezeXAxis>true</FreezeXAxis>
-					<SamplesToKeep>1400</SamplesToKeep>
-				</DataSet>
-			</AnalysisData>
 			<AgentLinks>
 				<AgentLink>
 					<Id>1663772408662</Id>
@@ -17577,87 +17309,10 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 					<LevelVisibility>DIM_NON_CURRENT</LevelVisibility>
 
 			<Presentation>
-    			<TimePlot>
-					<Id>1664175673397</Id>
-					<Name><![CDATA[plot_charging]]></Name>
-					<X>1160</X><Y>410</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<AutoUpdate>false</AutoUpdate>
-					<OccurrenceAtTime>true</OccurrenceAtTime>
-					<OccurrenceDate>1664179200000</OccurrenceDate>
-					<OccurrenceTime Class="CodeUnitValue">
-						<Code><![CDATA[0]]></Code>
-						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
-					</OccurrenceTime>
-					<RecurrenceCode Class="CodeUnitValue">
-						<Code><![CDATA[1]]></Code>
-						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
-					</RecurrenceCode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Width>610</Width>
-					<Height>260</Height>
-					<BackgroundColor/>
-					<BorderColor/>
-					<ChartArea>
-						<XOffset>50</XOffset>
-						<YOffset>30</YOffset>
-						<Width>530</Width>
-						<Height>170</Height>
-						<BackgroundColor>-1</BackgroundColor>
-						<BorderColor>-16777216</BorderColor>
-						<GridColor>-12566464</GridColor>
-					</ChartArea>
-					<Legend>
-						<Place>SOUTH</Place>
-						<TextColor>-16777216</TextColor>
-						<Size>30</Size>
-					</Legend>
-					<Labels>
-						<HorLabelsPosition>DEFAULT</HorLabelsPosition>
-						<VerLabelsPosition>DEFAULT</VerLabelsPosition>
-						<TextColor>-12566464</TextColor>
-					</Labels>
-					<ShowLegend>true</ShowLegend>
-					<TimeWindowsMovementType>MOVEMENT_WITH_TIME</TimeWindowsMovementType>		
-					<TimeWindowUnits>HOUR</TimeWindowUnits>
-					<VerScaleFromExpression><![CDATA[0]]></VerScaleFromExpression>
-					<VerScaleToExpression><![CDATA[11]]></VerScaleToExpression>
-					<VerScaleType>FIXED</VerScaleType>
-					<DrawLine>true</DrawLine>
-					<Interpolation>LINEAR</Interpolation>
-					<DatasetExpression>  
-						<Title><![CDATA[EV availability]]></Title>
-					<Id>0</Id>
-					<Expression><![CDATA[data_evAvailability]]></Expression>
-					<Color>-1644806</Color>
-					<Expression2><![CDATA[0]]></Expression2>
-					<Expression2Flag>false</Expression2Flag>
-						<PointStyle>NONE</PointStyle>
-						<LineWidth>1.0</LineWidth>
-					</DatasetExpression>
-					<DatasetExpression>  
-						<Title><![CDATA[Charging power]]></Title>
-					<Id>0</Id>
-					<Expression><![CDATA[data_chargingPower]]></Expression>
-					<Color>-256</Color>
-					<Expression2><![CDATA[0]]></Expression2>
-					<Expression2Flag>false</Expression2Flag>
-						<PointStyle>SQUARE</PointStyle>
-						<LineWidth>2.0</LineWidth>
-					</DatasetExpression>
-					<SamplesToKeep>672</SamplesToKeep>
-					<TimeWindowExpression><![CDATA[168]]></TimeWindowExpression>
-					<FillAreaUnderLine>false</FillAreaUnderLine>
-					<LabelFormat>MODEL_TIME_UNITS</LabelFormat>
-    			</TimePlot>
 				<Rectangle>
 					<Id>1664448098849</Id>
 					<Name><![CDATA[rectangle]]></Name>
-					<X>770</X><Y>50</Y>
+					<X>770</X><Y>380</Y>
 					<Label><X>10</X><Y>10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -17679,7 +17334,7 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 				<Rectangle>
 					<Id>1664448121997</Id>
 					<Name><![CDATA[rectangle1]]></Name>
-					<X>790</X><Y>170</Y>
+					<X>790</X><Y>500</Y>
 					<Label><X>10</X><Y>10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19474,10 +19129,17 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 	c_connectedStorageAssets.add(EA);
 	if (EA.p_energyAssetInstance instanceof J_EAStorageHeat) {
 		p_ThermalStorageAsset = EA;
-	} else if (EA.p_energyAssetInstance instanceof J_EAEV) {
-		//p_EV = EA;
-		//f_loadCarRides();
-		//p_EV.v_powerFraction_fr = 1;
+	} 
+	else if (EA.p_energyAssetInstance instanceof J_EAEV) {
+		c_connectedVehicleAssets.add( EA );
+		c_connectedVehicleAssets.get( v_vehicleIndex ).v_powerFraction_fr = 1;
+		MobilityTracker m = main.add_mobilityTrackers();
+		c_mobilityTrackers.add( m );
+		m.p_vehicleIndex = v_vehicleIndex;
+		m.p_gridConnection = this;
+		m.p_mobilityPatternType = OL_MobilityPatternType.INDUSTRY;
+		m.f_getData();
+		v_vehicleIndex ++;
 	}
 } else if (EA.p_energyAssetInstance instanceof J_EAConversion) {
 	c_connectedConversionAssets.add(EA);
@@ -20000,6 +19662,476 @@ p_batteryAsset.f_updateElectricityFlows(p_batteryAsset.v_powerFraction_fr);
 			<Presentation>
 				<Level>
 					<Id>1666956363818</Id>
+					<Name><![CDATA[level]]></Name>
+					<X>0</X><Y>0</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<Z>0</Z>
+					<LevelVisibility>DIM_NON_CURRENT</LevelVisibility>
+
+
+				</Level>
+			</Presentation>
+
+		</ActiveObjectClass>
+		<!--   =========   Active Object Class   ========  -->
+		<ActiveObjectClass>
+			<Id>1667726338857</Id>
+			<Name><![CDATA[MobilityTracker]]></Name>
+			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
+			<Generic>false</Generic>
+			<GenericParameter>
+				<Id>1667726338855</Id>
+				<Name><![CDATA[1667726338855]]></Name>
+				<GenericParameterValue Class="CodeValue">
+					<Code><![CDATA[T extends Agent]]></Code>
+				</GenericParameterValue>
+				<GenericParameterLabel><![CDATA[Generic parameter:]]></GenericParameterLabel>
+			</GenericParameter>
+			<FlowChartsUsage>ENTITY</FlowChartsUsage>
+			<SamplesToKeep>100</SamplesToKeep>
+			<LimitNumberOfArrayElements>false</LimitNumberOfArrayElements>
+			<ElementsLimitValue>100</ElementsLimitValue>
+			<MakeDefaultViewArea>true</MakeDefaultViewArea>
+			<SceneGridColor/>
+			<SceneBackgroundColor/>
+			<SceneSkybox>null</SceneSkybox>
+			<AgentProperties>
+	 			<SpaceType>CONTINUOUS</SpaceType>			
+				<EnvironmentDefinesInitialLocation>true</EnvironmentDefinesInitialLocation>
+				<RotateAnimationTowardsMovement>true</RotateAnimationTowardsMovement>
+				<RotateAnimationVertically>false</RotateAnimationVertically>
+				<VelocityCode Class="CodeUnitValue">
+					<Code><![CDATA[10]]></Code>
+					<Unit Class="SpeedUnits"><![CDATA[MPS]]></Unit>
+				</VelocityCode>
+				<PhysicalLength Class="CodeUnitValue">
+					<Code><![CDATA[1]]></Code>
+					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
+				</PhysicalLength>
+				<PhysicalWidth Class="CodeUnitValue">
+					<Code><![CDATA[1]]></Code>
+					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
+				</PhysicalWidth>
+				<PhysicalHeight Class="CodeUnitValue">
+					<Code><![CDATA[1]]></Code>
+					<Unit Class="LengthUnits"><![CDATA[METER]]></Unit>
+				</PhysicalHeight>
+			</AgentProperties>
+			<EnvironmentProperties>
+					<EnableSteps>false</EnableSteps>
+					<StepDurationCode Class="CodeUnitValue">
+						<Code><![CDATA[1.0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[SECOND]]></Unit>
+					</StepDurationCode>
+					<SpaceType>CONTINUOUS</SpaceType>
+					<WidthCode><![CDATA[500]]></WidthCode>
+					<HeightCode><![CDATA[500]]></HeightCode>
+					<ZHeightCode><![CDATA[0]]></ZHeightCode>
+					<ColumnsCountCode><![CDATA[100]]></ColumnsCountCode>
+					<RowsCountCode><![CDATA[100]]></RowsCountCode>
+					<NeigborhoodType>MOORE</NeigborhoodType>
+					<LayoutType>USER_DEF</LayoutType>
+					<LayoutTypeApplyOnStartup>true</LayoutTypeApplyOnStartup>
+					<NetworkType>USER_DEF</NetworkType>
+					<NetworkTypeApplyOnStartup>true</NetworkTypeApplyOnStartup>
+					<ConnectionsPerAgentCode><![CDATA[2]]></ConnectionsPerAgentCode>
+					<ConnectionsRangeCode><![CDATA[50]]></ConnectionsRangeCode>
+					<NeighborLinkFractionCode><![CDATA[0.95]]></NeighborLinkFractionCode>
+					<MCode><![CDATA[10]]></MCode>
+			</EnvironmentProperties>
+			<DatasetsCreationProperties>
+				<AutoCreate>true</AutoCreate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1667808000000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</RecurrenceCode>
+			</DatasetsCreationProperties>
+			<ScaleRuler>
+				<Id>1667726338853</Id>
+				<Name><![CDATA[scale]]></Name>
+				<X>0</X><Y>-150</Y>
+				<PublicFlag>false</PublicFlag>
+				<PresentationFlag>false</PresentationFlag>
+				<ShowLabel>false</ShowLabel>
+				<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+				<Length>100</Length>
+				<Rotation>0</Rotation>
+				<ScaleType>BASED_ON_LENGTH</ScaleType>
+				<ModelLength>10</ModelLength>
+				<LengthUnits>METER</LengthUnits>
+				<Scale>10</Scale>
+				<InheritedFromParentAgentType>true</InheritedFromParentAgentType>
+			</ScaleRuler>
+			<CurrentLevel>1667726338856</CurrentLevel>
+			<ConnectionsId>1667726338852</ConnectionsId>
+			<Variables>
+				<Variable Class="PlainVariable">
+					<Id>1667726387946</Id>
+					<Name><![CDATA[v_tripDist_km]]></Name>
+					<X>40</X><Y>430</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1667726387948</Id>
+					<Name><![CDATA[v_tripIndex]]></Name>
+					<X>40</X><Y>460</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[int]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1667743922290</Id>
+					<Name><![CDATA[v_away]]></Name>
+					<X>40</X><Y>220</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[boolean]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[false]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1667742419409</Id>
+					<Name><![CDATA[p_mobilityPatternType]]></Name>
+					<X>40</X><Y>120</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[OL_MobilityPatternType]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1667742419407</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1667743331974</Id>
+					<Name><![CDATA[p_gridConnection]]></Name>
+					<X>40</X><Y>140</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[GridConnection]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1667743331972</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1667746868470</Id>
+					<Name><![CDATA[p_vehicleIndex]]></Name>
+					<X>40</X><Y>160</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[int]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1667746868468</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1667726387933</Id>
+					<Name><![CDATA[starttimes]]></Name>
+					<X>40</X><Y>250</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
+						<ElementClass><![CDATA[Double]]></ElementClass>
+						<ValueElementClass><![CDATA[String]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1667726387940</Id>
+					<Name><![CDATA[distances]]></Name>
+					<X>40</X><Y>310</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
+						<ElementClass><![CDATA[Double]]></ElementClass>
+						<ValueElementClass><![CDATA[String]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1667726387942</Id>
+					<Name><![CDATA[endtimes]]></Name>
+					<X>40</X><Y>280</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
+						<ElementClass><![CDATA[Double]]></ElementClass>
+						<ValueElementClass><![CDATA[String]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
+			</Variables>
+			<Events>
+				<Event>
+					<Id>1667726387951</Id>
+					<Name><![CDATA[nextActivityStartTimer]]></Name>
+					<X>40</X><Y>360</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties TriggerType="timeout" Mode="userControls">
+						<Timeout Class="CodeUnitValue">
+							<Code><![CDATA[1d / 0d]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
+						</Timeout>
+						<Rate Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="RateUnits"><![CDATA[PER_MINUTE]]></Unit>
+						</Rate>
+						<OccurrenceAtTime>true</OccurrenceAtTime>
+						<OccurrenceDate>1643270400000</OccurrenceDate>
+						<OccurrenceTime Class="CodeUnitValue">
+							<Code><![CDATA[0]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
+						</OccurrenceTime>
+						<RecurrenceCode Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
+						</RecurrenceCode>
+						<Condition><![CDATA[false]]></Condition>
+					</Properties>
+					<Action><![CDATA[J_EAEV EV_Instance = ((J_EAEV)p_gridConnection.c_connectedVehicleAssets.get( p_vehicleIndex ).p_energyAssetInstance);
+EV_Instance.startTrip();
+v_away = true;
+//traceln( date() +  " truck vertrekt");]]></Action>
+				</Event>
+				<Event>
+					<Id>1667726387954</Id>
+					<Name><![CDATA[nextActivityEndTimer]]></Name>
+					<X>40</X><Y>390</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties TriggerType="timeout" Mode="userControls">
+						<Timeout Class="CodeUnitValue">
+							<Code><![CDATA[1d / 0d]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
+						</Timeout>
+						<Rate Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="RateUnits"><![CDATA[PER_MINUTE]]></Unit>
+						</Rate>
+						<OccurrenceAtTime>true</OccurrenceAtTime>
+						<OccurrenceDate>1643270400000</OccurrenceDate>
+						<OccurrenceTime Class="CodeUnitValue">
+							<Code><![CDATA[0]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
+						</OccurrenceTime>
+						<RecurrenceCode Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
+						</RecurrenceCode>
+						<Condition><![CDATA[false]]></Condition>
+					</Properties>
+					<Action><![CDATA[J_EAEV EV_Instance = ((J_EAEV)p_gridConnection.c_connectedVehicleAssets.get( p_vehicleIndex ).p_energyAssetInstance);
+EV_Instance.endTrip(v_tripDist_km);
+v_away = false;
+
+//set current trip as a planned trip for the next week.
+starttimes.set(v_tripIndex, starttimes.get(v_tripIndex) + 10080);
+endtimes.set(v_tripIndex, endtimes.get(v_tripIndex) + 10080);
+
+v_tripIndex++;
+if (v_tripIndex > starttimes.size() - 1) {
+	v_tripIndex = 0;
+}
+
+nextActivityStartTimer.restart( starttimes.get(v_tripIndex) - time( MINUTE ), MINUTE);
+nextActivityEndTimer.restart( endtimes.get(v_tripIndex) - time( MINUTE ), MINUTE);		
+v_tripDist_km = distances.get(v_tripIndex);
+
+//traceln( date() +  " truck komt terug, km: " + v_tripDist_km);]]></Action>
+				</Event>
+			</Events>
+			<Functions>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1667726387944</Id>
+					<Name><![CDATA[f_getTruckTrips]]></Name>
+					<X>70</X><Y>70</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[int rowIndex = uniform_discr(2, 12); //nu hardcoded maar kunnen we zo met input files doen.
+int nbTrips = roundToInt(main.inputTruckTrips.getCellNumericValue("sheet1", rowIndex, 2));
+
+for (int i = 0; i < nbTrips; i++){
+	starttimes.add(main.inputTruckTrips.getCellNumericValue("sheet1", rowIndex, 3 + i * 3));
+	endtimes.add(main.inputTruckTrips.getCellNumericValue("sheet1", rowIndex, 4 + i * 3));
+	distances.add(main.inputTruckTrips.getCellNumericValue("sheet1", rowIndex, 5 + i * 3));
+}
+
+v_tripDist_km = distances.get(0);
+nextActivityStartTimer.restart( starttimes.get(0) - time( MINUTE ), MINUTE);
+nextActivityEndTimer.restart( endtimes.get(0) - time( MINUTE ), MINUTE);	
+
+]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1667742541169</Id>
+					<Name><![CDATA[f_getData]]></Name>
+					<X>40</X><Y>50</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[switch (p_mobilityPatternType){
+	case INDUSTRY:
+		f_getTruckTrips();
+	break;
+	case HOUSEHOLD:
+		f_getHouseholdTrips();
+	break;
+	case BUS:
+		
+	break;
+	default: 
+		traceln("Mobility tracker -> f_getData(): incorrect mobility pattern type");
+	break;
+}]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1667742554956</Id>
+					<Name><![CDATA[f_getHouseholdTrips]]></Name>
+					<X>70</X><Y>90</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[int rowIndex =  getIndex() % 581;
+
+int nbTrips = roundToInt(p_gridConnection.main.inputHouseholdTrips.getCellNumericValue("sheet1", rowIndex + 2, 2));
+
+for (int i = 0; i < nbTrips; i++){
+	starttimes.add(p_gridConnection.main.inputHouseholdTrips.getCellNumericValue("sheet1", rowIndex + 2, 3 + i * 3));
+	endtimes.add(p_gridConnection.main.inputHouseholdTrips.getCellNumericValue("sheet1", rowIndex + 2, 4 + i * 3));
+	distances.add(p_gridConnection.main.inputHouseholdTrips.getCellNumericValue("sheet1", rowIndex + 2, 5 + i * 3));
+}
+
+v_tripDist_km = distances.get(0);
+nextActivityStartTimer.restart( starttimes.get(0) - time( MINUTE ), MINUTE);
+nextActivityEndTimer.restart( endtimes.get(0) - starttimes.get(0) - time( MINUTE ), MINUTE);	
+// IS DE - starttimes.get(0) in deze initialisatie correct?? ! Bij trukcs niet, Later nog checken.
+]]></Body>
+				</Function>
+			</Functions>
+			<AgentLinks>
+				<AgentLink>
+					<Id>1667726338852</Id>
+					<Name><![CDATA[connections]]></Name>
+					<X>50</X><Y>-50</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<HandleReceiveInConnections>false</HandleReceiveInConnections>
+					<AgentLinkType>COLLECTION_OF_LINKS</AgentLinkType>
+					<AgentLinkBidirectional>true</AgentLinkBidirectional>
+					<MessageType><![CDATA[Object]]></MessageType>
+					<LineStyle>SOLID</LineStyle>
+					<LineWidth>1</LineWidth>
+					<LineColor>-16777216</LineColor>
+					<LineZOrder>UNDER_AGENTS</LineZOrder>
+					<LineArrow>NONE</LineArrow>
+					<LineArrowPosition>END</LineArrowPosition>
+				</AgentLink>
+			</AgentLinks>
+
+			<ContainerLinks>
+				<ContainerLink>
+					<Id>1667745003902</Id>
+					<Name><![CDATA[main]]></Name>
+					<X>50</X><Y>-100</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<ActiveObjectClass>
+						<PackageName><![CDATA[base]]></PackageName>
+						<ClassName><![CDATA[Main]]></ClassName>
+					</ActiveObjectClass>
+				</ContainerLink>
+			</ContainerLinks>
+
+			<Presentation>
+				<Level>
+					<Id>1667726338856</Id>
 					<Name><![CDATA[level]]></Name>
 					<X>0</X><Y>0</Y>
 					<Label><X>10</X><Y>0</Y></Label>
@@ -21515,7 +21647,9 @@ public class J_EAEV extends base.J_EAStorageElectric implements Serializable {
 	//		traceln("Trip not ended because EV never left!");
 			return false;
 		} else {
+			traceln( "J_EAEV comes back, trip distance: " + tripDist_km + ", energy consumption: " + energyConsumption_kWhpmk);
 			stateOfCharge_r -= (tripDist_km * energyConsumption_kWhpmk) / storageCapacity_kWh;
+			traceln("storage capacity: " + storageCapacity_kWh + ", state of charge: " + stateOfCharge_r);
 			energyUsed_kWh += tripDist_km * energyConsumption_kWhpmk;
 			if (stateOfCharge_r < 0) {
 //				traceln("EV in " + this.toString() + " arrived home with negative SOC ! Negative charge " + -stateOfCharge_r * storageCapacity_kWh + " kWh");
@@ -22092,10 +22226,6 @@ public class J_TotalCostData implements Serializable {
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[MVPCase1BedrijventerreinBasic_config_energyAssets.txt]]></Path>
-			<ReferencedFromUserCode>false</ReferencedFromUserCode>
-		</Resource>
-		<Resource>
 			<Path><![CDATA[MVPCase1BedrijventerreinBasic_config_gridConnections.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
@@ -22105,6 +22235,14 @@ public class J_TotalCostData implements Serializable {
 		</Resource>
 		<Resource>
 			<Path><![CDATA[MVPCase1BedrijventerreinBasic_config_policies.txt]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[inputTruckTripPatterns.xlsx]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[MVPCase1BedrijventerreinBasic_config_energyAssets TESTCONFIG.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
