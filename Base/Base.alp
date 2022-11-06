@@ -1542,30 +1542,6 @@ traceln("*** main duration *** "+ v_modelStartUpDuration_s+" s");]]></StartupCod
 					</Properties>                 
 				</Variable>
 				<Variable Class="Parameter">
-					<Id>1666548389216</Id>
-					<Name><![CDATA[p_fixedElectricityPrice_eurpkWh]]></Name>
-					<X>-930</X><Y>380</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[double]]></Type>
-						<UnitType><![CDATA[NONE]]></UnitType>
-						<SdArray>false</SdArray>
-						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[0.25]]></Code>
-						</DefaultValue>
-						<ParameterEditor>
-							<Id>1666548389214</Id>
-							<EditorContolType>TEXT_BOX</EditorContolType>
-							<MinSliderValue><![CDATA[0]]></MinSliderValue>
-							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
-							<DelimeterType>NO_DELIMETER</DelimeterType>
-						</ParameterEditor>
-					</Properties>                 
-				</Variable>
-				<Variable Class="Parameter">
 					<Id>1666880315951</Id>
 					<Name><![CDATA[j_totalCostData]]></Name>
 					<X>-900</X><Y>660</Y>
@@ -3078,7 +3054,7 @@ for( GCHouse h : gCHouses ) {
 for(GridOperator g : pop_gridOperators) {
 	g.v_congestionAllowanceLevel_kW = v_congestionAllowanceLevel_kW;
 	g.v_congestionPriceConsumption_eurpkWh = v_congestionPrice;
-	g.v_congestionPriceProduction_eurpkWh = v_congestionPrice;
+	g.v_congestionPriceProduction_eurpkWh = - v_congestionPrice;
 	g.v_congestionThreshold_fr = v_congestionThreshold;
 	g.b_congestionPricingConsumption = b_congestionPricingConsumption;
 	g.b_congestionPricingProduction = true;//b_congestionPricingProduction;
@@ -6476,6 +6452,7 @@ v_loadFactor_fr = v_averageLoadElectricity_kW / v_peakLoadAbsoluteElectricity_kW
 			owner.v_congestionTariffAllowance_kW = allowance_kW;
 			owner.v_congestionTariff = true;
 			owner.v_updatePriceBands = true;
+			owner.v_congestionMode = v_congestionMode;
 	}
 }]]></Body>
 				</Function>
@@ -6501,10 +6478,11 @@ v_loadFactor_fr = v_averageLoadElectricity_kW / v_peakLoadAbsoluteElectricity_kW
 	// we gaan nu nog even uit van vaste congestietarieven en limiten
 	ConnectionOwner owner = ((ConnectionOwner)gc.p_ownerActor);
 	if( !owner.v_congestionTariff ) {
-		owner.v_congestionTariff = true;
-		owner.v_updatePriceBands = true;
 		owner.v_sellCongestionPrice_eurpkWh = price_eurpkWh;
 		owner.v_congestionTariffAllowance_kW = -allowance_kW;
+		owner.v_congestionTariff = true;
+		owner.v_updatePriceBands = true;
+		owner.v_congestionMode = v_congestionMode;
 	}
 }]]></Body>
 				</Function>
@@ -6526,6 +6504,7 @@ v_loadFactor_fr = v_averageLoadElectricity_kW / v_peakLoadAbsoluteElectricity_kW
 	owner.v_buyCongestionPrice_eurpkWh = 0;
 	owner.v_sellCongestionPrice_eurpkWh = 0;
 	owner.v_congestionTariffAllowance_kW = 0;
+	owner.v_congestionMode = v_congestionMode;
 }]]></Body>
 				</Function>
 			</Functions>
@@ -12697,6 +12676,18 @@ t_nodetype.setText(p_nodeType);]]></Body>
 						</InitialValue>
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1667401120682</Id>
+					<Name><![CDATA[v_congestionMode]]></Name>
+					<X>460</X><Y>590</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[String]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1660225105547</Id>
 					<Name><![CDATA[p_actorID]]></Name>
@@ -12969,7 +12960,7 @@ if (v_electricityContractType == OL_ContractType.ELECTRICITY_VARIABLE) {
 	}
 }
 
-if( v_updatePriceBands ){
+if (v_updatePriceBands){
 	f_setElectricityPriceBands();
 }
 
@@ -12977,7 +12968,8 @@ if( v_updatePriceBands ){
 v_electricitySurpluss_kW = 0;
 for(GridConnection c : subConnections.getConnections()){
 	v_electricitySurpluss_kW -= c.v_currentPowerElectricity_kW;
-}]]></Body>
+}
+]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -12989,33 +12981,27 @@ for(GridConnection c : subConnections.getConnections()){
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[switch (v_electricityContractType){
-	case ELECTRICITY_VARIABLE:
-		
-		v_currentPriceBands = new TreeMap<Double, Double>();
-		v_currentPriceBands.put(-999.0, v_electricitySellPrice_eurpkWh + v_sellCongestionPrice_eurpkWh);
-		v_currentPriceBands.put(0.0, 0.0);
-		v_currentPriceBands.put(999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionPrice_eurpkWh + v_electricityTax_eurpkWh);
-		if (v_congestionTariffAllowance_kW != 0){
-			v_currentPriceBands.put( v_congestionTariffAllowance_kW,  v_electricityBuyPrice_eurpkWh + v_electricityTax_eurpkWh);
-		}
-	break;
-	case ELECTRICITY_FIXED:
-	// we gaan er hieronder vanuit dat de energiebelasting bij de fixed e price in zit. Itt bij het variabele tarief
-		v_updatePriceBands = false;
-		v_currentPriceBands = new TreeMap<Double, Double>();
-		//In geval van salderen (dus we moeten nog invoeren dat salderen aan of uit kan)
-		v_currentPriceBands.put(-999.0, - main.p_fixedElectricityPrice_eurpkWh + v_sellCongestionPrice_eurpkWh);
-		v_currentPriceBands.put(0.0, 0.0);
-		v_currentPriceBands.put(999.0, main.p_fixedElectricityPrice_eurpkWh + v_buyCongestionPrice_eurpkWh);
-		if (v_congestionTariffAllowance_kW != 0){
-			v_currentPriceBands.put( v_congestionTariffAllowance_kW,  main.p_fixedElectricityPrice_eurpkWh );
-		}
-	break;
-	default:
-		//traceln("Connection owner --> f_setPriceBands --> grid owner doenst have electricity contract");
-	break;
+					<Body><![CDATA[v_currentPriceBands = new TreeMap<Double, Double>();
+v_currentPriceBands.put(-999.0, v_electricitySellPrice_eurpkWh + v_sellCongestionPrice_eurpkWh);
+v_currentPriceBands.put(0.0, 0.0);
+v_currentPriceBands.put(999.0, v_electricityBuyPrice_eurpkWh + v_electricityTax_eurpkWh + v_buyCongestionPrice_eurpkWh);
+
+if (v_congestionTariffAllowance_kW != 0){
+	if(v_congestionMode == "Overconsumption"){ 
+		v_currentPriceBands.put( v_congestionTariffAllowance_kW,  v_electricityBuyPrice_eurpkWh + v_electricityTax_eurpkWh);
+	}
+	else if (v_congestionMode == "Overproduction"){
+		v_currentPriceBands.put( v_congestionTariffAllowance_kW,  v_electricitySellPrice_eurpkWh);
+	}
+	else {
+		traceln("Connection owner --> f_setElectrcitiyPriceBands: geen congestie type gevonden");
+	}
 }
+if (v_electricityContractType == ELECTRICITY_FIXED){
+	v_updatePriceBands = false;
+}
+
+
 
 	]]></Body>
 				</Function>
@@ -16166,19 +16152,21 @@ else {
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[for( GridNode n : c_electricityGridNodes ){
 	if ( n.v_currentLoadElectricity_kW > v_congestionThreshold_fr * n.p_capacity_kW  ){
-		if( b_congestionPricingConsumption ) {
-			n.f_setConsumptionCongestionTariff(v_congestionPriceConsumption_eurpkWh, v_congestionAllowanceLevel_kW);
-		}
 		n.v_congested = true;
 		n.v_congestionMode = "Overconsumption";
+		if( b_congestionPricingConsumption ) {
+			n.f_setConsumptionCongestionTariff(v_congestionPriceConsumption_eurpkWh, v_congestionAllowanceLevel_kW);
+	}
+
 		if (!c_congestedGNConsumption.contains(n)){ c_congestedGNConsumption.add(n); }
 	}
 	else if ( n.v_currentLoadElectricity_kW < -  v_congestionThreshold_fr * n.p_capacity_kW ){
+		n.v_congested = true;
+		n.v_congestionMode = "Overproduction";
 		if( b_congestionPricingProduction ) {
 			n.f_setProductionCongestionTariff(v_congestionPriceProduction_eurpkWh, 5); // momenteel zijn er GEEN allowance levels voor production
 		}
-		n.v_congested = true;
-		n.v_congestionMode = "Overproduction";
+
 		if (!c_congestedGNProduction.contains(n)){ c_congestedGNProduction.add(n); }
 	}
 	else {
@@ -16191,7 +16179,6 @@ else {
 		}
 	}
 }
-
 
 ]]></Body>
 				</Function>
@@ -20424,9 +20411,6 @@ p_batteryAsset.f_updateElectricityFlows(p_batteryAsset.v_powerFraction_fr);
 				</Parameter>
 				<Parameter>
 					<ParameterName><![CDATA[p_policiesConfigJSON]]></ParameterName>
-				</Parameter>
-				<Parameter>
-					<ParameterName><![CDATA[p_fixedElectricityPrice_eurpkWh]]></ParameterName>
 				</Parameter>
 				<Parameter>
 					<ParameterName><![CDATA[j_totalCostData]]></ParameterName>
