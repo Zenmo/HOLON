@@ -3702,7 +3702,7 @@ for(EnergyAsset e : c_storageAssets ) {
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[MVPCase1BedrijventerreinBasic_config_energyAssets TESTCONFIG.txt]]></ClassName>
+						<ClassName><![CDATA[MVPCase1BedrijventerreinBasic_config_energyAssets.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -19599,9 +19599,9 @@ for( EnergyAsset c : c_connectedConversionAssets ) {
 					<Body><![CDATA[v_currentChargingPower_kW = 0;
 for ( EnergyAsset EA : c_connectedVehicleAssets){
 	J_EAEV vehicle = (J_EAEV)EA.p_energyAssetInstance;
-	if( vehicle.getAvailability() && vehicle.getCurrentStateOfCharge() < 1) {
-		EA.f_updateElectricityFlows( 50 ); // HARDCODED QUICKLY 50 kW charging!
-		v_currentChargingPower_kW += 50;
+	if( vehicle.getAvailability() && vehicle.getCurrentStateOfCharge() < 1) {			
+		EA.f_updateElectricityFlows( 1 ); 
+		v_currentChargingPower_kW += EA.p_energyAssetInstance.getElectricCapacity_kW();
 	} 
 	else{
 		EA.f_updateElectricityFlows( 0 ); 
@@ -20459,7 +20459,7 @@ v_away = true;
 					</Properties>
 					<Action><![CDATA[J_EAEV EV_Instance = ((J_EAEV)p_gridConnection.c_connectedVehicleAssets.get( p_vehicleIndex ).p_energyAssetInstance);
 EV_Instance.endTrip(v_tripDist_km);
-v_away = false;
+//v_away = false;
 
 //set current trip as a planned trip for the next week.
 starttimes.set(v_tripIndex, starttimes.get(v_tripIndex) + 10080);
@@ -21014,6 +21014,9 @@ nextActivityEndTimer.restart( endtimes.get(0) - starttimes.get(0) - time( MINUTE
 				</Parameter>
 				<Parameter>
 					<ParameterName><![CDATA[j_totalCostData]]></ParameterName>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_fixedElectricityPrice_eurpkWh]]></ParameterName>
 				</Parameter>
 			</Parameters>			
 			<PresentationProperties>
@@ -22014,7 +22017,7 @@ public class J_EAEV extends base.J_EAStorageElectric implements Serializable {
 	private double stateOfCharge_r;
 	private double lossFactor_r = 0;
 //	private double timestep_h;
-	private double energyConsumption_kWhpmk = 0.2;
+	private double energyConsumption_kWhpkm = 0.2;
 	private boolean availability = true;
 	//private double energyUsed_kWh=0;
 
@@ -22027,13 +22030,13 @@ public class J_EAEV extends base.J_EAStorageElectric implements Serializable {
     /**
      * Constructor initializing the fields
      */
-    public J_EAEV(EnergyAsset ownerAsset, double capacityElectricity_kW, double storageCapacity_kWh, double stateOfCharge_r, double timestep_h, double energyConsumption_kWhpmk ) {
+    public J_EAEV(EnergyAsset ownerAsset, double capacityElectricity_kW, double storageCapacity_kWh, double stateOfCharge_r, double timestep_h, double energyConsumption_kWhpkm ) {
 		this.ownerAsset = ownerAsset;
 		this.capacityElectric_kW = capacityElectricity_kW; // for EV, this is max charging power.
 		this.storageCapacity_kWh = storageCapacity_kWh;
 		this.stateOfCharge_r = stateOfCharge_r;
 		this.timestep_h = timestep_h;
-		this.energyConsumption_kWhpmk = energyConsumption_kWhpmk;
+		this.energyConsumption_kWhpkm = energyConsumption_kWhpkm;
     }
 
     public double[] charge(double chargingPower_kW) {
@@ -22052,7 +22055,10 @@ public class J_EAEV extends base.J_EAStorageElectric implements Serializable {
 
 		updateChargingHistory( electricityProduction_kW, electricityConsumption_kW );
 
+		traceln("!!Still calling J_EAEV charge method!!");
 		return returnEnergyFlows();
+		
+
     }
 
 	@Override
@@ -22062,9 +22068,9 @@ public class J_EAEV extends base.J_EAStorageElectric implements Serializable {
 
 	@Override // momenteel verwijzen we door naar de charge funcite ipv deze operate. Die doen eigenlijk ehtzelfde maar neemt kW als input. De ratio input in deze functie wordt door de laadmodule als vermogen meegegeven
 	public double[] operate(double ratioOfChargeCapacity_r) {
-		return charge(ratioOfChargeCapacity_r);
+		//return charge(ratioOfChargeCapacity_r);
 
-		/*
+		
 		if (availability) {
 	    	double discharge_kW = 0;
 	    	double deltaEnergy_kWh;   // to check the request with the energy currently in storage
@@ -22080,12 +22086,12 @@ public class J_EAEV extends base.J_EAStorageElectric implements Serializable {
 			electricityConsumption_kW = max(-discharge_kW, 0);
 			updateStateOfCharge( discharge_kW );
 
-
+			updateChargingHistory( electricityProduction_kW, electricityConsumption_kW );
 		}
 		//double[] arr = {electricityProduction_kW, methaneProduction_kW, hydrogenProduction_kW, heatProduction_kW, electricityConsumption_kW, methaneConsumption_kW, hydrogenConsumption_kW, heatConsumption_kW };
     	//return arr;
 		return returnEnergyFlows();
-		*/
+		
 	}
 
 	@Override
@@ -22110,13 +22116,13 @@ public class J_EAEV extends base.J_EAStorageElectric implements Serializable {
 
 	public boolean endTrip(double tripDist_km) {
 		if(availability) {
-	//		traceln("Trip not ended because EV never left!");
+			traceln("Trip not ended because EV never left!");
 			return false;
 		} else {
-			traceln( "J_EAEV comes back, trip distance: " + tripDist_km + ", energy consumption: " + energyConsumption_kWhpmk);
-			stateOfCharge_r -= (tripDist_km * energyConsumption_kWhpmk) / storageCapacity_kWh;
+			traceln( "J_EAEV comes back, trip distance: " + tripDist_km + ", energy consumption: " + tripDist_km * energyConsumption_kWhpkm);
+			stateOfCharge_r -= (tripDist_km * energyConsumption_kWhpkm) / storageCapacity_kWh;
 			traceln("storage capacity: " + storageCapacity_kWh + ", state of charge: " + stateOfCharge_r);
-			energyUsed_kWh += tripDist_km * energyConsumption_kWhpmk;
+			energyUsed_kWh += tripDist_km * energyConsumption_kWhpkm;
 			if (stateOfCharge_r < 0) {
 //				traceln("EV in " + this.toString() + " arrived home with negative SOC ! Negative charge " + -stateOfCharge_r * storageCapacity_kWh + " kWh");
 			}
@@ -22139,8 +22145,8 @@ public class J_EAEV extends base.J_EAStorageElectric implements Serializable {
 		return storageCapacity_kWh;
 	}
 
-	public double getEnergyConsumption_kWhpmk() {
-		return energyConsumption_kWhpmk;
+	public double getEnergyConsumption_kWhpkm() {
+		return energyConsumption_kWhpkm;
 	}
 
 	public boolean getAvailability() {
@@ -22716,7 +22722,7 @@ public class J_TotalCostData implements Serializable {
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[MVPCase1BedrijventerreinBasic_config_energyAssets TESTCONFIG.txt]]></Path>
+			<Path><![CDATA[MVPCase1BedrijventerreinBasic_config_energyAssets.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
