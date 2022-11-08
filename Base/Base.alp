@@ -2468,7 +2468,7 @@ for (GridConnection n : c_gridConnections) {
 			case INDUSTRY_OTHER:
 				traceln("other industry for setup");
 				f_addPresetConsumptionAsset( n, OL_EAPresetConsumptionAssets.Industry_other_electricity );
-				f_addPresetConsumptionAsset( n, OL_EAPresetConsumptionAssets.Industry_other_heat );
+				//f_addPresetConsumptionAsset( n, OL_EAPresetConsumptionAssets.Industry_other_heat );  // Commented out to focus on electricity for now [GH 08/11/2022]
 			break;
 			default:
 				traceln("exception: no default energy assets defined for this industry type!");
@@ -2860,14 +2860,57 @@ for(ConnectionOwner c : pop_connectionOwners) {
 //});
 }
 
+// Total electricity import, export
 double electricityImported_MWh = 0;
 double electricityExported_MWh = 0;
 for ( GridNode g : c_gridNodesHSMS ) {
 	electricityImported_MWh += g.v_electricityDrawn_kWh / 1000;
 	electricityExported_MWh += g.v_electricityDelivered_kWh / 1000;
 }
+
 traceln("Electricity imported: "+ electricityImported_MWh);
 traceln("Electricity exported: "+ electricityExported_MWh);
+
+// Total methane import/export
+double methaneImported_MWh = 0;
+double methaneExported_MWh = 0;
+double hydrogenImported_MWh = 0;
+double hydrogenExported_MWh = 0;
+for (GridConnection g : pop_gridConnections) {
+	methaneImported_MWh += g.v_methaneDrawn_kWh/1000;
+	methaneExported_MWh += g.v_methaneDelivered_kWh/1000;
+	hydrogenImported_MWh += g.v_hydrogenDrawn_kWh/1000;
+	hydrogenExported_MWh += g.v_hydrogenDelivered_kWh/1000;
+}
+// Total hydrogen import/export
+
+
+//Total energy consumption and production 
+
+double energyProduced_MWh = 0;
+double energyConsumed_MWh = 0;
+for (EnergyAsset e : pop_energyAssets) {
+	double EnergyUsed_kWh = e.p_energyAssetInstance.getEnergyUsed_kWh();
+	traceln("EnergyAsset " + e.getIndex() + " of type " + e.p_defaultEnergyAssetPresetName + " used " + EnergyUsed_kWh + " kWh energy");
+	if (EnergyUsed_kWh > 0) {
+		energyConsumed_MWh += EnergyUsed_kWh/1000;
+	} else {
+		energyProduced_MWh -= EnergyUsed_kWh/1000;
+	}
+}
+traceln("Energy consumed: "+ energyConsumed_MWh);
+traceln("Energy produced: "+ energyProduced_MWh);
+// TODO: Make sure this calculation is correct when all energy carriers are 'active'! Only checked for electricity
+
+//Total selfconsumption, selfsufficiency
+double totalSelfConsumption_fr = 1 - (electricityExported_MWh + methaneExported_MWh + hydrogenExported_MWh)/energyProduced_MWh;
+double totalSelfSufficiency_fr = 1 - (electricityImported_MWh + methaneImported_MWh + hydrogenImported_MWh)/energyConsumed_MWh;
+
+double totalSelfSufficiency_fr_check = (energyProduced_MWh - (electricityExported_MWh + methaneExported_MWh + hydrogenExported_MWh))/energyConsumed_MWh;
+traceln("Model-wide selfconsumption: " + totalSelfConsumption_fr + "%");
+traceln("Model-wide selfsufficiency: " + totalSelfSufficiency_fr + "%, doublecheck " + totalSelfSufficiency_fr_check);
+// TODO: Account for fuel imports/exports!! 
+
 double modelRunDuration_s = roundToDecimal( ( System.currentTimeMillis() - v_timeOfModelStart_ms ) / 1000 - v_modelStartUpDuration_s, 3);
 j_experimentSettingsData.updateData( p_timeStep_h+"",
 									v_timeStepsElapsed+"",
@@ -2884,7 +2927,9 @@ j_experimentSettingsData.updateData( p_timeStep_h+"",
 									pop_gridOperators.size() + "",
 									1 + "",
 									roundToDecimal( electricityImported_MWh, 3 ) + "",
-									roundToDecimal( electricityExported_MWh, 3 ) + "" );
+									roundToDecimal( electricityExported_MWh, 3 ) + "",
+									roundToDecimal( totalSelfConsumption_fr, 3 ) + "",
+									roundToDecimal( totalSelfSufficiency_fr, 3 ) + "");
 
 j_dataOut.runSettingsData.add(j_experimentSettingsData);
 
@@ -23581,6 +23626,8 @@ public class J_ExperimentSettingsData implements Serializable {
 	public String nNationalEnergyMarket;
 	public String totalElectricityImported_MWh;
 	public String totalElectricityExported_MWh;
+	public String totalSelfConsumption_fr;
+	public String totalSelfSufficiency_fr;
 
 	 /**
      * Default constructor
@@ -23608,6 +23655,8 @@ public class J_ExperimentSettingsData implements Serializable {
 		this.nNationalEnergyMarket = "";
 		this.totalElectricityImported_MWh = "";
 		this.totalElectricityExported_MWh = "";
+		this.totalSelfConsumption_fr = "";
+		this.totalSelfSufficiency_fr = "";
     }
 
 	@Override
@@ -23628,10 +23677,12 @@ public class J_ExperimentSettingsData implements Serializable {
 			"nGridOperators = " + nGridOperators + " " +
 			"nNationalEnergyMarket = " + nNationalEnergyMarket + " " +
 			"totalElectricityImported_MWh = " + totalElectricityImported_MWh + " " +
-			"totalElectricityExported_MWh = " + totalElectricityExported_MWh + " ";
+			"totalElectricityExported_MWh = " + totalElectricityExported_MWh + " " +
+			"totalSelfConsumption_fr = " + totalSelfConsumption_fr + " " +
+			"totalSelfSufficiency_fr = " + totalSelfSufficiency_fr + " ";
 	}
 
-	public void updateData(String timeStep_h, String timeStepsElapsed, String modelHoursElapsed_h, String modelStartUpDuration_s, String modelRunDuration_s, String nGridNodes,	String nGridConnections, String nEnergyAssets, String nConnectionOwners, String nEnergySuppliers, String nEnergyHolons, String nAdministrativeHolons, String nGridOperators, String nNationalEnergyMarket, String totalElectricityImported_MWh, String totalElectricityExported_MWh) {
+	public void updateData(String timeStep_h, String timeStepsElapsed, String modelHoursElapsed_h, String modelStartUpDuration_s, String modelRunDuration_s, String nGridNodes,	String nGridConnections, String nEnergyAssets, String nConnectionOwners, String nEnergySuppliers, String nEnergyHolons, String nAdministrativeHolons, String nGridOperators, String nNationalEnergyMarket, String totalElectricityImported_MWh, String totalElectricityExported_MWh, String totalSelfConsumption_fr, String totalSelfSufficiency_fr) {
 		this.timeStep_h = timeStep_h;
 		this.timeStepsElapsed = timeStepsElapsed;
 		this.modelHoursElapsed_h = modelHoursElapsed_h;
@@ -23647,7 +23698,10 @@ public class J_ExperimentSettingsData implements Serializable {
 		this.nGridOperators = nGridOperators;
 		this.nNationalEnergyMarket = nNationalEnergyMarket;
 		this.totalElectricityImported_MWh = totalElectricityImported_MWh;
-		this.totalElectricityExported_MWh = totalElectricityExported_MWh;}
+		this.totalElectricityExported_MWh = totalElectricityExported_MWh;
+		this.totalSelfConsumption_fr = totalSelfConsumption_fr;
+		this.totalSelfSufficiency_fr = totalSelfSufficiency_fr;	
+	}
 
 
 	/**
