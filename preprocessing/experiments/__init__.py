@@ -52,10 +52,10 @@ def start_experiment(settings):
         validate_inputs.validateInputs(api_experiment)
     
     # Test for auto-generation of energyassets:
-    slider_buildingPV_kWp = 3  # test value
-    slider_solarPanels_MWp = 4
-    slider_gridBatteryCapacity_MWh = 5
-    slider_heatpumps = 1
+    slider_buildingPV_kWp = 1  # test value
+    slider_solarPanels_MWp = 1
+    slider_gridBatteryCapacity_MWh = 1
+    slider_heatpumps = 0
 
     # Generate corresponding assets for buildings and solar farm
     if experiment.generate_energyassets:
