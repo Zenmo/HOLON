@@ -2124,30 +2124,30 @@ v_timeStepsElapsed ++;
 					<Body><![CDATA[ObjectMapper mapper = new ObjectMapper();
 // 0. add agents to population from database: Actors
 String actorID;
-OL_ActorType actortype;
+OL_ActorType actorcategory;
 String parentActorID;
-String subtype;
+String type;
 
 for(HashMap data : parsedJSONActors)
 {
     actorID = data.get( "id" ).toString();
-    actortype = OL_ActorType.valueOf((String)data.get( "actor_type" ));
-    subtype = data.get( "subtype" ).toString();
+    actorcategory = OL_ActorType.valueOf((String)data.get( "category" ));
+    type = data.get( "type" ).toString();
     //traceln(actortype.toString());
     parentActorID = String.valueOf(data.get( "parent_actor" ));
 
-	if (actortype.equals(OL_ActorType.CONNECTIONOWNER) ) {
-	    ConnectionOwner Actor = add_pop_connectionOwners( actorID, subtype, parentActorID, null, null);
-	    Actor.j_ConnectionOwnerData = new J_ConnectionOwnerData(actorID, subtype, parentActorID);
+	if (actorcategory.equals(OL_ActorType.CONNECTIONOWNER) ) {
+	    ConnectionOwner Actor = add_pop_connectionOwners( actorID, type, parentActorID, null, null);
+	    Actor.j_ConnectionOwnerData = new J_ConnectionOwnerData(actorID, type, parentActorID);
 	    c_connectionOwners.add(Actor);
-    } else if (actortype.equals(OL_ActorType.ENERGYSUPPLIER) ) {
+    } else if (actorcategory.equals(OL_ActorType.ENERGYSUPPLIER) ) {
 //	    EnergySupplier Actor = add_pop_energySuppliers( actorID, actortype, parentActorID, null);
 		double feedinTariff_eurpkWh = 0.25;
-		EnergySupplier Actor = add_pop_energySuppliers(actorID, subtype, parentActorID, null, 0.21, 0.1, 0.05, 0.3, 0.17, feedinTariff_eurpkWh);
-    } else if (actortype.equals(OL_ActorType.ENERGYHOLON) ) {
-	    EnergyHolon Actor = add_pop_energyHolons( actorID, subtype, parentActorID, null);
-    } else if (actortype.equals(OL_ActorType.GRIDOPERATOR) ) {
-	    GridOperator Actor = add_pop_gridOperators( actorID, subtype, parentActorID, null);
+		EnergySupplier Actor = add_pop_energySuppliers(actorID, type, parentActorID, null, 0.21, 0.1, 0.05, 0.3, 0.17, feedinTariff_eurpkWh);
+    } else if (actorcategory.equals(OL_ActorType.ENERGYHOLON) ) {
+	    EnergyHolon Actor = add_pop_energyHolons( actorID, type, parentActorID, null);
+    } else if (actorcategory.equals(OL_ActorType.GRIDOPERATOR) ) {
+	    GridOperator Actor = add_pop_gridOperators( actorID, type, parentActorID, null);
     }
 }
 
@@ -2174,8 +2174,8 @@ String nodeoperator;
 for(HashMap data : parsedJSONGridNodes)
 {
    	nodeID = data.get("id").toString();
-	nodetype = OL_GridNodeType.valueOf((String)data.get("grid_type"));
-	energytype = OL_EnergyCarrierType.valueOf((String)data.get("energy_type"));
+	nodetype = OL_GridNodeType.valueOf((String)data.get("type"));
+	energytype = OL_EnergyCarrierType.valueOf((String)data.get("category"));
 	nodeparent = (String) data.get("parent");
 	nodecapacity =((Double)data.get("capacity_kw")).intValue();
 	nodeoperator = String.valueOf(data.get("owner_actor"));
@@ -2226,8 +2226,8 @@ ArrayList gridConnectionEnergyAssets = new ArrayList();    // new!
 
 for(HashMap data : parsedJSONGridConnections) {
 //    traceln("data = "+data);
-	gridConnectionCategory = OL_GridConnectionCategory.valueOf((String)data.get( "grid_category" ));
-    gridConnectionType = data.get( "grid_type" ) == null? null : OL_GridConnectionType.valueOf((String)data.get( "grid_type" ));
+	gridConnectionCategory = OL_GridConnectionCategory.valueOf((String)data.get( "category" ));
+    gridConnectionType = data.get( "type" ) == null? null : OL_GridConnectionType.valueOf((String)data.get( "type" ));
     gridConnectionParentElectric = data.get( "parent_electric" ).toString();
     gridConnectionParentHeat = (String)data.get( "parent_heat" );
     gridConnectionCapacity = (Double)data.get( "capacity_kw" );
@@ -8175,14 +8175,14 @@ if( p_energyAssetList != null) {
 		traceln("list of keys: "+l.keySet());
 		traceln("list of values: "+l.values());
 		
-		OL_EACategories assetCategory = OL_EACategories.valueOf((String)l.get( "asset_category" ));
+		OL_EACategories assetCategory = OL_EACategories.valueOf((String)l.get( "category" ));
 	
 		switch( assetCategory )  {
 			case CONSUMPTION:
 				traceln("consumption-asset detected!");
 				EnergyAsset consumerAsset = main.add_pop_energyAssets();
 				consumerAsset.set_p_parentAgentID( this.p_agentID );
-				consumerAsset.set_p_energyAssetType( OL_EnergyAssetType.valueOf((String)l.get( "asset_type" ) ));
+				consumerAsset.set_p_energyAssetType( OL_EnergyAssetType.valueOf((String)l.get( "type" ) ));
 				consumerAsset.set_p_defaultEnergyAssetPresetName( (String)l.get( "name" ));
 				
 				double yearlyDemandElectricity_kWh = l.get( "yearlyDemandElectricity_kWh")== null? 0.0: Double.valueOf( l.get( "yearlyDemandElectricity_kWh").toString()).doubleValue();
@@ -8196,7 +8196,7 @@ if( p_energyAssetList != null) {
 				traceln("production-asset detected!");
 				EnergyAsset producerAsset = main.add_pop_energyAssets();
 				producerAsset.set_p_parentAgentID( this.p_agentID );
-				producerAsset.set_p_energyAssetType( OL_EnergyAssetType.valueOf((String)l.get( "asset_type" ) ));
+				producerAsset.set_p_energyAssetType( OL_EnergyAssetType.valueOf((String)l.get( "type" ) ));
 				producerAsset.set_p_defaultEnergyAssetPresetName( (String)l.get( "name" ));
 				
 				double capacityElectricity_kW = l.get( "capacityElectricity_kW")== null? 0.0: Double.valueOf( l.get( "capacityElectricity_kW").toString()).doubleValue();
@@ -8210,7 +8210,7 @@ if( p_energyAssetList != null) {
 				traceln("conversion-asset detected!");
 				EnergyAsset converterAsset = main.add_pop_energyAssets();
 				converterAsset.set_p_parentAgentID( this.p_agentID );
-				converterAsset.set_p_energyAssetType( OL_EnergyAssetType.valueOf((String)l.get( "asset_type" ) ));
+				converterAsset.set_p_energyAssetType( OL_EnergyAssetType.valueOf((String)l.get( "type" ) ));
 				converterAsset.set_p_defaultEnergyAssetPresetName( (String)l.get( "name" ));
 					
 				double capacityElectric1_kW = l.get( "capacityElectricity_kW")== null? 0: (Double)l.get( "capacityElectricity_kW");
@@ -8231,7 +8231,7 @@ if( p_energyAssetList != null) {
 				traceln("storage-asset detected!");
 				EnergyAsset storageAsset = main.add_pop_energyAssets();
 				storageAsset.set_p_parentAgentID( this.p_agentID );
-				storageAsset.set_p_energyAssetType( OL_EnergyAssetType.valueOf((String)l.get( "asset_type" ) ));
+				storageAsset.set_p_energyAssetType( OL_EnergyAssetType.valueOf((String)l.get( "type" ) ));
 				storageAsset.set_p_defaultEnergyAssetPresetName( (String)l.get( "name" ));
 				traceln(storageAsset.p_defaultEnergyAssetPresetName);
 									
