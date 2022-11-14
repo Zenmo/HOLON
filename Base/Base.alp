@@ -2256,6 +2256,7 @@ for(HashMap data : parsedJSONGridConnections) {
 			GCHouse.set_p_isolationLabel( gridConnectionIsolationLabel );
 			GCHouse.set_p_heatingType( gridConnectionHeatingType );
 			GCHouse.set_p_energyAssetList( (ArrayList)gridConnectionEnergyAssets );
+			GCHouse.f_instantiateEnergyAssets();
     		
 			//add_gCHouses()
  			c_gridConnections.add(GCHouse);
@@ -2271,6 +2272,7 @@ for(HashMap data : parsedJSONGridConnections) {
  			GCBuilding.set_p_ownerID( ownerActorID );
  			GCBuilding.set_p_heatingType( gridConnectionHeatingType );
  			GCBuilding.set_p_energyAssetList( (ArrayList)gridConnectionEnergyAssets );
+ 			GCBuilding.f_instantiateEnergyAssets();
  				 		
 	 		c_gridConnections.add(GCBuilding);
 		break;
@@ -2286,6 +2288,7 @@ for(HashMap data : parsedJSONGridConnections) {
 	 		GCDistrictHeating.set_p_ownerID( ownerActorID );
 	 		GCDistrictHeating.set_p_heatingType( gridConnectionHeatingType );
 	 		GCDistrictHeating.set_p_energyAssetList( (ArrayList)gridConnectionEnergyAssets );
+	 		GCDistrictHeating.f_instantiateEnergyAssets();
 	 		
 	 		c_gridConnections.add(GCDistrictHeating);
 		break;
@@ -2301,6 +2304,7 @@ for(HashMap data : parsedJSONGridConnections) {
 	 		GCWindfarm.set_p_ownerID( ownerActorID );
 	 		GCWindfarm.set_p_heatingType( gridConnectionHeatingType );
 	 		GCWindfarm.set_p_energyAssetList( (ArrayList)gridConnectionEnergyAssets );
+	 		GCWindfarm.f_instantiateEnergyAssets();
 	 		
 	 		c_gridConnections.add(GCWindfarm);
 	 	break;
@@ -2316,6 +2320,7 @@ for(HashMap data : parsedJSONGridConnections) {
 	 		GCSolarfarm.set_p_ownerID( ownerActorID );
 	 		GCSolarfarm.set_p_heatingType( gridConnectionHeatingType );
 	 		GCSolarfarm.set_p_energyAssetList( (ArrayList)gridConnectionEnergyAssets );
+	 		GCSolarfarm.f_instantiateEnergyAssets();
 	 			 		
 	 		c_gridConnections.add(GCSolarfarm);
 	 	break;
@@ -2331,6 +2336,7 @@ for(HashMap data : parsedJSONGridConnections) {
 	 		GCIndustry.set_p_ownerID( ownerActorID );
 	 		GCIndustry.set_p_heatingType( gridConnectionHeatingType );
 	 		GCIndustry.set_p_energyAssetList( (ArrayList)gridConnectionEnergyAssets );
+	 		GCIndustry.f_instantiateEnergyAssets();
 	 			 		
 	 		c_gridConnections.add(GCIndustry);
 	 	break;
@@ -2347,6 +2353,7 @@ for(HashMap data : parsedJSONGridConnections) {
 	 		GCGridBattery.set_p_ownerID( ownerActorID );
 	 		GCGridBattery.set_p_heatingType( gridConnectionHeatingType );
 	 		GCGridBattery.set_p_energyAssetList( (ArrayList)gridConnectionEnergyAssets );
+	 		GCGridBattery.f_instantiateEnergyAssets();
 	 		
 	 		c_gridConnections.add(GCGridBattery);
 	 	break;
@@ -3038,8 +3045,6 @@ f_sumBatteryUse();
 j_totalCostData.updateData( roundToDecimal( v_gridNodePeakLoadElectricityHSMS_kW , 2 ),
 							roundToDecimal( v_gridNodePeakLoadElectricityMSLS_kW, 2 ),
 							c_timesOfNodePeakLoads_h,
-							c_globalElectricityImportProfile_kWhph,
-							c_globalElectricityExportProfile_kWhph,
 							v_totalElectricityImport_MWh,
 							v_totalElectricityExport_MWh,
 							v_totalMethaneImport_MWh,
@@ -3050,6 +3055,8 @@ j_totalCostData.updateData( roundToDecimal( v_gridNodePeakLoadElectricityHSMS_kW
 							c_totalBatteryChargeAmount_MWh,
 							c_totalBatteryDischargeAmount_MWh,
 							c_totalBatteryInstalledCapacity_MWh,
+							c_globalElectricityImportProfile_kWhph,
+							c_globalElectricityExportProfile_kWhph,
 							c_globalEVChargingProfile_kWhph,
 							c_globalEHGVChargingProfile_kWhph
 							 );
@@ -7067,12 +7074,12 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.fasterxml.jackson.databind.node.NumericNode;
 import com.fasterxml.jackson.core.json.JsonReadFeature;
 import java.io.IOException;
+import java.util.Scanner;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 import java.io.*;]]></Import>
-			<StartupCode><![CDATA[f_instantiateEnergyAssets();]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1658499438201</Id>
@@ -7940,8 +7947,8 @@ import java.io.*;]]></Import>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
-						<CollectionClass><![CDATA[HashMap]]></CollectionClass>
-						<ElementClass><![CDATA[Object]]></ElementClass>
+						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
+						<ElementClass><![CDATA[LinkedHashMap]]></ElementClass>
 						<ValueElementClass><![CDATA[ArrayList]]></ValueElementClass>
 					</Properties>
 
@@ -8155,9 +8162,113 @@ for (EnergyAsset EA : c_connectedEnergyAssets ) {
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[for(int i = 0; i < p_energyAssetList.size(); i++) {
-	traceln("GC : "+this+ ", asset no. " + i + ", = " + p_energyAssetList.get(i));
+					<Body><![CDATA[//for(int i = 0; i < p_energyAssetList.size(); i++) {
+//	traceln("GC : "+this+ ", asset no. " + i + ", = " + p_energyAssetList.get(i));
+//}
+traceln("asset "+p_energyAssetList);
+if( p_energyAssetList != null) {
+	c_energyAssets = p_energyAssetList;
+
+	for( HashMap l : c_energyAssets ) {
+		traceln("list of keys: "+l.keySet());
+		traceln("list of values: "+l.values());
+		
+		OL_EACategories assetCategory = OL_EACategories.valueOf((String)l.get( "energyAssetCategory" ));
+	
+		switch( assetCategory )  {
+			case CONSUMPTION:
+				traceln("consumption-asset detected!");
+				EnergyAsset consumerAsset = main.add_pop_energyAssets();
+				consumerAsset.set_p_parentAgentID( this.p_agentID );
+				consumerAsset.set_p_energyAssetType( OL_EnergyAssetType.valueOf((String)l.get( "energyAssetType" ) ));
+				consumerAsset.set_p_defaultEnergyAssetPresetName( (String)l.get( "name" ));
+				
+				double yearlyDemandElectricity_kWh = l.get( "yearlyDemandElectricity_kWh")== null? 0.0: Double.valueOf( l.get( "yearlyDemandElectricity_kWh").toString()).doubleValue();
+				double yearlyDemandHeat_kWh = l.get( "yearlyDemandHeat_kWh")== null? 0.0: Double.valueOf( l.get( "yearlyDemandHeat_kWh").toString()).doubleValue();
+				
+				consumerAsset.f_instantiateConsumerAsset( consumerAsset.p_energyAssetType, yearlyDemandElectricity_kWh , yearlyDemandHeat_kWh );
+				consumerAsset.f_connectToParentNode( this );
+	
+			break;
+			case PRODUCTION:
+				traceln("production-asset detected!");
+				EnergyAsset producerAsset = main.add_pop_energyAssets();
+				producerAsset.set_p_parentAgentID( this.p_agentID );
+				producerAsset.set_p_energyAssetType( OL_EnergyAssetType.valueOf((String)l.get( "energyAssetType" ) ));
+				producerAsset.set_p_defaultEnergyAssetPresetName( (String)l.get( "name" ));
+				
+				double capacityElectricity_kW = l.get( "capacityElectricity_kW")== null? 0.0: Double.valueOf( l.get( "capacityElectricity_kW").toString()).doubleValue();
+				double capacityHeat_kW = l.get( "capacityHeat_kW")== null? 0.0: Double.valueOf( l.get( "capacityHeat_kW").toString()).doubleValue();
+				
+				producerAsset.f_instantiateProducerAsset( producerAsset.p_energyAssetType, capacityElectricity_kW , capacityHeat_kW );
+				producerAsset.f_connectToParentNode( this );
+				main.c_productionAssets.add(producerAsset);
+			break;
+			case CONVERSION:
+				traceln("conversion-asset detected!");
+				EnergyAsset converterAsset = main.add_pop_energyAssets();
+				converterAsset.set_p_parentAgentID( this.p_agentID );
+				converterAsset.set_p_energyAssetType( OL_EnergyAssetType.valueOf((String)l.get( "energyAssetType" ) ));
+				converterAsset.set_p_defaultEnergyAssetPresetName( (String)l.get( "name" ));
+					
+				double capacityElectric1_kW = l.get( "capacityElectricity_kW")== null? 0: (Double)l.get( "capacityElectricity_kW");
+				double capacityHeat1_kW = l.get( "capacityHeat_kW")== null? 0: (Double)l.get( "capacityHeat_kW");
+				double eta_r = (Double)l.get( "eta_r" ) == null? 0.0 : (Double)l.get( "eta_r" );
+				double deliveryTemp_degC = l.get( "deliveryTemp_degC" ) == null? 0: (Double)l.get( "deliveryTemp_degC" );
+				String ambientTempType = (String)l.get( "ambientTempType" ) == null? "": (String)l.get( "ambientTempType" );
+				
+				converterAsset.f_instantiateConverterAsset( converterAsset.p_energyAssetType, 
+														capacityElectric1_kW, 
+														capacityHeat1_kW, 
+														eta_r,
+														deliveryTemp_degC,
+														ambientTempType);
+				converterAsset.f_connectToParentNode( this );
+				break;
+			case STORAGE:
+				traceln("storage-asset detected!");
+				EnergyAsset storageAsset = main.add_pop_energyAssets();
+				storageAsset.set_p_parentAgentID( this.p_agentID );
+				storageAsset.set_p_energyAssetType( OL_EnergyAssetType.valueOf((String)l.get( "energyAssetType" ) ));
+				storageAsset.set_p_defaultEnergyAssetPresetName( (String)l.get( "name" ));
+				traceln(storageAsset.p_defaultEnergyAssetPresetName);
+									
+				double capacityElectric_kW = l.get( "capacityElectricity_kW") == null? 0.0: Double.valueOf( l.get( "capacityElectricity_kW" ).toString()).doubleValue();
+				double capacityHeatDelivery_kW = l.get( "capacityHeat_kW") == null? 0.0: Double.valueOf( l.get( "capacityHeat_kW").toString()).doubleValue();
+				double initialStateOfCharge_r = l.get( "stateOfCharge_r" ) == null? 0.0: Double.valueOf( l.get( "stateOfCharge_r" ).toString()).doubleValue();
+				double lossFactor_WpK = l.get( "lossFactor_WpK" ) == null? 0.0: Double.valueOf( l.get( "lossFactor_WpK" ).toString()).doubleValue();
+				double storageCapacity_kWh = l.get( "storageCapacity_kWh" ) == null? 0.0: Double.valueOf( l.get( "storageCapacity_kWh" ).toString()).doubleValue();
+				double heatCapacity_JpK = l.get( "heatCapacity_JpK" ) == null? 0.0: Double.valueOf( l.get( "heatCapacity_JpK" ).toString()).doubleValue();
+				double minTemperature_degC = l.get( "minTemperature_degC" ) == null? 0.0: Double.valueOf( l.get( "minTemperature_degC" ).toString()).doubleValue();
+				double maxTemperature_degC = l.get( "maxTemperature_degC" ) == null? 0.0: Double.valueOf( l.get( "maxTemperature_degC" ).toString()).doubleValue();
+				double setTemperature_degC = l.get( "setTemperature_degC" ) == null? 0.0: Double.valueOf( l.get( "setTemperature_degC" ).toString()).doubleValue();
+				String ambientTempType2 = (String)l.get( "ambientTempType" ) == null? "": (String)l.get( "ambientTempType" );
+				double energyConsumption_kWhpkm = l.get( "energyConsumption_kWhpkm" ) == null? 0.0: Double.valueOf( l.get( "energyConsumption_kWhpkm" ).toString()).doubleValue();
+				
+				storageAsset.f_instantiateStorageAsset( storageAsset.p_energyAssetType, 
+														capacityElectric_kW, 
+														capacityHeatDelivery_kW, 
+														initialStateOfCharge_r, 
+														lossFactor_WpK, 
+														storageCapacity_kWh, 
+														heatCapacity_JpK, 
+														minTemperature_degC, 
+														maxTemperature_degC, 
+														setTemperature_degC, 
+														ambientTempType2, 
+														energyConsumption_kWhpkm);
+				storageAsset.f_connectToParentNode( this );	
+				main.c_storageAssets.add(storageAsset);
+			break;
+			default:
+				traceln("not a valid energy asset category.");
+			break;
+		}
+	}
+traceln("GridConnection "+this.p_agentID+" has finished initializing its energyAssets!");
 }
+
+//traceln("assetList "+assetList.toString());
 
 
 //for(Object o : assetList ) {
@@ -24641,8 +24752,6 @@ public class J_TotalCostData implements Serializable {
 	public double HSMSPeakLoadElectricity_kW;
 	public double MSLSPeakLoadElectricity_kW;
 	public Map<String,Double> timesOfNodePeakLoads_h = new LinkedHashMap<String,Double>();
-	public Map<Integer,Double> SystemHourlyElectricityImport_kWh = new LinkedHashMap<Integer,Double>();
-	public Map<Integer,Double> SystemHourlyElectricityExport_kWh = new LinkedHashMap<Integer,Double>();
 	public double checkSumHourlyElectricityImport_MWh;
 	public double checkSumHourlyElectricityExport_MWh;
 	public double totalElectricityImport_MWh;
@@ -24655,6 +24764,8 @@ public class J_TotalCostData implements Serializable {
 	public Map<String,Double> totalBatteryChargeAmount_MWh = new LinkedHashMap<String,Double>();
 	public Map<String,Double> totalBatteryDischargeAmount_MWh = new LinkedHashMap<String,Double>();
 	public Map<String,Double> totalBatteryInstalledCapacity_MWh = new LinkedHashMap<String,Double>();
+	public Map<Integer,Double> SystemHourlyElectricityImport_kWh = new LinkedHashMap<Integer,Double>();
+	public Map<Integer,Double> SystemHourlyElectricityExport_kWh = new LinkedHashMap<Integer,Double>();
 	public Map<Integer,Double> totalEVHourlyChargingProfile_kWh = new LinkedHashMap<Integer,Double>();
 	public Map<Integer,Double> totalEHGVHourlyChargingProfile_kWh = new LinkedHashMap<Integer,Double>();
 	
@@ -24668,12 +24779,10 @@ public class J_TotalCostData implements Serializable {
     /**
      * Constructor initializing the fields
      */
-    public J_TotalCostData( double v_gridNodeLoadElectricityHSMS_kW, double v_gridNodeLoadElectricityMSLS_kW, LinkedHashMap<String,Double> c_timesOfNodePeakLoads_h, LinkedHashMap<Integer,Double> c_globalElectricityImportProfile_kWhph, LinkedHashMap<Integer,Double> c_globalElectricityExportProfile_kWhph, double totalElectricityImport_MWh, double totalElectricityExport_MWh, double totalMethaneImport_MWh, double totalMethaneExport_MWh, double totalHydrogenImport_MWh, double totalHydrogenExport_MWh, LinkedHashMap<String,Double> totalBatteryUnitsInstalled, LinkedHashMap<String,Double> totalBatteryChargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryDischargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryInstalledCapacity_MWh, LinkedHashMap<Integer,Double> totalEVHourlyChargingProfile_kWh, LinkedHashMap<Integer,Double> totalEHGVHourlyChargingProfile_kWh ) {
+    public J_TotalCostData( double v_gridNodeLoadElectricityHSMS_kW, double v_gridNodeLoadElectricityMSLS_kW, LinkedHashMap<String,Double> c_timesOfNodePeakLoads_h, double totalElectricityImport_MWh, double totalElectricityExport_MWh, double totalMethaneImport_MWh, double totalMethaneExport_MWh, double totalHydrogenImport_MWh, double totalHydrogenExport_MWh, LinkedHashMap<String,Double> totalBatteryUnitsInstalled, LinkedHashMap<String,Double> totalBatteryChargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryDischargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryInstalledCapacity_MWh, LinkedHashMap<Integer,Double> c_globalElectricityImportProfile_kWhph, LinkedHashMap<Integer,Double> c_globalElectricityExportProfile_kWhph, LinkedHashMap<Integer,Double> totalEVHourlyChargingProfile_kWh, LinkedHashMap<Integer,Double> totalEHGVHourlyChargingProfile_kWh ) {
 		this.HSMSPeakLoadElectricity_kW = v_gridNodeLoadElectricityHSMS_kW;
 		this.MSLSPeakLoadElectricity_kW = v_gridNodeLoadElectricityMSLS_kW;
 		this.timesOfNodePeakLoads_h = c_timesOfNodePeakLoads_h;
-		this.SystemHourlyElectricityImport_kWh = c_globalElectricityImportProfile_kWhph;
-		this.SystemHourlyElectricityExport_kWh = c_globalElectricityExportProfile_kWhph;
 		this.checkSumHourlyElectricityImport_MWh = 0;
 		this.checkSumHourlyElectricityExport_MWh = 0;
 		this.totalElectricityImport_MWh = totalElectricityImport_MWh;
@@ -24686,6 +24795,8 @@ public class J_TotalCostData implements Serializable {
 		this.totalBatteryChargeAmount_MWh = totalBatteryChargeAmount_MWh;
 		this.totalBatteryDischargeAmount_MWh = totalBatteryDischargeAmount_MWh;
 		this.totalBatteryInstalledCapacity_MWh = totalBatteryInstalledCapacity_MWh;
+		this.SystemHourlyElectricityImport_kWh = c_globalElectricityImportProfile_kWhph;
+		this.SystemHourlyElectricityExport_kWh = c_globalElectricityExportProfile_kWhph;
 		this.totalEVHourlyChargingProfile_kWh = totalEVHourlyChargingProfile_kWh;
 		this.totalEHGVHourlyChargingProfile_kWh = totalEHGVHourlyChargingProfile_kWh;
     }
@@ -24695,8 +24806,6 @@ public class J_TotalCostData implements Serializable {
 		return
 			"HSMSPeakLoadElectricity_kW = " + HSMSPeakLoadElectricity_kW + " " +
 			"MSLSPeakLoadElectricity_kW = " + MSLSPeakLoadElectricity_kW + " " +
-			"SystemHourlyElectricityImport_kWh = " + SystemHourlyElectricityImport_kWh.toString() + " " +
-			"SystemHourlyElectricityExport_kWh = " + SystemHourlyElectricityExport_kWh.toString() + " " +
 			"checkSumHourlyElectricityImport_MWh = " + checkSumHourlyElectricityImport_MWh + " " +
 			"checkSumHourlyElectricityExport_MWh = " + checkSumHourlyElectricityExport_MWh + " " +
 			"totalElectricityImport_MWh = " + totalElectricityImport_MWh + " " +
@@ -24709,16 +24818,16 @@ public class J_TotalCostData implements Serializable {
 			"totalBatteryChargeAmount_MWh = " + totalBatteryChargeAmount_MWh + " "+
 			"totalBatteryDischargeAmount_MWh = " + totalBatteryDischargeAmount_MWh + " "+
 			"totalBatteryInstalledCapacity_MWh = " + totalBatteryInstalledCapacity_MWh + " "+
+			"SystemHourlyElectricityImport_kWh = " + SystemHourlyElectricityImport_kWh.toString() + " " +
+			"SystemHourlyElectricityExport_kWh = " + SystemHourlyElectricityExport_kWh.toString() + " " +
 			"totalEVHourlyChargingProfile_kWh = " + totalEVHourlyChargingProfile_kWh + " "+
 			"totalEHGVHourlyChargingProfile_kWh = " + totalEHGVHourlyChargingProfile_kWh + " ";
 	}
 
-	public void updateData( double v_gridNodePeakLoadElectricityHSMS_kW, double v_gridNodePeakLoadElectricityMSLS_kW, LinkedHashMap<String,Double> c_timesOfNodePeakLoads_h, LinkedHashMap<Integer,Double> c_globalElectricityImportProfile_kWhph, LinkedHashMap<Integer,Double> c_globalElectricityExportProfile_kWhph, double totalElectricityImport_MWh, double totalElectricityExport_MWh, double totalMethaneImport_MWh, double totalMethaneExport_MWh, double totalHydrogenImport_MWh, double totalHydrogenExport_MWh, LinkedHashMap<String,Double> totalBatteryUnitsInstalled, LinkedHashMap<String,Double> totalBatteryChargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryDischargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryInstalledCapacity_MWh, LinkedHashMap<Integer,Double> totalEVHourlyChargingProfile_kWh, LinkedHashMap<Integer,Double> totalEHGVHourlyChargingProfile_kWh ) {
+	public void updateData( double v_gridNodePeakLoadElectricityHSMS_kW, double v_gridNodePeakLoadElectricityMSLS_kW, LinkedHashMap<String,Double> c_timesOfNodePeakLoads_h, double totalElectricityImport_MWh, double totalElectricityExport_MWh, double totalMethaneImport_MWh, double totalMethaneExport_MWh, double totalHydrogenImport_MWh, double totalHydrogenExport_MWh, LinkedHashMap<String,Double> totalBatteryUnitsInstalled, LinkedHashMap<String,Double> totalBatteryChargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryDischargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryInstalledCapacity_MWh, LinkedHashMap<Integer,Double> c_globalElectricityImportProfile_kWhph, LinkedHashMap<Integer,Double> c_globalElectricityExportProfile_kWhph, LinkedHashMap<Integer,Double> totalEVHourlyChargingProfile_kWh, LinkedHashMap<Integer,Double> totalEHGVHourlyChargingProfile_kWh ) {
 		this.HSMSPeakLoadElectricity_kW = v_gridNodePeakLoadElectricityHSMS_kW;
 		this.MSLSPeakLoadElectricity_kW = v_gridNodePeakLoadElectricityMSLS_kW;
 		this.timesOfNodePeakLoads_h = c_timesOfNodePeakLoads_h;
-		this.SystemHourlyElectricityImport_kWh = c_globalElectricityImportProfile_kWhph;
-		this.SystemHourlyElectricityExport_kWh = c_globalElectricityExportProfile_kWhph;
 		this.checkSumHourlyElectricityImport_MWh = roundToDecimal( SystemHourlyElectricityImport_kWh.values().stream().reduce(0.0, Double::sum) / 1000, 2);
 		this.checkSumHourlyElectricityExport_MWh = roundToDecimal( SystemHourlyElectricityExport_kWh.values().stream().reduce(0.0, Double::sum) / 1000, 2);
 		this.totalElectricityImport_MWh = roundToDecimal( totalElectricityImport_MWh , 2 );
@@ -24731,6 +24840,8 @@ public class J_TotalCostData implements Serializable {
 		this.totalBatteryChargeAmount_MWh = totalBatteryChargeAmount_MWh;
 		this.totalBatteryDischargeAmount_MWh = totalBatteryDischargeAmount_MWh;
 		this.totalBatteryInstalledCapacity_MWh = totalBatteryInstalledCapacity_MWh;
+		this.SystemHourlyElectricityImport_kWh = c_globalElectricityImportProfile_kWhph;
+		this.SystemHourlyElectricityExport_kWh = c_globalElectricityExportProfile_kWhph;
 		this.totalEVHourlyChargingProfile_kWh = totalEVHourlyChargingProfile_kWh;
 		this.totalEHGVHourlyChargingProfile_kWh = totalEHGVHourlyChargingProfile_kWh;
 	}
