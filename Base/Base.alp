@@ -10394,6 +10394,22 @@ v_currentConsumptionElectricity_kW=arr[4];
 						<Type><![CDATA[double]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1668443738626</Id>
+					<Name><![CDATA[v_batterySOC_fr]]></Name>
+					<Description><![CDATA[Summation of energy supplier bank balances for trading of all energy carriers. Should be equal to summed grid connection bank balances for all energy carriers!
+
+@author: Jorrit
+@since: Sprint 6]]></Description>
+					<X>-320</X><Y>750</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1660578629879</Id>
 					<Name><![CDATA[p_individualMode]]></Name>
@@ -10492,7 +10508,8 @@ v_fleetCharging_kW = sum(main.gCBuildings, b->b.v_currentPowerElectricity_kW );
 v_PVproduction_kW = sum(main.gCSolarfarms, f->f.v_currentPowerElectricity_kW );
 v_industryConsumption_kW = sum(main.gCIndustries, i->i.v_currentPowerElectricity_kW );
 v_holonAvailableConnectionCapacity_kW = main.pop_energyHolons(0).v_connectionCapacity_kW;
-v_holonTotalPower_kW = v_batteryPower_kW + v_fleetCharging_kW + v_PVproduction_kW + v_industryConsumption_kW;]]></Body>
+v_holonTotalPower_kW = v_batteryPower_kW + v_fleetCharging_kW + v_PVproduction_kW + v_industryConsumption_kW;
+v_batterySOC_fr = main.gCGridBatteries(0).v_batterySOC_fr;]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -10865,7 +10882,8 @@ Both energy and financial checks can be done.
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[f_gatherEnergyFlows();
 f_checkModelConsistency();
-pl_HolonEnergyBalance.updateData();]]></Body>
+pl_HolonEnergyBalance.updateData();
+pl_batterySOC.updateData();]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -11362,6 +11380,73 @@ pl_HolonEnergyBalance.updateData();]]></Body>
 					<Expression><![CDATA[my_dataset6]]></Expression>
 					<Color>-65536</Color>
 					<Expression2><![CDATA[-v_holonAvailableConnectionCapacity_kW]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>
+						<PointStyle>NONE</PointStyle>
+						<LineWidth>1.0</LineWidth>
+					</DatasetExpression>
+					<SamplesToKeep>100</SamplesToKeep>
+					<TimeWindowExpression><![CDATA[24]]></TimeWindowExpression>
+					<FillAreaUnderLine>false</FillAreaUnderLine>
+					<LabelFormat>MODEL_TIME_UNITS</LabelFormat>
+    			</TimePlot>
+    			<TimePlot>
+					<Id>1668443694745</Id>
+					<Name><![CDATA[pl_batterySOC]]></Name>
+					<X>0</X><Y>20</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<AutoUpdate>false</AutoUpdate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1667462400000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[main.p_timeStep_h]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</RecurrenceCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Width>430</Width>
+					<Height>210</Height>
+					<BackgroundColor/>
+					<BorderColor/>
+					<ChartArea>
+						<XOffset>50</XOffset>
+						<YOffset>30</YOffset>
+						<Width>350</Width>
+						<Height>90</Height>
+						<BackgroundColor>-1</BackgroundColor>
+						<BorderColor>-16777216</BorderColor>
+						<GridColor>-12566464</GridColor>
+					</ChartArea>
+					<Legend>
+						<Place>SOUTH</Place>
+						<TextColor>-16777216</TextColor>
+						<Size>60</Size>
+					</Legend>
+					<Labels>
+						<HorLabelsPosition>DEFAULT</HorLabelsPosition>
+						<VerLabelsPosition>DEFAULT</VerLabelsPosition>
+						<TextColor>-12566464</TextColor>
+					</Labels>
+					<ShowLegend>true</ShowLegend>
+					<TimeWindowsMovementType>MOVEMENT_WITH_TIME</TimeWindowsMovementType>		
+					<TimeWindowUnits>MODEL_TIME_UNIT</TimeWindowUnits>
+					<VerScaleFromExpression><![CDATA[0]]></VerScaleFromExpression>
+					<VerScaleToExpression><![CDATA[1]]></VerScaleToExpression>
+					<VerScaleType>AUTO</VerScaleType>
+					<DrawLine>true</DrawLine>
+					<Interpolation>LINEAR</Interpolation>
+					<DatasetExpression>  
+						<Title><![CDATA[Holon grid load]]></Title>
+					<Id>1668443694740</Id>
+					<Expression><![CDATA[my_dataset4]]></Expression>
+					<Color>-16777216</Color>
+					<Expression2><![CDATA[v_batterySOC_fr]]></Expression2>
 					<Expression2Flag>true</Expression2Flag>
 						<PointStyle>NONE</PointStyle>
 						<LineWidth>1.0</LineWidth>
@@ -22103,6 +22188,21 @@ public void f_operateFlexAssets(){
 						</InitialValue>
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1668443493765</Id>
+					<Name><![CDATA[v_batterySOC_fr]]></Name>
+					<X>740</X><Y>450</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0.01]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1666973673178</Id>
 					<Name><![CDATA[p_batteryAsset]]></Name>
@@ -22203,10 +22303,10 @@ traceln("NetConnection connecting to " + numberOfEnergyAssets + " EnergyAssets")
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[double currentBatteryStateOfCharge = p_batteryAsset.p_energyAssetInstance.getCurrentStateOfCharge();
+					<Body><![CDATA[v_batterySOC_fr = p_batteryAsset.p_energyAssetInstance.getCurrentStateOfCharge();
 
-f_balanceHolonLoadV2(currentBatteryStateOfCharge);
-f_priceBasedBatteryManagement(currentBatteryStateOfCharge);
+//f_balanceHolonLoadV2(v_batterySOC_fr);
+f_priceBasedBatteryManagement(v_batterySOC_fr);
 
 p_batteryAsset.f_updateElectricityFlows(p_batteryAsset.v_powerFraction_fr);
 ]]></Body>
@@ -22377,18 +22477,55 @@ p_batteryAsset.f_updateElectricityFlows(p_batteryAsset.v_powerFraction_fr);
 						<Name><![CDATA[currentBatteryStateOfCharge]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
-					<Body><![CDATA[if(p_ownerActor instanceof ConnectionOwner) {
-		if (time(HOUR) != 0){
+					<Body><![CDATA[double willingnessToPayDefault_eurpkWh = 0.3;
+double chargeDischarge_offset_eurpkWh = 0.02;
+double WTPfeedbackGain_eurpSOC = 0.1; // When SOC-error is 100%, adjust WTP price by 1 eurpkWh
+double congestionTariffHolon_eurpkWh = -(((ConnectionOwner)p_ownerActor).p_holonParent.v_electricitySurplus_kW + v_previousPowerElectricity_kW)/1200*0.1;
+
+double chargeSetpoint_kW = 0;
+
+if(p_ownerActor instanceof ConnectionOwner) {
+		if (time(HOUR) == 0){
+			chargeSetpoint_kW = -1000;
+		} else {
 			//traceln("Initial Mappings are: " + ((ConnectionOwner)p_ownerActor).v_currentPriceBands);
-			double currentElectricityPrice_eurpkWh = ((ConnectionOwner)p_ownerActor).v_currentPriceBands.ceilingEntry(100.0).getValue(); // query price at 1kW
+			double currentElectricityPriceCharge_eurpkWh = ((ConnectionOwner)p_ownerActor).v_currentPriceBands.ceilingEntry(100.0).getValue() + congestionTariffHolon_eurpkWh; // query price at 1kW
+			double currentElectricityPriceDischarge_eurpkWh = ((ConnectionOwner)p_ownerActor).v_currentPriceBands.floorEntry(-100.0).getValue() + congestionTariffHolon_eurpkWh; // query price at 1kW
+			double currentPricePowerBandPos_kW = ((ConnectionOwner)p_ownerActor).v_currentPriceBands.ceilingKey(100.0); // Up to what power does this price hold?
+			double currentPricePowerBandNeg_kW = ((ConnectionOwner)p_ownerActor).v_currentPriceBands.floorKey(100.0); // Down to what power does this price hold?
 			//double currentElectricityPrice_eurpkWh = currentElectricityPriceBand_eurpkWh.getValue();
-			//traceln("Current price is " + currentElectricityPrice_eurpkWh + " kWh");
+			traceln("Current price is " + currentElectricityPriceCharge_eurpkWh + " eurpkWh, between " + currentPricePowerBandNeg_kW + " kW and " + currentPricePowerBandPos_kW + " kW");
 			// Keep track of average electricity value over last period using low-pass filter
 			
-			v_electricityPriceLowPassed_eurpkWh += v_lowPassFactor_fr * (currentElectricityPrice_eurpkWh - v_electricityPriceLowPassed_eurpkWh);
+			//v_electricityPriceLowPassed_eurpkWh += v_lowPassFactor_fr * (currentElectricityPrice_eurpkWh - v_electricityPriceLowPassed_eurpkWh);
 			
-			double SOC_setp_fr = 0.6 + 0.2 * Math.sin(2*Math.PI*(time(HOUR)-12)/24); // Sinusoidal setpoint: aim for low SOC at 6:00h, high SOC at 18:00h. 
+			double SOC_setp_fr = 0.6 + 0.3 * Math.sin(2*Math.PI*(time(HOUR)-12)/24); // Sinusoidal setpoint: aim for low SOC at 6:00h, high SOC at 18:00h. 
+			double SOC_deficit_fr = SOC_setp_fr - currentBatteryStateOfCharge; // How far away from desired SOC? SOC too LOW is a POSITIVE deficit
+			
+			// Define WTP price for charging and discharging!
+			double WTP_charge_eurpkWh = willingnessToPayDefault_eurpkWh - chargeDischarge_offset_eurpkWh + SOC_deficit_fr * WTPfeedbackGain_eurpSOC;
+			double WTP_discharge_eurpkWh = willingnessToPayDefault_eurpkWh + chargeDischarge_offset_eurpkWh + SOC_deficit_fr * WTPfeedbackGain_eurpSOC;
+			
+			//traceln("WTP charge is " + WTP_charge_eurpkWh + " eurpkWh, discharge is " + WTP_discharge_eurpkWh + " eurpkWh");
+			// Choose charging power based on prices and desired SOC level
+			if ( WTP_charge_eurpkWh > currentElectricityPriceCharge_eurpkWh ) { // if willingness to pay higher than current electricity price
+				chargeSetpoint_kW = min(p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW()*(WTP_charge_eurpkWh - currentElectricityPriceCharge_eurpkWh)*10, currentPricePowerBandPos_kW)  ;
+				traceln("WTP charge " + WTP_charge_eurpkWh + " eurpkWh is high than electricity price " + currentElectricityPriceCharge_eurpkWh + " eurpkWh, so charge!") ;
+			} else if (WTP_discharge_eurpkWh < currentElectricityPriceDischarge_eurpkWh) {
+				chargeSetpoint_kW = -min(p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW()*(currentElectricityPriceDischarge_eurpkWh - WTP_discharge_eurpkWh)*10, currentPricePowerBandPos_kW);
+				traceln("WTP discharge " + WTP_discharge_eurpkWh + " eurpkWh is lower than electricity price " + currentElectricityPriceCharge_eurpkWh + " eurpkWh, so discharge!") ;
+			}
+			
+			// limit charging power to available connection capacity in HOLON when applicable
+			if(((ConnectionOwner)p_ownerActor).p_holonParent instanceof EnergyHolon ) {	
+				double currentHolonElectricitySurplus_kW = ((ConnectionOwner)p_ownerActor).p_holonParent.v_electricitySurplus_kW + v_previousPowerElectricity_kW;
+				double HolonConnectionCapacity_kW = 0.9*((ConnectionOwner)p_ownerActor).p_holonParent.v_connectionCapacity_kW; // Use only 90% of capacity for robustness against delay
+				double availableChargePower_kW = currentHolonElectricitySurplus_kW + HolonConnectionCapacity_kW; // Max battery charging power within grid capacity
+				double availableDischargePower_kW = currentHolonElectricitySurplus_kW - HolonConnectionCapacity_kW; // Max discharging power within grid capacity
+				//chargeSetpoint_kW = min(max(chargeSetpoint_kW, availableDischargePower_kW),availableChargePower_kW); // Don't allow too much (dis)charging!
+			}			
 		}
+		p_batteryAsset.v_powerFraction_fr = max(-1,min(1, chargeSetpoint_kW / p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW())); // Convert to powerFraction and limit power
 		//traceln("SOC setpoint at " + getHourOfDay() + " h is " + SOC_setp_fr*100 + "%");
 		/*double FeedbackGain_kWpSOC = 1.5 * p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW(); // How strongly to aim for SOC setpoint
 		double FeedforwardGain_kWpKw = 0.8; // Feedforward based on current surpluss in holon
