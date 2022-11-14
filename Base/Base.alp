@@ -746,11 +746,15 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.fasterxml.jackson.databind.node.NumericNode;
+import com.fasterxml.jackson.core.type.TypeReference;
 import java.io.FileOutputStream;
 import java.util.stream.Stream;
 import java.util.Dictionary.*;
 import java.util.Hashtable.*;
+import java.util.*;
+import java.util.stream.Collectors;
 
+import java.io.*;
 import java.io.File;
 import java.io.IOException;]]></Import>
 			<StartupCode><![CDATA[double startTime = System.currentTimeMillis();
@@ -2116,7 +2120,8 @@ v_timeStepsElapsed ++;
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[// 0. add agents to population from database: Actors
+					<Body><![CDATA[ObjectMapper mapper = new ObjectMapper();
+// 0. add agents to population from database: Actors
 String actorID;
 OL_ActorType actortype;
 String parentActorID;
@@ -2215,6 +2220,9 @@ String gridConnectionParentHeat="";
 Double gridConnectionCapacity;
 String ownerActorID;
 
+ArrayList gridConnectionEnergyAssets = new ArrayList();    // new!
+//Map<Object,Object> gridConnectionEnergyAssets = new HashMap();
+
 for(HashMap data : parsedJSONGridConnections) {
 //    traceln("data = "+data);
 	gridConnectionCategory = OL_GridConnectionCategory.valueOf((String)data.get( "type" ));
@@ -2226,42 +2234,128 @@ for(HashMap data : parsedJSONGridConnections) {
 	ownerActorID = data.get ( "owner_actor" ).toString();
 	gridConnectionIsolationLabel = OL_GridConnectionIsolationLabel.valueOf((String)data.get( "isolation_label" ));
 	gridConnectionHeatingType = OL_GridConnectionHeatingType.valueOf((String)data.get( "heating_type" ));
+	
+	//traceln("raw data: "+data.get("EnergyAssets").toString());
+	//gridConnectionEnergyAssets = (String)data.get( "EnergyAssets");
+	gridConnectionEnergyAssets = (ArrayList)data.get( "EnergyAssets");
+	//traceln("energyAssets bij deze gridConnection "+ gridConnectionEnergyAssets);
+	//traceln(gridConnectionEnergyAssets.toString());
 
 	//traceln("data: " + "id = " + gridConnectionID + ", category = " + gridConnectionCategory + ", connectionType = " + gridConnectionType + ", parentElectric" + gridConnectionParentElectric + ", parentHeat = " + gridConnectionParentHeat + ", capacity = " + gridConnectionCapacity + "owner_actor = "+ ownerActorID);
 	switch(gridConnectionCategory) {
 		case HOUSE: 
-	 		GCHouse GCHouse = add_gCHouses(gridConnectionCategory, gridConnectionType, gridConnectionCapacity, gridConnectionParentElectric, gridConnectionID, gridConnectionParentHeat, null, null, null, ownerActorID, null, null, null, gridConnectionHeatingType, gridConnectionIsolationLabel, null);
+	 		//GCHouse GCHouse = add_gCHouses(gridConnectionCategory, gridConnectionType, gridConnectionCapacity, gridConnectionParentElectric, gridConnectionID, gridConnectionParentHeat, null, null, null, ownerActorID, null, null, null, gridConnectionHeatingType, gridConnectionEnergyAssets, gridConnectionIsolationLabel, null);
+			GCHouse GCHouse = add_gCHouses();
+			GCHouse.set_p_agentID( gridConnectionID );
+			GCHouse.set_p_gridConnectionCategory( gridConnectionCategory );
+			GCHouse.set_p_gridConnectionType( gridConnectionType );
+			GCHouse.set_p_parentNodeElectricID( gridConnectionParentElectric );
+			GCHouse.set_p_parentNodeHeatID( gridConnectionParentHeat );
+			GCHouse.set_p_capacity_kW( gridConnectionCapacity );	
+			GCHouse.set_p_ownerID( ownerActorID );
+			GCHouse.set_p_isolationLabel( gridConnectionIsolationLabel );
+			GCHouse.set_p_heatingType( gridConnectionHeatingType );
+			GCHouse.set_p_energyAssetList( (ArrayList)gridConnectionEnergyAssets );
+    		
 			//add_gCHouses()
  			c_gridConnections.add(GCHouse);
 	 	break;
  		case BUILDING:
- 			GCBuilding GCBuilding = add_gCBuildings(gridConnectionCategory, gridConnectionType, gridConnectionCapacity, gridConnectionParentElectric, gridConnectionID, gridConnectionParentHeat, null, null, null, ownerActorID, null, null, null, gridConnectionHeatingType);
+ 			GCBuilding GCBuilding = add_gCBuildings( );
+ 			GCBuilding.set_p_gridConnectionCategory( gridConnectionCategory );
+ 			GCBuilding.set_p_gridConnectionType( gridConnectionType );
+ 			GCBuilding.set_p_capacity_kW( gridConnectionCapacity );
+ 			GCBuilding.set_p_parentNodeElectricID( gridConnectionParentElectric );
+ 			GCBuilding.set_p_agentID( gridConnectionID );
+ 			GCBuilding.set_p_parentNodeHeatID( gridConnectionParentHeat );
+ 			GCBuilding.set_p_ownerID( ownerActorID );
+ 			GCBuilding.set_p_heatingType( gridConnectionHeatingType );
+ 			GCBuilding.set_p_energyAssetList( (ArrayList)gridConnectionEnergyAssets );
+ 				 		
 	 		c_gridConnections.add(GCBuilding);
 		break;
 		case DISTRICTHEATING:
-	 		GCDistrictHeating GCDistrictHeating = add_gCDistrictHeatings(gridConnectionCategory, gridConnectionType, gridConnectionCapacity, gridConnectionParentElectric, gridConnectionID, gridConnectionParentHeat, null, null, null, ownerActorID, null, null, null, gridConnectionHeatingType);
+	 		GCDistrictHeating GCDistrictHeating = add_gCDistrictHeatings();
+	 		// gridConnectionEnergyAssets);
+	 		GCDistrictHeating.set_p_gridConnectionCategory( gridConnectionCategory );
+	 		GCDistrictHeating.set_p_gridConnectionType( gridConnectionType );
+	 		GCDistrictHeating.set_p_capacity_kW( gridConnectionCapacity );
+	 		GCDistrictHeating.set_p_parentNodeElectricID( gridConnectionParentElectric );
+	 		GCDistrictHeating.set_p_agentID( gridConnectionID );
+	 		GCDistrictHeating.set_p_parentNodeHeatID( gridConnectionParentHeat );
+	 		GCDistrictHeating.set_p_ownerID( ownerActorID );
+	 		GCDistrictHeating.set_p_heatingType( gridConnectionHeatingType );
+	 		GCDistrictHeating.set_p_energyAssetList( (ArrayList)gridConnectionEnergyAssets );
+	 		
 	 		c_gridConnections.add(GCDistrictHeating);
 		break;
 		case WINDFARM:
-	 		GCWindfarm GCWindfarm = add_gCWindfarms(gridConnectionCategory, gridConnectionType, gridConnectionCapacity, gridConnectionParentElectric, gridConnectionID, gridConnectionParentHeat, null, null, null, ownerActorID, null, null, null, null);
+	 		GCWindfarm GCWindfarm = add_gCWindfarms();
+	 		//gridConnectionCategory, gridConnectionType, gridConnectionCapacity, gridConnectionParentElectric, gridConnectionID, gridConnectionParentHeat, null, null, null, ownerActorID, null, null, null, null, gridConnectionEnergyAssets);
+	 		GCWindfarm.set_p_gridConnectionCategory( gridConnectionCategory );
+	 		GCWindfarm.set_p_gridConnectionType( gridConnectionType );
+	 		GCWindfarm.set_p_capacity_kW( gridConnectionCapacity );
+	 		GCWindfarm.set_p_parentNodeElectricID( gridConnectionParentElectric );
+	 		GCWindfarm.set_p_agentID( gridConnectionID );
+	 		GCWindfarm.set_p_parentNodeHeatID( gridConnectionParentHeat );
+	 		GCWindfarm.set_p_ownerID( ownerActorID );
+	 		GCWindfarm.set_p_heatingType( gridConnectionHeatingType );
+	 		GCWindfarm.set_p_energyAssetList( (ArrayList)gridConnectionEnergyAssets );
+	 		
 	 		c_gridConnections.add(GCWindfarm);
 	 	break;
 	 	case SOLARFARM:
-	 		GCSolarfarm GCSolarfarm = add_gCSolarfarms(gridConnectionCategory, gridConnectionType, gridConnectionCapacity, gridConnectionParentElectric, gridConnectionID, gridConnectionParentHeat, null, null, null, ownerActorID, null, null, null, null);
+	 		GCSolarfarm GCSolarfarm = add_gCSolarfarms();
+	 		//gridConnectionCategory, gridConnectionType, gridConnectionCapacity, gridConnectionParentElectric, gridConnectionID, gridConnectionParentHeat, null, null, null, ownerActorID, null, null, null, null, gridConnectionEnergyAssets);
+	 		GCSolarfarm.set_p_gridConnectionCategory( gridConnectionCategory );
+	 		GCSolarfarm.set_p_gridConnectionType( gridConnectionType );
+	 		GCSolarfarm.set_p_capacity_kW( gridConnectionCapacity );
+	 		GCSolarfarm.set_p_parentNodeElectricID( gridConnectionParentElectric );
+	 		GCSolarfarm.set_p_agentID( gridConnectionID );
+	 		GCSolarfarm.set_p_parentNodeHeatID( gridConnectionParentHeat );
+	 		GCSolarfarm.set_p_ownerID( ownerActorID );
+	 		GCSolarfarm.set_p_heatingType( gridConnectionHeatingType );
+	 		GCSolarfarm.set_p_energyAssetList( (ArrayList)gridConnectionEnergyAssets );
+	 			 		
 	 		c_gridConnections.add(GCSolarfarm);
 	 	break;
 	 	case INDUSTRY:
-	 		GCIndustry GCIndustry = add_gCIndustries(gridConnectionCategory, gridConnectionType, gridConnectionCapacity, gridConnectionParentElectric, gridConnectionID, gridConnectionParentHeat, null, null, null, ownerActorID, null, null, null, gridConnectionHeatingType);
+	 		GCIndustry GCIndustry = add_gCIndustries();
+	 		//gridConnectionCategory, gridConnectionType, gridConnectionCapacity, gridConnectionParentElectric, gridConnectionID, gridConnectionParentHeat, null, null, null, ownerActorID, null, null, null, gridConnectionHeatingType, gridConnectionEnergyAssets);
+	 		GCIndustry.set_p_gridConnectionCategory( gridConnectionCategory );
+	 		GCIndustry.set_p_gridConnectionType( gridConnectionType );
+	 		GCIndustry.set_p_capacity_kW( gridConnectionCapacity );
+	 		GCIndustry.set_p_parentNodeElectricID( gridConnectionParentElectric );
+	 		GCIndustry.set_p_agentID( gridConnectionID );
+	 		GCIndustry.set_p_parentNodeHeatID( gridConnectionParentHeat );
+	 		GCIndustry.set_p_ownerID( ownerActorID );
+	 		GCIndustry.set_p_heatingType( gridConnectionHeatingType );
+	 		GCIndustry.set_p_energyAssetList( (ArrayList)gridConnectionEnergyAssets );
+	 			 		
 	 		c_gridConnections.add(GCIndustry);
 	 	break;
 	 	case GRIDBATTERY:
-	 		GCGridBattery GCGridBattery = add_gCGridBatteries(gridConnectionCategory, gridConnectionType, gridConnectionCapacity, gridConnectionParentElectric, gridConnectionID, gridConnectionParentHeat, null, null, null, ownerActorID, null, null, null, gridConnectionHeatingType, null);
+	 		GCGridBattery GCGridBattery = add_gCGridBatteries();
+	 		//gridConnectionCategory, gridConnectionType, gridConnectionCapacity, gridConnectionParentElectric, gridConnectionID, gridConnectionParentHeat, null, null, null, ownerActorID, null, null, null, gridConnectionHeatingType, gridConnectionEnergyAssets, null);
+	 		
+	 		GCGridBattery.set_p_gridConnectionCategory( gridConnectionCategory );
+	 		GCGridBattery.set_p_gridConnectionType( gridConnectionType );
+	 		GCGridBattery.set_p_capacity_kW( gridConnectionCapacity );
+	 		GCGridBattery.set_p_parentNodeElectricID( gridConnectionParentElectric );
+	 		GCGridBattery.set_p_agentID( gridConnectionID );
+	 		GCGridBattery.set_p_parentNodeHeatID( gridConnectionParentHeat );
+	 		GCGridBattery.set_p_ownerID( ownerActorID );
+	 		GCGridBattery.set_p_heatingType( gridConnectionHeatingType );
+	 		GCGridBattery.set_p_energyAssetList( (ArrayList)gridConnectionEnergyAssets );
+	 		
 	 		c_gridConnections.add(GCGridBattery);
 	 	break;
 	 	default:
 	 		traceln("No subagent defined for this gridConnection type!" + gridConnectionCategory);
 	 	break;
  	}
+ 
+	
 //	else if {
 //		GridConnection GridConnection = add_pop_gridConnections(netConnectionCategory, netConnectionType, netConnectionCapacity, netConnectionParentElectric, netConnectionID, netConnectionParentHeat, null, null, null, null, ownerActorID, null, null);
 //	   c_gridConnections.add(GridConnection);
@@ -2285,7 +2379,7 @@ OL_EACategories assetCategory;
 String assetParentID;
 //double capacityElectric_kW;
 //double capacityHeat_kW;
-
+/*
 for(HashMap data : parsedJSONEnergyAssets) {
  //   traceln("data = "+data);
     assetCategory = OL_EACategories.valueOf( (String)data.get( "type" ) );
@@ -2314,7 +2408,7 @@ for(HashMap data : parsedJSONEnergyAssets) {
 	else {
     	traceln("f_configureBackbone exception: energyAsset not added (invalid Category)");
 	}
-
+*/
 /*     capacityElectric_kW = roundToDecimal((Integer)data.get( "capacity_electric_kw" ),2);
     capacityHeat_kW = roundToDecimal((Integer)data.get( "capacity_heat_kw" ),2);
 
@@ -2331,8 +2425,8 @@ for(HashMap data : parsedJSONEnergyAssets) {
  //   		traceln("f_configureBackbone: no energy asset of this instantiated yet!");
     	break;
     }
-*/
-}
+
+}*/
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -3835,7 +3929,7 @@ for(EnergyAsset e : c_storageAssets ) {
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[MVPCase1BedrijventerreinBasic_config_actors.txt]]></ClassName>
+						<ClassName><![CDATA[MVPCase1BedrijventerreinBasicExplicit_config_actors.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -3853,7 +3947,7 @@ for(EnergyAsset e : c_storageAssets ) {
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[MVPCase1BedrijventerreinBasic_config_gridNodes.txt]]></ClassName>
+						<ClassName><![CDATA[MVPCase1BedrijventerreinBasicExplicit_config_gridNodes.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -3871,7 +3965,7 @@ for(EnergyAsset e : c_storageAssets ) {
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[MVPCase1BedrijventerreinBasic_config_gridConnections.txt]]></ClassName>
+						<ClassName><![CDATA[MVPCase1BedrijventerreinBasicExplicit_config_gridConnectionsTestConfig2.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -3889,7 +3983,7 @@ for(EnergyAsset e : c_storageAssets ) {
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[MVPCase1BedrijventerreinBasic_config_energyAssets TESTCONFIG.txt]]></ClassName>
+						<ClassName><![CDATA[MVPCase1BedrijventerreinBasicExplicit_config_energyAssets.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -3907,7 +4001,7 @@ for(EnergyAsset e : c_storageAssets ) {
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[MVPCase1BedrijventerreinBasic_config_policies.txt]]></ClassName>
+						<ClassName><![CDATA[MVPCase1BedrijventerreinBasicExplicit_config_policies.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -4118,6 +4212,9 @@ for(EnergyAsset e : c_storageAssets ) {
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_heatingType]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_energyAssetList]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -4844,6 +4941,9 @@ for(EnergyAsset e : c_storageAssets ) {
 						<Parameter>
 							<Name><![CDATA[p_DHWAsset]]></Name>
 						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_energyAssetList]]></Name>
+						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
 					<Replication Class="CodeValue">
@@ -4949,6 +5049,9 @@ for(EnergyAsset e : c_storageAssets ) {
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_heatingType]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_energyAssetList]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -5056,6 +5159,9 @@ for(EnergyAsset e : c_storageAssets ) {
 						<Parameter>
 							<Name><![CDATA[p_heatingType]]></Name>
 						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_energyAssetList]]></Name>
+						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
 					<Replication Class="CodeValue">
@@ -5161,6 +5267,9 @@ for(EnergyAsset e : c_storageAssets ) {
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_heatingType]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_energyAssetList]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -5268,6 +5377,9 @@ for(EnergyAsset e : c_storageAssets ) {
 						<Parameter>
 							<Name><![CDATA[p_heatingType]]></Name>
 						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_energyAssetList]]></Name>
+						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
 					<Replication Class="CodeValue">
@@ -5374,6 +5486,9 @@ for(EnergyAsset e : c_storageAssets ) {
 						<Parameter>
 							<Name><![CDATA[p_heatingType]]></Name>
 						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_energyAssetList]]></Name>
+						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
 					<Replication Class="CodeValue">
@@ -5436,19 +5551,22 @@ for(EnergyAsset e : c_storageAssets ) {
 					</GenericParameterSubstitute>
 					<Parameters>
 						<Parameter>
+							<Name><![CDATA[p_capacity_kW]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_agentID]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_batteryAsset]]></Name>
+						</Parameter>
+						<Parameter>
 							<Name><![CDATA[p_gridConnectionCategory]]></Name>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_gridConnectionType]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_capacity_kW]]></Name>
-						</Parameter>
-						<Parameter>
 							<Name><![CDATA[p_parentNodeElectricID]]></Name>
-						</Parameter>
-						<Parameter>
-							<Name><![CDATA[p_agentID]]></Name>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_parentNodeHeatID]]></Name>
@@ -5481,7 +5599,7 @@ for(EnergyAsset e : c_storageAssets ) {
 							<Name><![CDATA[p_heatingType]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_batteryAsset]]></Name>
+							<Name><![CDATA[p_energyAssetList]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -6940,6 +7058,21 @@ subConnections.sendToAllConnected(msg);]]></OnReceive>
 			<Id>1658499438203</Id>
 			<Name><![CDATA[GridConnection]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
+			<Import><![CDATA[import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.TextNode;
+import com.fasterxml.jackson.databind.node.NumericNode;
+import com.fasterxml.jackson.core.json.JsonReadFeature;
+import java.io.IOException;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+import java.io.*;]]></Import>
+			<StartupCode><![CDATA[f_instantiateEnergyAssets();]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1658499438201</Id>
@@ -7608,6 +7741,27 @@ subConnections.sendToAllConnected(msg);]]></OnReceive>
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1668180047824</Id>
+					<Name><![CDATA[p_energyAssetList]]></Name>
+					<X>50</X><Y>220</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[ArrayList]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1668180047822</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1658751085004</Id>
 					<Name><![CDATA[c_electricityFlows]]></Name>
@@ -7774,6 +7928,21 @@ subConnections.sendToAllConnected(msg);]]></OnReceive>
 						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
 						<ElementClass><![CDATA[EnergyAsset]]></ElementClass>
 						<ValueElementClass><![CDATA[String]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1668181612214</Id>
+					<Name><![CDATA[c_energyAssets]]></Name>
+					<X>180</X><Y>240</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[HashMap]]></CollectionClass>
+						<ElementClass><![CDATA[Object]]></ElementClass>
+						<ValueElementClass><![CDATA[ArrayList]]></ValueElementClass>
 					</Properties>
 
 				</Variable>
@@ -7975,6 +8144,121 @@ for (EnergyAsset EA : c_connectedEnergyAssets ) {
 
 //v_selfConsumptionElectricity_fr = 1 - (v_electricityDelivered_kWh + v_heatDelivered_kWh + v_methaneDelivered_kWh + v_hydrogenDelivered_kWh ) / v_totalEnergyProduced_kWh; // Doesn't make sense to sum different energy carriers!
 //v_selfSufficiencyElectricity_fr = 1 - (v_electricityDrawn_kWh + v_heatDrawn_kWh + v_methaneDrawn_kWh + v_hydrogenDrawn_kWh) / v_totalEnergyUsed_kWh; // Need to account for energy in storages]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1668181559833</Id>
+					<Name><![CDATA[f_instantiateEnergyAssets]]></Name>
+					<X>180</X><Y>220</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[for(int i = 0; i < p_energyAssetList.size(); i++) {
+	traceln("GC : "+this+ ", asset no. " + i + ", = " + p_energyAssetList.get(i));
+}
+
+
+//for(Object o : assetList ) {
+//	
+//	c_energyAssets.add("asset: ",o);
+//	traceln("adding : "+o);//
+//
+//}
+//traceln(c_energyAssets.toString());
+
+// create a mapper to parse the JSON file
+//ObjectMapper mapper = new ObjectMapper();
+
+//traceln("GC "+this+", energyAssetList 1: "+p_energyAssetList.toString());
+
+/*// <poging 2>:
+Properties properties = new Properties();
+ 	try {
+	 	
+		properties.load(new ByteArrayInputStream(p_energyAssetList.toString().getBytes()));
+		//System.out.println("test java properties:");
+		//System.out.println(properties.toString());
+	} catch (IOException e) {
+		e.printStackTrace();
+	}
+
+	 	
+ 	//Map<String, String> propMap = properties.entrySet().stream()
+    c_energyAssets = properties.entrySet().stream()
+       .collect(Collectors.toMap(
+                e -> String.valueOf(e.getKey()),
+                e -> String.valueOf(e.getValue()),
+                (prev, next) -> next, HashMap::new
+        ));
+	System.out.println("Testing map from GC:"); // test 
+	//traceln(propMap); // test 
+	traceln(c_energyAssets);
+// </poging 2> */
+
+
+	
+
+//if( p_energyAssetList != null ) {
+//	for(Object o : p_energyAssetList) {
+//		traceln("GC "+this+", energAsset: "+ o.toString());
+//		
+//		try {
+//			J_EAConsumption EA = mapper.readValue(o.toString(), J_EAConsumption.class);
+//			traceln("created! "+EA.toString());
+//		}
+//		catch (IOException e) {
+// 		   e.printStackTrace();
+//		}
+//		
+//	}
+//}
+
+
+
+//traceln("GC "+this+", energyAssetList 2: "+p_energyAssetList.toString());
+
+// open the json file using java.io.File and cast it to an ArrayList
+//try {
+//	c_energyAssets = mapper.readValue(
+//		p_energyAssetList,    // <--- THIS PART CHANGED!
+//		ArrayList.class);
+//}catch (IOException e) {
+//e.printStackTrace();
+//}
+
+//for(HashMap data : c_energyAssets) {
+  //  traceln("GridConnection = "+ this.toString() + ", energyAsset = "+data);
+    
+    
+    //assetCategory = OL_EACategories.valueOf( (String)data.get( "type" ) );
+    //assetParentID = (String)data.get( "parent" );
+	/*
+    if( assetCategory == PRODUCTION ) {
+    		//assetPresetName = (OL_EAPresetProductionAssets)assetPresetName;
+    		OL_EAPresetProductionAssets assetPresetName = OL_EAPresetProductionAssets.valueOf( (String)data.get( "type2" ) );
+    		f_addPresetProductionAsset(assetParentID, assetPresetName);
+    }
+    else if( assetCategory == CONSUMPTION ) {
+    		//assetPresetName = (OL_EAPresetConsumptionAssets)assetPresetName;
+    		OL_EAPresetConsumptionAssets assetPresetName = OL_EAPresetConsumptionAssets.valueOf( (String)data.get( "type2" ) );
+    		f_addPresetConsumptionAsset(assetParentID, assetPresetName);
+    }
+    else if( assetCategory == CONVERSION ) {
+    		// assetPresetName = (OL_EAPresetConversionAssets)assetPresetName;
+    		OL_EAPresetConversionAssets assetPresetName = OL_EAPresetConversionAssets.valueOf( (String)data.get( "type2" ) );
+    		f_addPresetConversionAsset(assetParentID, assetPresetName);
+    }
+    else if ( assetCategory == STORAGE) {
+			//assetPresetName = (OL_EAPresetStorageAssets)assetPresetName;
+    		OL_EAPresetStorageAssets assetPresetName = OL_EAPresetStorageAssets.valueOf( (String)data.get( "type2" ) );
+    		f_addPresetStorageAsset(assetParentID, assetPresetName);
+	}
+	else {
+    	traceln("f_configureBackbone exception: energyAsset not added (invalid Category)");
+	}*/
+//}]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -18763,6 +19047,9 @@ public void f_operateFlexAssets(){
 				<Parameter>
 					<Name><![CDATA[p_heatingType]]></Name>
 				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_energyAssetList]]></Name>
+				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -19505,6 +19792,9 @@ public void f_operateFlexAssets(){
 				<Parameter>
 					<Name><![CDATA[p_heatingType]]></Name>
 				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_energyAssetList]]></Name>
+				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -19752,6 +20042,9 @@ public void f_connectToChild(Agent ConnectingChildNode){
 				</Parameter>
 				<Parameter>
 					<Name><![CDATA[p_heatingType]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_energyAssetList]]></Name>
 				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
@@ -20246,6 +20539,9 @@ traceln("NetConnection connecting to " + numberOfEnergyAssets + " EnergyAssets")
 				<Parameter>
 					<Name><![CDATA[p_heatingType]]></Name>
 				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_energyAssetList]]></Name>
+				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -20450,6 +20746,9 @@ traceln("NetConnection connecting to " + numberOfEnergyAssets + " EnergyAssets")
 				</Parameter>
 				<Parameter>
 					<Name><![CDATA[p_heatingType]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_energyAssetList]]></Name>
 				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
@@ -21097,6 +21396,9 @@ public void f_operateFlexAssets(){
 				<Parameter>
 					<Name><![CDATA[p_heatingType]]></Name>
 				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_energyAssetList]]></Name>
+				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -21433,19 +21735,19 @@ public void f_operateFlexAssets(){
 			</ExtendsReference>
 			<Parameters>
 				<Parameter>
+					<Name><![CDATA[p_capacity_kW]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_agentID]]></Name>
+				</Parameter>
+				<Parameter>
 					<Name><![CDATA[p_gridConnectionCategory]]></Name>
 				</Parameter>
 				<Parameter>
 					<Name><![CDATA[p_gridConnectionType]]></Name>
 				</Parameter>
 				<Parameter>
-					<Name><![CDATA[p_capacity_kW]]></Name>
-				</Parameter>
-				<Parameter>
 					<Name><![CDATA[p_parentNodeElectricID]]></Name>
-				</Parameter>
-				<Parameter>
-					<Name><![CDATA[p_agentID]]></Name>
 				</Parameter>
 				<Parameter>
 					<Name><![CDATA[p_parentNodeHeatID]]></Name>
@@ -21476,6 +21778,9 @@ public void f_operateFlexAssets(){
 				</Parameter>
 				<Parameter>
 					<Name><![CDATA[p_heatingType]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_energyAssetList]]></Name>
 				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
@@ -24474,23 +24779,23 @@ public class J_TotalCostData implements Serializable {
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[MVPCase1BedrijventerreinBasic_config_actors.txt]]></Path>
+			<Path><![CDATA[MVPCase1BedrijventerreinBasicExplicit_config_actors.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[MVPCase1BedrijventerreinBasic_config_energyAssets TESTCONFIG.txt]]></Path>
+			<Path><![CDATA[MVPCase1BedrijventerreinBasicExplicit_config_energyAssets.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[MVPCase1BedrijventerreinBasic_config_gridConnections.txt]]></Path>
+			<Path><![CDATA[MVPCase1BedrijventerreinBasicExplicit_config_gridNodes.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[MVPCase1BedrijventerreinBasic_config_gridNodes.txt]]></Path>
+			<Path><![CDATA[MVPCase1BedrijventerreinBasicExplicit_config_policies.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[MVPCase1BedrijventerreinBasic_config_policies.txt]]></Path>
+			<Path><![CDATA[MVPCase1BedrijventerreinBasicExplicit_config_gridConnectionsTestConfig2.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
