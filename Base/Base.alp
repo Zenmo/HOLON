@@ -1466,6 +1466,7 @@ traceln("*** main duration *** "+ v_modelStartUpDuration_s+" s");]]></StartupCod
 				<Variable Class="Parameter">
 					<Id>1661510407466</Id>
 					<Name><![CDATA[p_energyAssetsConfigJSON]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>-210</X><Y>100</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -2125,28 +2126,28 @@ v_timeStepsElapsed ++;
 String actorID;
 OL_ActorType actortype;
 String parentActorID;
-String type;
+String subtype;
 
 for(HashMap data : parsedJSONActors)
 {
     actorID = data.get( "id" ).toString();
-    type = data.get( "type" ).toString();
-    actortype = OL_ActorType.valueOf((String)data.get( "agenttype" ));
+    actortype = OL_ActorType.valueOf((String)data.get( "actor_type" ));
+    subtype = data.get( "subtype" ).toString();
     //traceln(actortype.toString());
     parentActorID = String.valueOf(data.get( "parent_actor" ));
 
 	if (actortype.equals(OL_ActorType.CONNECTIONOWNER) ) {
-	    ConnectionOwner Actor = add_pop_connectionOwners( actorID, type, parentActorID, null, null);
-	    Actor.j_ConnectionOwnerData = new J_ConnectionOwnerData(actorID, type, parentActorID);
+	    ConnectionOwner Actor = add_pop_connectionOwners( actorID, subtype, parentActorID, null, null);
+	    Actor.j_ConnectionOwnerData = new J_ConnectionOwnerData(actorID, subtype, parentActorID);
 	    c_connectionOwners.add(Actor);
     } else if (actortype.equals(OL_ActorType.ENERGYSUPPLIER) ) {
 //	    EnergySupplier Actor = add_pop_energySuppliers( actorID, actortype, parentActorID, null);
 		double feedinTariff_eurpkWh = 0.25;
-		EnergySupplier Actor = add_pop_energySuppliers(actorID, type, parentActorID, null, 0.21, 0.1, 0.05, 0.3, 0.17, feedinTariff_eurpkWh);
+		EnergySupplier Actor = add_pop_energySuppliers(actorID, subtype, parentActorID, null, 0.21, 0.1, 0.05, 0.3, 0.17, feedinTariff_eurpkWh);
     } else if (actortype.equals(OL_ActorType.ENERGYHOLON) ) {
-	    EnergyHolon Actor = add_pop_energyHolons( actorID, type, parentActorID, null);
+	    EnergyHolon Actor = add_pop_energyHolons( actorID, subtype, parentActorID, null);
     } else if (actortype.equals(OL_ActorType.GRIDOPERATOR) ) {
-	    GridOperator Actor = add_pop_gridOperators( actorID, type, parentActorID, null);
+	    GridOperator Actor = add_pop_gridOperators( actorID, subtype, parentActorID, null);
     }
 }
 
@@ -2173,11 +2174,11 @@ String nodeoperator;
 for(HashMap data : parsedJSONGridNodes)
 {
    	nodeID = data.get("id").toString();
-	nodetype = OL_GridNodeType.valueOf((String)data.get("type2"));
-	energytype = OL_EnergyCarrierType.valueOf((String)data.get("type"));
+	nodetype = OL_GridNodeType.valueOf((String)data.get("grid_type"));
+	energytype = OL_EnergyCarrierType.valueOf((String)data.get("energy_type"));
 	nodeparent = (String) data.get("parent");
-	nodecapacity = (Integer)data.get("capacity_kw");
-	nodeoperator = String.valueOf(data.get("owner"));
+	nodecapacity =((Double)data.get("capacity_kw")).intValue();
+	nodeoperator = String.valueOf(data.get("owner_actor"));
 	//traceln("data "+"id= "+nodeID +", nodetype = "+nodetype +", energytype = "+ energytype+", nodeparent = "+ nodeparent+", capacity = "+ nodecapacity+ ", ownerOperator = "+ nodeoperator);
 	//traceln(data.toString());
 
@@ -2225,19 +2226,19 @@ ArrayList gridConnectionEnergyAssets = new ArrayList();    // new!
 
 for(HashMap data : parsedJSONGridConnections) {
 //    traceln("data = "+data);
-	gridConnectionCategory = OL_GridConnectionCategory.valueOf((String)data.get( "type" ));
-    gridConnectionType = OL_GridConnectionType.valueOf((String)data.get( "type2" ));
+	gridConnectionCategory = OL_GridConnectionCategory.valueOf((String)data.get( "grid_category" ));
+    gridConnectionType = data.get( "grid_type" ) == null? null : OL_GridConnectionType.valueOf((String)data.get( "grid_type" ));
     gridConnectionParentElectric = data.get( "parent_electric" ).toString();
     gridConnectionParentHeat = (String)data.get( "parent_heat" );
-    gridConnectionCapacity = roundToDecimal((Integer)data.get( "capacity_kw" )+0.0,2);
+    gridConnectionCapacity = (Double)data.get( "capacity_kw" );
     gridConnectionID = data.get( "id" ).toString();
 	ownerActorID = data.get ( "owner_actor" ).toString();
-	gridConnectionIsolationLabel = OL_GridConnectionIsolationLabel.valueOf((String)data.get( "isolation_label" ));
-	gridConnectionHeatingType = OL_GridConnectionHeatingType.valueOf((String)data.get( "heating_type" ));
+	gridConnectionIsolationLabel = data.get( "insulation_label" ) == null? null : OL_GridConnectionIsolationLabel.valueOf((String)data.get( "insulation_label" ));
+	gridConnectionHeatingType = data.get( "heating_type" ) == null? null : OL_GridConnectionHeatingType.valueOf((String)data.get( "heating_type" ));
 	
 	//traceln("raw data: "+data.get("EnergyAssets").toString());
 	//gridConnectionEnergyAssets = (String)data.get( "EnergyAssets");
-	gridConnectionEnergyAssets = (ArrayList)data.get( "EnergyAssets");
+	gridConnectionEnergyAssets = (ArrayList)data.get( "assets");
 	//traceln("energyAssets bij deze gridConnection "+ gridConnectionEnergyAssets);
 	//traceln(gridConnectionEnergyAssets.toString());
 
@@ -2488,15 +2489,15 @@ update_o_outputExceptions(e.getMessage());
 }
 
 //EnergyAssets config
-try {
-parsedJSONEnergyAssets = mapper.readValue(
-		p_energyAssetsConfigJSON,    // <--- THIS PART CHANGED!
-		ArrayList.class);
-
-} catch (IOException e) {
-e.printStackTrace();
-update_o_outputExceptions(e.getMessage());
-}
+//try {
+//parsedJSONEnergyAssets = mapper.readValue(
+//		p_energyAssetsConfigJSON,    // <--- THIS PART CHANGED!
+//		ArrayList.class);
+//
+//} catch (IOException e) {
+//e.printStackTrace();
+//update_o_outputExceptions(e.getMessage());
+//}
 
 // Policies config
 try {
@@ -3206,7 +3207,7 @@ return 1;
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[p_gridNodeConfigJSON = t_configGridNodes.readString().replaceAll("^\"|\"$", "");
 p_gridConnectionConfigJSON = t_configGridConnections.readString().replaceAll("^\"|\"$", "");
-p_energyAssetsConfigJSON = t_configEnergyAssets.readString().replaceAll("^\"|\"$", "");
+//p_energyAssetsConfigJSON = t_configEnergyAssets.readString().replaceAll("^\"|\"$", "");
 p_actorsConfigJSON = t_configActors.readString().replaceAll("^\"|\"$", "");
 p_policiesConfigJSON = t_configPolicies.readString().replaceAll("^\"|\"$", "");]]></Body>
 				</Function>
@@ -3936,7 +3937,7 @@ for(EnergyAsset e : c_storageAssets ) {
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[MVPCase1BedrijventerreinBasicExplicit_config_actors.txt]]></ClassName>
+						<ClassName><![CDATA[example_actors.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -3954,7 +3955,7 @@ for(EnergyAsset e : c_storageAssets ) {
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[MVPCase1BedrijventerreinBasicExplicit_config_gridNodes.txt]]></ClassName>
+						<ClassName><![CDATA[example_gridnodes.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -3972,7 +3973,7 @@ for(EnergyAsset e : c_storageAssets ) {
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[MVPCase1BedrijventerreinBasicExplicit_config_gridConnectionsTestConfig2.txt]]></ClassName>
+						<ClassName><![CDATA[example_gridconnections.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -3981,6 +3982,7 @@ for(EnergyAsset e : c_storageAssets ) {
 				<TextFile>
 					<Id>1661787463188</Id>
 					<Name><![CDATA[t_configEnergyAssets]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>-449</X><Y>159</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -4008,7 +4010,7 @@ for(EnergyAsset e : c_storageAssets ) {
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[MVPCase1BedrijventerreinBasicExplicit_config_policies.txt]]></ClassName>
+						<ClassName><![CDATA[example_policies.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -8173,14 +8175,14 @@ if( p_energyAssetList != null) {
 		traceln("list of keys: "+l.keySet());
 		traceln("list of values: "+l.values());
 		
-		OL_EACategories assetCategory = OL_EACategories.valueOf((String)l.get( "energyAssetCategory" ));
+		OL_EACategories assetCategory = OL_EACategories.valueOf((String)l.get( "asset_category" ));
 	
 		switch( assetCategory )  {
 			case CONSUMPTION:
 				traceln("consumption-asset detected!");
 				EnergyAsset consumerAsset = main.add_pop_energyAssets();
 				consumerAsset.set_p_parentAgentID( this.p_agentID );
-				consumerAsset.set_p_energyAssetType( OL_EnergyAssetType.valueOf((String)l.get( "energyAssetType" ) ));
+				consumerAsset.set_p_energyAssetType( OL_EnergyAssetType.valueOf((String)l.get( "asset_type" ) ));
 				consumerAsset.set_p_defaultEnergyAssetPresetName( (String)l.get( "name" ));
 				
 				double yearlyDemandElectricity_kWh = l.get( "yearlyDemandElectricity_kWh")== null? 0.0: Double.valueOf( l.get( "yearlyDemandElectricity_kWh").toString()).doubleValue();
@@ -8194,7 +8196,7 @@ if( p_energyAssetList != null) {
 				traceln("production-asset detected!");
 				EnergyAsset producerAsset = main.add_pop_energyAssets();
 				producerAsset.set_p_parentAgentID( this.p_agentID );
-				producerAsset.set_p_energyAssetType( OL_EnergyAssetType.valueOf((String)l.get( "energyAssetType" ) ));
+				producerAsset.set_p_energyAssetType( OL_EnergyAssetType.valueOf((String)l.get( "asset_type" ) ));
 				producerAsset.set_p_defaultEnergyAssetPresetName( (String)l.get( "name" ));
 				
 				double capacityElectricity_kW = l.get( "capacityElectricity_kW")== null? 0.0: Double.valueOf( l.get( "capacityElectricity_kW").toString()).doubleValue();
@@ -8208,7 +8210,7 @@ if( p_energyAssetList != null) {
 				traceln("conversion-asset detected!");
 				EnergyAsset converterAsset = main.add_pop_energyAssets();
 				converterAsset.set_p_parentAgentID( this.p_agentID );
-				converterAsset.set_p_energyAssetType( OL_EnergyAssetType.valueOf((String)l.get( "energyAssetType" ) ));
+				converterAsset.set_p_energyAssetType( OL_EnergyAssetType.valueOf((String)l.get( "asset_type" ) ));
 				converterAsset.set_p_defaultEnergyAssetPresetName( (String)l.get( "name" ));
 					
 				double capacityElectric1_kW = l.get( "capacityElectricity_kW")== null? 0: (Double)l.get( "capacityElectricity_kW");
@@ -8229,7 +8231,7 @@ if( p_energyAssetList != null) {
 				traceln("storage-asset detected!");
 				EnergyAsset storageAsset = main.add_pop_energyAssets();
 				storageAsset.set_p_parentAgentID( this.p_agentID );
-				storageAsset.set_p_energyAssetType( OL_EnergyAssetType.valueOf((String)l.get( "energyAssetType" ) ));
+				storageAsset.set_p_energyAssetType( OL_EnergyAssetType.valueOf((String)l.get( "asset_type" ) ));
 				storageAsset.set_p_defaultEnergyAssetPresetName( (String)l.get( "name" ));
 				traceln(storageAsset.p_defaultEnergyAssetPresetName);
 									
@@ -24890,23 +24892,23 @@ public class J_TotalCostData implements Serializable {
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[MVPCase1BedrijventerreinBasicExplicit_config_actors.txt]]></Path>
-			<ReferencedFromUserCode>false</ReferencedFromUserCode>
-		</Resource>
-		<Resource>
 			<Path><![CDATA[MVPCase1BedrijventerreinBasicExplicit_config_energyAssets.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[MVPCase1BedrijventerreinBasicExplicit_config_gridNodes.txt]]></Path>
+			<Path><![CDATA[example_actors.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[MVPCase1BedrijventerreinBasicExplicit_config_policies.txt]]></Path>
+			<Path><![CDATA[example_gridconnections.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[MVPCase1BedrijventerreinBasicExplicit_config_gridConnectionsTestConfig2.txt]]></Path>
+			<Path><![CDATA[example_gridnodes.txt]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[example_policies.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
