@@ -1880,7 +1880,7 @@ traceln("*** main duration *** "+ v_modelStartUpDuration_s+" s");]]></StartupCod
 				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1666884023719</Id>
-					<Name><![CDATA[c_globalElectricityImportProfile_kWhph]]></Name>
+					<Name><![CDATA[c_globalElectricityImportProfile_MWhph]]></Name>
 					<X>270</X><Y>500</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1895,7 +1895,7 @@ traceln("*** main duration *** "+ v_modelStartUpDuration_s+" s");]]></StartupCod
 				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1666884311850</Id>
-					<Name><![CDATA[c_globalElectricityExportProfile_kWhph]]></Name>
+					<Name><![CDATA[c_globalElectricityExportProfile_MWhph]]></Name>
 					<X>270</X><Y>520</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -3056,8 +3056,8 @@ j_totalCostData.updateData( roundToDecimal( v_gridNodePeakLoadElectricityHSMS_kW
 							c_totalBatteryChargeAmount_MWh,
 							c_totalBatteryDischargeAmount_MWh,
 							c_totalBatteryInstalledCapacity_MWh,
-							c_globalElectricityImportProfile_kWhph,
-							c_globalElectricityExportProfile_kWhph,
+							c_globalElectricityImportProfile_MWhph,
+							c_globalElectricityExportProfile_MWhph,
 							c_globalEVChargingProfile_kWhph,
 							c_globalEHGVChargingProfile_kWhph
 							 );
@@ -3335,14 +3335,14 @@ for(GridNode n : c_gridNodesHSMS) {
 	currentElectricityExport_kW += - min(0, n.v_currentLoadElectricity_kW );
 }
 
-final double currentImport_kWh = roundToDecimal( currentElectricityImport_kW * p_timeStep_h, 2 );
-final double currentExport_kWh = roundToDecimal( currentElectricityExport_kW * p_timeStep_h, 2 );
+final double currentImport_MWh = currentElectricityImport_kW * p_timeStep_h / 1000;
+final double currentExport_MWh = currentElectricityExport_kW * p_timeStep_h / 1000;
 int timeIndex = (int)floor( time(HOUR) );
 
-c_globalElectricityImportProfile_kWhph.computeIfPresent( timeIndex, (key, val) -> roundToDecimal( val + currentImport_kWh, 2 ));
-c_globalElectricityImportProfile_kWhph.computeIfAbsent( timeIndex, k -> currentImport_kWh );
-c_globalElectricityExportProfile_kWhph.computeIfPresent( timeIndex, (key, val) -> roundToDecimal( val + currentExport_kWh, 2 ));
-c_globalElectricityExportProfile_kWhph.computeIfAbsent( timeIndex, k -> currentExport_kWh );
+c_globalElectricityImportProfile_MWhph.computeIfPresent( timeIndex, (key, val) -> roundToDecimal( val + currentImport_MWh, 4 ));
+c_globalElectricityImportProfile_MWhph.computeIfAbsent( timeIndex, k -> currentImport_MWh );
+c_globalElectricityExportProfile_MWhph.computeIfPresent( timeIndex, (key, val) -> roundToDecimal( val + currentExport_MWh, 4 ));
+c_globalElectricityExportProfile_MWhph.computeIfAbsent( timeIndex, k -> currentExport_MWh );
 
 double currentEVLoad_kWhph = 0;
 double currentEHGVLoad_kWhph = 0;
@@ -24766,8 +24766,8 @@ public class J_TotalCostData implements Serializable {
 	public Map<String,Double> totalBatteryChargeAmount_MWh = new LinkedHashMap<String,Double>();
 	public Map<String,Double> totalBatteryDischargeAmount_MWh = new LinkedHashMap<String,Double>();
 	public Map<String,Double> totalBatteryInstalledCapacity_MWh = new LinkedHashMap<String,Double>();
-	public Map<Integer,Double> SystemHourlyElectricityImport_kWh = new LinkedHashMap<Integer,Double>();
-	public Map<Integer,Double> SystemHourlyElectricityExport_kWh = new LinkedHashMap<Integer,Double>();
+	public Map<Integer,Double> SystemHourlyElectricityImport_MWh = new LinkedHashMap<Integer,Double>();
+	public Map<Integer,Double> SystemHourlyElectricityExport_MWh = new LinkedHashMap<Integer,Double>();
 	public Map<Integer,Double> totalEVHourlyChargingProfile_kWh = new LinkedHashMap<Integer,Double>();
 	public Map<Integer,Double> totalEHGVHourlyChargingProfile_kWh = new LinkedHashMap<Integer,Double>();
 	
@@ -24781,7 +24781,7 @@ public class J_TotalCostData implements Serializable {
     /**
      * Constructor initializing the fields
      */
-    public J_TotalCostData( double v_gridNodeLoadElectricityHSMS_kW, double v_gridNodeLoadElectricityMSLS_kW, LinkedHashMap<String,Double> c_timesOfNodePeakLoads_h, double totalElectricityImport_MWh, double totalElectricityExport_MWh, double totalMethaneImport_MWh, double totalMethaneExport_MWh, double totalHydrogenImport_MWh, double totalHydrogenExport_MWh, LinkedHashMap<String,Double> totalBatteryUnitsInstalled, LinkedHashMap<String,Double> totalBatteryChargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryDischargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryInstalledCapacity_MWh, LinkedHashMap<Integer,Double> c_globalElectricityImportProfile_kWhph, LinkedHashMap<Integer,Double> c_globalElectricityExportProfile_kWhph, LinkedHashMap<Integer,Double> totalEVHourlyChargingProfile_kWh, LinkedHashMap<Integer,Double> totalEHGVHourlyChargingProfile_kWh ) {
+    public J_TotalCostData( double v_gridNodeLoadElectricityHSMS_kW, double v_gridNodeLoadElectricityMSLS_kW, LinkedHashMap<String,Double> c_timesOfNodePeakLoads_h, double totalElectricityImport_MWh, double totalElectricityExport_MWh, double totalMethaneImport_MWh, double totalMethaneExport_MWh, double totalHydrogenImport_MWh, double totalHydrogenExport_MWh, LinkedHashMap<String,Double> totalBatteryUnitsInstalled, LinkedHashMap<String,Double> totalBatteryChargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryDischargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryInstalledCapacity_MWh, LinkedHashMap<Integer,Double> c_globalElectricityImportProfile_MWhph, LinkedHashMap<Integer,Double> c_globalElectricityExportProfile_MWhph, LinkedHashMap<Integer,Double> totalEVHourlyChargingProfile_kWh, LinkedHashMap<Integer,Double> totalEHGVHourlyChargingProfile_kWh ) {
 		this.HSMSPeakLoadElectricity_kW = v_gridNodeLoadElectricityHSMS_kW;
 		this.MSLSPeakLoadElectricity_kW = v_gridNodeLoadElectricityMSLS_kW;
 		this.timesOfNodePeakLoads_h = c_timesOfNodePeakLoads_h;
@@ -24797,8 +24797,8 @@ public class J_TotalCostData implements Serializable {
 		this.totalBatteryChargeAmount_MWh = totalBatteryChargeAmount_MWh;
 		this.totalBatteryDischargeAmount_MWh = totalBatteryDischargeAmount_MWh;
 		this.totalBatteryInstalledCapacity_MWh = totalBatteryInstalledCapacity_MWh;
-		this.SystemHourlyElectricityImport_kWh = c_globalElectricityImportProfile_kWhph;
-		this.SystemHourlyElectricityExport_kWh = c_globalElectricityExportProfile_kWhph;
+		this.SystemHourlyElectricityImport_MWh = c_globalElectricityImportProfile_MWhph;
+		this.SystemHourlyElectricityExport_MWh = c_globalElectricityExportProfile_MWhph;
 		this.totalEVHourlyChargingProfile_kWh = totalEVHourlyChargingProfile_kWh;
 		this.totalEHGVHourlyChargingProfile_kWh = totalEHGVHourlyChargingProfile_kWh;
     }
@@ -24820,18 +24820,16 @@ public class J_TotalCostData implements Serializable {
 			"totalBatteryChargeAmount_MWh = " + totalBatteryChargeAmount_MWh + " "+
 			"totalBatteryDischargeAmount_MWh = " + totalBatteryDischargeAmount_MWh + " "+
 			"totalBatteryInstalledCapacity_MWh = " + totalBatteryInstalledCapacity_MWh + " "+
-			"SystemHourlyElectricityImport_kWh = " + SystemHourlyElectricityImport_kWh.toString() + " " +
-			"SystemHourlyElectricityExport_kWh = " + SystemHourlyElectricityExport_kWh.toString() + " " +
+			"SystemHourlyElectricityImport_MWh = " + SystemHourlyElectricityImport_MWh.toString() + " " +
+			"SystemHourlyElectricityExport_MWh = " + SystemHourlyElectricityExport_MWh.toString() + " " +
 			"totalEVHourlyChargingProfile_kWh = " + totalEVHourlyChargingProfile_kWh + " "+
 			"totalEHGVHourlyChargingProfile_kWh = " + totalEHGVHourlyChargingProfile_kWh + " ";
 	}
 
-	public void updateData( double v_gridNodePeakLoadElectricityHSMS_kW, double v_gridNodePeakLoadElectricityMSLS_kW, LinkedHashMap<String,Double> c_timesOfNodePeakLoads_h, double totalElectricityImport_MWh, double totalElectricityExport_MWh, double totalMethaneImport_MWh, double totalMethaneExport_MWh, double totalHydrogenImport_MWh, double totalHydrogenExport_MWh, LinkedHashMap<String,Double> totalBatteryUnitsInstalled, LinkedHashMap<String,Double> totalBatteryChargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryDischargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryInstalledCapacity_MWh, LinkedHashMap<Integer,Double> c_globalElectricityImportProfile_kWhph, LinkedHashMap<Integer,Double> c_globalElectricityExportProfile_kWhph, LinkedHashMap<Integer,Double> totalEVHourlyChargingProfile_kWh, LinkedHashMap<Integer,Double> totalEHGVHourlyChargingProfile_kWh ) {
+	public void updateData( double v_gridNodePeakLoadElectricityHSMS_kW, double v_gridNodePeakLoadElectricityMSLS_kW, LinkedHashMap<String,Double> c_timesOfNodePeakLoads_h, double totalElectricityImport_MWh, double totalElectricityExport_MWh, double totalMethaneImport_MWh, double totalMethaneExport_MWh, double totalHydrogenImport_MWh, double totalHydrogenExport_MWh, LinkedHashMap<String,Double> totalBatteryUnitsInstalled, LinkedHashMap<String,Double> totalBatteryChargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryDischargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryInstalledCapacity_MWh, LinkedHashMap<Integer,Double> c_globalElectricityImportProfile_MWhph, LinkedHashMap<Integer,Double> c_globalElectricityExportProfile_MWhph, LinkedHashMap<Integer,Double> totalEVHourlyChargingProfile_kWh, LinkedHashMap<Integer,Double> totalEHGVHourlyChargingProfile_kWh ) {
 		this.HSMSPeakLoadElectricity_kW = v_gridNodePeakLoadElectricityHSMS_kW;
 		this.MSLSPeakLoadElectricity_kW = v_gridNodePeakLoadElectricityMSLS_kW;
 		this.timesOfNodePeakLoads_h = c_timesOfNodePeakLoads_h;
-		this.checkSumHourlyElectricityImport_MWh = roundToDecimal( SystemHourlyElectricityImport_kWh.values().stream().reduce(0.0, Double::sum) / 1000, 2);
-		this.checkSumHourlyElectricityExport_MWh = roundToDecimal( SystemHourlyElectricityExport_kWh.values().stream().reduce(0.0, Double::sum) / 1000, 2);
 		this.totalElectricityImport_MWh = roundToDecimal( totalElectricityImport_MWh , 2 );
 		this.totalElectricityExport_MWh = roundToDecimal( totalElectricityExport_MWh, 2 );
 		this.totalMethaneImport_MWh = roundToDecimal( totalMethaneImport_MWh, 2 );
@@ -24842,8 +24840,10 @@ public class J_TotalCostData implements Serializable {
 		this.totalBatteryChargeAmount_MWh = totalBatteryChargeAmount_MWh;
 		this.totalBatteryDischargeAmount_MWh = totalBatteryDischargeAmount_MWh;
 		this.totalBatteryInstalledCapacity_MWh = totalBatteryInstalledCapacity_MWh;
-		this.SystemHourlyElectricityImport_kWh = c_globalElectricityImportProfile_kWhph;
-		this.SystemHourlyElectricityExport_kWh = c_globalElectricityExportProfile_kWhph;
+		this.SystemHourlyElectricityImport_MWh = c_globalElectricityImportProfile_MWhph;
+		this.SystemHourlyElectricityExport_MWh = c_globalElectricityExportProfile_MWhph;
+		this.checkSumHourlyElectricityImport_MWh = SystemHourlyElectricityImport_MWh.values().stream().mapToDouble(d -> d).sum();
+		this.checkSumHourlyElectricityExport_MWh = SystemHourlyElectricityExport_MWh.values().stream().mapToDouble(d -> d).sum();
 		this.totalEVHourlyChargingProfile_kWh = totalEVHourlyChargingProfile_kWh;
 		this.totalEHGVHourlyChargingProfile_kWh = totalEHGVHourlyChargingProfile_kWh;
 	}
