@@ -1881,7 +1881,7 @@ traceln("*** main duration *** "+ v_modelStartUpDuration_s+" s");]]></StartupCod
 				<Variable Class="CollectionVariable">
 					<Id>1666884023719</Id>
 					<Name><![CDATA[c_globalElectricityImportProfile_MWhph]]></Name>
-					<X>270</X><Y>500</Y>
+					<X>370</X><Y>500</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -1896,7 +1896,7 @@ traceln("*** main duration *** "+ v_modelStartUpDuration_s+" s");]]></StartupCod
 				<Variable Class="CollectionVariable">
 					<Id>1666884311850</Id>
 					<Name><![CDATA[c_globalElectricityExportProfile_MWhph]]></Name>
-					<X>270</X><Y>520</Y>
+					<X>370</X><Y>520</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2001,7 +2001,7 @@ traceln("*** main duration *** "+ v_modelStartUpDuration_s+" s");]]></StartupCod
 				<Variable Class="CollectionVariable">
 					<Id>1668007771830</Id>
 					<Name><![CDATA[c_globalEVChargingProfile_kWhph]]></Name>
-					<X>320</X><Y>540</Y>
+					<X>420</X><Y>540</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2016,7 +2016,7 @@ traceln("*** main duration *** "+ v_modelStartUpDuration_s+" s");]]></StartupCod
 				<Variable Class="CollectionVariable">
 					<Id>1668007790848</Id>
 					<Name><![CDATA[c_globalEHGVChargingProfile_kWhph]]></Name>
-					<X>320</X><Y>560</Y>
+					<X>420</X><Y>560</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2031,7 +2031,7 @@ traceln("*** main duration *** "+ v_modelStartUpDuration_s+" s");]]></StartupCod
 				<Variable Class="CollectionVariable">
 					<Id>1668007805687</Id>
 					<Name><![CDATA[c_globalBatteryChargingProfile_kWhph]]></Name>
-					<X>320</X><Y>580</Y>
+					<X>420</X><Y>580</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2082,10 +2082,13 @@ traceln("*** main duration *** "+ v_modelStartUpDuration_s+" s");]]></StartupCod
 f_updateTimeseries();
 
 // Update productie van alle productieassets binnen
-f_calculateProductionAssetOutput();
+//f_calculateProductionAssetOutput();
 
 // Operate consumption assets and update flows
-f_calculateConsumptionAssets();
+//f_calculateConsumptionAssets();
+
+// Operate assets on each gridConnection
+f_calculateGridConnectionFlows();
 
 // Calculate grid node flows
 f_calculateGridnodeFlows();
@@ -3065,7 +3068,6 @@ j_totalCostData.updateData( roundToDecimal( v_gridNodePeakLoadElectricityHSMS_kW
 
 j_dataOut.totalCostData.add(j_totalCostData);
 
-
 //c_connectionOwners.parallelStream().forEach(c -> {
 traceln("connectionOwners left: "+pop_connectionOwners.size());
 traceln("connectionOwners in list: "+c_connectionOwners.size());
@@ -3081,30 +3083,8 @@ for(ConnectionOwner c : pop_connectionOwners) {
 //});
 }
 
-// Total electricity import, export
-double electricityImported_MWh = 0;
-double electricityExported_MWh = 0;
-for ( GridNode g : c_gridNodesHSMS ) {
-	electricityImported_MWh += g.v_electricityDrawn_kWh / 1000;
-	electricityExported_MWh += g.v_electricityDelivered_kWh / 1000;
-}
-
-traceln("Electricity imported: "+ electricityImported_MWh);
-traceln("Electricity exported: "+ electricityExported_MWh);
-
-// Total methane import/export
-double methaneImported_MWh = 0;
-double methaneExported_MWh = 0;
-double hydrogenImported_MWh = 0;
-double hydrogenExported_MWh = 0;
-for (GridConnection g : pop_gridConnections) {
-	methaneImported_MWh += g.v_methaneDrawn_kWh/1000;
-	methaneExported_MWh += g.v_methaneDelivered_kWh/1000;
-	hydrogenImported_MWh += g.v_hydrogenDrawn_kWh/1000;
-	hydrogenExported_MWh += g.v_hydrogenDelivered_kWh/1000;
-}
-// Total hydrogen import/export
-
+traceln("Electricity imported: "+ v_totalElectricityImport_MWh);
+traceln("Electricity exported: "+ v_totalElectricityExport_MWh);
 
 //Total energy consumption and production 
 
@@ -3124,10 +3104,12 @@ traceln("Energy produced: "+ energyProduced_MWh);
 // TODO: Make sure this calculation is correct when all energy carriers are 'active'! Only checked for electricity
 
 //Total selfconsumption, selfsufficiency
-double totalSelfConsumption_fr = 1 - (electricityExported_MWh + methaneExported_MWh + hydrogenExported_MWh)/energyProduced_MWh;
-double totalSelfSufficiency_fr = 1 - (electricityImported_MWh + methaneImported_MWh + hydrogenImported_MWh)/energyConsumed_MWh;
+double totalSelfConsumption_fr = 1 - (v_totalElectricityExport_MWh + v_totalMethaneExport_MWh + v_totalHydrogenExport_MWh)/energyProduced_MWh;
+double totalSelfSufficiency_fr = 1 - (v_totalElectricityImport_MWh + v_totalMethaneImport_MWh + v_totalHydrogenImport_MWh)/energyConsumed_MWh;
 
-double totalSelfSufficiency_fr_check = (energyProduced_MWh - (electricityExported_MWh + methaneExported_MWh + hydrogenExported_MWh))/energyConsumed_MWh;
+//double totalSelfSufficiency_fr = 1 - (v_electricityImported_kWh + v_methaneImported_kWh + v_hydrogenImported_kWh + v_heatImported_kWh)/energyConsumed_kWh;
+
+double totalSelfSufficiency_fr_check = (energyProduced_MWh - (v_totalElectricityExport_MWh + v_totalMethaneExport_MWh + v_totalHydrogenExport_MWh))/energyConsumed_MWh;
 traceln("Model-wide selfconsumption: " + totalSelfConsumption_fr + "%");
 traceln("Model-wide selfsufficiency: " + totalSelfSufficiency_fr + "%, doublecheck " + totalSelfSufficiency_fr_check);
 // TODO: Account for fuel imports/exports!! 
@@ -3147,8 +3129,8 @@ j_experimentSettingsData.updateData( p_timeStep_h+"",
 									pop_administrativeHolons.size() + "",
 									pop_gridOperators.size() + "",
 									1 + "",
-									roundToDecimal( electricityImported_MWh, 3 ) + "",
-									roundToDecimal( electricityExported_MWh, 3 ) + "",
+									roundToDecimal( v_totalElectricityImport_MWh, 3 ) + "",
+									roundToDecimal( v_totalElectricityExport_MWh, 3 ) + "",
 									roundToDecimal( totalSelfConsumption_fr, 3 ) + "",
 									roundToDecimal( totalSelfSufficiency_fr, 3 ) + "");
 
@@ -3216,7 +3198,7 @@ p_policiesConfigJSON = t_configPolicies.readString().replaceAll("^\"|\"$", "");]
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1664894248130</Id>
 					<Name><![CDATA[f_determinePricesForNextTimestep]]></Name>
-					<X>90</X><Y>555</Y>
+					<X>90</X><Y>585</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3279,6 +3261,7 @@ for( EnergyAsset e : c_ambientAirDependentAssets ) {
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1664953001985</Id>
 					<Name><![CDATA[f_calculateProductionAssetOutput]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>90</X><Y>455</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -3299,6 +3282,7 @@ for( EnergyAsset e : c_ambientAirDependentAssets ) {
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1664956272768</Id>
 					<Name><![CDATA[f_calculateConsumptionAssets]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>90</X><Y>480</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -3315,7 +3299,7 @@ for( EnergyAsset e : c_ambientAirDependentAssets ) {
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1665051878402</Id>
 					<Name><![CDATA[f_calculateGridnodeFlows]]></Name>
-					<X>90</X><Y>505</Y>
+					<X>90</X><Y>535</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3370,7 +3354,7 @@ c_globalEHGVChargingProfile_kWhph.computeIfAbsent( timeIndex, k -> totalEHGVLoad
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1665051962956</Id>
 					<Name><![CDATA[f_calculateFinancialFlows]]></Name>
-					<X>90</X><Y>530</Y>
+					<X>90</X><Y>560</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3505,6 +3489,23 @@ for(EnergyAsset e : c_storageAssets ) {
 		v_totalBatteryInstalledCapacity_MWh += ((J_EAStorageElectric)e.p_energyAssetInstance).getStorageCapacity() / 1000;
 		//traceln( ((J_EAStorageElectric)e.p_energyAssetInstance).getStorageCapacity() / 1000 );
 	}
+}]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1668528129020</Id>
+					<Name><![CDATA[f_calculateGridConnectionFlows]]></Name>
+					<X>90</X><Y>510</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[for(GridConnection gc : c_gridConnections) {
+	//gc.f_operateFixedConsumptionAssets();
+	//gc.f_operateFlexAssets();
+	//gc.f_updateFlows();
+	gc.f_calculateEnergyBalance();	
 }]]></Body>
 				</Function>
 			</Functions>
@@ -6823,19 +6824,22 @@ for( Agent a : subConnections.getConnections() )
 			case ELECTRICITY:
 				//c_electricityFlows.put(a, ((GridConnection) a).v_currentPowerElectricity_kW);
 				v_currentLoadElectricity_kW += ((GridConnection) a).v_currentPowerElectricity_kW;
+				
 			break;
 			case METHANE:
 				//c_methaneFlows.put(a, ((GridConnection) a).v_currentPowerMethane_kW);
 				v_currentLoadMethane_kW += ((GridConnection) a).v_currentPowerMethane_kW;
+				
 			break;
 			case HYDROGEN:
 				//c_hydrogenFlows.put(a, ((GridConnection) a).v_currentPowerHydrogen_kW);
 				v_currentLoadHydrogen_kW += ((GridConnection) a).v_currentPowerHydrogen_kW;
+				
 			break;
 			case HEAT:
 				//c_heatFlows.put(a, ((GridConnection) a).v_currentPowerHeat_kW);
 				v_currentLoadHeat_kW += ((GridConnection) a).v_currentPowerHeat_kW;
-
+				
 			break;
 			default:
 				//
@@ -8123,6 +8127,7 @@ v_heatDelivered_kWh += max(-v_currentPowerHeat_kW, 0)*main.p_timeStep_h;
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1664966781827</Id>
 					<Name><![CDATA[f_updateFlows]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>780</X><Y>190</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -8372,6 +8377,85 @@ Properties properties = new Properties();
     	traceln("f_configureBackbone exception: energyAsset not added (invalid Category)");
 	}*/
 //}]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1668528273163</Id>
+					<Name><![CDATA[f_calculateEnergyBalance]]></Name>
+					<X>780</X><Y>240</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[v_currentPowerElectricity_kW = 0;
+v_currentPowerMethane_kW = 0;
+v_currentPowerHydrogen_kW = 0;
+v_currentPowerHeat_kW = 0;
+
+f_operateFixedProductionAssets();
+for( EnergyAsset EA : c_connectedProductionAssets ){
+	v_currentPowerElectricity_kW += EA.v_currentConsumptionElectricity_kW - EA.v_currentProductionElectricity_kW;
+	v_currentPowerMethane_kW += EA.v_currentConsumptionMethane_kW - EA.v_currentProductionMethane_kW;
+	v_currentPowerHydrogen_kW += EA.v_currentConsumptionHydrogen_kW - EA.v_currentProductionHydrogen_kW;
+	v_currentPowerHeat_kW += EA.v_currentConsumptionHeat_kW - EA.v_currentProductionHeat_kW;
+}
+
+f_operateFixedConsumptionAssets();
+for( EnergyAsset EA : c_connectedConsumptionAssets ){
+	v_currentPowerElectricity_kW += EA.v_currentConsumptionElectricity_kW - EA.v_currentProductionElectricity_kW;
+	v_currentPowerMethane_kW += EA.v_currentConsumptionMethane_kW - EA.v_currentProductionMethane_kW;
+	v_currentPowerHydrogen_kW += EA.v_currentConsumptionHydrogen_kW - EA.v_currentProductionHydrogen_kW;
+	v_currentPowerHeat_kW += EA.v_currentConsumptionHeat_kW - EA.v_currentProductionHeat_kW;
+}
+
+f_operateFlexAssets();
+for( EnergyAsset EA : c_connectedConversionAssets ){
+	v_currentPowerElectricity_kW += EA.v_currentConsumptionElectricity_kW - EA.v_currentProductionElectricity_kW;
+	v_currentPowerMethane_kW += EA.v_currentConsumptionMethane_kW - EA.v_currentProductionMethane_kW;
+	v_currentPowerHydrogen_kW += EA.v_currentConsumptionHydrogen_kW - EA.v_currentProductionHydrogen_kW;
+	v_currentPowerHeat_kW += EA.v_currentConsumptionHeat_kW - EA.v_currentProductionHeat_kW;
+}
+for( EnergyAsset EA : c_connectedStorageAssets){
+	v_currentPowerElectricity_kW += EA.v_currentConsumptionElectricity_kW - EA.v_currentProductionElectricity_kW;
+	v_currentPowerMethane_kW += EA.v_currentConsumptionMethane_kW - EA.v_currentProductionMethane_kW;
+	v_currentPowerHydrogen_kW += EA.v_currentConsumptionHydrogen_kW - EA.v_currentProductionHydrogen_kW;
+	v_currentPowerHeat_kW += EA.v_currentConsumptionHeat_kW - EA.v_currentProductionHeat_kW;
+}
+
+v_previousPowerElectricity_kW = v_currentPowerElectricity_kW;
+f_connectionMetering();
+
+// Total Energy Use and Production
+v_totalEnergyUsed_kWh = 0;
+v_totalEnergyProduced_kWh = 0;
+for (EnergyAsset EA : c_connectedEnergyAssets ) {
+	double energyUse_kWh=EA.p_energyAssetInstance.getEnergyUsed_kWh();
+	v_totalEnergyUsed_kWh += max(0, energyUse_kWh);
+	v_totalEnergyProduced_kWh -= min(0, energyUse_kWh);
+}
+
+//v_selfConsumptionElectricity_fr = 1 - (v_electricityDelivered_kWh + v_heatDelivered_kWh + v_methaneDelivered_kWh + v_hydrogenDelivered_kWh ) / v_totalEnergyProduced_kWh; // Doesn't make sense to sum different energy carriers!
+//v_selfSufficiencyElectricity_fr = 1 - (v_electricityDrawn_kWh + v_heatDrawn_kWh + v_methaneDrawn_kWh + v_hydrogenDrawn_kWh) / v_totalEnergyUsed_kWh; // Need to account for energy in storages]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1668528300576</Id>
+					<Name><![CDATA[f_operateFixedProductionAssets]]></Name>
+					<X>780</X><Y>130</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[for(EnergyAsset e : c_connectedProductionAssets) {
+	if( e.p_energyAssetType == OL_EnergyAssetType.PHOTOVOLTAIC) {
+		e.f_updateElectricityFlows( main.v_currentSolarPowerNormalized_r );
+	}
+	else if(e.p_energyAssetType == OL_EnergyAssetType.WINDMILL) {
+		e.f_updateElectricityFlows( main.v_currentWindPowerNormalized_r );
+	}
+}]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
