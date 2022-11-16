@@ -10167,17 +10167,13 @@ p_energyAssetType = assetType;]]></Body>
 						<Name><![CDATA[powerFraction]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
-					<Body><![CDATA[v_powerFraction_fr = powerFraction;
-v_currentProductionElectricity_kW = 0;
+					<Body><![CDATA[v_currentProductionElectricity_kW = 0;
 v_currentConsumptionElectricity_kW = 0;
-
-
-double[] arr = p_energyAssetInstance.operateBounded( v_powerFraction_fr );
-
+//p_energyAssetInstance.resetFlows();
+double[] arr = p_energyAssetInstance.operateBounded( powerFraction );
 v_currentProductionElectricity_kW=arr[0];
 v_currentConsumptionElectricity_kW=arr[4];
-
-p_energyAssetInstance.resetFlows();
+v_currentStateOfCharge_r = (p_energyAssetInstance.getCurrentStateOfCharge());
 
 return v_currentConsumptionElectricity_kW;
 //v_currentStateOfCharge_r = (p_energyAssetInstance.getCurrentStateOfCharge());
@@ -20835,10 +20831,19 @@ f_manageHeatingAssets();
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[for ( EnergyAsset EA : c_vehiclesAvailableForCharging ){
-	J_EAEV ev = (J_EAEV)EA.p_energyAssetInstance;
+					<Body><![CDATA[ArrayList<EnergyAsset> copiedVehicleList = new ArrayList<EnergyAsset>(c_vehiclesAvailableForCharging);
+int countDeletedItems = 0;
 
-	if( ev.getCurrentStateOfCharge() < 1) {
+for ( int i = 0; i < copiedVehicleList.size(); i++ ){
+	EnergyAsset EA = copiedVehicleList.get(i);
+	J_EAEV ev = (J_EAEV)EA.p_energyAssetInstance;
+	
+	if(!ev.getAvailability() ){
+		EA.f_updateElectricityFlows( 0 );
+		c_vehiclesAvailableForCharging.remove( i - countDeletedItems );
+		countDeletedItems ++;
+	}
+	if( ev.getCurrentStateOfCharge() < 1 ) {
 		v_chargingPower_kW += EA.f_updateElectricityFlows( ev.getMaxSpreadChargingRatio() );
 		//traceln( "charging ratio " + ev.getMaxSpreadChargingRatio());
 		//traceln( "charging speed " + ev.getElectricCapacity_kW() * ev.getMaxSpreadChargingRatio());
@@ -20871,18 +20876,16 @@ for ( int i = 0; i < copiedVehicleList.size(); i++ ){
 	if(EA.p_energyAssetInstance instanceof J_EAEV) {
 
 		J_EAEV ev = (J_EAEV)EA.p_energyAssetInstance;
-		if( ev.getCurrentStateOfCharge() < 1) {
-			double chargingSpeed = min (maxChargingSpeed, ev.capacityElectric_kW);
-			double ratio = chargingSpeed / ev.capacityElectric_kW;
-			if ( ev.getChargingTimeToFull_MIN() > ev.getMobilityTracker().nextActivityStartTimer.getRest(MINUTE) - main.p_timeStep_h * 60 ){
-				ratio = 1;
-			}
-			v_currentChargingPower_kW += EA.f_updateElectricityFlows( ratio );
-		}
-		else {
-			EA.f_updateElectricityFlows( 0 );
-			c_vehiclesAvailableForCharging.remove( i - countDeletedItems );
-			countDeletedItems ++;
+		if( !ev.getAvailability() || ev.getCurrentStateOfCharge() == 1 ){
+		EA.f_updateElectricityFlows( 0 );
+		c_vehiclesAvailableForCharging.remove( i - countDeletedItems );
+		countDeletedItems ++;
+	}
+	else {
+		double chargingSpeed = min (maxChargingSpeed, ev.capacityElectric_kW);
+		double ratio = chargingSpeed / ev.capacityElectric_kW;
+		if ( ev.getChargingTimeToFull_MIN() > ev.getMobilityTracker().nextActivityStartTimer.getRest(MINUTE) - main.p_timeStep_h * 60 ){
+			ratio = 1;
 		}
 	}
 	else if( EA.p_energyAssetInstance instanceof J_EAConversionDieselVehicle ) {
@@ -23719,14 +23722,7 @@ if(p_ownerActor instanceof ConnectionOwner) {
 //traceln("Truck vertrekt, met SOC: " + p_vehicleInstance.getCurrentStateOfCharge());
 v_idleTimeToNextTrip = 0;
 v_away = true;
-
-if( p_gridConnection.c_vehiclesAvailableForCharging.contains(p_energyAsset)) {
-	p_gridConnection.c_vehiclesAvailableForCharging.remove(p_gridConnection.c_vehiclesAvailableForCharging.indexOf( p_energyAsset ));
-	p_energyAsset.f_updateElectricityFlows( 0 );
-	traceln(date() + " vehicle is leaving, stopped charging, but not full apparantly: " + p_energyAsset.getName() + ", SOC: " + p_vehicleInstance.getCurrentStateOfCharge());
-}
-
-//traceln( date() +  " truck vertrekt");]]></Action>
+p_vehicleInstance.startTrip();]]></Action>
 				</Event>
 				<Event>
 					<Id>1667726387954</Id>
@@ -23757,11 +23753,7 @@ if( p_gridConnection.c_vehiclesAvailableForCharging.contains(p_energyAsset)) {
 						</RecurrenceCode>
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
-					<Action><![CDATA[p_gridConnection.c_vehiclesAvailableForCharging.add( p_energyAsset );
-
-v_away = false;
-
-//set current trip as a planned trip for the next week.
+					<Action><![CDATA[//set current trip as a planned trip for the next week.
 starttimes.set( v_tripIndex, starttimes.get(v_tripIndex) + 10080 );
 endtimes.set( v_tripIndex, endtimes.get(v_tripIndex) + 10080 );
 
@@ -23778,6 +23770,10 @@ if(p_vehicleInstance instanceof J_EAEV){
 } else if(p_vehicleInstance instanceof J_EAConversionDieselVehicle){
 	((J_EAConversionDieselVehicle)p_vehicleInstance).endTrip( v_tripDist_km, v_idleTimeToNextTrip);
 }
+
+p_vehicleInstance.endTrip( v_tripDist_km, v_idleTimeToNextTrip);
+p_gridConnection.c_vehiclesAvailableForCharging.add( p_energyAsset );
+v_away = false;
 
 if (p_gridConnection.v_chargingAttitude == MAX_SPREAD && p_vehicleInstance instanceof J_EAEV){
 	((J_EAEV)p_vehicleInstance).setMaxSpreadChargingRatio(p_gridConnection.v_additionalTimeSpreadCharging_MIN);
@@ -24647,11 +24643,11 @@ public class J_EA {
 
     public void resetFlows() {
     	//traceln("parent energyAsset reset ");
-    	electricityProduction_kW = 0;
+    	double electricityProduction_kW = 0;
     	heatProduction_kW = 0;
     	methaneProduction_kW = 0;
     	hydrogenProduction_kW = 0;
-    	electricityConsumption_kW = 0;
+    	double electricityConsumption_kW = 0;
     	methaneConsumption_kW = 0;
     	hydrogenConsumption_kW = 0;
     	heatConsumption_kW = 0;
@@ -25211,10 +25207,8 @@ public class J_EAEV extends base.J_EAStorageElectric implements Serializable {
 
 	@Override // momenteel verwijzen we door naar de charge funcite ipv deze operate. Die doen eigenlijk ehtzelfde maar neemt kW als input. De ratio input in deze functie wordt door de laadmodule als vermogen meegegeven
 	public double[] operate(double ratioOfChargeCapacity_r) {
-		//return charge(ratioOfChargeCapacity_r);
-
-
-		if (availability) {
+		//traceln( "ratio: " + ratioOfChargeCapacity_r);
+		if (true) {
 	    	double discharge_kW = 0;
 	    	double deltaEnergy_kWh;   // to check the request with the energy currently in storage
 	    	//double sign = ratioOfChargeCapacity_r / abs( ratioOfChargeCapacity_r ); // charge or discharge
@@ -25225,19 +25219,16 @@ public class J_EAEV extends base.J_EAStorageElectric implements Serializable {
 	    	deltaEnergy_kWh = min(deltaEnergy_kWh, (1 - stateOfCharge_r) * storageCapacity_kWh ); // Prevent overcharge
 	    
 			discharge_kW = -deltaEnergy_kWh / timestep_h;
-
+			//traceln("state of charge: " + stateOfCharge_r * storageCapacity_kWh + ", charged: " + discharge_kW / 4+ " kWh, charging power kW: " + discharge_kW);
 			electricityProduction_kW = max(discharge_kW, 0);
 			electricityConsumption_kW = max(-discharge_kW, 0);
 			updateStateOfCharge( discharge_kW );
-			
-			traceln("EV consumption " + electricityConsumption_kW + "kW, ratio: " +  ratioOfChargeCapacity_r);
-			
+			//traceln("new state of charge: " + stateOfCharge_r * storageCapacity_kWh);
 			updateChargingHistory( electricityProduction_kW, electricityConsumption_kW );
 		}
 		//double[] arr = {electricityProduction_kW, methaneProduction_kW, hydrogenProduction_kW, heatProduction_kW, electricityConsumption_kW, methaneConsumption_kW, hydrogenConsumption_kW, heatConsumption_kW };
     	//return arr;
 		return returnEnergyFlows();
-
 	}
 
 	@Override
@@ -25276,7 +25267,6 @@ public class J_EAEV extends base.J_EAStorageElectric implements Serializable {
 			availability = true;
 			return true;
 		}
-
 	}
 
 	public void updateChargingHistory(double electricityProduced_kW, double electricityConsumed_kW) {
