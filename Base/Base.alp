@@ -8631,9 +8631,6 @@ for( EnergyAsset EA : c_connectedConversionAssets ){
 	v_currentPowerHydrogen_kW += EA.v_currentConsumptionHydrogen_kW - EA.v_currentProductionHydrogen_kW;
 	v_currentPowerHeat_kW += EA.v_currentConsumptionHeat_kW - EA.v_currentProductionHeat_kW;
 	v_currentPowerDiesel_kW += EA.v_currentConsumptionDiesel_kW;
-	if(EA.p_energyAssetInstance instanceof J_EAConversionDieselVehicle) {
-		traceln("GC f_calculateEnergyBalance read dieselpower = "+EA.v_currentConsumptionDiesel_kW);
-	}
 }
 for( EnergyAsset EA : c_connectedStorageAssets){
 	v_currentPowerElectricity_kW += EA.v_currentConsumptionElectricity_kW - EA.v_currentProductionElectricity_kW;
@@ -9788,9 +9785,7 @@ v_currentConsumptionDiesel_kW = 0;
 
 
 double[] arr = p_energyAssetInstance.operateBounded( v_powerFraction_fr );
-if(p_energyAssetInstance instanceof J_EAConversionDieselVehicle) {
-	traceln("Powers :"+ arr[0]+", "+ arr[1]+", "+ arr[2]+", "+ arr[3]+", "+ arr[4]+", "+ arr[5]+", "+ arr[6]+", "+ arr[7]+", "+ arr[8]+", ");
-}
+
 v_currentProductionElectricity_kW=arr[0];
 v_currentProductionMethane_kW=arr[1];
 v_currentProductionHydrogen_kW=arr[2];
@@ -9804,7 +9799,7 @@ v_currentConsumptionDiesel_kW=arr[8];
 
 v_currentStateOfCharge_r = (p_energyAssetInstance.getCurrentStateOfCharge());
 //p_energyAssetInstance.resetFlows();
-traceln("v_currentConsumptionDiesel_kW "+v_currentConsumptionDiesel_kW);]]></Body>
+]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -24162,10 +24157,6 @@ public class J_EA {
     }
 
     public void resetFlows() {
-    	if(this instanceof J_EAConversionDieselVehicle) {
-        	traceln("J_EA resetFlows(): Diesel Truck instance flows reset! ");
-    	}
-
     	electricityProduction_kW = 0;
     	heatProduction_kW = 0;
     	methaneProduction_kW = 0;
@@ -25442,11 +25433,9 @@ public class J_EAConversionDieselVehicle extends base.J_EAConversion implements 
     public void endTrip(double tripDist_km, double idleTime) {
 		//traceln( "J_EAEV comes back, trip distance: " + tripDist_km + ", energy consumption: " + tripDist_km * energyConsumption_kWhpkm);
     	dieselConsumption_kW = tripDist_km * vehicleScaling * energyConsumption_kWhpkm * eta_r / timestep_h;
-   		traceln("diesel Consumed! "+dieselConsumption_kW+" kW");
     }
 
     public double[] operate(double ratioOfChargeCapacity_r) {
-    	traceln("dieselConsumption_kW current: "+ dieselConsumption_kW + " kW");
     	return returnEnergyFlows();
     }
 
