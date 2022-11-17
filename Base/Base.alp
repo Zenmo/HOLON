@@ -4311,6 +4311,9 @@ for(EnergyAsset e : c_storageAssets ) {
 						<Parameter>
 							<Name><![CDATA[p_defaultEnergyAssetPresetName]]></Name>
 						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_capacity_kW]]></Name>
+						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
 					<Replication Class="CodeValue">
@@ -8453,13 +8456,13 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 	}
 	else if (EA.p_energyAssetInstance instanceof J_EAStorageElectric) {
 		if(EA.p_energyAssetInstance instanceof J_EAEV) {
-			c_connectedVehicleAssets.add( EA );
-			c_connectedVehicleAssets.get( v_vehicleIndex ).v_powerFraction_fr = 1;
+			c_vehicleAssets.add( EA );
+			c_vehicleAssets.get( v_vehicleIndex ).v_powerFraction_fr = 1;
 			MobilityTracker m = main.add_mobilityTrackers();
 			c_mobilityTrackers.add( m );
 			m.p_vehicleIndex = v_vehicleIndex;
 			m.p_gridConnection = this;
-			m.p_energyAsset = c_connectedVehicleAssets.get( v_vehicleIndex );
+			m.p_energyAsset = c_vehicleAssets.get( v_vehicleIndex );
 			m.p_vehicleInstance = (J_EAEV)m.p_vehicleInstance;
 			m.p_vehicleInstance = (J_EAEV)m.p_energyAsset.p_energyAssetInstance;
  			m.p_mobilityPatternType = OL_MobilityPatternType.TRUCK;
@@ -8478,16 +8481,16 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 		//traceln("heatingAsset class " + p_spaceHeatingAsset.getClass().toString());
 	}
 	else if (EA.p_energyAssetInstance instanceof J_EAConversionDieselVehicle) {
-		c_connectedVehicleAssets.add( EA );
-		c_connectedVehicleAssets.get( v_vehicleIndex ).v_powerFraction_fr = 1;
+		c_vehicleAssets.add( EA );
+		c_vehicleAssets.get( v_vehicleIndex ).v_powerFraction_fr = 1;
 		MobilityTracker m = main.add_mobilityTrackers();
 		c_mobilityTrackers.add( m );
 		m.p_vehicleIndex = v_vehicleIndex;
 		m.p_gridConnection = this;
-		m.p_energyAsset = c_connectedVehicleAssets.get( v_vehicleIndex );
+		m.p_energyAsset = c_vehicleAssets.get( v_vehicleIndex );
 		m.p_vehicleInstance = (J_EAConversionDieselVehicle)m.p_energyAsset.p_energyAssetInstance;
 		m.p_vehicleInstance = (J_EAConversionDieselVehicle)m.p_vehicleInstance;
-		m.p_mobilityPatternType = OL_MobilityPatternType.INDUSTRY;
+		m.p_mobilityPatternType = OL_MobilityPatternType.TRUCK;
 		((J_EAConversionDieselVehicle)m.p_vehicleInstance).setMobilityTracker( m );
 		m.f_getData();
 		v_vehicleIndex ++;
@@ -8678,8 +8681,8 @@ if( p_energyAssetList != null) {
 				double setTemperature_degC = l.get( "setTemperature_degC" ) == null? 0.0: Double.valueOf( l.get( "setTemperature_degC" ).toString()).doubleValue();
 				String ambientTempType2 = (String)l.get( "ambientTempType" ) == null? "": (String)l.get( "ambientTempType" );
 				
-				double energyConsumption_kWhpkm = l.get( "energyConsumption_kWhpkm" ) == null? 0.0: Double.valueOf( l.get( "energyConsumption_kWhpkm" ).toString()).doubleValue();
-				double vehicleScaling = l.get("vehicleScaling") == null? 1.0: Double.valueOf( l.get( "vehicleScaling" ).toString()).doubleValue();
+				double energyConsumption_kWhpkm2 = l.get( "energyConsumption_kWhpkm" ) == null? 0.0: Double.valueOf( l.get( "energyConsumption_kWhpkm" ).toString()).doubleValue();
+				double vehicleScaling2 = l.get("vehicleScaling") == null? 1.0: Double.valueOf( l.get( "vehicleScaling" ).toString()).doubleValue();
 
 				storageAsset.f_instantiateStorageAsset( storageAsset.p_energyAssetType,
 														capacityElectric_kW,
@@ -8692,8 +8695,8 @@ if( p_energyAssetList != null) {
 														maxTemperature_degC,
 														setTemperature_degC,
 														ambientTempType2,
-														energyConsumption_kWhpkm,
-														vehicleScaling);
+														energyConsumption_kWhpkm2,
+														vehicleScaling2);
 				storageAsset.f_connectToParentNode( this );
 				main.c_storageAssets.add(storageAsset);
 			break;
@@ -9716,7 +9719,7 @@ for (EnergyAsset EA : c_energyAssets ) {
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[double]]></Type>
+						<Type><![CDATA[double]]></Type>        
 					</Properties>
 				</Variable>
 				<Variable Class="PlainVariable">
@@ -9751,7 +9754,7 @@ for (EnergyAsset EA : c_energyAssets ) {
 							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
 							<DelimeterType>NO_DELIMETER</DelimeterType>
 						</ParameterEditor>
-					</Properties>
+					</Properties>                 
 				</Variable>
 				<Variable Class="Parameter">
 					<Id>1659090642877</Id>
@@ -11107,7 +11110,7 @@ v_PVproduction_kW = sum(main.Solarfarms, f->f.v_currentPowerElectricity_kW );
 v_industryConsumption_kW = sum(main.Industries, i->i.v_currentPowerElectricity_kW );
 v_holonAvailableConnectionCapacity_kW = main.pop_energyHolons(0).v_connectionCapacity_kW;
 v_holonTotalPower_kW = v_batteryPower_kW + v_fleetCharging_kW + v_PVproduction_kW + v_industryConsumption_kW;
-v_batterySOC_fr = main.gCGridBatteries(0).v_batterySOC_fr;]]></Body>
+v_batterySOC_fr = main.GridBatteries(0).v_batterySOC_fr;]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -20382,7 +20385,7 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 		c_mobilityTrackers.add( m );
 		m.p_vehicleIndex = v_vehicleIndex;
 		m.p_gridConnection = this;
-		m.p_mobilityPatternType = HOUSEHOLD;
+		m.p_mobilityPatternType = PRIVATE_VEHICLE;
 		((J_EAEV)m.p_vehicleInstance).setMobilityTracker( m );
 		m.f_getData();
 		v_vehicleIndex ++;
@@ -20771,7 +20774,7 @@ f_manageHeatingAssets();
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1668598099461</Id>
 					<Name><![CDATA[f_manageCharging]]></Name>
-					<X>780</X><Y>270</Y>
+					<X>780</X><Y>260</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -20877,15 +20880,16 @@ for ( int i = 0; i < copiedVehicleList.size(); i++ ){
 
 		J_EAEV ev = (J_EAEV)EA.p_energyAssetInstance;
 		if( !ev.getAvailability() || ev.getCurrentStateOfCharge() == 1 ){
-		EA.f_updateElectricityFlows( 0 );
-		c_vehiclesAvailableForCharging.remove( i - countDeletedItems );
-		countDeletedItems ++;
-	}
-	else {
-		double chargingSpeed = min (maxChargingSpeed, ev.capacityElectric_kW);
-		double ratio = chargingSpeed / ev.capacityElectric_kW;
-		if ( ev.getChargingTimeToFull_MIN() > ev.getMobilityTracker().nextActivityStartTimer.getRest(MINUTE) - main.p_timeStep_h * 60 ){
-			ratio = 1;
+			EA.f_updateElectricityFlows( 0 );
+			c_vehiclesAvailableForCharging.remove( i - countDeletedItems );
+			countDeletedItems ++;
+		}
+		else {
+			double chargingSpeed = min (maxChargingSpeed, ev.capacityElectric_kW);
+			double ratio = chargingSpeed / ev.capacityElectric_kW;
+			if ( ev.getChargingTimeToFull_MIN() > ev.getMobilityTracker().nextActivityStartTimer.getRest(MINUTE) - main.p_timeStep_h * 60 ){
+				ratio = 1;
+			}
 		}
 	}
 	else if( EA.p_energyAssetInstance instanceof J_EAConversionDieselVehicle ) {
@@ -20898,7 +20902,7 @@ for ( int i = 0; i < copiedVehicleList.size(); i++ ){
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1668598099477</Id>
 					<Name><![CDATA[f_chargeOnPrice]]></Name>
-					<X>800</X><Y>350</Y>
+					<X>820</X><Y>410</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -20909,7 +20913,7 @@ for ( int i = 0; i < copiedVehicleList.size(); i++ ){
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1668598110923</Id>
 					<Name><![CDATA[f_manageHeatingAssets]]></Name>
-					<X>780</X><Y>370</Y>
+					<X>820</X><Y>430</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -20917,14 +20921,14 @@ for ( int i = 0; i < copiedVehicleList.size(); i++ ){
 					<Body><![CDATA[double currentHeatDemand_kW = v_currentPowerHeat_kW;
 
 double heatCapacityInstalled_kW = 0;  // this could vary with temperature e.g. heatpump_air
-for( EnergyAsset c : c_connectedConversionAssets ) {
+for( EnergyAsset c : c_conversionAssets ) {
 	heatCapacityInstalled_kW += ((J_EAConversion)c.p_energyAssetInstance).capacityHeat_kW;
 }
 
 //traceln("GCIndustry manageHeatingAssets debug: currentHeatDemand_kW = "+currentHeatDemand_kW+", current installed capacity kW = "+heatCapacityInstalled_kW);
 double powerFraction_fr = currentHeatDemand_kW / heatCapacityInstalled_kW;
 
-for( EnergyAsset c : c_connectedConversionAssets ) {
+for( EnergyAsset c : c_conversionAssets ) {
 	if( !( c.p_energyAssetInstance instanceof J_EAConversionDieselVehicle)) {
 		double allocatedPowerFraction_fr =  ((J_EAConversion)c.p_energyAssetInstance).capacityHeat_kW / heatCapacityInstalled_kW;
 		c.v_powerFraction_fr = max( powerFraction_fr * allocatedPowerFraction_fr, 0);
@@ -22441,7 +22445,7 @@ public void f_operateFlexAssets(){
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1665498760168</Id>
 					<Name><![CDATA[f_connectToChildIndustry]]></Name>
-					<X>780</X><Y>100</Y>
+					<X>780</X><Y>120</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22474,7 +22478,7 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 		m.p_energyAsset = c_vehicleAssets.get( v_vehicleIndex );
 		m.p_vehicleInstance = (J_EAEV)m.p_energyAsset.p_energyAssetInstance;
 		m.p_mobilityPatternType = OL_MobilityPatternType.TRUCK;
-		m.p_vehicleInstance.setMobilityTracker( m );
+		((J_EAEV)m.p_vehicleInstance).setMobilityTracker( m );
 		m.f_getData();
 		v_vehicleIndex ++;
 	}
@@ -23714,15 +23718,16 @@ if(p_ownerActor instanceof ConnectionOwner) {
 						</RecurrenceCode>
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
-					<Action><![CDATA[if(p_vehicleInstance instanceof J_EAEV){
+					<Action><![CDATA[v_away = true;
+if(p_vehicleInstance instanceof J_EAEV){
 	((J_EAEV)p_vehicleInstance).startTrip();
 } else if (p_vehicleInstance instanceof J_EAConversionDieselVehicle){
 	((J_EAConversionDieselVehicle)p_vehicleInstance).startTrip();
 }
 //traceln("Truck vertrekt, met SOC: " + p_vehicleInstance.getCurrentStateOfCharge());
 v_idleTimeToNextTrip = 0;
-v_away = true;
-p_vehicleInstance.startTrip();]]></Action>
+
+]]></Action>
 				</Event>
 				<Event>
 					<Id>1667726387954</Id>
@@ -23765,13 +23770,13 @@ if ( v_tripIndex > starttimes.size() - 1 ) {
 v_idleTimeToNextTrip = starttimes.get(v_tripIndex) - time( MINUTE );
 nextActivityStartTimer.restart( v_idleTimeToNextTrip, MINUTE);
 nextActivityEndTimer.restart( endtimes.get(v_tripIndex) - time( MINUTE ), MINUTE);
+
 if(p_vehicleInstance instanceof J_EAEV){
 	((J_EAEV)p_vehicleInstance).endTrip( v_tripDist_km, v_idleTimeToNextTrip);
 } else if(p_vehicleInstance instanceof J_EAConversionDieselVehicle){
 	((J_EAConversionDieselVehicle)p_vehicleInstance).endTrip( v_tripDist_km, v_idleTimeToNextTrip);
 }
 
-p_vehicleInstance.endTrip( v_tripDist_km, v_idleTimeToNextTrip);
 p_gridConnection.c_vehiclesAvailableForCharging.add( p_energyAsset );
 v_away = false;
 
@@ -25151,7 +25156,6 @@ public class J_EAEV extends base.J_EAStorageElectric implements Serializable {
 	//private double storageCapacity_kWh;
 	private double stateOfCharge_r;
 	private double lossFactor_r = 0;
-	private double vehicleScaling;
 //	private double timestep_h;
 	private double energyConsumption_kWhpkm = 0.2;
 	private boolean availability = true;
