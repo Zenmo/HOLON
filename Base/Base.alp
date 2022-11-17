@@ -3133,7 +3133,7 @@ double energyProduced_MWh = 0;
 double energyConsumed_MWh = 0;
 for (EnergyAsset e : pop_energyAssets) {
 	double EnergyUsed_kWh = e.p_energyAssetInstance.getEnergyUsed_kWh();
-	//traceln("EnergyAsset " + e.getIndex() + " of type " + e.p_defaultEnergyAssetPresetName + " used " + EnergyUsed_kWh + " kWh energy");
+	traceln("EnergyAsset " + e.getIndex() + " of type " + e.p_defaultEnergyAssetPresetName + " used " + EnergyUsed_kWh + " kWh energy");
 	if (EnergyUsed_kWh > 0) {
 		energyConsumed_MWh += EnergyUsed_kWh/1000;
 	} else {
@@ -3146,7 +3146,7 @@ traceln("Energy produced: "+ energyProduced_MWh);
 
 //Total selfconsumption, selfsufficiency
 double totalSelfConsumption_fr = 1 - (v_totalElectricityExport_MWh + v_totalMethaneExport_MWh + v_totalHydrogenExport_MWh)/energyProduced_MWh;
-double totalSelfSufficiency_fr = 1 - (v_totalElectricityImport_MWh + v_totalMethaneImport_MWh + v_totalHydrogenImport_MWh)/energyConsumed_MWh;
+double totalSelfSufficiency_fr = 1 - (v_totalElectricityImport_MWh + v_totalMethaneImport_MWh + v_totalHydrogenImport_MWh + v_totalDieselImport_MWh)/energyConsumed_MWh;
 
 //double totalSelfSufficiency_fr = 1 - (v_electricityImported_kWh + v_methaneImported_kWh + v_hydrogenImported_kWh + v_heatImported_kWh)/energyConsumed_kWh;
 
@@ -15208,6 +15208,11 @@ t_nodetype.setText(p_nodeType);]]></Body>
 			<Id>1660224852394</Id>
 			<Name><![CDATA[ConnectionOwner]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
+			<StartupCode><![CDATA[v_currentPriceBands = new TreeMap<Double, Double>();
+v_currentPriceBands.put(-999.0, v_electricitySellPrice_eurpkWh + v_sellCongestionPrice_eurpkWh);
+v_currentPriceBands.put(0.0, 0.0);
+v_currentPriceBands.put(999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionPrice_eurpkWh);
+]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1660224852392</Id>
@@ -16062,10 +16067,10 @@ for(GridConnection c : subConnections.getConnections()){
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[v_currentPriceBands = new TreeMap<Double, Double>();
-v_currentPriceBands.put(-999.0, v_electricitySellPrice_eurpkWh + v_sellCongestionPrice_eurpkWh);
-v_currentPriceBands.put(0.0, 0.0);
-v_currentPriceBands.put(999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionPrice_eurpkWh);
+					<Body><![CDATA[v_currentPriceBands.replace(-999.0, v_electricitySellPrice_eurpkWh + v_sellCongestionPrice_eurpkWh);
+//v_currentPriceBands.put(0.0, 0.0);
+v_currentPriceBands.replace(999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionPrice_eurpkWh);
+
 
 if (v_congestionTariffAllowance_kW != 0){
 	if(v_congestionMode == "Overconsumption"){
@@ -26427,7 +26432,9 @@ public class J_EAConversionDieselVehicle extends base.J_EAConversion implements 
 
     public void endTrip(double tripDist_km, double idleTime) {
 		//traceln( "J_EAEV comes back, trip distance: " + tripDist_km + ", energy consumption: " + tripDist_km * energyConsumption_kWhpkm);
-    	dieselConsumption_kW = tripDist_km * vehicleScaling * energyConsumption_kWhpkm * eta_r / timestep_h;
+    	double energyUsedForTrip_kWh = tripDist_km * vehicleScaling * energyConsumption_kWhpkm * eta_r;
+    	energyUsed_kWh += energyUsedForTrip_kWh;
+    	dieselConsumption_kW = energyUsedForTrip_kWh / timestep_h;
     }
 
     public double[] operate(double ratioOfChargeCapacity_r) {
