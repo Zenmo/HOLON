@@ -736,6 +736,18 @@
 				<Name><![CDATA[MAX_POWER]]></Name>
 			</Option>
 		</OptionList>
+		<OptionList>
+			<Id>1668693527446</Id>
+			<Name><![CDATA[OL_BatteryOperationMode]]></Name>
+			<Option>
+				<Id>1668693549846</Id>
+				<Name><![CDATA[BALANCE]]></Name>
+			</Option>
+			<Option>
+				<Id>1668693554312</Id>
+				<Name><![CDATA[PRICE]]></Name>
+			</Option>
+		</OptionList>
 	</OptionLists>
 	<ActiveObjectClasses>
 		<!--   =========   Active Object Class   ========  -->
@@ -2112,7 +2124,7 @@ v_timeStepsElapsed ++;
 @return: none
 @since: Sprint 6
 @author: Jorrit]]></Description>
-					<X>-720</X><Y>140</Y>
+					<X>-720</X><Y>120</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2214,6 +2226,11 @@ OL_GridConnectionIsolationLabel gridConnectionIsolationLabel;
 String gridConnectionParentElectric;
 String gridConnectionParentHeat="";
 Double gridConnectionCapacity;
+Double gridConnectionNonFirmATOCapacity;
+Double gridConnectionNonFirmATOStarttime;
+Double gridConnectionNonFirmATOEndtime;
+OL_BatteryOperationMode gridConnectionBatteryMode;
+OL_ChargingAttitude gridConnectionChargingAttitude;
 String ownerActorID;
 
 ArrayList gridConnectionEnergyAssets = new ArrayList();    // new!
@@ -2226,11 +2243,16 @@ for(HashMap data : parsedJSONGridConnections) {
     gridConnectionParentElectric = data.get( "parent_electric" ).toString();
     gridConnectionParentHeat = (String)data.get( "parent_heat" );
     gridConnectionCapacity = (Double)data.get( "capacity_kw" );
+    //gridConnectionNonFirmATOCapacity = data.get( "NonFirmATOCapacity_kW" ) == null? null : (Double)data.get( "NonFirmATOCapacity_kW" );
+    //gridConnectionNonFirmATOStarttime = data.get( "NonFirmATOStarttime" ) == null? null : (Double)data.get( "NonFirmATOStarttime" );
+	//gridConnectionNonFirmATOEndtime = data.get( "NonFirmATOEndtime" ) == null? null : (Double)data.get( "NonFirmATOEndtime" );
+    gridConnectionChargingAttitude = data.get( "ChargingAttitude" ) == null? OL_ChargingAttitude.MAX_POWER : OL_ChargingAttitude.valueOf((String)data.get("ChargingAttitude"));
+    gridConnectionBatteryMode = data.get( "BatteryMode" ) == null? OL_BatteryOperationMode.BALANCE : OL_BatteryOperationMode.valueOf((String)data.get("BatteryMode"));
     gridConnectionID = data.get( "id" ).toString();
 	ownerActorID = data.get ( "owner_actor" ).toString();
 	gridConnectionIsolationLabel = data.get( "insulation_label" ) == null? null : OL_GridConnectionIsolationLabel.valueOf((String)data.get( "insulation_label" ));
 	gridConnectionHeatingType = data.get( "heating_type" ) == null? null : OL_GridConnectionHeatingType.valueOf((String)data.get( "heating_type" ));
-
+	
 	//traceln("raw data: "+data.get("EnergyAssets").toString());
 	//gridConnectionEnergyAssets = (String)data.get( "EnergyAssets");
 	gridConnectionEnergyAssets = (ArrayList)data.get( "assets");
@@ -2252,6 +2274,8 @@ for(HashMap data : parsedJSONGridConnections) {
 			GCHouse.set_p_isolationLabel( gridConnectionIsolationLabel );
 			GCHouse.set_p_heatingType( gridConnectionHeatingType );
 			GCHouse.set_p_energyAssetList( (ArrayList)gridConnectionEnergyAssets );
+			GCHouse.set_p_batteryOperationMode( gridConnectionBatteryMode );
+			GCHouse.set_p_chargingAttitudeVehicles( gridConnectionChargingAttitude );
 			GCHouse.f_instantiateEnergyAssets();
 
 			//add_gCHouses()
@@ -2268,10 +2292,30 @@ for(HashMap data : parsedJSONGridConnections) {
  			GCBuilding.set_p_ownerID( ownerActorID );
  			GCBuilding.set_p_heatingType( gridConnectionHeatingType );
  			GCBuilding.set_p_energyAssetList( (ArrayList)gridConnectionEnergyAssets );
+ 			GCBuilding.set_p_batteryOperationMode( gridConnectionBatteryMode );
+			GCBuilding.set_p_chargingAttitudeVehicles( gridConnectionChargingAttitude );
  			GCBuilding.f_instantiateEnergyAssets();
 
 	 		c_gridConnections.add(GCBuilding);
 		break;
+		case INDUSTRY:
+	 		GCIndustry GCIndustry = add_Industries();
+	 		//gridConnectionCategory, gridConnectionType, gridConnectionCapacity, gridConnectionParentElectric, gridConnectionID, gridConnectionParentHeat, null, null, null, ownerActorID, null, null, null, gridConnectionHeatingType, gridConnectionEnergyAssets);
+	 		GCIndustry.set_p_gridConnectionCategory( gridConnectionCategory );
+	 		GCIndustry.set_p_gridConnectionType( gridConnectionType );
+	 		GCIndustry.set_p_capacity_kW( gridConnectionCapacity );
+	 		GCIndustry.set_p_parentNodeElectricID( gridConnectionParentElectric );
+	 		GCIndustry.set_p_agentID( gridConnectionID );
+	 		GCIndustry.set_p_parentNodeHeatID( gridConnectionParentHeat );
+	 		GCIndustry.set_p_ownerID( ownerActorID );
+	 		GCIndustry.set_p_heatingType( gridConnectionHeatingType );
+	 		GCIndustry.set_p_energyAssetList( (ArrayList)gridConnectionEnergyAssets );
+	 		GCIndustry.set_p_batteryOperationMode( gridConnectionBatteryMode );
+			GCIndustry.set_p_chargingAttitudeVehicles( gridConnectionChargingAttitude );
+	 		GCIndustry.f_instantiateEnergyAssets();
+
+	 		c_gridConnections.add(GCIndustry);
+	 	break;
 		case DISTRICTHEATING:
 	 		GCDistrictHeating GCDistrictHeating = add_DistrictHeatingSystems();
 	 		// gridConnectionEnergyAssets);
@@ -2300,6 +2344,7 @@ for(HashMap data : parsedJSONGridConnections) {
 	 		GCWindfarm.set_p_ownerID( ownerActorID );
 	 		GCWindfarm.set_p_heatingType( gridConnectionHeatingType );
 	 		GCWindfarm.set_p_energyAssetList( (ArrayList)gridConnectionEnergyAssets );
+	 		GCWindfarm.set_p_batteryOperationMode( gridConnectionBatteryMode );
 	 		GCWindfarm.f_instantiateEnergyAssets();
 
 	 		c_gridConnections.add(GCWindfarm);
@@ -2316,25 +2361,10 @@ for(HashMap data : parsedJSONGridConnections) {
 	 		GCSolarfarm.set_p_ownerID( ownerActorID );
 	 		GCSolarfarm.set_p_heatingType( gridConnectionHeatingType );
 	 		GCSolarfarm.set_p_energyAssetList( (ArrayList)gridConnectionEnergyAssets );
+	 		GCSolarfarm.set_p_batteryOperationMode( gridConnectionBatteryMode );
 	 		GCSolarfarm.f_instantiateEnergyAssets();
 
 	 		c_gridConnections.add(GCSolarfarm);
-	 	break;
-	 	case INDUSTRY:
-	 		GCIndustry GCIndustry = add_Industries();
-	 		//gridConnectionCategory, gridConnectionType, gridConnectionCapacity, gridConnectionParentElectric, gridConnectionID, gridConnectionParentHeat, null, null, null, ownerActorID, null, null, null, gridConnectionHeatingType, gridConnectionEnergyAssets);
-	 		GCIndustry.set_p_gridConnectionCategory( gridConnectionCategory );
-	 		GCIndustry.set_p_gridConnectionType( gridConnectionType );
-	 		GCIndustry.set_p_capacity_kW( gridConnectionCapacity );
-	 		GCIndustry.set_p_parentNodeElectricID( gridConnectionParentElectric );
-	 		GCIndustry.set_p_agentID( gridConnectionID );
-	 		GCIndustry.set_p_parentNodeHeatID( gridConnectionParentHeat );
-	 		GCIndustry.set_p_ownerID( ownerActorID );
-	 		GCIndustry.set_p_heatingType( gridConnectionHeatingType );
-	 		GCIndustry.set_p_energyAssetList( (ArrayList)gridConnectionEnergyAssets );
-	 		GCIndustry.f_instantiateEnergyAssets();
-
-	 		c_gridConnections.add(GCIndustry);
 	 	break;
 	 	case GRIDBATTERY:
 	 		GCGridBattery GCGridBattery = add_GridBatteries();
@@ -2349,6 +2379,7 @@ for(HashMap data : parsedJSONGridConnections) {
 	 		GCGridBattery.set_p_ownerID( ownerActorID );
 	 		GCGridBattery.set_p_heatingType( gridConnectionHeatingType );
 	 		GCGridBattery.set_p_energyAssetList( (ArrayList)gridConnectionEnergyAssets );
+	 		GCGridBattery.set_p_batteryOperationMode( gridConnectionBatteryMode );
 	 		GCGridBattery.f_instantiateEnergyAssets();
 
 	 		c_gridConnections.add(GCGridBattery);
@@ -4238,6 +4269,15 @@ for(EnergyAsset e : c_storageAssets ) {
 						<Parameter>
 							<Name><![CDATA[p_energyAssetList]]></Name>
 						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_chargingAttitudeVehicles]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_batteryOperationMode]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_batteryAsset]]></Name>
+						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
 					<Replication Class="CodeValue">
@@ -5561,9 +5601,6 @@ for(EnergyAsset e : c_storageAssets ) {
 							<Name><![CDATA[p_agentID]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_batteryAsset]]></Name>
-						</Parameter>
-						<Parameter>
 							<Name><![CDATA[p_gridConnectionCategory]]></Name>
 						</Parameter>
 						<Parameter>
@@ -5747,6 +5784,7 @@ for(EnergyAsset e : c_storageAssets ) {
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
+					<Lock>true</Lock>
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
 					<EmbeddedIcon>false</EmbeddedIcon>
 					<Z>0</Z>
@@ -7602,7 +7640,7 @@ import java.io.*;]]></Import>
 				<Variable Class="PlainVariable">
 					<Id>1660567920170</Id>
 					<Name><![CDATA[v_selfConsumptionElectricity_fr]]></Name>
-					<X>40</X><Y>390</Y>
+					<X>40</X><Y>410</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -7614,7 +7652,7 @@ import java.io.*;]]></Import>
 				<Variable Class="PlainVariable">
 					<Id>1660567920172</Id>
 					<Name><![CDATA[v_selfSufficiency_fr]]></Name>
-					<X>40</X><Y>370</Y>
+					<X>40</X><Y>390</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -7669,7 +7707,7 @@ import java.io.*;]]></Import>
 				<Variable Class="PlainVariable">
 					<Id>1668359062406</Id>
 					<Name><![CDATA[v_allowedCapacity_kW]]></Name>
-					<X>40</X><Y>280</Y>
+					<X>40</X><Y>300</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -7681,7 +7719,7 @@ import java.io.*;]]></Import>
 				<Variable Class="PlainVariable">
 					<Id>1668359153669</Id>
 					<Name><![CDATA[v_capacityLimitation_kW]]></Name>
-					<X>40</X><Y>320</Y>
+					<X>40</X><Y>340</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -7693,7 +7731,7 @@ import java.io.*;]]></Import>
 				<Variable Class="PlainVariable">
 					<Id>1668359178636</Id>
 					<Name><![CDATA[v_nonFirmATOActive]]></Name>
-					<X>40</X><Y>300</Y>
+					<X>40</X><Y>320</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -7706,25 +7744,10 @@ import java.io.*;]]></Import>
 					</Properties>
 				</Variable>
 				<Variable Class="PlainVariable">
-					<Id>1668361071571</Id>
-					<Name><![CDATA[v_chargingAttitude]]></Name>
-					<X>250</X><Y>140</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[OL_ChargingAttitude]]></Type>        
-						<InitialValue Class="CodeValue">
-							<Code><![CDATA[MAX_SPREAD]]></Code>
-						</InitialValue>
-					</Properties>
-				</Variable>
-				<Variable Class="PlainVariable">
 					<Id>1668370002883</Id>
 					<Name><![CDATA[v_additionalTimeSpreadCharging_MIN]]></Name>
 					<Description><![CDATA[In the charging attitude MAX_SPREAD the vehicles can be planned to be full some time before their actual departure. ]]></Description>
-					<X>250</X><Y>160</Y>
+					<X>250</X><Y>180</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -7818,6 +7841,51 @@ import java.io.*;]]></Import>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1668695288481</Id>
+					<Name><![CDATA[v_electricityPriceLowPassed_eurpkWh]]></Name>
+					<X>930</X><Y>490</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0.3]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1668695288483</Id>
+					<Name><![CDATA[v_lowPassFactor_fr]]></Name>
+					<X>930</X><Y>510</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[min(1,.01*1.2*main.p_timeStep_h)]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1668695288485</Id>
+					<Name><![CDATA[v_batterySOC_fr]]></Name>
+					<X>930</X><Y>530</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0.01]]></Code>
+						</InitialValue>
 					</Properties>
 				</Variable>
 				<Variable Class="Parameter">
@@ -8161,6 +8229,69 @@ import java.io.*;]]></Import>
 						<SdArray>false</SdArray>
 						<ParameterEditor>
 							<Id>1668180047822</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1668693393498</Id>
+					<Name><![CDATA[p_chargingAttitudeVehicles]]></Name>
+					<X>250</X><Y>140</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[OL_ChargingAttitude]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1668693393496</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1668693418082</Id>
+					<Name><![CDATA[p_batteryOperationMode]]></Name>
+					<X>250</X><Y>160</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[OL_BatteryOperationMode]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1668693418080</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1668695364192</Id>
+					<Name><![CDATA[p_batteryAsset]]></Name>
+					<X>480</X><Y>310</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[EnergyAsset]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1668695364190</Id>
 							<EditorContolType>TEXT_BOX</EditorContolType>
 							<MinSliderValue><![CDATA[0]]></MinSliderValue>
 							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
@@ -8897,6 +9028,133 @@ for (EnergyAsset EA : c_energyAssets ) {
 	else if(e.p_energyAssetType == OL_EnergyAssetType.WINDMILL) {
 		e.f_updateElectricityFlows( main.v_currentWindPowerNormalized_r );
 	}
+}]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1668695288471</Id>
+					<Name><![CDATA[f_balanceHolonLoadV2]]></Name>
+					<Description><![CDATA[Simpele regeling voor balancering van holon-load.
+
+@author: JorritvandenHouten
+@since: 28-10-2022]]></Description>
+					<X>800</X><Y>250</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[currentBatteryStateOfCharge]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
+					<Body><![CDATA[if(p_ownerActor instanceof ConnectionOwner) {
+	if(((ConnectionOwner)p_ownerActor).p_holonParent instanceof EnergyHolon ) {
+
+		double currentHolonElectricitySurplus_kW = ((ConnectionOwner)p_ownerActor).p_holonParent.v_electricitySurplus_kW + v_previousPowerElectricity_kW;
+		double HolonConnectionCapacity_kW = 0.9*((ConnectionOwner)p_ownerActor).p_holonParent.v_connectionCapacity_kW; // Use only 90% of capacity for robustness against delay
+		double availableChargePower_kW = currentHolonElectricitySurplus_kW + HolonConnectionCapacity_kW; // Max battery charging power within grid capacity
+		double availableDischargePower_kW = currentHolonElectricitySurplus_kW - HolonConnectionCapacity_kW; // Max discharging power within grid capacity
+		double SOC_setp_fr = 0.6 + 0.2 * Math.sin(2*Math.PI*(time(HOUR)-12)/24); // Sinusoidal setpoint: aim for low SOC at 6:00h, high SOC at 18:00h.
+		//traceln("SOC setpoint at " + getHourOfDay() + " h is " + SOC_setp_fr*100 + "%");
+		double FeedbackGain_kWpSOC = 1.5 * p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW(); // How strongly to aim for SOC setpoint
+		double FeedforwardGain_kWpKw = 0.8; // Feedforward based on current surpluss in holon
+		//double chargeOffset_kW = 100; // Charging 'bias', basically increases SOC setpoint slightly during the whole day.
+		double chargeSetpoint_kW = 0;
+		chargeSetpoint_kW = FeedforwardGain_kWpKw*currentHolonElectricitySurplus_kW + (SOC_setp_fr - currentBatteryStateOfCharge) * FeedbackGain_kWpSOC;
+		chargeSetpoint_kW = min(max(chargeSetpoint_kW, availableDischargePower_kW),availableChargePower_kW); // Don't allow too much (dis)charging!
+		if (time(HOUR) == 0){
+			chargeSetpoint_kW = -1000;
+		}
+		p_batteryAsset.v_powerFraction_fr = max(-1,min(1, chargeSetpoint_kW / p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW())); // Convert to powerFraction and limit power
+		//traceln("HOLON surpluss " + currentHolonElectricitySurplus_kW + "kW, Battery charging power " + p_batteryAsset.v_powerFraction_fr*p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW() + " kW at " + currentBatteryStateOfCharge*100 + " % SOC");
+	}
+}]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1668695288479</Id>
+					<Name><![CDATA[f_priceBasedBatteryManagement]]></Name>
+					<Description><![CDATA[Simpele regeling voor balancering van holon-load.
+
+@author: JorritvandenHouten
+@since: 28-10-2022]]></Description>
+					<X>800</X><Y>270</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[currentBatteryStateOfCharge]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
+					<Body><![CDATA[//double willingnessToPayDefault_eurpkWh = 0.3;
+double chargeDischarge_offset_eurpkWh = 0.0;
+double WTPfeedbackGain_eurpSOC = 0.1; // When SOC-error is 100%, adjust WTP price by 1 eurpkWh
+double priceGain = 3; // How strongly to ramp up power with price-delta's
+//double congestionTariffHolon_eurpkWh = -(((ConnectionOwner)p_ownerActor).p_holonParent.v_electricitySurplus_kW + v_previousPowerElectricity_kW)/1200*0.1;
+
+double chargeSetpoint_kW = 0;
+
+if(p_ownerActor instanceof ConnectionOwner) {
+		if (time(HOUR) == 0){
+			chargeSetpoint_kW = -600;
+		} else {
+			//traceln("Initial Mappings are: " + ((ConnectionOwner)p_ownerActor).v_currentPriceBands);
+			double currentElectricityPriceCharge_eurpkWh = ((ConnectionOwner)p_ownerActor).v_currentPriceBands.ceilingEntry(100.0).getValue(); // query price at 1kW
+			double currentElectricityPriceDischarge_eurpkWh = ((ConnectionOwner)p_ownerActor).v_currentPriceBands.floorEntry(-100.0).getValue(); // query price at 1kW
+			//double lowPassFraction = min(1,1*1.2*main.p_timeStep_h); // smaller value results in more filtering
+			v_electricityPriceLowPassed_eurpkWh += v_lowPassFactor_fr * ( currentElectricityPriceCharge_eurpkWh - v_electricityPriceLowPassed_eurpkWh );
+			
+			double currentPricePowerBandPos_kW = ((ConnectionOwner)p_ownerActor).v_currentPriceBands.ceilingKey(100.0); // Up to what power does this price hold?
+			double currentPricePowerBandNeg_kW = ((ConnectionOwner)p_ownerActor).v_currentPriceBands.floorKey(100.0); // Down to what power does this price hold?
+			
+			//double currentElectricityPrice_eurpkWh = currentElectricityPriceBand_eurpkWh.getValue();
+			//traceln("Current price is " + currentElectricityPriceCharge_eurpkWh + " eurpkWh, between " + currentPricePowerBandNeg_kW + " kW and " + currentPricePowerBandPos_kW + " kW");
+			// Keep track of average electricity value over last period using low-pass filter
+			
+			//v_electricityPriceLowPassed_eurpkWh += v_lowPassFactor_fr * (currentElectricityPrice_eurpkWh - v_electricityPriceLowPassed_eurpkWh);
+			
+			double SOC_setp_fr = 0.6 + 0.3 * Math.sin(2*Math.PI*(time(HOUR)-12)/24); // Sinusoidal setpoint: aim for low SOC at 6:00h, high SOC at 18:00h. 
+			double SOC_deficit_fr = SOC_setp_fr - currentBatteryStateOfCharge; // How far away from desired SOC? SOC too LOW is a POSITIVE deficit
+			
+			// Define WTP price for charging and discharging!
+			double WTP_charge_eurpkWh = v_electricityPriceLowPassed_eurpkWh - chargeDischarge_offset_eurpkWh + SOC_deficit_fr * WTPfeedbackGain_eurpSOC;
+			double WTP_discharge_eurpkWh = v_electricityPriceLowPassed_eurpkWh + chargeDischarge_offset_eurpkWh + SOC_deficit_fr * WTPfeedbackGain_eurpSOC;
+			
+			//traceln("WTP charge is " + WTP_charge_eurpkWh + " eurpkWh, discharge is " + WTP_discharge_eurpkWh + " eurpkWh");
+			// Choose charging power based on prices and desired SOC level
+			if ( WTP_charge_eurpkWh > currentElectricityPriceCharge_eurpkWh ) { // if willingness to pay higher than current electricity price
+				chargeSetpoint_kW = min(p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW()*(WTP_charge_eurpkWh - currentElectricityPriceCharge_eurpkWh)*priceGain, currentPricePowerBandPos_kW)  ;
+				//traceln("WTP charge " + WTP_charge_eurpkWh + " eurpkWh is high than electricity price " + currentElectricityPriceCharge_eurpkWh + " eurpkWh, so charge!") ;
+			} else if (WTP_discharge_eurpkWh < currentElectricityPriceDischarge_eurpkWh) {
+				chargeSetpoint_kW = -min(p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW()*(currentElectricityPriceDischarge_eurpkWh - WTP_discharge_eurpkWh)*priceGain, currentPricePowerBandPos_kW);
+				//traceln("WTP discharge " + WTP_discharge_eurpkWh + " eurpkWh is lower than electricity price " + currentElectricityPriceCharge_eurpkWh + " eurpkWh, so discharge!") ;
+			}
+			
+			// limit charging power to available connection capacity in HOLON when applicable
+			if(((ConnectionOwner)p_ownerActor).p_holonParent instanceof EnergyHolon ) {	
+				double currentHolonElectricitySurplus_kW = ((ConnectionOwner)p_ownerActor).p_holonParent.v_electricitySurplus_kW + v_previousPowerElectricity_kW;
+				double HolonConnectionCapacity_kW = 0.9*((ConnectionOwner)p_ownerActor).p_holonParent.v_connectionCapacity_kW; // Use only 90% of capacity for robustness against delay
+				double availableChargePower_kW = currentHolonElectricitySurplus_kW + HolonConnectionCapacity_kW; // Max battery charging power within grid capacity
+				double availableDischargePower_kW = currentHolonElectricitySurplus_kW - HolonConnectionCapacity_kW; // Max discharging power within grid capacity
+				//chargeSetpoint_kW = min(max(chargeSetpoint_kW, availableDischargePower_kW),availableChargePower_kW); // Don't allow too much (dis)charging!
+			}			
+		}
+		p_batteryAsset.v_powerFraction_fr = max(-1,min(1, chargeSetpoint_kW / p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW())); // Convert to powerFraction and limit power
+		//traceln("SOC setpoint at " + getHourOfDay() + " h is " + SOC_setp_fr*100 + "%");
+		/*double FeedbackGain_kWpSOC = 1.5 * p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW(); // How strongly to aim for SOC setpoint
+		double FeedforwardGain_kWpKw = 0.8; // Feedforward based on current surpluss in holon
+		//double chargeOffset_kW = 100; // Charging 'bias', basically increases SOC setpoint slightly during the whole day.
+		double chargeSetpoint_kW = 0;
+		chargeSetpoint_kW = FeedforwardGain_kWpKw*currentHolonElectricitySurplus_kW + (SOC_setp_fr - currentBatteryStateOfCharge) * FeedbackGain_kWpSOC;
+		chargeSetpoint_kW = min(max(chargeSetpoint_kW, availableDischargePower_kW),availableChargePower_kW); // Don't allow too much (dis)charging!
+		if (time(HOUR) == 0){
+			chargeSetpoint_kW = -1000;
+		}*/
+		//p_batteryAsset.v_powerFraction_fr = max(-1,min(1, chargeSetpoint_kW / p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW())); // Convert to powerFraction and limit power
+		//traceln("HOLON surpluss " + currentHolonElectricitySurplus_kW + "kW, Battery charging power " + p_batteryAsset.v_powerFraction_fr*p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW() + " kW at " + currentBatteryStateOfCharge*100 + " % SOC");
 }]]></Body>
 				</Function>
 			</Functions>
@@ -20066,6 +20324,15 @@ public void f_operateFlexAssets(){
 				<Parameter>
 					<Name><![CDATA[p_energyAssetList]]></Name>
 				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_chargingAttitudeVehicles]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_batteryOperationMode]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_batteryAsset]]></Name>
+				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -20416,7 +20683,7 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[switch (v_chargingAttitude) {
+					<Body><![CDATA[switch ( p_chargingAttitudeVehicles ) {
 	case SIMPLE:
 		f_simpleCharging();
 	break;
@@ -20636,6 +20903,15 @@ public void f_operateFlexAssets(){
 				<Parameter>
 					<Name><![CDATA[p_energyAssetList]]></Name>
 				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_chargingAttitudeVehicles]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_batteryOperationMode]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_batteryAsset]]></Name>
+				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -20735,7 +21011,7 @@ public void f_operateFlexAssets(){
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1663773964560</Id>
 					<Name><![CDATA[f_runFlexAssets]]></Name>
-					<X>780</X><Y>300</Y>
+					<X>1040</X><Y>300</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -20752,7 +21028,7 @@ f_manageHeatingAssets();
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1664962227830</Id>
 					<Name><![CDATA[f_runFixedConsumptionAssets]]></Name>
-					<X>780</X><Y>280</Y>
+					<X>1040</X><Y>280</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -20774,12 +21050,12 @@ f_manageHeatingAssets();
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1668598099461</Id>
 					<Name><![CDATA[f_manageCharging]]></Name>
-					<X>780</X><Y>260</Y>
+					<X>1070</X><Y>320</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[switch (v_chargingAttitude) {
+					<Body><![CDATA[switch (p_chargingAttitudeVehicles) {
 	case SIMPLE:
 		f_simpleCharging();
 	break;
@@ -20787,12 +21063,7 @@ f_manageHeatingAssets();
 		f_maxSpreadCharging();
 	break;
 	case MAX_POWER:
-		if (getHourOfDay() > 20 || getHourOfDay()< 7 ){
-			v_allowedCapacity_kW = p_capacity_kW;
-		}
-		else {
-			v_allowedCapacity_kW = p_capacity_kW - 1000;
-		}
+		v_allowedCapacity_kW = p_capacity_kW;
 		double availableCapacityFromBatteries = 0;
 		for( EnergyAsset ea : c_batteries ){
 			availableCapacityFromBatteries = availableCapacityFromBatteries + ((J_EAStorageElectric)ea.p_energyAssetInstance).getCapacityAvailable_kW(); 
@@ -20808,7 +21079,7 @@ f_manageHeatingAssets();
 					<Id>1668597702976</Id>
 					<Name><![CDATA[f_simpleCharging]]></Name>
 					<Description><![CDATA[Charging when arriving home, not taking grid limits into account]]></Description>
-					<X>820</X><Y>350</Y>
+					<X>1100</X><Y>340</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -20829,7 +21100,7 @@ f_manageHeatingAssets();
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1668597702978</Id>
 					<Name><![CDATA[f_maxSpreadCharging]]></Name>
-					<X>820</X><Y>370</Y>
+					<X>1100</X><Y>360</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -20839,17 +21110,18 @@ int countDeletedItems = 0;
 
 for ( int i = 0; i < copiedVehicleList.size(); i++ ){
 	EnergyAsset EA = copiedVehicleList.get(i);
-	J_EAEV ev = (J_EAEV)EA.p_energyAssetInstance;
-	
-	if(!ev.getAvailability() ){
-		EA.f_updateElectricityFlows( 0 );
-		c_vehiclesAvailableForCharging.remove( i - countDeletedItems );
-		countDeletedItems ++;
-	}
-	if( ev.getCurrentStateOfCharge() < 1 ) {
-		v_chargingPower_kW += EA.f_updateElectricityFlows( ev.getMaxSpreadChargingRatio() );
-		//traceln( "charging ratio " + ev.getMaxSpreadChargingRatio());
-		//traceln( "charging speed " + ev.getElectricCapacity_kW() * ev.getMaxSpreadChargingRatio());
+	if(EA.p_energyAssetInstance instanceof J_EAEV) {
+		J_EAEV ev = (J_EAEV)EA.p_energyAssetInstance;
+		if(!ev.getAvailability() ){
+			EA.f_updateElectricityFlows( 0 );
+			c_vehiclesAvailableForCharging.remove( i - countDeletedItems );
+			countDeletedItems ++;
+		}
+		if( ev.getCurrentStateOfCharge() < 1 ) {
+			v_chargingPower_kW += EA.f_updateElectricityFlows( ev.getMaxSpreadChargingRatio() );
+			//traceln( "charging ratio " + ev.getMaxSpreadChargingRatio());
+			//traceln( "charging speed " + ev.getElectricCapacity_kW() * ev.getMaxSpreadChargingRatio());
+		}
 	}
 	else {
 		EA.f_updateElectricityFlows( 0 );
@@ -20862,7 +21134,7 @@ for ( int i = 0; i < copiedVehicleList.size(); i++ ){
 					<Id>1668597702980</Id>
 					<Name><![CDATA[f_maxPowerCharging]]></Name>
 					<Description><![CDATA[Charge at max power taking grid constaints into account]]></Description>
-					<X>820</X><Y>390</Y>
+					<X>1100</X><Y>380</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -20902,7 +21174,7 @@ for ( int i = 0; i < copiedVehicleList.size(); i++ ){
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1668598099477</Id>
 					<Name><![CDATA[f_chargeOnPrice]]></Name>
-					<X>820</X><Y>410</Y>
+					<X>1100</X><Y>400</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -20913,7 +21185,7 @@ for ( int i = 0; i < copiedVehicleList.size(); i++ ){
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1668598110923</Id>
 					<Name><![CDATA[f_manageHeatingAssets]]></Name>
-					<X>820</X><Y>430</Y>
+					<X>1100</X><Y>420</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -21061,6 +21333,15 @@ public void f_connectToChild(Agent ConnectingChildNode){
 				</Parameter>
 				<Parameter>
 					<Name><![CDATA[p_energyAssetList]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_chargingAttitudeVehicles]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_batteryOperationMode]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_batteryAsset]]></Name>
 				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
@@ -21489,6 +21770,15 @@ traceln("NetConnection connecting to " + numberOfEnergyAssets + " EnergyAssets")
 				<Parameter>
 					<Name><![CDATA[p_energyAssetList]]></Name>
 				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_chargingAttitudeVehicles]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_batteryOperationMode]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_batteryAsset]]></Name>
+				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -21696,6 +21986,15 @@ traceln("NetConnection connecting to " + numberOfEnergyAssets + " EnergyAssets")
 				</Parameter>
 				<Parameter>
 					<Name><![CDATA[p_energyAssetList]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_chargingAttitudeVehicles]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_batteryOperationMode]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_batteryAsset]]></Name>
 				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
@@ -22346,6 +22645,15 @@ public void f_operateFlexAssets(){
 				<Parameter>
 					<Name><![CDATA[p_energyAssetList]]></Name>
 				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_chargingAttitudeVehicles]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_batteryOperationMode]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_batteryAsset]]></Name>
+				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -22592,7 +22900,7 @@ for( EnergyAsset c : c_conversionAssets ) {
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[switch (v_chargingAttitude) {
+					<Body><![CDATA[switch ( p_chargingAttitudeVehicles ) {
 	case SIMPLE:
 		f_simpleCharging();
 	break;
@@ -22829,6 +23137,15 @@ public void f_operateFlexAssets(){
 				<Parameter>
 					<Name><![CDATA[p_energyAssetList]]></Name>
 				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_chargingAttitudeVehicles]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_batteryOperationMode]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_batteryAsset]]></Name>
+				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -22926,6 +23243,7 @@ public void f_operateFlexAssets(){
 				<Variable Class="PlainVariable">
 					<Id>1668014284866</Id>
 					<Name><![CDATA[v_electricityPriceLowPassed_eurpkWh]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>740</X><Y>380</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -22941,6 +23259,7 @@ public void f_operateFlexAssets(){
 				<Variable Class="PlainVariable">
 					<Id>1668014343625</Id>
 					<Name><![CDATA[v_lowPassFactor_fr]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>740</X><Y>400</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -22956,7 +23275,8 @@ public void f_operateFlexAssets(){
 				<Variable Class="PlainVariable">
 					<Id>1668443493765</Id>
 					<Name><![CDATA[v_batterySOC_fr]]></Name>
-					<X>740</X><Y>450</Y>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>740</X><Y>420</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22967,27 +23287,6 @@ public void f_operateFlexAssets(){
 							<Code><![CDATA[0.01]]></Code>
 						</InitialValue>
 					</Properties>
-				</Variable>
-				<Variable Class="Parameter">
-					<Id>1666973673178</Id>
-					<Name><![CDATA[p_batteryAsset]]></Name>
-					<X>460</X><Y>300</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[EnergyAsset]]></Type>
-						<UnitType><![CDATA[NONE]]></UnitType>
-						<SdArray>false</SdArray>
-						<ParameterEditor>
-							<Id>1666973673176</Id>
-							<EditorContolType>TEXT_BOX</EditorContolType>
-							<MinSliderValue><![CDATA[0]]></MinSliderValue>
-							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
-							<DelimeterType>NO_DELIMETER</DelimeterType>
-						</ParameterEditor>
-					</Properties>                 
 				</Variable>
 			</Variables>
 			<Functions>
@@ -23063,15 +23362,19 @@ traceln("NetConnection connecting to " + numberOfEnergyAssets + " EnergyAssets")
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1666956527771</Id>
 					<Name><![CDATA[f_runFlexAssets]]></Name>
-					<X>800</X><Y>270</Y>
+					<X>1000</X><Y>260</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[v_batterySOC_fr = p_batteryAsset.p_energyAssetInstance.getCurrentStateOfCharge();
 
-//f_balanceHolonLoadV2(v_batterySOC_fr);
-f_priceBasedBatteryManagement(v_batterySOC_fr);
+if( p_batteryOperationMode == BALANCE){
+	f_balanceHolonLoadV2(v_batterySOC_fr);
+}
+else if (p_batteryOperationMode == PRICE){
+	f_priceBasedBatteryManagement(v_batterySOC_fr);
+}
 
 p_batteryAsset.f_updateElectricityFlows(p_batteryAsset.v_powerFraction_fr);
 ]]></Body>
@@ -23081,7 +23384,7 @@ p_batteryAsset.f_updateElectricityFlows(p_batteryAsset.v_powerFraction_fr);
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1666967854749</Id>
 					<Name><![CDATA[f_runFixedConsumptionAssets]]></Name>
-					<X>800</X><Y>250</Y>
+					<X>1000</X><Y>240</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -23099,99 +23402,13 @@ p_batteryAsset.f_updateElectricityFlows(p_batteryAsset.v_powerFraction_fr);
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1666977096954</Id>
-					<Name><![CDATA[f_balanceHolonLoad]]></Name>
-					<Description><![CDATA[Simpele regeling voor balancering van holon-load.
-
-@author: JorritvandenHouten
-@since: 28-10-2022]]></Description>
-					<X>800</X><Y>300</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Parameter>
-						<Name><![CDATA[currentBatteryStateOfCharge]]></Name>
-						<Type><![CDATA[double]]></Type>
-					</Parameter>
-					<Body><![CDATA[if(p_ownerActor instanceof ConnectionOwner) {
-	if(((ConnectionOwner)p_ownerActor).p_holonParent instanceof EnergyHolon ) {
-
-		double currentHolonElectricitySurplus_kW = ((ConnectionOwner)p_ownerActor).p_holonParent.v_electricitySurplus_kW + v_previousPowerElectricity_kW;
-		double HolonConnectionCapacity_kW = 0.9*((ConnectionOwner)p_ownerActor).p_holonParent.v_connectionCapacity_kW;
-
-		double chargeSetpoint_kW = 0;
-		if(abs(currentHolonElectricitySurplus_kW) < HolonConnectionCapacity_kW ) { // when there is a small shortage or surpluss, aim for 90% battery charge
-			if(currentBatteryStateOfCharge < 0.6) { // when battery is undercharged, charge the battery at available grid capacity
-				chargeSetpoint_kW = .8 * (HolonConnectionCapacity_kW+currentHolonElectricitySurplus_kW);
-				//traceln("Battery charging due to low SoC and moderate HOLON demand");
-			//} else if (currentBatteryStateOfCharge > 0.8) {
-			//	chargeSetpoint_kW = currentHolonElectricitySurplus_kW;
-				//traceln("Battery supplying power due to high SoC and moderate HOLON  demand");
-			} else { // Else module power based on SOC. Power should be zero at 0.8 SOC
-				chargeSetpoint_kW = 0.8 * (HolonConnectionCapacity_kW+currentHolonElectricitySurplus_kW) * (1 - (currentBatteryStateOfCharge - 0.6)/0.2);
-				chargeSetpoint_kW = max(chargeSetpoint_kW, currentHolonElectricitySurplus_kW - HolonConnectionCapacity_kW); // Don't allow too much discharging!
-				//traceln("Modulating battery during demand phase, SOC " + currentBatteryStateOfCharge + ", charge setpoint " + chargeSetpoint_kW);
-			}
-		/*} else if(currentHolonElectricitySurplus_kW > 0 ) { // when there is a moderate surpluss in the holon (within grid bounds)
-			if (currentBatteryStateOfCharge < 0.6) {
-				chargeSetpoint_kW = currentHolonElectricitySurplus_kW + HolonConnectionCapacity_kW;
-				//traceln("Battery opportunity charging due to HOLON surpluss and low SOC, charge setpoint");
-			} else if(currentBatteryStateOfCharge < 0.9) { // when there is a nett surpluss in the holon (within grid bounds)
-				chargeSetpoint_kW = currentHolonElectricitySurplus_kW;
-				//traceln("Battery opportunity charging due to HOLON surpluss and low SOC, charge setpoint");
-			} else {
-				//traceln("Moderate surpluss is HOLON but battery already at high SOC");
-				chargeSetpoint_kW = 0;
-			} */
-		} else if(currentHolonElectricitySurplus_kW > HolonConnectionCapacity_kW) { // Bigger surpluss than can be exported via grid
-			if (currentBatteryStateOfCharge < 1 ) {
-				if (currentBatteryStateOfCharge < 0.6) { // If battery is not very full, use all surpluss to charge
-					chargeSetpoint_kW = currentHolonElectricitySurplus_kW;
-				} else { // else use only what can't be exported
-//					chargeSetpoint_kW = currentHolonElectricitySurplus_kW - HolonConnectionCapacity_kW;
-					chargeSetpoint_kW = (HolonConnectionCapacity_kW+currentHolonElectricitySurplus_kW) * (1 - (currentBatteryStateOfCharge - 0.6)/0.2);
-					chargeSetpoint_kW = max(chargeSetpoint_kW, currentHolonElectricitySurplus_kW - HolonConnectionCapacity_kW);
-				}
-				//traceln("Battery charging fast due to HOLON overproduction and moderate SOC, charge setpoint");
-			} else {
-				traceln("**!! Battery not able to prevent congestion due to overproduction!!** at hour " + time(HOUR));
-				chargeSetpoint_kW = 0;
-			}
-		} else if (-currentHolonElectricitySurplus_kW > HolonConnectionCapacity_kW ) { // When there is too much demand, battery must supply
-			if (currentBatteryStateOfCharge > 0.7) { // If battery is nearly full, supply max power
-				chargeSetpoint_kW = currentHolonElectricitySurplus_kW * (currentBatteryStateOfCharge-0.7)/0.3 + (HolonConnectionCapacity_kW + currentHolonElectricitySurplus_kW) * (1 - (currentBatteryStateOfCharge - 0.7)/0.3);
-				//traceln("Modulating battery during shortage phase, SOC " + currentBatteryStateOfCharge + ", charge setpoint " + chargeSetpoint_kW);
-				//traceln("Battery supplying high power due to overconsumption in HOLON and high SOC");
-			} else if (currentBatteryStateOfCharge > 0){ // else use only what can't be imported
-				chargeSetpoint_kW = currentHolonElectricitySurplus_kW + HolonConnectionCapacity_kW;
-				//traceln("Battery supplying power due to overconsumption in HOLON");
-			} else {
-				traceln("**!! Battery not able to prevent congestion due to overconsumption!!**");
-				chargeSetpoint_kW = 0;
-			}
-
-		} else { // Else zero power to battery
-			chargeSetpoint_kW = 0;
-			//traceln("Battery passive");
-		}
-		if (time(HOUR) == 0){
-			chargeSetpoint_kW = -1000;
-		}
-		p_batteryAsset.v_powerFraction_fr = max(-1,min(1, chargeSetpoint_kW / p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW())); // Convert to powerFraction and limit power
-		//traceln("HOLON surpluss " + currentHolonElectricitySurplus_kW + "kW, Battery charging power " + p_batteryAsset.v_powerFraction_fr*p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW() + " kW at " + currentBatteryStateOfCharge*100 + " % SOC");
-	}
-}]]></Body>
-				</Function>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1667632551574</Id>
 					<Name><![CDATA[f_balanceHolonLoadV2]]></Name>
 					<Description><![CDATA[Simpele regeling voor balancering van holon-load.
 
 @author: JorritvandenHouten
 @since: 28-10-2022]]></Description>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>800</X><Y>320</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -23233,6 +23450,7 @@ p_batteryAsset.f_updateElectricityFlows(p_batteryAsset.v_powerFraction_fr);
 
 @author: JorritvandenHouten
 @since: 28-10-2022]]></Description>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>740</X><Y>350</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -23773,14 +23991,16 @@ nextActivityEndTimer.restart( endtimes.get(v_tripIndex) - time( MINUTE ), MINUTE
 
 if(p_vehicleInstance instanceof J_EAEV){
 	((J_EAEV)p_vehicleInstance).endTrip( v_tripDist_km, v_idleTimeToNextTrip);
+	p_gridConnection.c_vehiclesAvailableForCharging.add( p_energyAsset );
 } else if(p_vehicleInstance instanceof J_EAConversionDieselVehicle){
 	((J_EAConversionDieselVehicle)p_vehicleInstance).endTrip( v_tripDist_km, v_idleTimeToNextTrip);
 }
 
-p_gridConnection.c_vehiclesAvailableForCharging.add( p_energyAsset );
+
+
 v_away = false;
 
-if (p_gridConnection.v_chargingAttitude == MAX_SPREAD && p_vehicleInstance instanceof J_EAEV){
+if (p_gridConnection.p_chargingAttitudeVehicles == MAX_SPREAD && p_vehicleInstance instanceof J_EAEV){
 	((J_EAEV)p_vehicleInstance).setMaxSpreadChargingRatio(p_gridConnection.v_additionalTimeSpreadCharging_MIN);
 	//traceln( "vehicle komt aan van " + v_tripDist_km + " km, charging ratio set at: " + p_vehicleInstance.getMaxSpreadChargingRatio());
 }
@@ -25184,26 +25404,6 @@ public class J_EAEV extends base.J_EAStorageElectric implements Serializable {
 		this.vehicleScaling = vehicleScaling;
     }
 
-    public double[] charge(double chargingPower_kW) {
-    	// Geen availability if statement nodig, deze laadfunctie wordt alleen aangeroepen als hij ook werkelijk thuis is.
-    	double deltaEnergy_kWh;
-
-    	deltaEnergy_kWh = ( chargingPower_kW * timestep_h ) ;
-    	deltaEnergy_kWh = - min( -deltaEnergy_kWh, (stateOfCharge_r * storageCapacity_kWh) ); // Prevent negative charge
-    	deltaEnergy_kWh = min(deltaEnergy_kWh, (1 - stateOfCharge_r) * storageCapacity_kWh ); // Prevent overcharge
-    	double finalChargingPower_kW = -deltaEnergy_kWh / timestep_h;
-
-    	// (Peter) Hier worden alleen netto flows berekend. Als we naar slimmere systemen gaat kan het relevant zijn om tussen tijdstappen te laden EN te ontladen.
-		electricityProduction_kW = max(finalChargingPower_kW, 0);
-		electricityConsumption_kW = max(-finalChargingPower_kW, 0);
-		updateStateOfCharge( finalChargingPower_kW );
-
-		updateChargingHistory( electricityProduction_kW, electricityConsumption_kW );
-
-		traceln("!!Still calling J_EAEV charge method!!");
-		return returnEnergyFlows();
-    }
-
 	@Override
 	public void calculateLoss() {
 		//no loss for electric batteries modeled.
@@ -25309,13 +25509,13 @@ public class J_EAEV extends base.J_EAStorageElectric implements Serializable {
 
 	public void setMaxSpreadChargingRatio(int extraTime_MIN) {
 		maxSpreadChargingRatio = (storageCapacity_kWh - stateOfCharge_r * storageCapacity_kWh) /  ((idleTimeToNextTrip_MIN - extraTime_MIN ) / 60); // determine required charging speed
-		traceln("");
-		traceln( "kWh in battery = " + stateOfCharge_r * storageCapacity_kWh);
-		traceln("Idle time " + ((idleTimeToNextTrip_MIN - extraTime_MIN ) / 60));
-		traceln( "Resulting max spread kW = " + maxSpreadChargingRatio);
+		//traceln("");
+		//traceln( "kWh in battery = " + stateOfCharge_r * storageCapacity_kWh);
+		//traceln("Idle time " + ((idleTimeToNextTrip_MIN - extraTime_MIN ) / 60));
+		//traceln( "Resulting max spread kW = " + maxSpreadChargingRatio);
 		if( stateOfCharge_r < 0 ) {
 			maxSpreadChargingRatio = - maxSpreadChargingRatio +  storageCapacity_kWh /  (idleTimeToNextTrip_MIN / 60); // make sure negative SOCs are corrected for
-			traceln( "max spread kW fixed = " + maxSpreadChargingRatio);
+			traceln( "State of charge from vehicle < 0, max spread charging power fixed to " + maxSpreadChargingRatio);
 		}
 		maxSpreadChargingRatio = maxSpreadChargingRatio / capacityElectric_kW; //turn kW into ratio
 		if ( maxSpreadChargingRatio >  1) {
