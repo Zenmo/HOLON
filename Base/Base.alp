@@ -2243,9 +2243,9 @@ for(HashMap data : parsedJSONGridConnections) {
     gridConnectionParentElectric = data.get( "parent_electric" ).toString();
     gridConnectionParentHeat = (String)data.get( "parent_heat" );
     gridConnectionCapacity = (Double)data.get( "capacity_kw" );
-    //gridConnectionNonFirmATOCapacity = data.get( "NonFirmATOCapacity_kW" ) == null? null : (Double)data.get( "NonFirmATOCapacity_kW" );
-    //gridConnectionNonFirmATOStarttime = data.get( "NonFirmATOStarttime" ) == null? null : (Double)data.get( "NonFirmATOStarttime" );
-	//gridConnectionNonFirmATOEndtime = data.get( "NonFirmATOEndtime" ) == null? null : (Double)data.get( "NonFirmATOEndtime" );
+    gridConnectionNonFirmATOCapacity = data.get( "nfATO_capacity_kw" ) == null? 0 : (Double)data.get( "nfATO_capacity_kw" );
+    gridConnectionNonFirmATOStarttime = data.get( "nfATO_starttime" ) == null? 0 : (Double)data.get( "nfATO_starttime" );
+	gridConnectionNonFirmATOEndtime = data.get( "nfATO_endtime" ) == null? 0 : (Double)data.get( "nfATO_endtime" );
     gridConnectionChargingAttitude = data.get( "charging_mode" ) == null? OL_ChargingAttitude.MAX_POWER : OL_ChargingAttitude.valueOf((String)data.get("charging_mode"));
     gridConnectionBatteryMode = data.get( "battery_mode" ) == null? OL_BatteryOperationMode.BALANCE : OL_BatteryOperationMode.valueOf((String)data.get("battery_mode"));
     gridConnectionID = data.get( "id" ).toString();
@@ -2276,6 +2276,9 @@ for(HashMap data : parsedJSONGridConnections) {
 			GCHouse.set_p_energyAssetList( (ArrayList)gridConnectionEnergyAssets );
 			GCHouse.set_p_batteryOperationMode( gridConnectionBatteryMode );
 			GCHouse.set_p_chargingAttitudeVehicles( gridConnectionChargingAttitude );
+			GCHouse.set_p_nfatoEnd_HR( gridConnectionNonFirmATOEndtime );
+	  		GCHouse.set_p_nfatoStart_HR( gridConnectionNonFirmATOStarttime);
+	  		GCHouse.set_p_nfatoLvl_kW( gridConnectionNonFirmATOCapacity );
 			GCHouse.f_instantiateEnergyAssets();
 
 			//add_gCHouses()
@@ -2294,9 +2297,9 @@ for(HashMap data : parsedJSONGridConnections) {
  			GCBuilding.set_p_energyAssetList( (ArrayList)gridConnectionEnergyAssets );
  			GCBuilding.set_p_batteryOperationMode( gridConnectionBatteryMode );
 			GCBuilding.set_p_chargingAttitudeVehicles( gridConnectionChargingAttitude );
-	  		GCBuilding.set_p_nfatoEnd_HR( 6 );
-	  		GCBuilding.set_p_nfatoStart_HR( 18);
-	  		GCBuilding.set_p_nfatoLvl_kW(1500);
+	  		GCBuilding.set_p_nfatoEnd_HR( gridConnectionNonFirmATOEndtime );
+	  		GCBuilding.set_p_nfatoStart_HR( gridConnectionNonFirmATOStarttime);
+	  		GCBuilding.set_p_nfatoLvl_kW( gridConnectionNonFirmATOCapacity );
  			GCBuilding.f_instantiateEnergyAssets();
 
 	 		c_gridConnections.add(GCBuilding);
@@ -2315,6 +2318,9 @@ for(HashMap data : parsedJSONGridConnections) {
 	 		GCIndustry.set_p_energyAssetList( (ArrayList)gridConnectionEnergyAssets );
 	 		GCIndustry.set_p_batteryOperationMode( gridConnectionBatteryMode );
 			GCIndustry.set_p_chargingAttitudeVehicles( gridConnectionChargingAttitude );
+			GCIndustry.set_p_nfatoEnd_HR( gridConnectionNonFirmATOEndtime );
+	  		GCIndustry.set_p_nfatoStart_HR( gridConnectionNonFirmATOStarttime);
+	  		GCIndustry.set_p_nfatoLvl_kW( gridConnectionNonFirmATOCapacity );
 	 		GCIndustry.f_instantiateEnergyAssets();
 
 	 		c_gridConnections.add(GCIndustry);
@@ -8689,6 +8695,21 @@ import java.io.*;]]></Import>
 					<Name><![CDATA[c_batteries]]></Name>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>510</X><Y>240</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
+						<ElementClass><![CDATA[EnergyAsset]]></ElementClass>
+						<ValueElementClass><![CDATA[String]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1669008764710</Id>
+					<Name><![CDATA[c_vehiclesAvailableForTanking]]></Name>
+					<X>530</X><Y>300</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -21285,9 +21306,13 @@ public void f_batteryManagementPrice( double batterySOC ){
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[// Determine EV charging
+					<Body><![CDATA[// ICE vehicle tanking
+f_manageTanking();
+
+// Determine EV charging
 f_manageCharging();
-//vehicle that charge update v_chargingPower_kW in the charging functions
+//vehicles that charge update v_chargingPower_kW in the charging functions
+
 v_currentPowerElectricity_kW += v_chargingPower_kW;
 
 // Determine house heating
@@ -21322,7 +21347,7 @@ if (p_batteryAsset != null){
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1668598099461</Id>
 					<Name><![CDATA[f_manageCharging]]></Name>
-					<X>820</X><Y>290</Y>
+					<X>820</X><Y>330</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -21347,7 +21372,7 @@ if (p_batteryAsset != null){
 					<Id>1668597702976</Id>
 					<Name><![CDATA[f_simpleCharging]]></Name>
 					<Description><![CDATA[Charging when arriving home, not taking grid limits into account]]></Description>
-					<X>850</X><Y>310</Y>
+					<X>850</X><Y>350</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -21368,7 +21393,7 @@ if (p_batteryAsset != null){
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1668597702978</Id>
 					<Name><![CDATA[f_maxSpreadCharging]]></Name>
-					<X>850</X><Y>330</Y>
+					<X>850</X><Y>370</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -21378,21 +21403,16 @@ int countDeletedItems = 0;
 
 for ( int i = 0; i < copiedVehicleList.size(); i++ ){
 	EnergyAsset EA = copiedVehicleList.get(i);
-	if(EA.p_energyAssetInstance instanceof J_EAEV) {
-		J_EAEV ev = (J_EAEV)EA.p_energyAssetInstance;
-		if(!ev.getAvailability() ){
-			EA.f_updateElectricityFlows( 0 );
-			c_vehiclesAvailableForCharging.remove( i - countDeletedItems );
-			countDeletedItems ++;
-		}
-		if( ev.getCurrentStateOfCharge() < 1 ) {
-			v_chargingPower_kW += EA.f_updateElectricityFlows( ev.getMaxSpreadChargingRatio() );
-			//traceln( "charging ratio " + ev.getMaxSpreadChargingRatio());
-			//traceln( "charging speed " + ev.getElectricCapacity_kW() * ev.getMaxSpreadChargingRatio());
-		}
-	}
-	else {
+	J_EAEV ev = (J_EAEV)EA.p_energyAssetInstance;
+	if(!ev.getAvailability() ){
 		EA.f_updateElectricityFlows( 0 );
+		c_vehiclesAvailableForCharging.remove( i - countDeletedItems );
+		countDeletedItems ++;
+	}
+	if( ev.getCurrentStateOfCharge() < 1 ) {
+		v_chargingPower_kW += EA.f_updateElectricityFlows( ev.getMaxSpreadChargingRatio() );
+		//traceln( "charging ratio " + ev.getMaxSpreadChargingRatio());
+		//traceln( "charging speed " + ev.getElectricCapacity_kW() * ev.getMaxSpreadChargingRatio());
 	}
 }]]></Body>
 				</Function>
@@ -21402,7 +21422,7 @@ for ( int i = 0; i < copiedVehicleList.size(); i++ ){
 					<Id>1668597702980</Id>
 					<Name><![CDATA[f_maxPowerCharging]]></Name>
 					<Description><![CDATA[Charge at max power taking grid constaints into account]]></Description>
-					<X>850</X><Y>350</Y>
+					<X>850</X><Y>390</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -21417,25 +21437,19 @@ ArrayList<EnergyAsset> copiedVehicleList = new ArrayList<EnergyAsset>(c_vehicles
 int countDeletedItems = 0;
 for ( int i = 0; i < copiedVehicleList.size(); i++ ){
 	EnergyAsset EA = copiedVehicleList.get(i);
-	if(EA.p_energyAssetInstance instanceof J_EAEV) {
-
-		J_EAEV ev = (J_EAEV)EA.p_energyAssetInstance;
-		if( !ev.getAvailability() || ev.getCurrentStateOfCharge() == 1 ){
-			EA.f_updateElectricityFlows( 0 );
-			c_vehiclesAvailableForCharging.remove( i - countDeletedItems );
-			countDeletedItems ++;
-		}
-		else {
-			double chargingSpeed = min (maxChargingSpeed, ev.capacityElectric_kW / ev.vehicleScaling );
-			double ratio = chargingSpeed / (ev.capacityElectric_kW / ev.vehicleScaling);
-			if ( ev.getChargingTimeToFull_MIN() > ev.getMobilityTracker().nextActivityStartTimer.getRest(MINUTE) - main.p_timeStep_h * 60 ){
-				ratio = 1;
-			}
-			v_chargingPower_kW += EA.f_updateElectricityFlows( ratio );
-		}
+	J_EAEV ev = (J_EAEV)EA.p_energyAssetInstance;
+	if( !ev.getAvailability() || ev.getCurrentStateOfCharge() == 1 ){
+		EA.f_updateElectricityFlows( 0 );
+		c_vehiclesAvailableForCharging.remove( i - countDeletedItems );
+		countDeletedItems ++;
 	}
-	else if( EA.p_energyAssetInstance instanceof J_EAConversionDieselVehicle ) {
-		EA.f_updateAllFlows( 0 );
+	else {
+		double chargingSpeed = min (maxChargingSpeed, ev.capacityElectric_kW / ev.vehicleScaling );
+		double ratio = chargingSpeed / (ev.capacityElectric_kW / ev.vehicleScaling);
+		if ( ev.getChargingTimeToFull_MIN() > ev.getMobilityTracker().nextActivityStartTimer.getRest(MINUTE) - main.p_timeStep_h * 60 ){
+			ratio = 1;
+		}
+		v_chargingPower_kW += EA.f_updateElectricityFlows( ratio );
 	}
 }]]></Body>
 				</Function>
@@ -21444,7 +21458,7 @@ for ( int i = 0; i < copiedVehicleList.size(); i++ ){
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1668598099477</Id>
 					<Name><![CDATA[f_chargeOnPrice]]></Name>
-					<X>850</X><Y>370</Y>
+					<X>850</X><Y>410</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -21455,7 +21469,7 @@ for ( int i = 0; i < copiedVehicleList.size(); i++ ){
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1668598110923</Id>
 					<Name><![CDATA[f_manageHeatingAssets]]></Name>
-					<X>820</X><Y>390</Y>
+					<X>820</X><Y>290</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -21477,6 +21491,7 @@ for( EnergyAsset c : c_conversionAssets ) {
 		c.f_updateAllFlows(c.v_powerFraction_fr);
 	}
 }
+
 
 ]]></Body>
 				</Function>
@@ -21549,6 +21564,17 @@ p_batteryAsset.v_powerFraction_fr = max(-1,min(1, chargeSetpoint_kW / p_batteryA
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
 					<Body><![CDATA[traceln("ATM no price battery management modelled for GC building");]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1669009369507</Id>
+					<Name><![CDATA[f_manageTanking]]></Name>
+					<X>820</X><Y>310</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -24261,18 +24287,16 @@ nextActivityEndTimer.restart( endtimes.get(v_tripIndex) - time( MINUTE ), MINUTE
 if(p_vehicleInstance instanceof J_EAEV){
 	((J_EAEV)p_vehicleInstance).endTrip( v_tripDist_km, v_idleTimeToNextTrip);
 	p_gridConnection.c_vehiclesAvailableForCharging.add( p_energyAsset );
+	if (p_gridConnection.p_chargingAttitudeVehicles == MAX_SPREAD){
+		((J_EAEV)p_vehicleInstance).setMaxSpreadChargingRatio(p_gridConnection.v_additionalTimeSpreadCharging_MIN);
+		//traceln( "vehicle komt aan van " + v_tripDist_km + " km, charging ratio set at: " + p_vehicleInstance.getMaxSpreadChargingRatio());
+	}
 } else if(p_vehicleInstance instanceof J_EAConversionDieselVehicle){
 	((J_EAConversionDieselVehicle)p_vehicleInstance).endTrip( v_tripDist_km, v_idleTimeToNextTrip);
+	p_gridConnection.c_vehiclesAvailableForTanking.add( p_energyAsset );
 }
-
-
 
 v_away = false;
-
-if (p_gridConnection.p_chargingAttitudeVehicles == MAX_SPREAD && p_vehicleInstance instanceof J_EAEV){
-	((J_EAEV)p_vehicleInstance).setMaxSpreadChargingRatio(p_gridConnection.v_additionalTimeSpreadCharging_MIN);
-	//traceln( "vehicle komt aan van " + v_tripDist_km + " km, charging ratio set at: " + p_vehicleInstance.getMaxSpreadChargingRatio());
-}
 v_tripDist_km = distances.get( v_tripIndex );
 
 //traceln( date() +  " truck komt terug, km: " + v_tripDist_km);]]></Action>
