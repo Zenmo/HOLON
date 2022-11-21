@@ -2158,6 +2158,11 @@ for(HashMap data : parsedJSONActors)
     parentActorID = String.valueOf(data.get( "parent_actor" ));
     actorContracts = data.get( "contracts") == null? null : (ArrayList)data.get( "contracts");
 
+	double NonFirmATOCapacity = data.get( "nfATO_capacity_kw" ) == null? 0.0 : (Double)data.get( "nfATO_capacity_kw" );
+    double NonFirmATOStarttime = data.get( "nfATO_starttime" ) == null? 0.0 : (Double)data.get( "nfATO_starttime" );
+	double NonFirmATOEndtime = data.get( "nfATO_endtime" ) == null? 0.0 : (Double)data.get( "nfATO_endtime" );
+	double ConnectionCapacity_kW = data.get( "connectionCapacity_kW") == null? 0.0 : (Double)data.get( "connectionCapacity_kW" );
+	
 	if (actorcategory.equals(OL_ActorType.CONNECTIONOWNER) ) {
 	    ConnectionOwner Actor = add_pop_connectionOwners();
 	    Actor.set_p_actorID( actorID );
@@ -2190,6 +2195,10 @@ for(HashMap data : parsedJSONActors)
 	    Actor.set_p_parentActorID( parentActorID );
 	    Actor.set_p_actorContractList( actorContracts );
    		Actor.f_setContractValues();
+		Actor.set_p_nfatoEnd_HR( NonFirmATOEndtime );
+  		Actor.set_p_nfatoStart_HR( NonFirmATOStarttime);
+  		Actor.set_p_nfatoLvl_kW( NonFirmATOCapacity );
+  		Actor.set_p_connectionCapacity_kW( ConnectionCapacity_kW );
 	    
     } else if (actorcategory.equals(OL_ActorType.GRIDOPERATOR) ) {
 	    GridOperator Actor = add_pop_gridOperators();
@@ -2202,6 +2211,7 @@ for(HashMap data : parsedJSONActors)
 
 for (EnergyHolon a : pop_energyHolons) {
 	a.f_connectToParentActor();
+	a.f_initialize();
 }
 for (ConnectionOwner a : pop_connectionOwners) {
 	a.f_connectToParentActor();
@@ -2310,7 +2320,7 @@ for(HashMap data : parsedJSONGridConnections) {
 			GCHouse.set_p_gridConnectionType( gridConnectionType );
 			GCHouse.set_p_parentNodeElectricID( gridConnectionParentElectric );
 			GCHouse.set_p_parentNodeHeatID( gridConnectionParentHeat );
-			GCHouse.set_p_capacity_kW( gridConnectionCapacity );
+			GCHouse.set_p_connectionCapacity_kW( gridConnectionCapacity );
 			GCHouse.set_p_ownerID( ownerActorID );
 			GCHouse.set_p_isolationLabel( gridConnectionIsolationLabel );
 			GCHouse.set_p_heatingType( gridConnectionHeatingType );
@@ -2329,7 +2339,7 @@ for(HashMap data : parsedJSONGridConnections) {
  			GCBuilding GCBuilding = add_Buildings( );
  			GCBuilding.set_p_gridConnectionCategory( gridConnectionCategory );
  			GCBuilding.set_p_gridConnectionType( gridConnectionType );
- 			GCBuilding.set_p_capacity_kW( gridConnectionCapacity );
+ 			GCBuilding.set_p_connectionCapacity_kW( gridConnectionCapacity );
  			GCBuilding.set_p_parentNodeElectricID( gridConnectionParentElectric );
  			GCBuilding.set_p_agentID( gridConnectionID );
  			GCBuilding.set_p_parentNodeHeatID( gridConnectionParentHeat );
@@ -2350,7 +2360,7 @@ for(HashMap data : parsedJSONGridConnections) {
 	 		//gridConnectionCategory, gridConnectionType, gridConnectionCapacity, gridConnectionParentElectric, gridConnectionID, gridConnectionParentHeat, null, null, null, ownerActorID, null, null, null, gridConnectionHeatingType, gridConnectionEnergyAssets);
 	 		GCIndustry.set_p_gridConnectionCategory( gridConnectionCategory );
 	 		GCIndustry.set_p_gridConnectionType( gridConnectionType );
-	 		GCIndustry.set_p_capacity_kW( gridConnectionCapacity );
+	 		GCIndustry.set_p_connectionCapacity_kW( gridConnectionCapacity );
 	 		GCIndustry.set_p_parentNodeElectricID( gridConnectionParentElectric );
 	 		GCIndustry.set_p_agentID( gridConnectionID );
 	 		GCIndustry.set_p_parentNodeHeatID( gridConnectionParentHeat );
@@ -2371,7 +2381,7 @@ for(HashMap data : parsedJSONGridConnections) {
 	 		// gridConnectionEnergyAssets);
 	 		GCDistrictHeating.set_p_gridConnectionCategory( gridConnectionCategory );
 	 		GCDistrictHeating.set_p_gridConnectionType( gridConnectionType );
-	 		GCDistrictHeating.set_p_capacity_kW( gridConnectionCapacity );
+	 		GCDistrictHeating.set_p_connectionCapacity_kW( gridConnectionCapacity );
 	 		GCDistrictHeating.set_p_parentNodeElectricID( gridConnectionParentElectric );
 	 		GCDistrictHeating.set_p_agentID( gridConnectionID );
 	 		GCDistrictHeating.set_p_parentNodeHeatID( gridConnectionParentHeat );
@@ -2387,7 +2397,7 @@ for(HashMap data : parsedJSONGridConnections) {
 	 		//gridConnectionCategory, gridConnectionType, gridConnectionCapacity, gridConnectionParentElectric, gridConnectionID, gridConnectionParentHeat, null, null, null, ownerActorID, null, null, null, null, gridConnectionEnergyAssets);
 	 		GCWindfarm.set_p_gridConnectionCategory( gridConnectionCategory );
 	 		GCWindfarm.set_p_gridConnectionType( gridConnectionType );
-	 		GCWindfarm.set_p_capacity_kW( gridConnectionCapacity );
+	 		GCWindfarm.set_p_connectionCapacity_kW( gridConnectionCapacity );
 	 		GCWindfarm.set_p_parentNodeElectricID( gridConnectionParentElectric );
 	 		GCWindfarm.set_p_agentID( gridConnectionID );
 	 		GCWindfarm.set_p_parentNodeHeatID( gridConnectionParentHeat );
@@ -2404,7 +2414,7 @@ for(HashMap data : parsedJSONGridConnections) {
 	 		//gridConnectionCategory, gridConnectionType, gridConnectionCapacity, gridConnectionParentElectric, gridConnectionID, gridConnectionParentHeat, null, null, null, ownerActorID, null, null, null, null, gridConnectionEnergyAssets);
 	 		GCSolarfarm.set_p_gridConnectionCategory( gridConnectionCategory );
 	 		GCSolarfarm.set_p_gridConnectionType( gridConnectionType );
-	 		GCSolarfarm.set_p_capacity_kW( gridConnectionCapacity );
+	 		GCSolarfarm.set_p_connectionCapacity_kW( gridConnectionCapacity );
 	 		GCSolarfarm.set_p_parentNodeElectricID( gridConnectionParentElectric );
 	 		GCSolarfarm.set_p_agentID( gridConnectionID );
 	 		GCSolarfarm.set_p_parentNodeHeatID( gridConnectionParentHeat );
@@ -2422,7 +2432,7 @@ for(HashMap data : parsedJSONGridConnections) {
 
 	 		GCGridBattery.set_p_gridConnectionCategory( gridConnectionCategory );
 	 		GCGridBattery.set_p_gridConnectionType( gridConnectionType );
-	 		GCGridBattery.set_p_capacity_kW( gridConnectionCapacity );
+	 		GCGridBattery.set_p_connectionCapacity_kW( gridConnectionCapacity );
 	 		GCGridBattery.set_p_parentNodeElectricID( gridConnectionParentElectric );
 	 		GCGridBattery.set_p_agentID( gridConnectionID );
 	 		GCGridBattery.set_p_parentNodeHeatID( gridConnectionParentHeat );
@@ -4282,7 +4292,7 @@ for(EnergyAsset e : c_storageAssets ) {
 							<Name><![CDATA[p_gridConnectionType]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_capacity_kW]]></Name>
+							<Name><![CDATA[p_connectionCapacity_kW]]></Name>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_parentNodeElectricID]]></Name>
@@ -4743,6 +4753,18 @@ for(EnergyAsset e : c_storageAssets ) {
 						<Parameter>
 							<Name><![CDATA[p_actorContractList]]></Name>
 						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_nfatoStart_HR]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_nfatoEnd_HR]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_nfatoLvl_kW]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_connectionCapacity_kW]]></Name>
+						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
 					<Replication Class="CodeValue">
@@ -5010,7 +5032,7 @@ for(EnergyAsset e : c_storageAssets ) {
 							<Name><![CDATA[p_gridConnectionType]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_capacity_kW]]></Name>
+							<Name><![CDATA[p_connectionCapacity_kW]]></Name>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_parentNodeElectricID]]></Name>
@@ -5143,7 +5165,7 @@ for(EnergyAsset e : c_storageAssets ) {
 							<Name><![CDATA[p_gridConnectionType]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_capacity_kW]]></Name>
+							<Name><![CDATA[p_connectionCapacity_kW]]></Name>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_parentNodeElectricID]]></Name>
@@ -5270,7 +5292,7 @@ for(EnergyAsset e : c_storageAssets ) {
 							<Name><![CDATA[p_gridConnectionType]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_capacity_kW]]></Name>
+							<Name><![CDATA[p_connectionCapacity_kW]]></Name>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_parentNodeElectricID]]></Name>
@@ -5397,7 +5419,7 @@ for(EnergyAsset e : c_storageAssets ) {
 							<Name><![CDATA[p_gridConnectionType]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_capacity_kW]]></Name>
+							<Name><![CDATA[p_connectionCapacity_kW]]></Name>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_parentNodeElectricID]]></Name>
@@ -5524,7 +5546,7 @@ for(EnergyAsset e : c_storageAssets ) {
 							<Name><![CDATA[p_gridConnectionType]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_capacity_kW]]></Name>
+							<Name><![CDATA[p_connectionCapacity_kW]]></Name>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_parentNodeElectricID]]></Name>
@@ -5651,7 +5673,7 @@ for(EnergyAsset e : c_storageAssets ) {
 							<Name><![CDATA[p_gridConnectionType]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_capacity_kW]]></Name>
+							<Name><![CDATA[p_connectionCapacity_kW]]></Name>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_parentNodeElectricID]]></Name>
@@ -5772,7 +5794,7 @@ for(EnergyAsset e : c_storageAssets ) {
 					</GenericParameterSubstitute>
 					<Parameters>
 						<Parameter>
-							<Name><![CDATA[p_capacity_kW]]></Name>
+							<Name><![CDATA[p_connectionCapacity_kW]]></Name>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_agentID]]></Name>
@@ -8102,7 +8124,7 @@ import java.io.*;]]></Import>
 				</Variable>
 				<Variable Class="Parameter">
 					<Id>1658500122113</Id>
-					<Name><![CDATA[p_capacity_kW]]></Name>
+					<Name><![CDATA[p_connectionCapacity_kW]]></Name>
 					<X>250</X><Y>100</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -8833,7 +8855,7 @@ import java.io.*;]]></Import>
 						</RecurrenceCode>
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
-					<Action><![CDATA[v_allowedCapacity_kW = p_capacity_kW;]]></Action>
+					<Action><![CDATA[v_allowedCapacity_kW = p_connectionCapacity_kW;]]></Action>
 				</Event>
 			</Events>
 			<Functions>
@@ -9334,7 +9356,7 @@ pl_powerFlows.updateData();]]></Body>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[v_allowedCapacity_kW = p_capacity_kW;
+					<Body><![CDATA[v_allowedCapacity_kW = p_connectionCapacity_kW;
 if(p_nfatoLvl_kW == 0){
 	e_startNonFirmATO.reset();
 	e_endNonFirmATO.reset();
@@ -11759,7 +11781,7 @@ v_batteryPower_kW = sum(main.GridBatteries, b->b.v_currentPowerElectricity_kW );
 v_fleetCharging_kW = sum(main.Buildings, b->b.v_currentPowerElectricity_kW );
 v_PVproduction_kW = sum(main.Solarfarms, f->f.v_currentPowerElectricity_kW );
 v_industryConsumption_kW = sum(main.Industries, i->i.v_currentPowerElectricity_kW );
-v_holonAvailableConnectionCapacity_kW = main.pop_energyHolons(0).v_connectionCapacity_kW;
+v_holonAvailableConnectionCapacity_kW = main.pop_energyHolons(0).v_allowedCapacity_kW;
 v_holonTotalPower_kW = v_batteryPower_kW + v_fleetCharging_kW + v_PVproduction_kW + v_industryConsumption_kW;
 v_batterySOC_fr = main.GridBatteries(0).v_batterySOC_fr;]]></Body>
 				</Function>
@@ -18115,21 +18137,6 @@ Supplier]]></Text>
 					</Properties>
 				</Variable>
 				<Variable Class="PlainVariable">
-					<Id>1667983361371</Id>
-					<Name><![CDATA[v_connectionCapacity_kW]]></Name>
-					<X>51</X><Y>559</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[double]]></Type>        
-						<InitialValue Class="CodeValue">
-							<Code><![CDATA[1200]]></Code>
-						</InitialValue>
-					</Properties>
-				</Variable>
-				<Variable Class="PlainVariable">
 					<Id>1667983361373</Id>
 					<Name><![CDATA[v_electricityImported_kWh]]></Name>
 					<X>301</X><Y>399</Y>
@@ -18327,7 +18334,7 @@ Supplier]]></Text>
 				<Variable Class="PlainVariable">
 					<Id>1668587944764</Id>
 					<Name><![CDATA[v_electricityContractType]]></Name>
-					<X>51</X><Y>171</Y>
+					<X>50</X><Y>290</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18342,7 +18349,7 @@ Supplier]]></Text>
 				<Variable Class="PlainVariable">
 					<Id>1668587944767</Id>
 					<Name><![CDATA[v_heatContractType]]></Name>
-					<X>51</X><Y>191</Y>
+					<X>50</X><Y>310</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18357,7 +18364,7 @@ Supplier]]></Text>
 				<Variable Class="PlainVariable">
 					<Id>1668587944769</Id>
 					<Name><![CDATA[v_methaneContractType]]></Name>
-					<X>51</X><Y>211</Y>
+					<X>50</X><Y>330</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18372,7 +18379,7 @@ Supplier]]></Text>
 				<Variable Class="PlainVariable">
 					<Id>1668587944771</Id>
 					<Name><![CDATA[v_hydrogenContractType]]></Name>
-					<X>51</X><Y>231</Y>
+					<X>50</X><Y>350</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18432,7 +18439,7 @@ Supplier]]></Text>
 				<Variable Class="PlainVariable">
 					<Id>1669037269503</Id>
 					<Name><![CDATA[v_contractEnergyHolon]]></Name>
-					<X>50</X><Y>290</Y>
+					<X>230</X><Y>290</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18442,9 +18449,21 @@ Supplier]]></Text>
 					</Properties>
 				</Variable>
 				<Variable Class="PlainVariable">
+					<Id>1669035973258</Id>
+					<Name><![CDATA[v_allowedCapacity_kW]]></Name>
+					<X>300</X><Y>560</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[Double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
 					<Id>1669037284540</Id>
 					<Name><![CDATA[v_contractEnergySupplier]]></Name>
-					<X>50</X><Y>310</Y>
+					<X>230</X><Y>310</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18456,7 +18475,7 @@ Supplier]]></Text>
 				<Variable Class="PlainVariable">
 					<Id>1669037300744</Id>
 					<Name><![CDATA[v_contractGridOperator]]></Name>
-					<X>50</X><Y>330</Y>
+					<X>230</X><Y>330</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18578,7 +18597,104 @@ Supplier]]></Text>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<ParameterEditor>
-							<Id>1669037234220</Id>
+							<Id>0</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1669036120007</Id>
+					<Name><![CDATA[p_nfatoStart_HR]]></Name>
+					<X>50</X><Y>160</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1669036120005</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1669036120010</Id>
+					<Name><![CDATA[p_nfatoEnd_HR]]></Name>
+					<X>50</X><Y>180</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[0
+]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1669036120008</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1669036120013</Id>
+					<Name><![CDATA[p_nfatoLvl_kW]]></Name>
+					<X>50</X><Y>200</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1669036120011</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1669036172744</Id>
+					<Name><![CDATA[p_connectionCapacity_kW]]></Name>
+					<X>50</X><Y>220</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1669036172742</Id>
 							<EditorContolType>TEXT_BOX</EditorContolType>
 							<MinSliderValue><![CDATA[0]]></MinSliderValue>
 							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
@@ -18587,9 +18703,9 @@ Supplier]]></Text>
 					</Properties>                 
 				</Variable>
 				<Variable Class="CollectionVariable">
-					<Id>1669037240260</Id>
+					<Id>1669042483034</Id>
 					<Name><![CDATA[c_actorContractList]]></Name>
-					<X>180</X><Y>250</Y>
+					<X>220</X><Y>250</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18602,6 +18718,70 @@ Supplier]]></Text>
 
 				</Variable>
 			</Variables>
+			<Events>
+				<Event>
+					<Id>1669035973262</Id>
+					<Name><![CDATA[e_startNonFirmATO]]></Name>
+					<X>300</X><Y>520</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties TriggerType="timeout" Mode="cyclic">
+						<Timeout Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+						</Timeout>
+						<Rate Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="RateUnits"><![CDATA[PER_HOUR]]></Unit>
+						</Rate>
+						<OccurrenceAtTime>true</OccurrenceAtTime>
+						<OccurrenceDate>1669017600000</OccurrenceDate>
+						<OccurrenceTime Class="CodeUnitValue">
+							<Code><![CDATA[1d/1f]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+						</OccurrenceTime>
+						<RecurrenceCode Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[DAY]]></Unit>
+						</RecurrenceCode>
+						<Condition><![CDATA[false]]></Condition>
+					</Properties>
+					<Action><![CDATA[v_allowedCapacity_kW = p_nfatoLvl_kW;]]></Action>
+				</Event>
+				<Event>
+					<Id>1669035973267</Id>
+					<Name><![CDATA[e_endNonFirmATO]]></Name>
+					<X>300</X><Y>540</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties TriggerType="timeout" Mode="cyclic">
+						<Timeout Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+						</Timeout>
+						<Rate Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="RateUnits"><![CDATA[PER_HOUR]]></Unit>
+						</Rate>
+						<OccurrenceAtTime>true</OccurrenceAtTime>
+						<OccurrenceDate>1669017600000</OccurrenceDate>
+						<OccurrenceTime Class="CodeUnitValue">
+							<Code><![CDATA[1d/1f]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+						</OccurrenceTime>
+						<RecurrenceCode Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[DAY]]></Unit>
+						</RecurrenceCode>
+						<Condition><![CDATA[false]]></Condition>
+					</Properties>
+					<Action><![CDATA[v_allowedCapacity_kW = p_connectionCapacity_kW;]]></Action>
+				</Event>
+			</Events>
 			<Functions>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -18625,7 +18805,7 @@ Supplier]]></Text>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1660806150226</Id>
 					<Name><![CDATA[f_updateFinances]]></Name>
-					<X>350</X><Y>140</Y>
+					<X>350</X><Y>160</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18649,7 +18829,7 @@ v_balanceMethane_eur -= transactionCost_eur;
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1660825183645</Id>
 					<Name><![CDATA[f_doEnergyTransaction]]></Name>
-					<X>350</X><Y>120</Y>
+					<X>350</X><Y>140</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18715,7 +18895,7 @@ return transactionCostClient_eur;]]></Body>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1667983361355</Id>
 					<Name><![CDATA[f_gatherEnergyFlows]]></Name>
-					<X>351</X><Y>159</Y>
+					<X>351</X><Y>179</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18761,7 +18941,7 @@ v_dieselImported_kWh += v_dieselVolume_kWh;]]></Body>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1667983361357</Id>
 					<Name><![CDATA[f_getEnergyPrice]]></Name>
-					<X>351</X><Y>179</Y>
+					<X>351</X><Y>199</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18786,7 +18966,7 @@ return energyPrice_eurpkWh;]]></Body>
 
 @author: JorritvandenHouten
 @since: Sprint 6]]></Description>
-					<X>350</X><Y>270</Y>
+					<X>350</X><Y>240</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18928,7 +19108,27 @@ switch( v_contractEnergyHolon ) {
 	break;
 	default:
 		traceln("EnergyHolon f_setContractValues: energyHolon contract type not implemented! No values set");
-	break;
+	break;				
+}]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1669042410671</Id>
+					<Name><![CDATA[f_initialize]]></Name>
+					<X>350</X><Y>260</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[v_allowedCapacity_kW = p_connectionCapacity_kW;
+if(p_nfatoLvl_kW == 0){
+	e_startNonFirmATO.reset();
+	e_endNonFirmATO.reset();
+}
+else {
+	e_startNonFirmATO.restartTo(p_nfatoStart_HR, HOUR);
+	e_endNonFirmATO.restartTo(p_nfatoEnd_HR, HOUR);
 }]]></Body>
 				</Function>
 			</Functions>
@@ -19078,7 +19278,7 @@ switch( v_contractEnergyHolon ) {
 				<Text>
 					<Id>1667922231719</Id>
 					<Name><![CDATA[text6]]></Name>
-					<X>300</X><Y>180</Y>
+					<X>300</X><Y>200</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19117,7 +19317,7 @@ switch( v_contractEnergyHolon ) {
 					<EndArrowSize>1</EndArrowSize>
 					<EndArrowStyle>0</EndArrowStyle>
 					<Dx>0</Dx>
-					<Dy>40</Dy>
+					<Dy>50</Dy>
 					<Dz>0</Dz>
 				</Line>
 				<Text>
@@ -19144,7 +19344,7 @@ switch( v_contractEnergyHolon ) {
 				<Line>
 					<Id>1667922231725</Id>
 					<Name><![CDATA[line6]]></Name>
-					<X>320</X><Y>120</Y>
+					<X>320</X><Y>140</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -21073,7 +21273,7 @@ public void f_manageHeatingAssets(){
 					<Name><![CDATA[p_gridConnectionType]]></Name>
 				</Parameter>
 				<Parameter>
-					<Name><![CDATA[p_capacity_kW]]></Name>
+					<Name><![CDATA[p_connectionCapacity_kW]]></Name>
 				</Parameter>
 				<Parameter>
 					<Name><![CDATA[p_parentNodeElectricID]]></Name>
@@ -21566,7 +21766,7 @@ public void f_batteryManagementPrice( double batterySOC ){
 					<Name><![CDATA[p_gridConnectionType]]></Name>
 				</Parameter>
 				<Parameter>
-					<Name><![CDATA[p_capacity_kW]]></Name>
+					<Name><![CDATA[p_connectionCapacity_kW]]></Name>
 				</Parameter>
 				<Parameter>
 					<Name><![CDATA[p_parentNodeElectricID]]></Name>
@@ -21991,7 +22191,7 @@ public void f_connectToChild(Agent ConnectingChildNode){
 					<Name><![CDATA[p_gridConnectionType]]></Name>
 				</Parameter>
 				<Parameter>
-					<Name><![CDATA[p_capacity_kW]]></Name>
+					<Name><![CDATA[p_connectionCapacity_kW]]></Name>
 				</Parameter>
 				<Parameter>
 					<Name><![CDATA[p_parentNodeElectricID]]></Name>
@@ -22436,7 +22636,7 @@ traceln("NetConnection connecting to " + numberOfEnergyAssets + " EnergyAssets")
 					<Name><![CDATA[p_gridConnectionType]]></Name>
 				</Parameter>
 				<Parameter>
-					<Name><![CDATA[p_capacity_kW]]></Name>
+					<Name><![CDATA[p_connectionCapacity_kW]]></Name>
 				</Parameter>
 				<Parameter>
 					<Name><![CDATA[p_parentNodeElectricID]]></Name>
@@ -22662,7 +22862,7 @@ traceln("NetConnection connecting to " + numberOfEnergyAssets + " EnergyAssets")
 					<Name><![CDATA[p_gridConnectionType]]></Name>
 				</Parameter>
 				<Parameter>
-					<Name><![CDATA[p_capacity_kW]]></Name>
+					<Name><![CDATA[p_connectionCapacity_kW]]></Name>
 				</Parameter>
 				<Parameter>
 					<Name><![CDATA[p_parentNodeElectricID]]></Name>
@@ -23329,7 +23529,7 @@ public void f_operateFlexAssets(){
 					<Name><![CDATA[p_gridConnectionType]]></Name>
 				</Parameter>
 				<Parameter>
-					<Name><![CDATA[p_capacity_kW]]></Name>
+					<Name><![CDATA[p_connectionCapacity_kW]]></Name>
 				</Parameter>
 				<Parameter>
 					<Name><![CDATA[p_parentNodeElectricID]]></Name>
@@ -23688,7 +23888,7 @@ public void f_batteryManagementPrice( double batterySOC ){
 			</ExtendsReference>
 			<Parameters>
 				<Parameter>
-					<Name><![CDATA[p_capacity_kW]]></Name>
+					<Name><![CDATA[p_connectionCapacity_kW]]></Name>
 				</Parameter>
 				<Parameter>
 					<Name><![CDATA[p_agentID]]></Name>
@@ -24159,7 +24359,7 @@ if(p_ownerActor instanceof ConnectionOwner) {
 	if(((ConnectionOwner)p_ownerActor).p_holonParent instanceof EnergyHolon ) {
 
 		double currentHolonElectricitySurplus_kW = ((ConnectionOwner)p_ownerActor).p_holonParent.v_electricitySurplus_kW + v_previousPowerElectricity_kW;
-		double HolonConnectionCapacity_kW = 0.9*((ConnectionOwner)p_ownerActor).p_holonParent.v_connectionCapacity_kW; // Use only 90% of capacity for robustness against delay
+		double HolonConnectionCapacity_kW = 0.9*((ConnectionOwner)p_ownerActor).p_holonParent.v_allowedCapacity_kW; // Use only 90% of capacity for robustness against delay
 		double availableChargePower_kW = HolonConnectionCapacity_kW + currentHolonElectricitySurplus_kW; // Max battery charging power within grid capacity
 		double availableDischargePower_kW = currentHolonElectricitySurplus_kW - HolonConnectionCapacity_kW; // Max discharging power within grid capacity
 		double SOC_setp_fr = 0.6 + 0.2 * Math.sin(2*Math.PI*(time(HOUR)-12)/24); // Sinusoidal setpoint: aim for low SOC at 6:00h, high SOC at 18:00h.
@@ -24243,7 +24443,7 @@ if(p_ownerActor instanceof ConnectionOwner) {
 			// limit charging power to available connection capacity in HOLON when applicable
 			if(((ConnectionOwner)p_ownerActor).p_holonParent instanceof EnergyHolon ) {	
 				double currentHolonElectricitySurplus_kW = ((ConnectionOwner)p_ownerActor).p_holonParent.v_electricitySurplus_kW + v_previousPowerElectricity_kW;
-				double HolonConnectionCapacity_kW = 0.9*((ConnectionOwner)p_ownerActor).p_holonParent.v_connectionCapacity_kW; // Use only 90% of capacity for robustness against delay
+				double HolonConnectionCapacity_kW = 0.9*((ConnectionOwner)p_ownerActor).p_holonParent.p_connectionCapacity_kW; // Use only 90% of capacity for robustness against delay
 				double availableChargePower_kW = currentHolonElectricitySurplus_kW + HolonConnectionCapacity_kW; // Max battery charging power within grid capacity
 				double availableDischargePower_kW = currentHolonElectricitySurplus_kW - HolonConnectionCapacity_kW; // Max discharging power within grid capacity
 				//chargeSetpoint_kW = min(max(chargeSetpoint_kW, availableDischargePower_kW),availableChargePower_kW); // Don't allow too much (dis)charging!
