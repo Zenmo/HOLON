@@ -2147,29 +2147,58 @@ String actorID;
 OL_ActorType actorcategory;
 String parentActorID;
 String type;
+ArrayList actorContracts = new ArrayList();
 
 for(HashMap data : parsedJSONActors)
 {
     actorID = data.get( "id" ).toString();
     actorcategory = OL_ActorType.valueOf((String)data.get( "category" ));
-    type = data.get( "type" ).toString();
+    type = data.get( "type" ) == null? null : String.valueOf(data.get( "type" ));
     //traceln(actortype.toString());
     parentActorID = String.valueOf(data.get( "parent_actor" ));
+    actorContracts = data.get( "contracts") == null? null : (ArrayList)data.get( "contracts");
 
 	if (actorcategory.equals(OL_ActorType.CONNECTIONOWNER) ) {
-	    ConnectionOwner Actor = add_pop_connectionOwners( actorID, type, parentActorID, null, null);
+	    ConnectionOwner Actor = add_pop_connectionOwners();
+	    Actor.set_p_actorID( actorID );
+	    Actor.set_p_actorType( type );
+	    Actor.set_p_parentActorID( parentActorID );
+	    Actor.set_p_actorContractList( actorContracts );
+   		Actor.f_setContractValues();
+	    
 	    Actor.j_ConnectionOwnerData = new J_ConnectionOwnerData(actorID, type, parentActorID);
 	    c_connectionOwners.add(Actor);
     } else if (actorcategory.equals(OL_ActorType.ENERGYSUPPLIER) ) {
 //	    EnergySupplier Actor = add_pop_energySuppliers( actorID, actortype, parentActorID, null);
 		double feedinTariff_eurpkWh = 0.25;
-		EnergySupplier Actor = add_pop_energySuppliers(actorID, type, parentActorID, null, 0.21, 0.1, 0.05, 0.3, 0.17, feedinTariff_eurpkWh);
+		EnergySupplier Actor = add_pop_energySuppliers();
+		Actor.set_p_actorID( actorID );
+		Actor.set_p_actorType( type );
+		Actor.set_p_parentActorID( parentActorID );
+		Actor.set_p_fixedElectricityPrice_eurpkWh( 0.21 );
+		Actor.set_p_fixedHeatPrice_eurpkWh( 0.1 );
+		Actor.set_p_fixedMethanePrice_eurpkWh( 0.05 );
+		Actor.set_p_fixedHydrogenPrice_eurpkWh( 0.3 );
+		Actor.set_p_variableElectricityPriceOverNational_eurpkWh( 0.17 );
+		Actor.set_p_fixedFeedinTariff_eurpkWh( feedinTariff_eurpkWh );
+
+		
     } else if (actorcategory.equals(OL_ActorType.ENERGYHOLON) ) {
-	    EnergyHolon Actor = add_pop_energyHolons( actorID, type, parentActorID, null);
+	    EnergyHolon Actor = add_pop_energyHolons();
+	    Actor.set_p_actorID( actorID );
+	    Actor.set_p_actorType( type );
+	    Actor.set_p_parentActorID( parentActorID );
+	    Actor.set_p_actorContractList( actorContracts );
+   		Actor.f_setContractValues();
+	    
     } else if (actorcategory.equals(OL_ActorType.GRIDOPERATOR) ) {
-	    GridOperator Actor = add_pop_gridOperators( actorID, type, parentActorID, null);
+	    GridOperator Actor = add_pop_gridOperators();
+	    Actor.set_p_actorID( actorID );
+	    Actor.set_p_actorType( type );
+	    Actor.set_p_parentActorID( parentActorID );
     }
 }
+
 
 for (EnergyHolon a : pop_energyHolons) {
 	a.f_connectToParentActor();
@@ -4006,7 +4035,7 @@ for(EnergyAsset e : c_storageAssets ) {
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[example_actors.txt]]></ClassName>
+						<ClassName><![CDATA[example_actors_with_contracts.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -4544,6 +4573,9 @@ for(EnergyAsset e : c_storageAssets ) {
 						<Parameter>
 							<Name><![CDATA[p_hydrogenContractType]]></Name>
 						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_actorContractList]]></Name>
+						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
 					<Replication Class="CodeValue">
@@ -4707,6 +4739,9 @@ for(EnergyAsset e : c_storageAssets ) {
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_energySupplier]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_actorContractList]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -11887,7 +11922,7 @@ f_plotActors(minx,maxx);]]></Body>
 List<ConnectionOwner> Actors = filter( main.pop_connectionOwners, n -> true );
 List<ConnectionOwner> Households = filter( main.pop_connectionOwners, n -> n.p_actorType.equals("household") );
 List<ConnectionOwner> Commercials = filter( main.pop_connectionOwners, n -> n.p_actorType.equals("commercial") );
-List<EnergySupplier> EnergySuppliers = filter( main.pop_energySuppliers, n -> n.p_actorType.equals("energysupplier") );
+List<EnergySupplier> EnergySuppliers = filter( main.pop_energySuppliers, n -> true );
 List<EnergyHolon> Holons = filter( main.pop_energyHolons, n -> true );
 
 traceln("KPIVisuals f_plotActors(): number of households: "+ Households.size());
@@ -15653,6 +15688,42 @@ v_currentPriceBands.put(999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionPr
 						<Type><![CDATA[double]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1669036835710</Id>
+					<Name><![CDATA[v_contractEnergyHolon]]></Name>
+					<X>280</X><Y>280</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[String]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1669036845521</Id>
+					<Name><![CDATA[v_contractEnergySupplier]]></Name>
+					<X>280</X><Y>300</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[String]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1669036853577</Id>
+					<Name><![CDATA[v_contractGridOperator]]></Name>
+					<X>280</X><Y>320</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[String]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1660225105547</Id>
 					<Name><![CDATA[p_actorID]]></Name>
@@ -15873,6 +15944,42 @@ v_currentPriceBands.put(999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionPr
 							<DelimeterType>NO_DELIMETER</DelimeterType>
 						</ParameterEditor>
 					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1669036749740</Id>
+					<Name><![CDATA[p_actorContractList]]></Name>
+					<X>280</X><Y>240</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[ArrayList]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1669036749738</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1669036806038</Id>
+					<Name><![CDATA[c_actorContractList]]></Name>
+					<X>410</X><Y>240</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
+						<ElementClass><![CDATA[LinkedHashMap]]></ElementClass>
+						<ValueElementClass><![CDATA[String]]></ValueElementClass>
+					</Properties>
+
 				</Variable>
 			</Variables>
 			<Functions>
@@ -16095,6 +16202,89 @@ if (v_electricityContractType == ELECTRICITY_FIXED){
 
 
 	]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1669036739539</Id>
+					<Name><![CDATA[f_setContractValues]]></Name>
+					<X>280</X><Y>260</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[if( p_actorContractList != null) {
+	traceln("Contract list connectionOwner "+p_actorID+": " + p_actorContractList.toString());
+} else {
+	traceln( "No contract data for connectionOwner "+p_actorID );
+}
+v_contractEnergySupplier = "DEFAULT"; // anders nullpointer-errors
+v_contractEnergyHolon = "DEFAULT";
+v_contractGridOperator = "DEFAULT";
+
+c_actorContractList = p_actorContractList;
+for( HashMap l : c_actorContractList) {
+		OL_ActorType contractScope = OL_ActorType.valueOf((String)l.get( "contract_scope" ));
+
+		switch( contractScope ) {
+			case ENERGYSUPPLIER:
+				v_contractEnergySupplier = (String)l.get( "type" );
+			break;
+			case ENERGYHOLON:
+				v_contractEnergyHolon = (String)l.get( "type" );
+			break;
+			case GRIDOPERATOR:
+				v_contractGridOperator = (String)l.get( "type" );
+			break;
+			default:
+				traceln("ConnectionOwner f_setContractValues exception: not a valid actor type");
+			break;
+		}			
+}
+
+// set other values according to received contract type:
+switch( v_contractEnergySupplier ) {
+	case "DEFAULT":
+		v_electricityContractType = OL_ContractType.ELECTRICITY_FIXED;
+		v_heatContractType = OL_ContractType.HEAT_FIXED;
+		v_methaneContractType = OL_ContractType.METHANE_FIXED;
+		v_hydrogenContractType = OL_ContractType.HYDROGEN_FIXED;
+	break;
+	case "VARIABLE":
+		v_electricityContractType = OL_ContractType.ELECTRICITY_VARIABLE;
+		v_heatContractType = OL_ContractType.HEAT_FIXED;
+		v_methaneContractType = OL_ContractType.METHANE_FIXED;
+		v_hydrogenContractType = OL_ContractType.HYDROGEN_FIXED;
+	break;
+	default:
+		traceln("ConnectionOwner f_setContractValues: energySupplier contract type not implemented! No values set");
+	break;
+}
+
+switch( v_contractGridOperator ) {
+	case "DEFAULT":
+//		v_congestionTariff_b = false; // ? wat nog meer?
+	break;
+	case "GOPACS":
+//		v_congestionTariff_b = true; // ? wat nog meer? Individuele GOPACS. Gezamenlijke GOPACS via EnergyHolon
+	break;
+	default:
+		traceln("ConnectionOwner f_setContractValues: gridOperator contract type not implemented! No values set");
+	break;
+}
+
+switch( v_contractEnergyHolon ) {
+	case "DEFAULT":
+	
+	break;
+	case "VARIABLE":
+	
+	break;
+	default:
+		traceln("ConnectionOwner f_setContractValues: energyHolon contract type not implemented! No values set");
+	break;
+}
+]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -18239,6 +18429,42 @@ Supplier]]></Text>
 						</InitialValue>
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1669037269503</Id>
+					<Name><![CDATA[v_contractEnergyHolon]]></Name>
+					<X>50</X><Y>290</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[String]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1669037284540</Id>
+					<Name><![CDATA[v_contractEnergySupplier]]></Name>
+					<X>50</X><Y>310</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[String]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1669037300744</Id>
+					<Name><![CDATA[v_contractGridOperator]]></Name>
+					<X>50</X><Y>330</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[String]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1660736326709</Id>
 					<Name><![CDATA[p_actorID]]></Name>
@@ -18338,6 +18564,42 @@ Supplier]]></Text>
 							<DelimeterType>NO_DELIMETER</DelimeterType>
 						</ParameterEditor>
 					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1669037234222</Id>
+					<Name><![CDATA[p_actorContractList]]></Name>
+					<X>50</X><Y>250</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[ArrayList]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1669037234220</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1669037240260</Id>
+					<Name><![CDATA[c_actorContractList]]></Name>
+					<X>180</X><Y>250</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
+						<ElementClass><![CDATA[LinkedHashMap]]></ElementClass>
+						<ValueElementClass><![CDATA[String]]></ValueElementClass>
+					</Properties>
+
 				</Variable>
 			</Variables>
 			<Functions>
@@ -18586,6 +18848,88 @@ traceln("Holon selfsufficiency: " + totalSelfSufficiency_fr + "%, doublecheck " 
 // TODO: Account for fuel imports/exports!!
 
 ]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1669037224999</Id>
+					<Name><![CDATA[f_setContractValues]]></Name>
+					<X>50</X><Y>270</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[if( p_actorContractList != null) {
+	traceln("Contract list energyHolon "+p_actorID+": " + p_actorContractList.toString());
+} else {
+	traceln( "No contract data for energyHolon "+p_actorID );
+}
+v_contractEnergySupplier = "DEFAULT"; // anders nullpointer-errors
+v_contractEnergyHolon = "DEFAULT";
+v_contractGridOperator = "DEFAULT";
+
+c_actorContractList = p_actorContractList;
+for( HashMap l : c_actorContractList) {
+		OL_ActorType contractScope = OL_ActorType.valueOf((String)l.get( "contract_scope" ));
+
+		switch( contractScope ) {
+			case ENERGYSUPPLIER:
+				v_contractEnergySupplier = (String)l.get( "type" );
+			break;
+			case ENERGYHOLON:
+				v_contractEnergyHolon = (String)l.get( "type" );
+			break;
+			case GRIDOPERATOR:
+				v_contractGridOperator = (String)l.get( "type" );
+			break;
+			default:
+				traceln("ConnectionOwner f_setContractValues exception: not a valid actor type");
+			break;
+		}			
+}
+
+// set other values according to received contract type:
+switch( v_contractEnergySupplier ) {
+	case "DEFAULT":
+		v_electricityContractType = OL_ContractType.ELECTRICITY_FIXED;
+		v_heatContractType = OL_ContractType.HEAT_FIXED;
+		v_methaneContractType = OL_ContractType.METHANE_FIXED;
+		v_hydrogenContractType = OL_ContractType.HYDROGEN_FIXED;
+	break;
+	case "VARIABLE":
+		v_electricityContractType = OL_ContractType.ELECTRICITY_VARIABLE;
+		v_heatContractType = OL_ContractType.HEAT_FIXED;
+		v_methaneContractType = OL_ContractType.METHANE_FIXED;
+		v_hydrogenContractType = OL_ContractType.HYDROGEN_FIXED;
+	break;
+	default:
+		traceln("EnergyHolon f_setContractValues: energySupplier contract type not implemented! No values set");
+	break;
+}
+
+switch( v_contractGridOperator ) {
+	case "DEFAULT":
+//		v_congestionTariff_b = false; // ? wat nog meer?
+	break;
+	case "GOPACS":
+//		v_congestionTariff_b = true; // ? wat nog meer? Gezamenlijke GOPACS
+	break;
+	default:
+		traceln("EnergyHolon f_setContractValues: gridOperator contract type not implemented! No values set");
+	break;
+}
+
+switch( v_contractEnergyHolon ) {
+	case "DEFAULT":
+	
+	break;
+	case "VARIABLE":
+	
+	break;
+	default:
+		traceln("EnergyHolon f_setContractValues: energyHolon contract type not implemented! No values set");
+	break;
+}]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -26598,10 +26942,6 @@ public class J_EAConversionDieselVehicle extends base.J_EAConversion implements 
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[example_actors.txt]]></Path>
-			<ReferencedFromUserCode>false</ReferencedFromUserCode>
-		</Resource>
-		<Resource>
 			<Path><![CDATA[example_gridconnections.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
@@ -26611,6 +26951,10 @@ public class J_EAConversionDieselVehicle extends base.J_EAConversion implements 
 		</Resource>
 		<Resource>
 			<Path><![CDATA[example_policies.txt]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[example_actors_with_contracts.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
