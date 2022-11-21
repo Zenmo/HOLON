@@ -2175,17 +2175,11 @@ for(HashMap data : parsedJSONActors)
 	    c_connectionOwners.add(Actor);
     } else if (actorcategory.equals(OL_ActorType.ENERGYSUPPLIER) ) {
 //	    EnergySupplier Actor = add_pop_energySuppliers( actorID, actortype, parentActorID, null);
-		double feedinTariff_eurpkWh = 0.25;
+		//double feedinTariff_eurpkWh = 0.25;
 		EnergySupplier Actor = add_pop_energySuppliers();
 		Actor.set_p_actorID( actorID );
 		Actor.set_p_actorType( type );
 		Actor.set_p_parentActorID( parentActorID );
-		Actor.set_p_fixedElectricityPrice_eurpkWh( 0.21 );
-		Actor.set_p_fixedHeatPrice_eurpkWh( 0.1 );
-		Actor.set_p_fixedMethanePrice_eurpkWh( 0.05 );
-		Actor.set_p_fixedHydrogenPrice_eurpkWh( 0.3 );
-		Actor.set_p_variableElectricityPriceOverNational_eurpkWh( 0.17 );
-		Actor.set_p_fixedFeedinTariff_eurpkWh( feedinTariff_eurpkWh );
 
 		
     } else if (actorcategory.equals(OL_ActorType.ENERGYHOLON) ) {
@@ -3498,9 +3492,26 @@ double v_congestionThreshold = Double.parseDouble( policyMap.get("Grid_MS_conges
 boolean b_congestionPricingConsumption = Boolean.parseBoolean( policyMap.get("Grid_MS_congestion_pricing_consumption") );
 boolean b_congestionPricingProduction = Boolean.parseBoolean( policyMap.get("Grid_MS_congestion_pricing_production") );
 
+// get global energy pricing values
+double v_fixedElectricityPrice_eur = Double.parseDouble( policyMap.get("Fixed_electricity_price") );
+double v_energySupplierMarginOnElectricityPrice = Double.parseDouble( policyMap.get("Energy_supplier_electricity_price_margin") );
+double v_fixedElectricityFeedInTariff = Double.parseDouble( policyMap.get("Fixed_electricity_feed_in_tariff") );
+double v_fixedHeatPrice = Double.parseDouble( policyMap.get( "Fixed_heat_price" ) );
+double v_fixedMethanePrice = Double.parseDouble( policyMap.get( "Fixed_methane_price" ) );
+double v_fixedHydrogenPrice = Double.parseDouble( policyMap.get( "Fixed_hydrogen_price" ) );
+double v_fixedDieselPrice = Double.parseDouble( policyMap.get( "Fixed_diesel_price" ) );
+
+// get global battery charging parameter(s)
+int v_timeBufferForSpreadCharging = Integer.parseInt( policyMap.get("Time_buffer_for_spread_charging") );
+
+
 // configure actor policy values
 for( GCHouse h : Houses ) {
 	//h.v_chargingAttitude = DefaultEVChargingAttitude;
+}
+
+for( GridConnection c: c_gridConnections ) {
+	c.v_additionalTimeSpreadCharging_MIN = v_timeBufferForSpreadCharging;
 }
 
 for(GridOperator g : pop_gridOperators) {
@@ -3509,7 +3520,18 @@ for(GridOperator g : pop_gridOperators) {
 	g.v_congestionPriceProduction_eurpkWh = - v_congestionPrice;
 	g.v_congestionThreshold_fr = v_congestionThreshold;
 	g.b_congestionPricingConsumption = b_congestionPricingConsumption;
-	g.b_congestionPricingProduction = true;//b_congestionPricingProduction;
+	g.b_congestionPricingProduction = b_congestionPricingProduction;
+}
+
+
+// configure actor policy values
+for( EnergySupplier e : pop_energySuppliers ) {
+	e.set_p_fixedElectricityPrice_eurpkWh( v_fixedElectricityPrice_eur );
+	e.set_p_fixedHeatPrice_eurpkWh( v_fixedHeatPrice );
+	e.set_p_fixedMethanePrice_eurpkWh( v_fixedMethanePrice );
+	e.set_p_fixedHydrogenPrice_eurpkWh( v_fixedHydrogenPrice );
+	e.set_p_variableElectricityPriceOverNational_eurpkWh( v_energySupplierMarginOnElectricityPrice );
+	e.set_p_fixedFeedinTariff_eurpkWh( v_fixedElectricityFeedInTariff );
 }
 ]]></Body>
 				</Function>
