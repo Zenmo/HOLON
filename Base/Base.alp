@@ -3181,7 +3181,7 @@ traceln("Energy produced: "+ energyProduced_MWh);
 
 //Total selfconsumption, selfsufficiency
 double totalSelfConsumption_fr = 1 - (v_totalElectricityExport_MWh + v_totalMethaneExport_MWh + v_totalHydrogenExport_MWh)/energyProduced_MWh;
-double totalSelfSufficiency_fr = 1 - (v_totalElectricityImport_MWh + v_totalMethaneImport_MWh + v_totalHydrogenImport_MWh + v_totalDieselImport_MWh )/energyConsumed_MWh; // Doesn't account for changes in battery-SOC!
+double totalSelfSufficiency_fr = 1 - (v_totalElectricityImport_MWh + v_totalMethaneImport_MWh + v_totalHydrogenImport_MWh + v_totalDieselImport_MWh - batteryStoredEnergyDeltaSinceStart_MWh )/energyConsumed_MWh; // Doesn't account for changes in battery-SOC!
 
 //double totalSelfSufficiency_fr = 1 - (v_electricityImported_kWh + v_methaneImported_kWh + v_hydrogenImported_kWh + v_heatImported_kWh)/energyConsumed_kWh;
 
@@ -9451,25 +9451,47 @@ p_batteryAsset.v_powerFraction_fr = max(-1,min(1, chargeSetpoint_kW / p_batteryA
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[// TODO: This only works for fixed heat demands; also need to implement heating of a building modeled as a ThermalStorageAsset! [GH 21/11/2022]
-
-double currentHeatDemand_kW = v_currentPowerHeat_kW;
-
-double heatCapacityInstalled_kW = 0;  // this could vary with temperature e.g. heatpump_air
-for( EnergyAsset c : c_conversionAssets ) {
-	heatCapacityInstalled_kW += ((J_EAConversion)c.p_energyAssetInstance).capacityHeat_kW;
-}
-
-//traceln("GCIndustry manageHeatingAssets debug: currentHeatDemand_kW = "+currentHeatDemand_kW+", current installed capacity kW = "+heatCapacityInstalled_kW);
-double powerFraction_fr = currentHeatDemand_kW / heatCapacityInstalled_kW;
-
-for( EnergyAsset c : c_conversionAssets ) {
-	double allocatedPowerFraction_fr =  ((J_EAConversion)c.p_energyAssetInstance).capacityHeat_kW / heatCapacityInstalled_kW;
-	c.v_powerFraction_fr = max( powerFraction_fr * allocatedPowerFraction_fr, 0);
-	c.f_updateAllFlows(c.v_powerFraction_fr);
-	v_currentPowerElectricity_kW += c.v_currentConsumptionElectricity_kW - c.v_currentProductionElectricity_kW;
-	v_currentPowerMethane_kW += c.v_currentConsumptionMethane_kW - c.v_currentProductionMethane_kW;
-	v_currentPowerHydrogen_kW += c.v_currentConsumptionHydrogen_kW - c.v_currentProductionHydrogen_kW;
-	v_currentPowerHeat_kW += c.v_currentConsumptionHeat_kW - c.v_currentProductionHeat_kW;
+double powerDemand_kW = v_currentPowerHeat_kW;
+if ( p_ThermalStorageAsset == null ) {
+	if ( p_secondaryHeatingAsset == null ) { // Just one heating asset
+		if ( p_primaryHeatingAsset== null ) {
+			traceln("No heating assets for house " + p_agentID);
+		} else {
+			if ( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionGasBurner || p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet) { // when there is only a gas burner or DH set
+					p_primaryHeatingAsset.v_powerFraction_fr = min(1,powerDemand_kW / p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
+					//traceln("Running manageHeatingAsset for single heating asset");
+			} else {
+				traceln("House " + p_agentID + " has a single unsupported heating asset!");
+			}
+		}
+	} else { // Two heating assets
+		if ( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatPump & p_secondaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionGasBurner) { // Heatpump and gasburner, switch based on heatpump COP)
+			((J_EAConversionHeatPump)p_primaryHeatingAsset.p_energyAssetInstance).updateAmbientTemp(main.v_currentAmbientTemperature_degC); // update heatpump temp levels!
+			double HP_COP = ((J_EAConversionHeatPump)p_primaryHeatingAsset.p_energyAssetInstance).getCOP();
+			double COP_tres = 3.5; // TODO: Make data agnostic! Also, this line doesn't have to be evaluated every timestep.
+			if ( HP_COP < COP_tres ) { // switch to gasburner when HP COP is below treshold
+				//traceln("Hybrid HP: Switching to gas burner");
+				p_primaryHeatingAsset.v_powerFraction_fr = 0;
+				p_secondaryHeatingAsset.v_powerFraction_fr = min(1,powerDemand_kW / p_secondaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
+			} else { // heatpump when COP is above treshold
+				//traceln("Hybrid HP: Using heatpump with COP " + HP_COP);
+				p_primaryHeatingAsset.v_powerFraction_fr = min(1,powerDemand_kW / p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
+				p_secondaryHeatingAsset.v_powerFraction_fr = 0;//min(1,currentDHWdemand_kW / p_secondaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
+			}
+		} else {
+			traceln("**** EXCEPTION ****: Unsupported combination of heatings systems in house " + p_agentID);
+			p_primaryHeatingAsset.v_powerFraction_fr = 0;
+			p_secondaryHeatingAsset.v_powerFraction_fr = 0;
+			//p_ThermalStorageAsset.v_powerFraction_fr = 0;
+		}
+		p_secondaryHeatingAsset.f_updateAllFlows(p_secondaryHeatingAsset.v_powerFraction_fr);
+	}
+	p_primaryHeatingAsset.f_updateAllFlows(p_primaryHeatingAsset.v_powerFraction_fr);
+} else { // TODO: Implement thermostat functionality for thermal storage asset. Where to get temp setpoint?
+	traceln("No thermostat functionality available to manage p_thermalStorageAsset!!");
+	p_primaryHeatingAsset.f_updateAllFlows(0);
+	p_secondaryHeatingAsset.f_updateAllFlows(0);
+	p_ThermalStorageAsset.f_updateAllFlows(0);
 }
 
 
@@ -16140,7 +16162,7 @@ else if( v_energySupplierDistrictHeat instanceof EnergyHolon ) {
 	v_balanceHeat_eur -= transactionCost_eur;
 }
 
-			]]></Body>
+v_balanceDiesel_eur += v_dieselVolume_kWh * .196; // TODO: UGLY HACK]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -21597,16 +21619,7 @@ if ( p_ThermalStorageAsset != null ) {
 
 p_primaryHeatingAsset.f_updateAllFlows(p_primaryHeatingAsset.v_powerFraction_fr);
 p_ThermalStorageAsset.f_updateAllFlows(p_ThermalStorageAsset.v_powerFraction_fr);
-
-/* // Debug heatflows of all relevant energy assets in house b1
-if ( p_agentID.equals("b1")) {
-	traceln("Primary heating asset heat production: " + p_primaryHeatingAsset.v_currentProductionHeat_kW + ", consumption: " + p_primaryHeatingAsset.v_currentConsumptionHeat_kW );
-	if ( p_secondaryHeatingAsset != null) {
-		traceln("Secondary heating asset heat production: " + p_secondaryHeatingAsset.v_currentProductionHeat_kW + ", consumption: " + p_secondaryHeatingAsset.v_currentConsumptionHeat_kW );
-	}
-	traceln("Thermal storage asset heat production: " + p_ThermalStorageAsset.v_currentProductionHeat_kW + ", consumption: " + p_ThermalStorageAsset.v_currentConsumptionHeat_kW );
-	traceln("DHW asset heat production " + c_connectedConsumptionAssets.get(1).v_currentProductionHeat_kW + ", consumption: " + c_connectedConsumptionAssets.get(1).v_currentConsumptionHeat_kW );
-} */]]></Body>
+]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -21943,9 +21956,10 @@ public void f_batteryManagementPrice( double batterySOC ){
 f_manageTanking();
 // Determine house heating
 f_manageHeatingAssets();
+
 for( EnergyAsset EA : c_conversionAssets ){
 	v_currentPowerElectricity_kW += EA.v_currentConsumptionElectricity_kW - EA.v_currentProductionElectricity_kW;
-	v_conversionPower_kW += EA.v_currentConsumptionElectricity_kW - EA.v_currentProductionElectricity_kW;
+	v_conversionPower_kW += EA.v_currentConsumptionElectricity_kW - EA.v_currentProductionElectricity_kW; // Only for monitoring/plots, not 'functional'
 	v_currentPowerMethane_kW += EA.v_currentConsumptionMethane_kW - EA.v_currentProductionMethane_kW;
 	v_currentPowerHydrogen_kW += EA.v_currentConsumptionHydrogen_kW - EA.v_currentProductionHydrogen_kW;
 	v_currentPowerHeat_kW += EA.v_currentConsumptionHeat_kW - EA.v_currentProductionHeat_kW;
@@ -23804,7 +23818,14 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 
 // Determine house heating
 f_manageHeatingAssets();
-]]></Body>
+
+for( EnergyAsset c : c_conversionAssets ) {	
+	v_currentPowerElectricity_kW += c.v_currentConsumptionElectricity_kW - c.v_currentProductionElectricity_kW;
+	v_currentPowerMethane_kW += c.v_currentConsumptionMethane_kW - c.v_currentProductionMethane_kW;
+	v_currentPowerHydrogen_kW += c.v_currentConsumptionHydrogen_kW - c.v_currentProductionHydrogen_kW;
+	v_currentPowerHeat_kW += c.v_currentConsumptionHeat_kW - c.v_currentProductionHeat_kW;
+	v_currentPowerDiesel_kW += c.v_currentConsumptionDiesel_kW;
+}]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
