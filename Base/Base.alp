@@ -1338,6 +1338,18 @@ traceln("*** main duration *** "+ v_modelStartUpDuration_s+" s");]]></StartupCod
 						<Type><![CDATA[double]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1669026980656</Id>
+					<Name><![CDATA[v_totalBatteryEnergyUsed_MWh]]></Name>
+					<X>-560</X><Y>940</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1658496701675</Id>
 					<Name><![CDATA[p_timeStep_h]]></Name>
@@ -3123,9 +3135,11 @@ for(ConnectionOwner c : pop_connectionOwners) {
 	}
 //});
 }
+double batteryStoredEnergyDeltaSinceStart_MWh = v_totalBatteryChargeAmount_MWh - v_totalBatteryDischargeAmount_MWh - v_totalBatteryEnergyUsed_MWh;
 
 traceln("Electricity imported: "+ v_totalElectricityImport_MWh);
 traceln("Electricity exported: "+ v_totalElectricityExport_MWh);
+traceln("Electricity delta in batteries: "+ batteryStoredEnergyDeltaSinceStart_MWh);
 
 //Total energy consumption and production
 
@@ -3146,7 +3160,7 @@ traceln("Energy produced: "+ energyProduced_MWh);
 
 //Total selfconsumption, selfsufficiency
 double totalSelfConsumption_fr = 1 - (v_totalElectricityExport_MWh + v_totalMethaneExport_MWh + v_totalHydrogenExport_MWh)/energyProduced_MWh;
-double totalSelfSufficiency_fr = 1 - (v_totalElectricityImport_MWh + v_totalMethaneImport_MWh + v_totalHydrogenImport_MWh + v_totalDieselImport_MWh)/energyConsumed_MWh;
+double totalSelfSufficiency_fr = 1 - (v_totalElectricityImport_MWh + v_totalMethaneImport_MWh + v_totalHydrogenImport_MWh + v_totalDieselImport_MWh )/energyConsumed_MWh; // Doesn't account for changes in battery-SOC!
 
 //double totalSelfSufficiency_fr = 1 - (v_electricityImported_kWh + v_methaneImported_kWh + v_hydrogenImported_kWh + v_heatImported_kWh)/energyConsumed_kWh;
 
@@ -3530,16 +3544,17 @@ for(EnergyAsset e : c_storageAssets ) {
 		c_totalBatteryUnitsInstalled.computeIfPresent( e.p_defaultEnergyAssetPresetName, (key, val) ->val + 1.0 );
 		c_totalBatteryUnitsInstalled.computeIfAbsent( e.p_defaultEnergyAssetPresetName, k -> 1.0 );
 
-		c_totalBatteryChargeAmount_MWh.computeIfPresent( e.p_defaultEnergyAssetPresetName, (key, val) -> roundToDecimal( val + ((J_EAStorageElectric)e.p_energyAssetInstance).getTotalChargeAmount() / 1000, 2 ));
-		c_totalBatteryChargeAmount_MWh.computeIfAbsent( e.p_defaultEnergyAssetPresetName, k -> ((J_EAStorageElectric)e.p_energyAssetInstance).getTotalChargeAmount() / 1000 );
-		c_totalBatteryDischargeAmount_MWh.computeIfPresent( e.p_defaultEnergyAssetPresetName, (key, val) -> roundToDecimal( val + ((J_EAStorageElectric)e.p_energyAssetInstance).getTotalDischargeAmount() / 1000, 2 ));
-		c_totalBatteryDischargeAmount_MWh.computeIfAbsent( e.p_defaultEnergyAssetPresetName, k -> ((J_EAStorageElectric)e.p_energyAssetInstance).getTotalDischargeAmount() / 1000 );
-		c_totalBatteryInstalledCapacity_MWh.computeIfPresent( e.p_defaultEnergyAssetPresetName, (key, val) -> roundToDecimal( val + ((J_EAStorageElectric)e.p_energyAssetInstance).getStorageCapacity() / 1000, 2 ));
-		c_totalBatteryInstalledCapacity_MWh.computeIfAbsent( e.p_defaultEnergyAssetPresetName, k -> ((J_EAStorageElectric)e.p_energyAssetInstance).getStorageCapacity() / 1000 );
+		c_totalBatteryChargeAmount_MWh.computeIfPresent( e.p_defaultEnergyAssetPresetName, (key, val) -> roundToDecimal( val + ((J_EAStorageElectric)e.p_energyAssetInstance).getTotalChargeAmount_kWh() / 1000, 2 ));
+		c_totalBatteryChargeAmount_MWh.computeIfAbsent( e.p_defaultEnergyAssetPresetName, k -> ((J_EAStorageElectric)e.p_energyAssetInstance).getTotalChargeAmount_kWh() / 1000 );
+		c_totalBatteryDischargeAmount_MWh.computeIfPresent( e.p_defaultEnergyAssetPresetName, (key, val) -> roundToDecimal( val + ((J_EAStorageElectric)e.p_energyAssetInstance).getTotalDischargeAmount_kWh() / 1000, 2 ));
+		c_totalBatteryDischargeAmount_MWh.computeIfAbsent( e.p_defaultEnergyAssetPresetName, k -> ((J_EAStorageElectric)e.p_energyAssetInstance).getTotalDischargeAmount_kWh() / 1000 );
+		c_totalBatteryInstalledCapacity_MWh.computeIfPresent( e.p_defaultEnergyAssetPresetName, (key, val) -> roundToDecimal( val + ((J_EAStorageElectric)e.p_energyAssetInstance).getStorageCapacity_kWh() / 1000, 2 ));
+		c_totalBatteryInstalledCapacity_MWh.computeIfAbsent( e.p_defaultEnergyAssetPresetName, k -> ((J_EAStorageElectric)e.p_energyAssetInstance).getStorageCapacity_kWh() / 1000 );
 
-		v_totalBatteryDischargeAmount_MWh += ((J_EAStorageElectric)e.p_energyAssetInstance).getTotalDischargeAmount() / 1000;
-		v_totalBatteryChargeAmount_MWh += ((J_EAStorageElectric)e.p_energyAssetInstance).getTotalChargeAmount() / 1000;
-		v_totalBatteryInstalledCapacity_MWh += ((J_EAStorageElectric)e.p_energyAssetInstance).getStorageCapacity() / 1000;
+		v_totalBatteryDischargeAmount_MWh += ((J_EAStorageElectric)e.p_energyAssetInstance).getTotalDischargeAmount_kWh() / 1000;
+		v_totalBatteryChargeAmount_MWh += ((J_EAStorageElectric)e.p_energyAssetInstance).getTotalChargeAmount_kWh() / 1000;
+		v_totalBatteryInstalledCapacity_MWh += ((J_EAStorageElectric)e.p_energyAssetInstance).getStorageCapacity_kWh() / 1000;
+		v_totalBatteryEnergyUsed_MWh += ((J_EAStorageElectric)e.p_energyAssetInstance).getEnergyUsed_kWh() / 1000;
 		//traceln( ((J_EAStorageElectric)e.p_energyAssetInstance).getStorageCapacity() / 1000 );
 	}
 }]]></Body>
@@ -9238,7 +9253,10 @@ for (EnergyAsset EA : c_energyAssets ) {
 }
 
 //v_selfConsumptionElectricity_fr = 1 - (v_electricityDelivered_kWh + v_heatDelivered_kWh + v_methaneDelivered_kWh + v_hydrogenDelivered_kWh ) / v_totalEnergyProduced_kWh; // Doesn't make sense to sum different energy carriers!
-//v_selfSufficiencyElectricity_fr = 1 - (v_electricityDrawn_kWh + v_heatDrawn_kWh + v_methaneDrawn_kWh + v_hydrogenDrawn_kWh) / v_totalEnergyUsed_kWh; // Need to account for energy in storages]]></Body>
+//v_selfSufficiencyElectricity_fr = 1 - (v_electricityDrawn_kWh + v_heatDrawn_kWh + v_methaneDrawn_kWh + v_hydrogenDrawn_kWh) / v_totalEnergyUsed_kWh; // Need to account for energy in storages
+
+pl_SOC.updateData();
+pl_powerFlows.updateData();]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -9257,133 +9275,6 @@ for (EnergyAsset EA : c_energyAssets ) {
 	else if(e.p_energyAssetType == OL_EnergyAssetType.WINDMILL) {
 		e.f_updateElectricityFlows( main.v_currentWindPowerNormalized_r );
 	}
-}]]></Body>
-				</Function>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1668695288471</Id>
-					<Name><![CDATA[f_batteryManagementBalance]]></Name>
-					<Description><![CDATA[Simpele regeling voor balancering van holon-load.
-
-@author: JorritvandenHouten
-@since: 28-10-2022]]></Description>
-					<X>800</X><Y>250</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Parameter>
-						<Name><![CDATA[batterySOC]]></Name>
-						<Type><![CDATA[double]]></Type>
-					</Parameter>
-					<Body><![CDATA[if(p_ownerActor instanceof ConnectionOwner) {
-	if(((ConnectionOwner)p_ownerActor).p_holonParent instanceof EnergyHolon ) {
-
-		double currentHolonElectricitySurplus_kW = ((ConnectionOwner)p_ownerActor).p_holonParent.v_electricitySurplus_kW + v_previousPowerElectricity_kW;
-		double HolonConnectionCapacity_kW = 0.9*((ConnectionOwner)p_ownerActor).p_holonParent.v_connectionCapacity_kW; // Use only 90% of capacity for robustness against delay
-		double availableChargePower_kW = HolonConnectionCapacity_kW + currentHolonElectricitySurplus_kW; // Max battery charging power within grid capacity
-		double availableDischargePower_kW = currentHolonElectricitySurplus_kW - HolonConnectionCapacity_kW; // Max discharging power within grid capacity
-		double SOC_setp_fr = 0.6 + 0.2 * Math.sin(2*Math.PI*(time(HOUR)-12)/24); // Sinusoidal setpoint: aim for low SOC at 6:00h, high SOC at 18:00h.
-		//traceln("SOC setpoint at " + getHourOfDay() + " h is " + SOC_setp_fr*100 + "%");
-		double FeedbackGain_kWpSOC = 1.5 * p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW(); // How strongly to aim for SOC setpoint
-		double FeedforwardGain_kWpKw = 0.8; // Feedforward based on current surpluss in holon
-		//double chargeOffset_kW = 100; // Charging 'bias', basically increases SOC setpoint slightly during the whole day.
-		double chargeSetpoint_kW = 0;
-		chargeSetpoint_kW = FeedforwardGain_kWpKw * currentHolonElectricitySurplus_kW + (SOC_setp_fr - batterySOC) * FeedbackGain_kWpSOC;
-		chargeSetpoint_kW = min(max(chargeSetpoint_kW, availableDischargePower_kW),availableChargePower_kW); // Don't allow too much (dis)charging!
-		if (time(HOUR) == 0){
-			chargeSetpoint_kW = -1000;
-		}
-		p_batteryAsset.v_powerFraction_fr = max(-1,min(1, chargeSetpoint_kW / p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW())); // Convert to powerFraction and limit power
-		//traceln("HOLON surpluss " + currentHolonElectricitySurplus_kW + "kW, Battery charging power " + p_batteryAsset.v_powerFraction_fr*p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW() + " kW at " + currentBatteryStateOfCharge*100 + " % SOC");
-	}
-}]]></Body>
-				</Function>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1668695288479</Id>
-					<Name><![CDATA[f_batteryManagementPrice]]></Name>
-					<Description><![CDATA[Simpele regeling voor balancering van holon-load.
-
-@author: JorritvandenHouten
-@since: 28-10-2022]]></Description>
-					<X>800</X><Y>270</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Parameter>
-						<Name><![CDATA[currentBatteryStateOfCharge]]></Name>
-						<Type><![CDATA[double]]></Type>
-					</Parameter>
-					<Body><![CDATA[//double willingnessToPayDefault_eurpkWh = 0.3;
-double chargeDischarge_offset_eurpkWh = 0.0;
-double WTPfeedbackGain_eurpSOC = 0.1; // When SOC-error is 100%, adjust WTP price by 1 eurpkWh
-double priceGain = 3; // How strongly to ramp up power with price-delta's
-//double congestionTariffHolon_eurpkWh = -(((ConnectionOwner)p_ownerActor).p_holonParent.v_electricitySurplus_kW + v_previousPowerElectricity_kW)/1200*0.1;
-
-double chargeSetpoint_kW = 0;
-
-if(p_ownerActor instanceof ConnectionOwner) {
-		if (time(HOUR) == 0){
-			chargeSetpoint_kW = -600;
-		} else {
-			//traceln("Initial Mappings are: " + ((ConnectionOwner)p_ownerActor).v_currentPriceBands);
-			double currentElectricityPriceCharge_eurpkWh = ((ConnectionOwner)p_ownerActor).v_currentPriceBands.ceilingEntry(100.0).getValue(); // query price at 1kW
-			double currentElectricityPriceDischarge_eurpkWh = ((ConnectionOwner)p_ownerActor).v_currentPriceBands.floorEntry(-100.0).getValue(); // query price at 1kW
-			//double lowPassFraction = min(1,1*1.2*main.p_timeStep_h); // smaller value results in more filtering
-			v_electricityPriceLowPassed_eurpkWh += v_lowPassFactor_fr * ( currentElectricityPriceCharge_eurpkWh - v_electricityPriceLowPassed_eurpkWh );
-			
-			double currentPricePowerBandPos_kW = ((ConnectionOwner)p_ownerActor).v_currentPriceBands.ceilingKey(100.0); // Up to what power does this price hold?
-			double currentPricePowerBandNeg_kW = ((ConnectionOwner)p_ownerActor).v_currentPriceBands.floorKey(100.0); // Down to what power does this price hold?
-			
-			//double currentElectricityPrice_eurpkWh = currentElectricityPriceBand_eurpkWh.getValue();
-			//traceln("Current price is " + currentElectricityPriceCharge_eurpkWh + " eurpkWh, between " + currentPricePowerBandNeg_kW + " kW and " + currentPricePowerBandPos_kW + " kW");
-			// Keep track of average electricity value over last period using low-pass filter
-			
-			//v_electricityPriceLowPassed_eurpkWh += v_lowPassFactor_fr * (currentElectricityPrice_eurpkWh - v_electricityPriceLowPassed_eurpkWh);
-			
-			double SOC_setp_fr = 0.6 + 0.3 * Math.sin(2*Math.PI*(time(HOUR)-12)/24); // Sinusoidal setpoint: aim for low SOC at 6:00h, high SOC at 18:00h. 
-			double SOC_deficit_fr = SOC_setp_fr - currentBatteryStateOfCharge; // How far away from desired SOC? SOC too LOW is a POSITIVE deficit
-			
-			// Define WTP price for charging and discharging!
-			double WTP_charge_eurpkWh = v_electricityPriceLowPassed_eurpkWh - chargeDischarge_offset_eurpkWh + SOC_deficit_fr * WTPfeedbackGain_eurpSOC;
-			double WTP_discharge_eurpkWh = v_electricityPriceLowPassed_eurpkWh + chargeDischarge_offset_eurpkWh + SOC_deficit_fr * WTPfeedbackGain_eurpSOC;
-			
-			//traceln("WTP charge is " + WTP_charge_eurpkWh + " eurpkWh, discharge is " + WTP_discharge_eurpkWh + " eurpkWh");
-			// Choose charging power based on prices and desired SOC level
-			if ( WTP_charge_eurpkWh > currentElectricityPriceCharge_eurpkWh ) { // if willingness to pay higher than current electricity price
-				chargeSetpoint_kW = min(p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW()*(WTP_charge_eurpkWh - currentElectricityPriceCharge_eurpkWh)*priceGain, currentPricePowerBandPos_kW)  ;
-				//traceln("WTP charge " + WTP_charge_eurpkWh + " eurpkWh is high than electricity price " + currentElectricityPriceCharge_eurpkWh + " eurpkWh, so charge!") ;
-			} else if (WTP_discharge_eurpkWh < currentElectricityPriceDischarge_eurpkWh) {
-				chargeSetpoint_kW = -min(p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW()*(currentElectricityPriceDischarge_eurpkWh - WTP_discharge_eurpkWh)*priceGain, currentPricePowerBandPos_kW);
-				//traceln("WTP discharge " + WTP_discharge_eurpkWh + " eurpkWh is lower than electricity price " + currentElectricityPriceCharge_eurpkWh + " eurpkWh, so discharge!") ;
-			}
-			
-			// limit charging power to available connection capacity in HOLON when applicable
-			if(((ConnectionOwner)p_ownerActor).p_holonParent instanceof EnergyHolon ) {	
-				double currentHolonElectricitySurplus_kW = ((ConnectionOwner)p_ownerActor).p_holonParent.v_electricitySurplus_kW + v_previousPowerElectricity_kW;
-				double HolonConnectionCapacity_kW = 0.9*((ConnectionOwner)p_ownerActor).p_holonParent.v_connectionCapacity_kW; // Use only 90% of capacity for robustness against delay
-				double availableChargePower_kW = currentHolonElectricitySurplus_kW + HolonConnectionCapacity_kW; // Max battery charging power within grid capacity
-				double availableDischargePower_kW = currentHolonElectricitySurplus_kW - HolonConnectionCapacity_kW; // Max discharging power within grid capacity
-				//chargeSetpoint_kW = min(max(chargeSetpoint_kW, availableDischargePower_kW),availableChargePower_kW); // Don't allow too much (dis)charging!
-			}			
-		}
-		p_batteryAsset.v_powerFraction_fr = max(-1,min(1, chargeSetpoint_kW / p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW())); // Convert to powerFraction and limit power
-		//traceln("SOC setpoint at " + getHourOfDay() + " h is " + SOC_setp_fr*100 + "%");
-		/*double FeedbackGain_kWpSOC = 1.5 * p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW(); // How strongly to aim for SOC setpoint
-		double FeedforwardGain_kWpKw = 0.8; // Feedforward based on current surpluss in holon
-		//double chargeOffset_kW = 100; // Charging 'bias', basically increases SOC setpoint slightly during the whole day.
-		double chargeSetpoint_kW = 0;
-		chargeSetpoint_kW = FeedforwardGain_kWpKw*currentHolonElectricitySurplus_kW + (SOC_setp_fr - currentBatteryStateOfCharge) * FeedbackGain_kWpSOC;
-		chargeSetpoint_kW = min(max(chargeSetpoint_kW, availableDischargePower_kW),availableChargePower_kW); // Don't allow too much (dis)charging!
-		if (time(HOUR) == 0){
-			chargeSetpoint_kW = -1000;
-		}*/
-		//p_batteryAsset.v_powerFraction_fr = max(-1,min(1, chargeSetpoint_kW / p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW())); // Convert to powerFraction and limit power
-		//traceln("HOLON surpluss " + currentHolonElectricitySurplus_kW + "kW, Battery charging power " + p_batteryAsset.v_powerFraction_fr*p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW() + " kW at " + currentBatteryStateOfCharge*100 + " % SOC");
 }]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -9431,8 +9322,91 @@ else {
 					<Body><![CDATA[for (EnergyAsset truck : c_vehiclesAvailableForTanking){
 	v_currentPowerDiesel_kW += ((J_EAConversionDieselVehicle)truck.p_energyAssetInstance).dieselConsumption_kW;
 }
-v_dieselDrawn_kWh += v_currentPowerDiesel_kW * main.p_timeStep_h;
+//v_dieselDrawn_kWh += v_currentPowerDiesel_kW * main.p_timeStep_h; // Already called in f_connectionMetering!!
 c_vehiclesAvailableForTanking.clear();]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1669022552777</Id>
+					<Name><![CDATA[f_batteryManagementBalance]]></Name>
+					<X>800</X><Y>250</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[batterySOC]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
+					<Body><![CDATA[double electricitySurplus_kW = - v_currentPowerElectricity_kW;
+double connectionCapacity_kW = v_allowedCapacity_kW; // Use only 90% of capacity for robustness against delay
+double availableChargePower_kW = connectionCapacity_kW + electricitySurplus_kW; // Max battery charging power within grid capacity
+double availableDischargePower_kW = electricitySurplus_kW - connectionCapacity_kW; // Max discharging power within grid capacity
+double SOC_setp_fr = 0.6 + 0.2 * Math.sin(2*Math.PI*(time(HOUR)-12)/24); // Sinusoidal setpoint: aim for low SOC at 6:00h, high SOC at 18:00h.
+//traceln("SOC setpoint at " + getHourOfDay() + " h is " + SOC_setp_fr*100 + "%");
+double FeedbackGain_kWpSOC = 1.5 * p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW(); // How strongly to aim for SOC setpoint
+double FeedforwardGain_kWpKw = 0.8; // Feedforward based on current surpluss in holon
+//double chargeOffset_kW = 100; // Charging 'bias', basically increases SOC setpoint slightly during the whole day.
+double chargeSetpoint_kW = 0;
+chargeSetpoint_kW = FeedforwardGain_kWpKw * electricitySurplus_kW + (SOC_setp_fr - batterySOC) * FeedbackGain_kWpSOC;
+chargeSetpoint_kW = min(max(chargeSetpoint_kW, availableDischargePower_kW),availableChargePower_kW); // Don't allow too much (dis)charging!
+if (time(HOUR) == 0){
+	chargeSetpoint_kW = -1000;
+}
+p_batteryAsset.v_powerFraction_fr = max(-1,min(1, chargeSetpoint_kW / p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW())); // Convert to powerFraction and limit power
+//traceln("HOLON surpluss " + currentHolonElectricitySurplus_kW + "kW, Battery charging power " + p_batteryAsset.v_powerFraction_fr*p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW() + " kW at " + currentBatteryStateOfCharge*100 + " % SOC");]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1669022552780</Id>
+					<Name><![CDATA[f_batteryManagementPrice]]></Name>
+					<X>800</X><Y>270</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[batterySOC]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
+					<Body><![CDATA[traceln("ATM no price battery management modelled for GC building");]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1669025846794</Id>
+					<Name><![CDATA[f_manageHeatingAssets]]></Name>
+					<X>800</X><Y>310</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[// TODO: This only works for fixed heat demands; also need to implement heating of a building modeled as a ThermalStorageAsset! [GH 21/11/2022]
+
+double currentHeatDemand_kW = v_currentPowerHeat_kW;
+
+double heatCapacityInstalled_kW = 0;  // this could vary with temperature e.g. heatpump_air
+for( EnergyAsset c : c_conversionAssets ) {
+	heatCapacityInstalled_kW += ((J_EAConversion)c.p_energyAssetInstance).capacityHeat_kW;
+}
+
+//traceln("GCIndustry manageHeatingAssets debug: currentHeatDemand_kW = "+currentHeatDemand_kW+", current installed capacity kW = "+heatCapacityInstalled_kW);
+double powerFraction_fr = currentHeatDemand_kW / heatCapacityInstalled_kW;
+
+for( EnergyAsset c : c_conversionAssets ) {
+	double allocatedPowerFraction_fr =  ((J_EAConversion)c.p_energyAssetInstance).capacityHeat_kW / heatCapacityInstalled_kW;
+	c.v_powerFraction_fr = max( powerFraction_fr * allocatedPowerFraction_fr, 0);
+	c.f_updateAllFlows(c.v_powerFraction_fr);
+	v_currentPowerElectricity_kW += c.v_currentConsumptionElectricity_kW - c.v_currentProductionElectricity_kW;
+	v_currentPowerMethane_kW += c.v_currentConsumptionMethane_kW - c.v_currentProductionMethane_kW;
+	v_currentPowerHydrogen_kW += c.v_currentConsumptionHydrogen_kW - c.v_currentProductionHydrogen_kW;
+	v_currentPowerHeat_kW += c.v_currentConsumptionHeat_kW - c.v_currentProductionHeat_kW;
+}
+
+
+]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -9908,14 +9882,14 @@ c_vehiclesAvailableForTanking.clear();]]></Body>
 				</Text>
     			<TimePlot>
 					<Id>1668439095469</Id>
-					<Name><![CDATA[plot]]></Name>
+					<Name><![CDATA[pl_powerFlows]]></Name>
 					<X>0</X><Y>640</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<AutoUpdate>true</AutoUpdate>
+					<AutoUpdate>false</AutoUpdate>
 					<OccurrenceAtTime>true</OccurrenceAtTime>
 					<OccurrenceDate>1668499200000</OccurrenceDate>
 					<OccurrenceTime Class="CodeUnitValue">
@@ -10045,14 +10019,14 @@ c_vehiclesAvailableForTanking.clear();]]></Body>
     			</TimePlot>
     			<TimePlot>
 					<Id>1668968408696</Id>
-					<Name><![CDATA[plot1]]></Name>
+					<Name><![CDATA[pl_SOC]]></Name>
 					<X>500</X><Y>640</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<AutoUpdate>true</AutoUpdate>
+					<AutoUpdate>false</AutoUpdate>
 					<OccurrenceAtTime>true</OccurrenceAtTime>
 					<OccurrenceDate>1668499200000</OccurrenceDate>
 					<OccurrenceTime Class="CodeUnitValue">
@@ -15652,6 +15626,33 @@ v_currentPriceBands.put(999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionPr
 						<Type><![CDATA[String]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1669024165241</Id>
+					<Name><![CDATA[v_dieselVolume_kWh]]></Name>
+					<X>50</X><Y>550</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1669024172107</Id>
+					<Name><![CDATA[v_balanceDiesel_eur]]></Name>
+					<X>280</X><Y>550</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1660225105547</Id>
 					<Name><![CDATA[p_actorID]]></Name>
@@ -15950,7 +15951,9 @@ v_ownedGridConnection = ConnectingChildNode;
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[// get current energy flows
+					<Body><![CDATA[//TODO: Diesel costs still missing!! [GH 21/11/2022]
+
+// get current energy flows
 f_gatherEnergyFlows();
 
 // trigger transaction with supplier/holon
@@ -16015,6 +16018,7 @@ v_electricityVolume_kWh = 0;
 v_heatVolume_kWh = 0;
 v_methaneVolume_kWh = 0;
 v_hydrogenVolume_kWh = 0;
+v_dieselVolume_kWh = 0;
 
 // gather electricity flows
 for(GridConnection n :  subConnections.getConnections() ) {
@@ -16022,6 +16026,7 @@ for(GridConnection n :  subConnections.getConnections() ) {
 	v_heatVolume_kWh += n.v_currentPowerHeat_kW * main.p_timeStep_h;
 	v_methaneVolume_kWh += n.v_currentPowerMethane_kW * main.p_timeStep_h;
 	v_hydrogenVolume_kWh += n.v_currentPowerHydrogen_kW * main.p_timeStep_h;
+	v_dieselVolume_kWh += n.v_currentPowerDiesel_kW * main.p_timeStep_h;
 }]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -18189,6 +18194,51 @@ Supplier]]></Text>
 						</InitialValue>
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1669024077839</Id>
+					<Name><![CDATA[v_dieselImported_kWh]]></Name>
+					<X>300</X><Y>480</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1669024099515</Id>
+					<Name><![CDATA[v_dieselVolume_kWh]]></Name>
+					<X>50</X><Y>480</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1669024644541</Id>
+					<Name><![CDATA[v_balanceDiesel_eur]]></Name>
+					<X>520</X><Y>590</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1660736326709</Id>
 					<Name><![CDATA[p_actorID]]></Name>
@@ -18413,6 +18463,7 @@ v_electricityVolume_kWh = 0;
 v_heatVolume_kWh = 0;
 v_methaneVolume_kWh = 0;
 v_hydrogenVolume_kWh = 0;
+v_dieselVolume_kWh = 0;
 // gather electricity flows
 for(Agent a :  subConnections.getConnections() ) {
 	if(a instanceof ConnectionOwner){
@@ -18421,12 +18472,14 @@ for(Agent a :  subConnections.getConnections() ) {
 		v_heatVolume_kWh += n.v_heatVolume_kWh;
 		v_methaneVolume_kWh += n.v_methaneVolume_kWh;
 		v_hydrogenVolume_kWh += n.v_hydrogenVolume_kWh;
+		v_dieselVolume_kWh += n.v_dieselVolume_kWh;
 	} else if (a instanceof EnergyHolon) {
 		EnergyHolon n = (EnergyHolon)a;
 		v_electricityVolume_kWh += n.v_electricityVolume_kWh;
 		v_heatVolume_kWh += n.v_heatVolume_kWh;
 		v_methaneVolume_kWh += n.v_methaneVolume_kWh;
 		v_hydrogenVolume_kWh += n.v_hydrogenVolume_kWh;
+		v_dieselVolume_kWh += n.v_dieselVolume_kWh;
 	}
 }
 v_electricitySurplus_kW = -v_electricityVolume_kWh / main.p_timeStep_h;
@@ -18439,7 +18492,7 @@ v_heatImported_kWh += max(0,v_heatVolume_kWh);
 v_heatExported_kWh += -min(0,v_heatVolume_kWh);
 v_hydrogenImported_kWh += max(0,v_hydrogenVolume_kWh);
 v_hydrogenExported_kWh += -min(0,v_hydrogenVolume_kWh);
-]]></Body>
+v_dieselImported_kWh += v_dieselVolume_kWh;]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>RETURNS_VALUE</ReturnModificator>
@@ -18525,7 +18578,7 @@ traceln("Energy produced: "+ energyProduced_kWh);
 
 //Total selfconsumption, selfsufficiency
 double totalSelfConsumption_fr = 1 - (v_electricityExported_kWh + v_methaneExported_kWh + v_hydrogenExported_kWh + v_heatExported_kWh)/energyProduced_kWh;
-double totalSelfSufficiency_fr = 1 - (v_electricityImported_kWh + v_methaneImported_kWh + v_hydrogenImported_kWh + v_heatImported_kWh)/energyConsumed_kWh;
+double totalSelfSufficiency_fr = 1 - (v_electricityImported_kWh + v_methaneImported_kWh + v_hydrogenImported_kWh + v_heatImported_kWh + v_dieselImported_kWh)/energyConsumed_kWh;
 
 double totalSelfSufficiency_fr_check = (energyProduced_kWh - (v_electricityExported_kWh + v_methaneExported_kWh + v_hydrogenExported_kWh + v_heatExported_kWh))/energyConsumed_kWh;
 traceln("Holon selfconsumption: " + totalSelfConsumption_fr + "%");
@@ -20657,6 +20710,11 @@ public void f_operateFixedConsumptionAssets(){
 @Override
 public void f_operateFlexAssets(){
 	f_operateFlexAssets_overwrite();
+}
+
+@Override
+public void f_manageHeatingAssets(){
+	f_manageHeatingAssets_overwrite();
 }]]></AdditionalClassCode>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
 			<ExtendsReference>
@@ -20910,8 +20968,8 @@ public void f_operateFlexAssets(){
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1664441996771</Id>
-					<Name><![CDATA[f_manageHeatingAssets]]></Name>
-					<X>800</X><Y>290</Y>
+					<Name><![CDATA[f_manageHeatingAssets_overwrite]]></Name>
+					<X>800</X><Y>310</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -21142,7 +21200,7 @@ public void f_operateFixedConsumptionAssets(){
 	f_operateFixedConsumptionAssets_overwrite();
 }
 
-@Override
+/*@Override
 public void f_batteryManagementBalance( double batterySOC ){
 	f_batteryManagementBalance_overwrite( batterySOC );
 }
@@ -21150,7 +21208,7 @@ public void f_batteryManagementBalance( double batterySOC ){
 @Override
 public void f_batteryManagementPrice( double batterySOC ){
 	f_batteryManagementPrice_overwrite( batterySOC );
-}]]></AdditionalClassCode>
+}*/]]></AdditionalClassCode>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
 			<ExtendsReference>
 				<PackageName><![CDATA[base]]></PackageName>
@@ -21329,13 +21387,6 @@ public void f_batteryManagementPrice( double batterySOC ){
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[// ICE vehicle tanking
 f_manageTanking();
-
-// Determine EV charging
-f_manageCharging();
-//vehicles that charge update v_chargingPower_kW in the charging functions
-
-v_currentPowerElectricity_kW += v_chargingPower_kW;
-
 // Determine house heating
 f_manageHeatingAssets();
 for( EnergyAsset EA : c_conversionAssets ){
@@ -21347,11 +21398,18 @@ for( EnergyAsset EA : c_conversionAssets ){
 	v_currentPowerDiesel_kW += EA.v_currentConsumptionDiesel_kW;
 }
 
+// Determine EV charging
+f_manageCharging();
+//vehicles that charge update v_chargingPower_kW in the charging functions
+
+v_currentPowerElectricity_kW += v_chargingPower_kW;
+
+
 // Operate battery
 if (p_batteryAsset != null){
 	v_batterySOC_fr = p_batteryAsset.p_energyAssetInstance.getCurrentStateOfCharge();
 	if( p_batteryOperationMode == OL_BatteryOperationMode.BALANCE) {
-		f_batteryManagementBalance_overwrite( v_batterySOC_fr );
+		f_batteryManagementBalance( v_batterySOC_fr );
 	}
 	else {
 		f_batteryManagementPrice( v_batterySOC_fr );
@@ -21487,37 +21545,6 @@ for ( int i = 0; i < copiedVehicleList.size(); i++ ){
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1668598110923</Id>
-					<Name><![CDATA[f_manageHeatingAssets]]></Name>
-					<X>820</X><Y>310</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[double currentHeatDemand_kW = v_currentPowerHeat_kW;
-
-double heatCapacityInstalled_kW = 0;  // this could vary with temperature e.g. heatpump_air
-for( EnergyAsset c : c_conversionAssets ) {
-	heatCapacityInstalled_kW += ((J_EAConversion)c.p_energyAssetInstance).capacityHeat_kW;
-}
-
-//traceln("GCIndustry manageHeatingAssets debug: currentHeatDemand_kW = "+currentHeatDemand_kW+", current installed capacity kW = "+heatCapacityInstalled_kW);
-double powerFraction_fr = currentHeatDemand_kW / heatCapacityInstalled_kW;
-
-for( EnergyAsset c : c_conversionAssets ) {
-	if( !( c.p_energyAssetInstance instanceof J_EAConversionDieselVehicle)) {
-		double allocatedPowerFraction_fr =  ((J_EAConversion)c.p_energyAssetInstance).capacityHeat_kW / heatCapacityInstalled_kW;
-		c.v_powerFraction_fr = max( powerFraction_fr * allocatedPowerFraction_fr, 0);
-		c.f_updateAllFlows(c.v_powerFraction_fr);
-	}
-}
-
-
-]]></Body>
-				</Function>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1668773071914</Id>
 					<Name><![CDATA[f_operateFixedConsumptionAssets_overwrite]]></Name>
 					<X>800</X><Y>190</Y>
@@ -21536,54 +21563,6 @@ for( EnergyAsset c : c_conversionAssets ) {
 		e.v_powerFraction_fr = 0;
 	}
 }]]></Body>
-				</Function>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1668943673805</Id>
-					<Name><![CDATA[f_batteryManagementBalance_overwrite]]></Name>
-					<X>800</X><Y>250</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Parameter>
-						<Name><![CDATA[batterySOC]]></Name>
-						<Type><![CDATA[double]]></Type>
-					</Parameter>
-					<Body><![CDATA[double electricitySurplus_kW = - v_currentPowerElectricity_kW;
-double connectionCapacity_kW = v_allowedCapacity_kW; // Use only 90% of capacity for robustness against delay
-double availableChargePower_kW = connectionCapacity_kW + electricitySurplus_kW; // Max battery charging power within grid capacity
-double availableDischargePower_kW = electricitySurplus_kW - connectionCapacity_kW; // Max discharging power within grid capacity
-double SOC_setp_fr = 0.6 + 0.2 * Math.sin(2*Math.PI*(time(HOUR)-12)/24); // Sinusoidal setpoint: aim for low SOC at 6:00h, high SOC at 18:00h.
-//traceln("SOC setpoint at " + getHourOfDay() + " h is " + SOC_setp_fr*100 + "%");
-double FeedbackGain_kWpSOC = 1.5 * p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW(); // How strongly to aim for SOC setpoint
-double FeedforwardGain_kWpKw = 0.8; // Feedforward based on current surpluss in holon
-//double chargeOffset_kW = 100; // Charging 'bias', basically increases SOC setpoint slightly during the whole day.
-double chargeSetpoint_kW = 0;
-chargeSetpoint_kW = FeedforwardGain_kWpKw * electricitySurplus_kW + (SOC_setp_fr - batterySOC) * FeedbackGain_kWpSOC;
-chargeSetpoint_kW = min(max(chargeSetpoint_kW, availableDischargePower_kW),availableChargePower_kW); // Don't allow too much (dis)charging!
-if (time(HOUR) == 0){
-	chargeSetpoint_kW = -1000;
-}
-p_batteryAsset.v_powerFraction_fr = max(-1,min(1, chargeSetpoint_kW / p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW())); // Convert to powerFraction and limit power
-//traceln("HOLON surpluss " + currentHolonElectricitySurplus_kW + "kW, Battery charging power " + p_batteryAsset.v_powerFraction_fr*p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW() + " kW at " + currentBatteryStateOfCharge*100 + " % SOC");]]></Body>
-				</Function>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1668960630447</Id>
-					<Name><![CDATA[f_batteryManagementPrice_overwrite]]></Name>
-					<X>800</X><Y>270</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Parameter>
-						<Name><![CDATA[batterySOC]]></Name>
-						<Type><![CDATA[double]]></Type>
-					</Parameter>
-					<Body><![CDATA[traceln("ATM no price battery management modelled for GC building");]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -23273,34 +23252,6 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 f_manageHeatingAssets();
 ]]></Body>
 				</Function>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1665501272194</Id>
-					<Name><![CDATA[f_manageHeatingAssets]]></Name>
-					<X>800</X><Y>290</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[double currentHeatDemand_kW = v_currentPowerHeat_kW;
-
-double heatCapacityInstalled_kW = 0;  // this could vary with temperature e.g. heatpump_air
-for( EnergyAsset c : c_conversionAssets ) {
-	heatCapacityInstalled_kW += ((J_EAConversion)c.p_energyAssetInstance).capacityHeat_kW;
-}
-
-//traceln("GCIndustry manageHeatingAssets debug: currentHeatDemand_kW = "+currentHeatDemand_kW+", current installed capacity kW = "+heatCapacityInstalled_kW);
-double powerFraction_fr = currentHeatDemand_kW / heatCapacityInstalled_kW;
-
-for( EnergyAsset c : c_conversionAssets ) {
-	double allocatedPowerFraction_fr =  ((J_EAConversion)c.p_energyAssetInstance).capacityHeat_kW / heatCapacityInstalled_kW;
-	c.v_powerFraction_fr = max( powerFraction_fr * allocatedPowerFraction_fr, 0);
-	c.f_updateAllFlows(c.v_powerFraction_fr);
-}
-
-]]></Body>
-				</Function>
 			</Functions>
 			<AgentLinks>
 				<AgentLink>
@@ -23375,6 +23326,16 @@ public void f_connectToChild(Agent ConnectingParentNode){
 @Override
 public void f_operateFlexAssets(){
 	f_operateFlexAssets_overwrite();
+}
+
+@Override
+public void f_batteryManagementBalance( double batterySOC ){
+	f_batteryManagementBalanceHolon( batterySOC );
+}
+
+@Override
+public void f_batteryManagementPrice( double batterySOC ){
+	f_batteryManagementPriceHolon( batterySOC );
 }]]></AdditionalClassCode>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
 			<ExtendsReference>
@@ -23756,6 +23717,133 @@ v_batteryPower_kW += p_batteryAsset.v_currentConsumptionElectricity_kW - p_batte
 @since: 28-10-2022]]></Description>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>1170</X><Y>210</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[currentBatteryStateOfCharge]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
+					<Body><![CDATA[//double willingnessToPayDefault_eurpkWh = 0.3;
+double chargeDischarge_offset_eurpkWh = 0.0;
+double WTPfeedbackGain_eurpSOC = 0.1; // When SOC-error is 100%, adjust WTP price by 1 eurpkWh
+double priceGain = 3; // How strongly to ramp up power with price-delta's
+//double congestionTariffHolon_eurpkWh = -(((ConnectionOwner)p_ownerActor).p_holonParent.v_electricitySurplus_kW + v_previousPowerElectricity_kW)/1200*0.1;
+
+double chargeSetpoint_kW = 0;
+
+if(p_ownerActor instanceof ConnectionOwner) {
+		if (time(HOUR) == 0){
+			chargeSetpoint_kW = -600;
+		} else {
+			//traceln("Initial Mappings are: " + ((ConnectionOwner)p_ownerActor).v_currentPriceBands);
+			double currentElectricityPriceCharge_eurpkWh = ((ConnectionOwner)p_ownerActor).v_currentPriceBands.ceilingEntry(100.0).getValue(); // query price at 1kW
+			double currentElectricityPriceDischarge_eurpkWh = ((ConnectionOwner)p_ownerActor).v_currentPriceBands.floorEntry(-100.0).getValue(); // query price at 1kW
+			//double lowPassFraction = min(1,1*1.2*main.p_timeStep_h); // smaller value results in more filtering
+			v_electricityPriceLowPassed_eurpkWh += v_lowPassFactor_fr * ( currentElectricityPriceCharge_eurpkWh - v_electricityPriceLowPassed_eurpkWh );
+			
+			double currentPricePowerBandPos_kW = ((ConnectionOwner)p_ownerActor).v_currentPriceBands.ceilingKey(100.0); // Up to what power does this price hold?
+			double currentPricePowerBandNeg_kW = ((ConnectionOwner)p_ownerActor).v_currentPriceBands.floorKey(100.0); // Down to what power does this price hold?
+			
+			//double currentElectricityPrice_eurpkWh = currentElectricityPriceBand_eurpkWh.getValue();
+			//traceln("Current price is " + currentElectricityPriceCharge_eurpkWh + " eurpkWh, between " + currentPricePowerBandNeg_kW + " kW and " + currentPricePowerBandPos_kW + " kW");
+			// Keep track of average electricity value over last period using low-pass filter
+			
+			//v_electricityPriceLowPassed_eurpkWh += v_lowPassFactor_fr * (currentElectricityPrice_eurpkWh - v_electricityPriceLowPassed_eurpkWh);
+			
+			double SOC_setp_fr = 0.6 + 0.3 * Math.sin(2*Math.PI*(time(HOUR)-12)/24); // Sinusoidal setpoint: aim for low SOC at 6:00h, high SOC at 18:00h. 
+			double SOC_deficit_fr = SOC_setp_fr - currentBatteryStateOfCharge; // How far away from desired SOC? SOC too LOW is a POSITIVE deficit
+			
+			// Define WTP price for charging and discharging!
+			double WTP_charge_eurpkWh = v_electricityPriceLowPassed_eurpkWh - chargeDischarge_offset_eurpkWh + SOC_deficit_fr * WTPfeedbackGain_eurpSOC;
+			double WTP_discharge_eurpkWh = v_electricityPriceLowPassed_eurpkWh + chargeDischarge_offset_eurpkWh + SOC_deficit_fr * WTPfeedbackGain_eurpSOC;
+			
+			//traceln("WTP charge is " + WTP_charge_eurpkWh + " eurpkWh, discharge is " + WTP_discharge_eurpkWh + " eurpkWh");
+			// Choose charging power based on prices and desired SOC level
+			if ( WTP_charge_eurpkWh > currentElectricityPriceCharge_eurpkWh ) { // if willingness to pay higher than current electricity price
+				chargeSetpoint_kW = min(p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW()*(WTP_charge_eurpkWh - currentElectricityPriceCharge_eurpkWh)*priceGain, currentPricePowerBandPos_kW)  ;
+				//traceln("WTP charge " + WTP_charge_eurpkWh + " eurpkWh is high than electricity price " + currentElectricityPriceCharge_eurpkWh + " eurpkWh, so charge!") ;
+			} else if (WTP_discharge_eurpkWh < currentElectricityPriceDischarge_eurpkWh) {
+				chargeSetpoint_kW = -min(p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW()*(currentElectricityPriceDischarge_eurpkWh - WTP_discharge_eurpkWh)*priceGain, currentPricePowerBandPos_kW);
+				//traceln("WTP discharge " + WTP_discharge_eurpkWh + " eurpkWh is lower than electricity price " + currentElectricityPriceCharge_eurpkWh + " eurpkWh, so discharge!") ;
+			}
+			
+			// limit charging power to available connection capacity in HOLON when applicable
+			if(((ConnectionOwner)p_ownerActor).p_holonParent instanceof EnergyHolon ) {	
+				double currentHolonElectricitySurplus_kW = ((ConnectionOwner)p_ownerActor).p_holonParent.v_electricitySurplus_kW + v_previousPowerElectricity_kW;
+				double HolonConnectionCapacity_kW = 0.9*((ConnectionOwner)p_ownerActor).p_holonParent.v_connectionCapacity_kW; // Use only 90% of capacity for robustness against delay
+				double availableChargePower_kW = currentHolonElectricitySurplus_kW + HolonConnectionCapacity_kW; // Max battery charging power within grid capacity
+				double availableDischargePower_kW = currentHolonElectricitySurplus_kW - HolonConnectionCapacity_kW; // Max discharging power within grid capacity
+				//chargeSetpoint_kW = min(max(chargeSetpoint_kW, availableDischargePower_kW),availableChargePower_kW); // Don't allow too much (dis)charging!
+			}			
+		}
+		p_batteryAsset.v_powerFraction_fr = max(-1,min(1, chargeSetpoint_kW / p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW())); // Convert to powerFraction and limit power
+		//traceln("SOC setpoint at " + getHourOfDay() + " h is " + SOC_setp_fr*100 + "%");
+		/*double FeedbackGain_kWpSOC = 1.5 * p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW(); // How strongly to aim for SOC setpoint
+		double FeedforwardGain_kWpKw = 0.8; // Feedforward based on current surpluss in holon
+		//double chargeOffset_kW = 100; // Charging 'bias', basically increases SOC setpoint slightly during the whole day.
+		double chargeSetpoint_kW = 0;
+		chargeSetpoint_kW = FeedforwardGain_kWpKw*currentHolonElectricitySurplus_kW + (SOC_setp_fr - currentBatteryStateOfCharge) * FeedbackGain_kWpSOC;
+		chargeSetpoint_kW = min(max(chargeSetpoint_kW, availableDischargePower_kW),availableChargePower_kW); // Don't allow too much (dis)charging!
+		if (time(HOUR) == 0){
+			chargeSetpoint_kW = -1000;
+		}*/
+		//p_batteryAsset.v_powerFraction_fr = max(-1,min(1, chargeSetpoint_kW / p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW())); // Convert to powerFraction and limit power
+		//traceln("HOLON surpluss " + currentHolonElectricitySurplus_kW + "kW, Battery charging power " + p_batteryAsset.v_powerFraction_fr*p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW() + " kW at " + currentBatteryStateOfCharge*100 + " % SOC");
+}]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1669022533961</Id>
+					<Name><![CDATA[f_batteryManagementBalanceHolon]]></Name>
+					<Description><![CDATA[Simpele regeling voor balancering van holon-load.
+
+@author: JorritvandenHouten
+@since: 28-10-2022]]></Description>
+					<X>800</X><Y>250</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[batterySOC]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
+					<Body><![CDATA[if(p_ownerActor instanceof ConnectionOwner) {
+	if(((ConnectionOwner)p_ownerActor).p_holonParent instanceof EnergyHolon ) {
+
+		double currentHolonElectricitySurplus_kW = ((ConnectionOwner)p_ownerActor).p_holonParent.v_electricitySurplus_kW + v_previousPowerElectricity_kW;
+		double HolonConnectionCapacity_kW = 0.9*((ConnectionOwner)p_ownerActor).p_holonParent.v_connectionCapacity_kW; // Use only 90% of capacity for robustness against delay
+		double availableChargePower_kW = HolonConnectionCapacity_kW + currentHolonElectricitySurplus_kW; // Max battery charging power within grid capacity
+		double availableDischargePower_kW = currentHolonElectricitySurplus_kW - HolonConnectionCapacity_kW; // Max discharging power within grid capacity
+		double SOC_setp_fr = 0.6 + 0.2 * Math.sin(2*Math.PI*(time(HOUR)-12)/24); // Sinusoidal setpoint: aim for low SOC at 6:00h, high SOC at 18:00h.
+		//traceln("SOC setpoint at " + getHourOfDay() + " h is " + SOC_setp_fr*100 + "%");
+		double FeedbackGain_kWpSOC = 1.5 * p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW(); // How strongly to aim for SOC setpoint
+		double FeedforwardGain_kWpKw = 0.8; // Feedforward based on current surpluss in holon
+		//double chargeOffset_kW = 100; // Charging 'bias', basically increases SOC setpoint slightly during the whole day.
+		double chargeSetpoint_kW = 0;
+		chargeSetpoint_kW = FeedforwardGain_kWpKw * currentHolonElectricitySurplus_kW + (SOC_setp_fr - batterySOC) * FeedbackGain_kWpSOC;
+		chargeSetpoint_kW = min(max(chargeSetpoint_kW, availableDischargePower_kW),availableChargePower_kW); // Don't allow too much (dis)charging!
+		if (time(HOUR) == 0){
+			chargeSetpoint_kW = -1000;
+		}
+		p_batteryAsset.v_powerFraction_fr = max(-1,min(1, chargeSetpoint_kW / p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW())); // Convert to powerFraction and limit power
+		//traceln("HOLON surpluss " + currentHolonElectricitySurplus_kW + "kW, Battery charging power " + p_batteryAsset.v_powerFraction_fr*p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW() + " kW at " + currentBatteryStateOfCharge*100 + " % SOC");
+	}
+}]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1669022533963</Id>
+					<Name><![CDATA[f_batteryManagementPriceHolon]]></Name>
+					<Description><![CDATA[Simpele regeling voor balancering van holon-load.
+
+@author: JorritvandenHouten
+@since: 28-10-2022]]></Description>
+					<X>800</X><Y>270</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -25345,9 +25433,10 @@ public class J_EAStorageElectric extends base.J_EAStorage implements Serializabl
 
 		electricityProduction_kW = max(discharge_kW, 0);
 		electricityConsumption_kW = max(-discharge_kW, 0);
-
+		discharged_kWh += electricityProduction_kW * timestep_h;
+		charged_kWh += electricityConsumption_kW * timestep_h;
+		
 		updateStateOfCharge( discharge_kW );
-		updateChargingHistory( electricityProduction_kW, electricityConsumption_kW );
 		//double[] arr = {electricityProduction_kW, methaneProduction_kW, hydrogenProduction_kW, heatProduction_kW, electricityConsumption_kW, methaneConsumption_kW, hydrogenConsumption_kW, heatConsumption_kW };
     	//return arr;
 		return returnEnergyFlows();
@@ -25382,26 +25471,22 @@ public class J_EAStorageElectric extends base.J_EAStorage implements Serializabl
 			availableCapacity_kW = capacityElectric_kW;
 		}
 		else {
-			availableCapacity_kW = 0; //we dont want to plan to completely empty the battery during a timestep
+			availableCapacity_kW =  stateOfCharge_r * storageCapacity_kWh / timestep_h; // Allow to drain completely
 		}
 		return availableCapacity_kW;
 	}
 	
-	public double getStorageCapacity() {
+	public double getStorageCapacity_kWh() {
 		return storageCapacity_kWh;
 	}
 
-	public double getTotalChargeAmount() {
+	public double getTotalChargeAmount_kWh() {
 		return charged_kWh;
 	}
-	public double getTotalDischargeAmount() {
+	public double getTotalDischargeAmount_kWh() {
 		return discharged_kWh;
 	}
 
-	public void updateChargingHistory(double electricityProduced_kW, double electricityConsumed_kW) {
-		discharged_kWh += electricityProduced_kW * timestep_h;
-		charged_kWh += electricityConsumed_kW * timestep_h;
-	}
 
 	/**
 	 * This number is here for model snapshot storing purpose<br>
