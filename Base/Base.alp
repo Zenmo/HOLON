@@ -9387,7 +9387,9 @@ else {
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[for (EnergyAsset truck : c_vehiclesAvailableForTanking){
-	v_currentPowerDiesel_kW += ((J_EAConversionDieselVehicle)truck.p_energyAssetInstance).dieselConsumption_kW;
+	v_currentPowerDiesel_kW += ((J_EAConversionDieselVehicle)truck.p_energyAssetInstance).dieselConsumption_kW; // This bypasses the normal 'f_updateAllFlows()' for energyAssets!!
+	//truck.f_updateAllFlows(0);
+	//traceln("Dieselconsumption in f_manageTanking " + ((J_EAConversionDieselVehicle)truck.p_energyAssetInstance).dieselConsumption_kW);
 }
 //v_dieselDrawn_kWh += v_currentPowerDiesel_kW * main.p_timeStep_h; // Already called in f_connectionMetering!!
 c_vehiclesAvailableForTanking.clear();]]></Body>
@@ -21963,15 +21965,13 @@ for( EnergyAsset EA : c_conversionAssets ){
 	v_currentPowerMethane_kW += EA.v_currentConsumptionMethane_kW - EA.v_currentProductionMethane_kW;
 	v_currentPowerHydrogen_kW += EA.v_currentConsumptionHydrogen_kW - EA.v_currentProductionHydrogen_kW;
 	v_currentPowerHeat_kW += EA.v_currentConsumptionHeat_kW - EA.v_currentProductionHeat_kW;
-	v_currentPowerDiesel_kW += EA.v_currentConsumptionDiesel_kW;
+	v_currentPowerDiesel_kW += EA.v_currentConsumptionDiesel_kW; // Because f_updateAllFlows is not called for dieseltrucks, this value always remains zero!
+	//traceln("Dieselconsumption in f_operateFlex " + EA.v_currentConsumptionDiesel_kW); // Never 'activates!'
 }
 
 // Determine EV charging
 f_manageCharging();
-//vehicles that charge update v_chargingPower_kW in the charging functions
-
-v_currentPowerElectricity_kW += v_chargingPower_kW;
-
+v_currentPowerElectricity_kW += v_chargingPower_kW; //vehicles that charge update v_chargingPower_kW in the charging functions
 
 // Operate battery
 if (p_batteryAsset != null){
