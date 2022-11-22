@@ -8803,6 +8803,21 @@ import java.io.*;]]></Import>
 					</Properties>
 
 				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1669115948280</Id>
+					<Name><![CDATA[c_dieselVehicles]]></Name>
+					<X>530</X><Y>320</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
+						<ElementClass><![CDATA[EnergyAsset]]></ElementClass>
+						<ValueElementClass><![CDATA[String]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
 			</Variables>
 			<Events>
 				<Event>
@@ -8968,6 +8983,7 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 	}
 	else if (EA.p_energyAssetInstance instanceof J_EAConversionDieselVehicle) {
 		c_vehicleAssets.add( EA );
+		c_dieselVehicles.add( EA );
 		c_vehicleAssets.get( v_vehicleIndex ).v_powerFraction_fr = 1;
 		MobilityTracker m = main.add_mobilityTrackers();
 		c_mobilityTrackers.add( m );
@@ -9386,10 +9402,14 @@ else {
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[for (EnergyAsset truck : c_vehiclesAvailableForTanking){
-	v_currentPowerDiesel_kW += ((J_EAConversionDieselVehicle)truck.p_energyAssetInstance).dieselConsumption_kW; // This bypasses the normal 'f_updateAllFlows()' for energyAssets!!
+					<Body><![CDATA[/*for (EnergyAsset truck : c_vehiclesAvailableForTanking){
+	//v_currentPowerDiesel_kW += ((J_EAConversionDieselVehicle)truck.p_energyAssetInstance).dieselConsumption_kW; // This bypasses the normal 'f_updateAllFlows()' for energyAssets!!
 	//truck.f_updateAllFlows(0);
 	//traceln("Dieselconsumption in f_manageTanking " + ((J_EAConversionDieselVehicle)truck.p_energyAssetInstance).dieselConsumption_kW);
+}*/
+
+for (EnergyAsset truck : c_dieselVehicles){
+	truck.f_updateAllFlows(0);
 }
 //v_dieselDrawn_kWh += v_currentPowerDiesel_kW * main.p_timeStep_h; // Already called in f_connectionMetering!!
 c_vehiclesAvailableForTanking.clear();]]></Body>
@@ -9408,17 +9428,19 @@ c_vehiclesAvailableForTanking.clear();]]></Body>
 						<Name><![CDATA[batterySOC]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
-					<Body><![CDATA[double electricitySurplus_kW = - v_currentPowerElectricity_kW;
+					<Body><![CDATA[double electricitySurplus_kW = - v_currentPowerElectricity_kW; // still excludes battery power
+v_electricityPriceLowPassed_eurpkWh += v_lowPassFactor_fr * ( electricitySurplus_kW - v_electricityPriceLowPassed_eurpkWh );
+
 double connectionCapacity_kW = v_allowedCapacity_kW; // Use only 90% of capacity for robustness against delay
 double availableChargePower_kW = connectionCapacity_kW + electricitySurplus_kW; // Max battery charging power within grid capacity
 double availableDischargePower_kW = electricitySurplus_kW - connectionCapacity_kW; // Max discharging power within grid capacity
-double SOC_setp_fr = 0.6 + 0.2 * Math.sin(2*Math.PI*(time(HOUR)-12)/24); // Sinusoidal setpoint: aim for low SOC at 6:00h, high SOC at 18:00h.
+double SOC_setp_fr = 0.5 + 0.2 * Math.sin(2*Math.PI*(time(HOUR)-12)/24); // Sinusoidal setpoint: aim for low SOC at 6:00h, high SOC at 18:00h.
 //traceln("SOC setpoint at " + getHourOfDay() + " h is " + SOC_setp_fr*100 + "%");
 double FeedbackGain_kWpSOC = 1.5 * p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW(); // How strongly to aim for SOC setpoint
 double FeedforwardGain_kWpKw = 0.8; // Feedforward based on current surpluss in holon
 //double chargeOffset_kW = 100; // Charging 'bias', basically increases SOC setpoint slightly during the whole day.
 double chargeSetpoint_kW = 0;
-chargeSetpoint_kW = FeedforwardGain_kWpKw * electricitySurplus_kW + (SOC_setp_fr - batterySOC) * FeedbackGain_kWpSOC;
+chargeSetpoint_kW = FeedforwardGain_kWpKw * (electricitySurplus_kW - v_electricityPriceLowPassed_eurpkWh) + (SOC_setp_fr - batterySOC) * FeedbackGain_kWpSOC;
 chargeSetpoint_kW = min(max(chargeSetpoint_kW, availableDischargePower_kW),availableChargePower_kW); // Don't allow too much (dis)charging!
 if (time(HOUR) == 0){
 	chargeSetpoint_kW = -1000;
