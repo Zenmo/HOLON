@@ -1395,7 +1395,7 @@ traceln("*** main duration *** "+ v_modelStartUpDuration_s+" s");]]></StartupCod
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[true]]></Code>
+							<Code><![CDATA[false]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1658752734131</Id>
@@ -4055,7 +4055,7 @@ for(EnergyAsset e : c_storageAssets ) {
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[C:/Users/gilli/Documents/Project HOLON/Git_Local_Clone/HOLON/CaseDefinitions/industry_case/industry_case_actors_with_contracts.txt]]></ClassName>
+						<ClassName><![CDATA[../CaseDefinitions/industry_case/industry_case_actors_with_contracts.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -9454,6 +9454,22 @@ p_batteryAsset.v_powerFraction_fr = max(-1,min(1, chargeSetpoint_kW / p_batteryA
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1669022552780</Id>
+					<Name><![CDATA[f_batteryManagementPrice]]></Name>
+					<X>800</X><Y>270</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[batterySOC]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
+					<Body><![CDATA[traceln("ATM no price battery management modelled for GC building");]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1669025846794</Id>
 					<Name><![CDATA[f_manageHeatingAssets]]></Name>
 					<X>800</X><Y>310</Y>
@@ -9507,78 +9523,6 @@ if ( p_ThermalStorageAsset == null ) {
 
 
 ]]></Body>
-				</Function>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1669216260056</Id>
-					<Name><![CDATA[f_batteryManagementPrice]]></Name>
-					<Description><![CDATA[Simpele regeling voor balancering van holon-load.
-
-@author: JorritvandenHouten
-@since: 28-10-2022]]></Description>
-					<X>800</X><Y>270</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Parameter>
-						<Name><![CDATA[currentBatteryStateOfCharge]]></Name>
-						<Type><![CDATA[double]]></Type>
-					</Parameter>
-					<Body><![CDATA[//double willingnessToPayDefault_eurpkWh = 0.3;
-double chargeDischarge_offset_eurpkWh = 0.0;
-double WTPfeedbackGain_eurpSOC = 0.15; // When SOC-error is 100%, adjust WTP price by 1 eurpkWh
-double priceGain = 3; // How strongly to ramp up power with price-delta's
-//double congestionTariffHolon_eurpkWh = -(((ConnectionOwner)p_ownerActor).p_holonParent.v_electricitySurplus_kW + v_previousPowerElectricity_kW)/1200*0.1;
-
-double chargeSetpoint_kW = 0;
-
-if(p_ownerActor instanceof ConnectionOwner) {
-		if (time(HOUR) == 0){
-			chargeSetpoint_kW = -600;
-		} else {
-			//traceln("Initial Mappings are: " + ((ConnectionOwner)p_ownerActor).v_currentPriceBands);
-			double currentElectricityPriceCharge_eurpkWh = ((ConnectionOwner)p_ownerActor).v_currentPriceBands.ceilingEntry(100.0).getValue(); // query price at 1kW
-			double currentElectricityPriceDischarge_eurpkWh = ((ConnectionOwner)p_ownerActor).v_currentPriceBands.floorEntry(-100.0).getValue(); // query price at 1kW
-			//double lowPassFraction = min(1,1*1.2*main.p_timeStep_h); // smaller value results in more filtering
-			v_electricityPriceLowPassed_eurpkWh += v_lowPassFactor_fr * ( currentElectricityPriceCharge_eurpkWh - v_electricityPriceLowPassed_eurpkWh );
-			
-			double currentPricePowerBandPos_kW = ((ConnectionOwner)p_ownerActor).v_currentPriceBands.ceilingKey(100.0); // Up to what power does this price hold?
-			double currentPricePowerBandNeg_kW = ((ConnectionOwner)p_ownerActor).v_currentPriceBands.floorKey(100.0); // Down to what power does this price hold?
-			
-			//traceln("Current price is " + currentElectricityPriceCharge_eurpkWh + " eurpkWh, between " + currentPricePowerBandNeg_kW + " kW and " + currentPricePowerBandPos_kW + " kW");
-
-			double SOC_setp_fr = 0.5 + 0.25 * Math.sin(2*Math.PI*(time(HOUR)-12)/24); // Sinusoidal setpoint: aim for low SOC at 6:00h, high SOC at 18:00h. 
-			double SOC_deficit_fr = SOC_setp_fr - currentBatteryStateOfCharge; // How far away from desired SOC? SOC too LOW is a POSITIVE deficit
-			
-			// Define WTP price for charging and discharging!
-			double WTP_charge_eurpkWh = v_electricityPriceLowPassed_eurpkWh - chargeDischarge_offset_eurpkWh + SOC_deficit_fr * WTPfeedbackGain_eurpSOC;
-			double WTP_discharge_eurpkWh = v_electricityPriceLowPassed_eurpkWh + chargeDischarge_offset_eurpkWh + SOC_deficit_fr * WTPfeedbackGain_eurpSOC;
-			
-			//traceln("WTP charge is " + WTP_charge_eurpkWh + " eurpkWh, discharge is " + WTP_discharge_eurpkWh + " eurpkWh");
-			// Choose charging power based on prices and desired SOC level
-			if ( WTP_charge_eurpkWh > currentElectricityPriceCharge_eurpkWh ) { // if willingness to pay higher than current electricity price
-				chargeSetpoint_kW = min(p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW()*(WTP_charge_eurpkWh - currentElectricityPriceCharge_eurpkWh)*priceGain, currentPricePowerBandPos_kW)  ;
-				//traceln("WTP charge " + WTP_charge_eurpkWh + " eurpkWh is high than electricity price " + currentElectricityPriceCharge_eurpkWh + " eurpkWh, so charge!") ;
-			} else if (WTP_discharge_eurpkWh < currentElectricityPriceDischarge_eurpkWh) {
-				chargeSetpoint_kW = -min(p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW()*(currentElectricityPriceDischarge_eurpkWh - WTP_discharge_eurpkWh)*priceGain, currentPricePowerBandPos_kW);
-				//traceln("WTP discharge " + WTP_discharge_eurpkWh + " eurpkWh is lower than electricity price " + currentElectricityPriceCharge_eurpkWh + " eurpkWh, so discharge!") ;
-			}
-			
-			// limit charging power to available connection capacity
-			boolean b_stayWithinConnectionLimits = true;
-			if( b_stayWithinConnectionLimits ) {	
-
-				double electricitySurplus_kW = - v_currentPowerElectricity_kW; 
-				
-				double availableChargePower_kW = electricitySurplus_kW + v_allowedCapacity_kW; // Max battery charging power within grid capacity
-				double availableDischargePower_kW = electricitySurplus_kW - v_allowedCapacity_kW; // Max discharging power within grid capacity
-				chargeSetpoint_kW = min(max(chargeSetpoint_kW, availableDischargePower_kW),availableChargePower_kW); // Don't allow too much (dis)charging!
-			}			
-		}
-		p_batteryAsset.v_powerFraction_fr = max(-1,min(1, chargeSetpoint_kW / p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW())); // Convert to powerFraction and limit power
-}]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -25210,6 +25154,27 @@ nextActivityEndTimer.restart( endtimes.get(0) - starttimes.get(0) - time( MINUTE
 		<ShutdownCompact>false</ShutdownCompact>
 		<ImportSettings>
 			<ExternalConnection>
+				<Id>1658495176902</Id>
+				<Name><![CDATA[database]]></Name>
+				<X>0</X><Y>0</Y>
+				<Label><X>10</X><Y>0</Y></Label>
+				<PublicFlag>false</PublicFlag>
+				<PresentationFlag>true</PresentationFlag>
+				<ShowLabel>true</ShowLabel>
+				<DatabaseType>EXCEL_ACCESS</DatabaseType>
+				<ConnectionURL><![CDATA[]]></ConnectionURL>
+				<ConnectOnStartup>true</ConnectOnStartup>
+				<DatabaseName><![CDATA[]]></DatabaseName>
+				<ResourceReference>
+					<PackageName><![CDATA[base]]></PackageName>
+					<ClassName><![CDATA[db_backboneConfig.xlsx]]></ClassName>
+				</ResourceReference>
+				<Host><![CDATA[localhost]]></Host>
+				<JdbcDriverClassName><![CDATA[net.sourceforge.jtds.jdbc.Driver]]></JdbcDriverClassName>
+				<Login><![CDATA[]]></Login>
+				<Password><![CDATA[]]></Password>
+			</ExternalConnection>
+			<ExternalConnection>
 				<Id>1659535432855</Id>
 				<Name><![CDATA[database]]></Name>
 				<X>0</X><Y>0</Y>
@@ -25275,9 +25240,18 @@ nextActivityEndTimer.restart( endtimes.get(0) - starttimes.get(0) - time( MINUTE
 			<TableImportSettings>
 				<TableReference>
 					<PackageName><![CDATA[base]]></PackageName>
-					<ClassName><![CDATA[storage_assets]]></ClassName>
+					<ClassName><![CDATA[config]]></ClassName>
 				</TableReference>
 				<ConnectionIndex>0</ConnectionIndex>
+				<ExternalTableName><![CDATA["config"]]></ExternalTableName>
+				<AutoImport>true</AutoImport>
+			</TableImportSettings>
+			<TableImportSettings>
+				<TableReference>
+					<PackageName><![CDATA[base]]></PackageName>
+					<ClassName><![CDATA[storage_assets]]></ClassName>
+				</TableReference>
+				<ConnectionIndex>1</ConnectionIndex>
 				<ExternalTableName><![CDATA["storageAssets"]]></ExternalTableName>
 				<AutoImport>true</AutoImport>
 			</TableImportSettings>
@@ -25286,7 +25260,7 @@ nextActivityEndTimer.restart( endtimes.get(0) - starttimes.get(0) - time( MINUTE
 					<PackageName><![CDATA[base]]></PackageName>
 					<ClassName><![CDATA[consumption_assets]]></ClassName>
 				</TableReference>
-				<ConnectionIndex>0</ConnectionIndex>
+				<ConnectionIndex>1</ConnectionIndex>
 				<ExternalTableName><![CDATA["consumptionAssets"]]></ExternalTableName>
 				<AutoImport>true</AutoImport>
 			</TableImportSettings>
@@ -25295,7 +25269,7 @@ nextActivityEndTimer.restart( endtimes.get(0) - starttimes.get(0) - time( MINUTE
 					<PackageName><![CDATA[base]]></PackageName>
 					<ClassName><![CDATA[production_assets]]></ClassName>
 				</TableReference>
-				<ConnectionIndex>0</ConnectionIndex>
+				<ConnectionIndex>1</ConnectionIndex>
 				<ExternalTableName><![CDATA["productionAssets"]]></ExternalTableName>
 				<AutoImport>true</AutoImport>
 			</TableImportSettings>
@@ -25304,7 +25278,7 @@ nextActivityEndTimer.restart( endtimes.get(0) - starttimes.get(0) - time( MINUTE
 					<PackageName><![CDATA[base]]></PackageName>
 					<ClassName><![CDATA[conversion_assets]]></ClassName>
 				</TableReference>
-				<ConnectionIndex>0</ConnectionIndex>
+				<ConnectionIndex>1</ConnectionIndex>
 				<ExternalTableName><![CDATA["conversionAssets"]]></ExternalTableName>
 				<AutoImport>true</AutoImport>
 			</TableImportSettings>
@@ -25313,7 +25287,7 @@ nextActivityEndTimer.restart( endtimes.get(0) - starttimes.get(0) - time( MINUTE
 					<PackageName><![CDATA[base]]></PackageName>
 					<ClassName><![CDATA[profiles]]></ClassName>
 				</TableReference>
-				<ConnectionIndex>1</ConnectionIndex>
+				<ConnectionIndex>2</ConnectionIndex>
 				<ExternalTableName><![CDATA["profiles"]]></ExternalTableName>
 				<AutoImport>true</AutoImport>
 			</TableImportSettings>
@@ -25322,7 +25296,7 @@ nextActivityEndTimer.restart( endtimes.get(0) - starttimes.get(0) - time( MINUTE
 					<PackageName><![CDATA[base]]></PackageName>
 					<ClassName><![CDATA[params]]></ClassName>
 				</TableReference>
-				<ConnectionIndex>2</ConnectionIndex>
+				<ConnectionIndex>3</ConnectionIndex>
 				<ExternalTableName><![CDATA["params"]]></ExternalTableName>
 				<AutoImport>true</AutoImport>
 			</TableImportSettings>
@@ -27219,6 +27193,10 @@ public class J_EAConversionDieselVehicle extends base.J_EAConversion implements 
 		</Resource>
 		<Resource>
 			<Path><![CDATA[inputTruckTripPatterns.xlsx]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[MVPCase1BedrijventerreinBasicExplicit_config_energyAssets.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
