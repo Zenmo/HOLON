@@ -2713,31 +2713,6 @@ f_sumGridNodeLoads();
 f_sumMolecularEnergyFlows();
 f_sumBatteryUse();
 
-// add Total Cost KPI data:
-j_totalCostData.updateData( roundToDecimal( v_gridNodePeakLoadElectricityHSMS_kW , 2 ),
-							roundToDecimal( v_gridNodePeakLoadElectricityMSLS_kW, 2 ),
-							c_timesOfNodePeakLoads_h,
-							v_totalElectricityImport_MWh,
-							v_totalElectricityExport_MWh,
-							v_totalMethaneImport_MWh,
-							v_totalMethaneExport_MWh,
-							v_totalHydrogenImport_MWh,
-							v_totalHydrogenExport_MWh,
-							v_totalDieselImport_MWh,
-							c_totalBatteryUnitsInstalled,
-							c_totalBatteryChargeAmount_MWh,
-							c_totalBatteryDischargeAmount_MWh,
-							c_totalBatteryInstalledCapacity_MWh,
-							c_globalElectricityImportProfile_MWhph,
-							c_globalElectricityExportProfile_MWhph,
-							c_globalEVChargingProfile_kWhph,
-							c_globalEHGVChargingProfile_kWhph,
-							c_globalBatteryChargingProfile_kWhph
-							 );
-
-
-j_dataOut.totalCostData.add(j_totalCostData);
-
 //c_connectionOwners.parallelStream().forEach(c -> {
 traceln("connectionOwners left: "+pop_connectionOwners.size());
 traceln("connectionOwners in list: "+c_connectionOwners.size());
@@ -2783,6 +2758,8 @@ traceln("");
 double totalSelfConsumption_fr = 1 - (v_totalElectricityExport_MWh + v_totalMethaneExport_MWh + v_totalHydrogenExport_MWh)/energyProduced_MWh;
 double totalSelfSufficiency_fr = 1 - (v_totalElectricityImport_MWh + v_totalMethaneImport_MWh + v_totalHydrogenImport_MWh + v_totalDieselImport_MWh - batteryStoredEnergyDeltaSinceStart_MWh )/energyConsumed_MWh; // Doesn't account for changes in battery-SOC!
 
+//									roundToDecimal( totalSelfConsumption_fr, 3 ) + "",
+//									roundToDecimal( totalSelfSufficiency_fr, 3 ) + "")
 //double totalSelfSufficiency_fr = 1 - (v_electricityImported_kWh + v_methaneImported_kWh + v_hydrogenImported_kWh + v_heatImported_kWh)/energyConsumed_kWh;
 
 double totalSelfSufficiency_fr_check = (energyProduced_MWh - (v_totalElectricityExport_MWh + v_totalMethaneExport_MWh + v_totalHydrogenExport_MWh))/energyConsumed_MWh;
@@ -2791,6 +2768,33 @@ traceln("Model-wide selfsufficiency: " + totalSelfSufficiency_fr + "%, doubleche
 // TODO: Account for fuel imports/exports!!
 
 double modelRunDuration_s = roundToDecimal( ( System.currentTimeMillis() - v_timeOfModelStart_ms ) / 1000 - v_modelStartUpDuration_s, 3);
+
+// add Total Cost KPI data:
+j_totalCostData.updateData( roundToDecimal( v_gridNodePeakLoadElectricityHSMS_kW , 2 ),
+							roundToDecimal( v_gridNodePeakLoadElectricityMSLS_kW, 2 ),
+							c_timesOfNodePeakLoads_h,
+							v_totalElectricityImport_MWh,
+							v_totalElectricityExport_MWh,
+							v_totalMethaneImport_MWh,
+							v_totalMethaneExport_MWh,
+							v_totalHydrogenImport_MWh,
+							v_totalHydrogenExport_MWh,
+							v_totalDieselImport_MWh,
+							c_totalBatteryUnitsInstalled,
+							c_totalBatteryChargeAmount_MWh,
+							c_totalBatteryDischargeAmount_MWh,
+							c_totalBatteryInstalledCapacity_MWh,
+							c_globalElectricityImportProfile_MWhph,
+							c_globalElectricityExportProfile_MWhph,
+							c_globalEVChargingProfile_kWhph,
+							c_globalEHGVChargingProfile_kWhph,
+							c_globalBatteryChargingProfile_kWhph,
+							totalSelfConsumption_fr,
+							totalSelfSufficiency_fr);
+
+
+j_dataOut.totalCostData.add(j_totalCostData);
+
 j_experimentSettingsData.updateData( p_timeStep_h+"",
 									v_timeStepsElapsed+"",
 									time(HOUR) + "",
@@ -2804,11 +2808,7 @@ j_experimentSettingsData.updateData( p_timeStep_h+"",
 									pop_energyHolons.size() + "",
 									pop_administrativeHolons.size() + "",
 									pop_gridOperators.size() + "",
-									1 + "",
-									roundToDecimal( v_totalElectricityImport_MWh, 3 ) + "",
-									roundToDecimal( v_totalElectricityExport_MWh, 3 ) + "",
-									roundToDecimal( totalSelfConsumption_fr, 3 ) + "",
-									roundToDecimal( totalSelfSufficiency_fr, 3 ) + "");
+									1 + "" );
 
 j_dataOut.runSettingsData.add(j_experimentSettingsData);
 
@@ -26338,10 +26338,6 @@ public class J_ExperimentSettingsData implements Serializable {
 	public String nAdministrativeHolons;
 	public String nGridOperators;
 	public String nNationalEnergyMarket;
-	public String totalElectricityImported_MWh;
-	public String totalElectricityExported_MWh;
-	public String totalSelfConsumption_fr;
-	public String totalSelfSufficiency_fr;
 
 	 /**
      * Default constructor
@@ -26367,10 +26363,7 @@ public class J_ExperimentSettingsData implements Serializable {
 		this.nAdministrativeHolons = "";
 		this.nGridOperators = "";
 		this.nNationalEnergyMarket = "";
-		this.totalElectricityImported_MWh = "";
-		this.totalElectricityExported_MWh = "";
-		this.totalSelfConsumption_fr = "";
-		this.totalSelfSufficiency_fr = "";
+
     }
 
 	@Override
@@ -26389,14 +26382,10 @@ public class J_ExperimentSettingsData implements Serializable {
 			"nEnergyHolons = " + nEnergyHolons + " " +
 			"nAdministrativeHolons = " + nAdministrativeHolons + " " +
 			"nGridOperators = " + nGridOperators + " " +
-			"nNationalEnergyMarket = " + nNationalEnergyMarket + " " +
-			"totalElectricityImported_MWh = " + totalElectricityImported_MWh + " " +
-			"totalElectricityExported_MWh = " + totalElectricityExported_MWh + " " +
-			"totalSelfConsumption_fr = " + totalSelfConsumption_fr + " " +
-			"totalSelfSufficiency_fr = " + totalSelfSufficiency_fr + " ";
+			"nNationalEnergyMarket = " + nNationalEnergyMarket;
 	}
 
-	public void updateData(String timeStep_h, String timeStepsElapsed, String modelHoursElapsed_h, String modelStartUpDuration_s, String modelRunDuration_s, String nGridNodes,	String nGridConnections, String nEnergyAssets, String nConnectionOwners, String nEnergySuppliers, String nEnergyHolons, String nAdministrativeHolons, String nGridOperators, String nNationalEnergyMarket, String totalElectricityImported_MWh, String totalElectricityExported_MWh, String totalSelfConsumption_fr, String totalSelfSufficiency_fr) {
+	public void updateData(String timeStep_h, String timeStepsElapsed, String modelHoursElapsed_h, String modelStartUpDuration_s, String modelRunDuration_s, String nGridNodes,	String nGridConnections, String nEnergyAssets, String nConnectionOwners, String nEnergySuppliers, String nEnergyHolons, String nAdministrativeHolons, String nGridOperators, String nNationalEnergyMarket) {
 		this.timeStep_h = timeStep_h;
 		this.timeStepsElapsed = timeStepsElapsed;
 		this.modelHoursElapsed_h = modelHoursElapsed_h;
@@ -26411,10 +26400,6 @@ public class J_ExperimentSettingsData implements Serializable {
 		this.nAdministrativeHolons = nAdministrativeHolons;
 		this.nGridOperators = nGridOperators;
 		this.nNationalEnergyMarket = nNationalEnergyMarket;
-		this.totalElectricityImported_MWh = totalElectricityImported_MWh;
-		this.totalElectricityExported_MWh = totalElectricityExported_MWh;
-		this.totalSelfConsumption_fr = totalSelfConsumption_fr;
-		this.totalSelfSufficiency_fr = totalSelfSufficiency_fr;
 	}
 
 
@@ -26702,7 +26687,8 @@ public class J_TotalCostData implements Serializable {
 	public Map<Integer,Double> totalEVHourlyChargingProfile_kWh = new LinkedHashMap<Integer,Double>();
 	public Map<Integer,Double> totalEHGVHourlyChargingProfile_kWh = new LinkedHashMap<Integer,Double>();
 	public Map<Integer,Double> totalBatteryHourlyChargingProfile_kWh = new LinkedHashMap<Integer, Double>();
-
+	public double totalSelfConsumption_fr;
+	public double totalSelfSufficiency_fr;
 
 	 /**
      * Default constructor
@@ -26713,7 +26699,7 @@ public class J_TotalCostData implements Serializable {
     /**
      * Constructor initializing the fields
      */
-    public J_TotalCostData( double v_gridNodeLoadElectricityHSMS_kW, double v_gridNodeLoadElectricityMSLS_kW, LinkedHashMap<String,Double> c_timesOfNodePeakLoads_h, double totalElectricityImport_MWh, double totalElectricityExport_MWh, double totalMethaneImport_MWh, double totalMethaneExport_MWh, double totalHydrogenImport_MWh, double totalHydrogenExport_MWh, double totalDieselImport_MWh, LinkedHashMap<String,Double> totalBatteryUnitsInstalled, LinkedHashMap<String,Double> totalBatteryChargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryDischargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryInstalledCapacity_MWh, LinkedHashMap<Integer,Double> c_globalElectricityImportProfile_MWhph, LinkedHashMap<Integer,Double> c_globalElectricityExportProfile_MWhph, LinkedHashMap<Integer,Double> totalEVHourlyChargingProfile_kWh, LinkedHashMap<Integer,Double> totalEHGVHourlyChargingProfile_kWh, LinkedHashMap<Integer,Double> totalBatteryHourlyChargingProfile_kWh ) {
+    public J_TotalCostData( double v_gridNodeLoadElectricityHSMS_kW, double v_gridNodeLoadElectricityMSLS_kW, LinkedHashMap<String,Double> c_timesOfNodePeakLoads_h, double totalElectricityImport_MWh, double totalElectricityExport_MWh, double totalMethaneImport_MWh, double totalMethaneExport_MWh, double totalHydrogenImport_MWh, double totalHydrogenExport_MWh, double totalDieselImport_MWh, LinkedHashMap<String,Double> totalBatteryUnitsInstalled, LinkedHashMap<String,Double> totalBatteryChargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryDischargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryInstalledCapacity_MWh, LinkedHashMap<Integer,Double> c_globalElectricityImportProfile_MWhph, LinkedHashMap<Integer,Double> c_globalElectricityExportProfile_MWhph, LinkedHashMap<Integer,Double> totalEVHourlyChargingProfile_kWh, LinkedHashMap<Integer,Double> totalEHGVHourlyChargingProfile_kWh, LinkedHashMap<Integer,Double> totalBatteryHourlyChargingProfile_kWh, double totalSelfConsumption_fr, double totalSelfSufficiency_fr) {
 		this.HSMSPeakLoadElectricity_kW = v_gridNodeLoadElectricityHSMS_kW;
 		this.MSLSPeakLoadElectricity_kW = v_gridNodeLoadElectricityMSLS_kW;
 		this.timesOfNodePeakLoads_h = c_timesOfNodePeakLoads_h;
@@ -26735,6 +26721,8 @@ public class J_TotalCostData implements Serializable {
 		this.totalEVHourlyChargingProfile_kWh = totalEVHourlyChargingProfile_kWh;
 		this.totalEHGVHourlyChargingProfile_kWh = totalEHGVHourlyChargingProfile_kWh;
 		this.totalBatteryHourlyChargingProfile_kWh = totalBatteryHourlyChargingProfile_kWh;
+		this.totalSelfConsumption_fr = totalSelfConsumption_fr;
+		this.totalSelfSufficiency_fr = totalSelfSufficiency_fr;
     }
 
 	@Override
@@ -26759,10 +26747,12 @@ public class J_TotalCostData implements Serializable {
 			"SystemHourlyElectricityExport_MWh = " + SystemHourlyElectricityExport_MWh.toString() + " " +
 			"totalEVHourlyChargingProfile_kWh = " + totalEVHourlyChargingProfile_kWh + " "+
 			"totalEHGVHourlyChargingProfile_kWh = " + totalEHGVHourlyChargingProfile_kWh + " "+
-			"totalBatteryHourlyChargingProfile_kWh = " + totalBatteryHourlyChargingProfile_kWh + " ";
+			"totalBatteryHourlyChargingProfile_kWh = " + totalBatteryHourlyChargingProfile_kWh + " " +
+			"totalSelfConsumption_fr = " + totalSelfConsumption_fr*100 + " %" +
+			"totalSelfSufficiency_fr = " + totalSelfSufficiency_fr*100 + " %";
 	}
 
-	public void updateData( double v_gridNodePeakLoadElectricityHSMS_kW, double v_gridNodePeakLoadElectricityMSLS_kW, LinkedHashMap<String,Double> c_timesOfNodePeakLoads_h, double totalElectricityImport_MWh, double totalElectricityExport_MWh, double totalMethaneImport_MWh, double totalMethaneExport_MWh, double totalHydrogenImport_MWh, double totalHydrogenExport_MWh, double totalDieselImport_MWh, LinkedHashMap<String,Double> totalBatteryUnitsInstalled, LinkedHashMap<String,Double> totalBatteryChargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryDischargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryInstalledCapacity_MWh, LinkedHashMap<Integer,Double> c_globalElectricityImportProfile_MWhph, LinkedHashMap<Integer,Double> c_globalElectricityExportProfile_MWhph, LinkedHashMap<Integer,Double> totalEVHourlyChargingProfile_kWh, LinkedHashMap<Integer,Double> totalEHGVHourlyChargingProfile_kWh, LinkedHashMap<Integer,Double> totalBatteryHourlyChargingProfile_kWh ) {
+	public void updateData( double v_gridNodePeakLoadElectricityHSMS_kW, double v_gridNodePeakLoadElectricityMSLS_kW, LinkedHashMap<String,Double> c_timesOfNodePeakLoads_h, double totalElectricityImport_MWh, double totalElectricityExport_MWh, double totalMethaneImport_MWh, double totalMethaneExport_MWh, double totalHydrogenImport_MWh, double totalHydrogenExport_MWh, double totalDieselImport_MWh, LinkedHashMap<String,Double> totalBatteryUnitsInstalled, LinkedHashMap<String,Double> totalBatteryChargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryDischargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryInstalledCapacity_MWh, LinkedHashMap<Integer,Double> c_globalElectricityImportProfile_MWhph, LinkedHashMap<Integer,Double> c_globalElectricityExportProfile_MWhph, LinkedHashMap<Integer,Double> totalEVHourlyChargingProfile_kWh, LinkedHashMap<Integer,Double> totalEHGVHourlyChargingProfile_kWh, LinkedHashMap<Integer,Double> totalBatteryHourlyChargingProfile_kWh, double totalSelfConsumption_fr, double totalSelfSufficiency_fr ) {
 		this.HSMSPeakLoadElectricity_kW = v_gridNodePeakLoadElectricityHSMS_kW;
 		this.MSLSPeakLoadElectricity_kW = v_gridNodePeakLoadElectricityMSLS_kW;
 		this.timesOfNodePeakLoads_h = c_timesOfNodePeakLoads_h;
@@ -26784,6 +26774,8 @@ public class J_TotalCostData implements Serializable {
 		this.totalEVHourlyChargingProfile_kWh = totalEVHourlyChargingProfile_kWh;
 		this.totalEHGVHourlyChargingProfile_kWh = totalEHGVHourlyChargingProfile_kWh;
 		this.totalBatteryHourlyChargingProfile_kWh = totalBatteryHourlyChargingProfile_kWh;
+		this.totalSelfConsumption_fr = totalSelfConsumption_fr;
+		this.totalSelfSufficiency_fr = totalSelfSufficiency_fr;
 	}
 
 
@@ -26944,6 +26936,6 @@ public class J_EAConversionDieselVehicle extends base.J_EAConversion implements 
 		<VersionMinor>0</VersionMinor>
 		<VersionBuild>5</VersionBuild>
     </RequiredLibraryReference>
-	<CloudModelUuid><![CDATA[f6ec3b86-f229-444c-b79c-f397a596c2f1]]></CloudModelUuid>
+	<CloudModelUuid><![CDATA[5243b7f5-c932-47d0-b7be-e38728e9a370]]></CloudModelUuid>
 </Model>
 </AnyLogicWorkspace>
