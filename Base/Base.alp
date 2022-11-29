@@ -1393,7 +1393,7 @@ traceln(" ");]]></StartupCode>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[true]]></Code>
+							<Code><![CDATA[false]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1658752734131</Id>
@@ -2743,6 +2743,9 @@ for(ConnectionOwner c : pop_connectionOwners) {
 //});
 }
 double batteryStoredEnergyDeltaSinceStart_MWh = v_totalBatteryChargeAmount_MWh - v_totalBatteryDischargeAmount_MWh - v_totalBatteryEnergyUsed_MWh;
+if (batteryStoredEnergyDeltaSinceStart_MWh == Double.NaN) {
+	batteryStoredEnergyDeltaSinceStart_MWh = 0;
+}
 
 traceln("Electricity imported: "+ v_totalElectricityImport_MWh + " MWh");
 traceln("Electricity exported: "+ v_totalElectricityExport_MWh + " MWh");
@@ -7187,7 +7190,7 @@ for( Agent a : subConnections.getConnections() )
 }
 
 if( abs( v_currentLoadElectricity_kW ) > abs(v_peakLoadAbsoluteElectricity_kW) ) { // store maximum absolute load, but retain sign!
-	v_peakLoadAbsoluteElectricity_kW = v_currentLoadElectricity_kW ;
+	v_peakLoadAbsoluteElectricity_kW = abs( v_currentLoadElectricity_kW );
 	v_timeOfPeakLoad_h = time(HOUR);
 }
 
@@ -8804,7 +8807,7 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 		p_ThermalStorageAsset = EA;
 	}
 	else if (EA.p_energyAssetInstance instanceof J_EAStorageElectric) {
-		if(EA.p_energyAssetInstance instanceof J_EAEV) {
+		if(EA.p_energyAssetInstance instanceof J_EAEV && ((J_EAEV)EA.p_energyAssetInstance).getStorageCapacity_kWh() !=0) {
 			c_vehicleAssets.add( EA );
 			c_vehicleAssets.get( v_vehicleIndex ).v_powerFraction_fr = 1;
 			MobilityTracker m = main.add_mobilityTrackers();
@@ -8819,7 +8822,7 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 			m.f_getData();
 			v_vehicleIndex ++;
 		}
-		else {
+		else if (((J_EAStorageElectric)EA.p_energyAssetInstance).getStorageCapacity_kWh() !=0) {
 			//c_batteries.add(EA);
 			p_batteryAsset = EA;
 		}
@@ -9085,8 +9088,10 @@ else {
                 v_maxOverload_fr = max(v_maxOverload_fr, - v_currentPowerElectricity_kW / v_allowedCapacity_kW );
 }
 
-pl_SOC.updateData();
-pl_powerFlows.updateData();]]></Body>
+if (main.b_addKpiVisuals) {
+	pl_SOC.updateData();
+	pl_powerFlows.updateData();
+}]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -9170,7 +9175,8 @@ c_vehiclesAvailableForTanking.clear();]]></Body>
 						<Name><![CDATA[batterySOC]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
-					<Body><![CDATA[if (p_batteryAsset.p_energyAssetInstance.capacityElectric_kW != 0){
+					<Body><![CDATA[//traceln("Battery storage capacity: " + ((J_EAStorageElectric)p_batteryAsset.p_energyAssetInstance).getStorageCapacity_kWh());
+if (((J_EAStorageElectric)p_batteryAsset.p_energyAssetInstance).getStorageCapacity_kWh() != 0){
 	double electricitySurplus_kW = - v_currentPowerElectricity_kW; // still excludes battery power
 	v_electricityPriceLowPassed_eurpkWh += v_lowPassFactor_fr * ( electricitySurplus_kW - v_electricityPriceLowPassed_eurpkWh );
 	
@@ -9203,7 +9209,7 @@ c_vehiclesAvailableForTanking.clear();]]></Body>
 						<Name><![CDATA[currentBatteryStateOfCharge]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
-					<Body><![CDATA[if (p_batteryAsset.p_energyAssetInstance.capacityElectric_kW != 0){
+					<Body><![CDATA[if (((J_EAStorageElectric)p_batteryAsset.p_energyAssetInstance).getStorageCapacity_kWh() != 0){
 	//double willingnessToPayDefault_eurpkWh = 0.3;
 	double chargeDischarge_offset_eurpkWh = 0.0;
 	double WTPfeedbackGain_eurpSOC = 0.15; // When SOC-error is 100%, adjust WTP price by 1 eurpkWh
@@ -11020,6 +11026,7 @@ return v_currentConsumptionElectricity_kW;
     			<TimePlot>
 					<Id>1668420180250</Id>
 					<Name><![CDATA[plot]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>430</X><Y>300</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
@@ -21940,12 +21947,14 @@ for ( int i = 0; i < copiedVehicleList.size(); i++ ){
 		countDeletedItems ++;
 	}
 	else {
-		double chargingSpeed = min (maxChargingSpeed, ev.capacityElectric_kW / ev.vehicleScaling );
-		double ratio = chargingSpeed / (ev.capacityElectric_kW / ev.vehicleScaling);
-		if ( ev.getChargingTimeToFull_MIN() > ev.getMobilityTracker().nextActivityStartTimer.getRest(MINUTE) - main.p_timeStep_h * 60 ){
-			ratio = 1;
+		if (ev.vehicleScaling != 0) {
+			double chargingSpeed = min (maxChargingSpeed, ev.capacityElectric_kW / ev.vehicleScaling );
+			double ratio = chargingSpeed / (ev.capacityElectric_kW / ev.vehicleScaling);
+			if ( ev.getChargingTimeToFull_MIN() > ev.getMobilityTracker().nextActivityStartTimer.getRest(MINUTE) - main.p_timeStep_h * 60 ){
+				ratio = 1;
+			}
+			v_chargingPower_kW += EA.f_updateElectricityFlows( ratio );
 		}
-		v_chargingPower_kW += EA.f_updateElectricityFlows( ratio );
 	}
 }]]></Body>
 				</Function>
@@ -24004,7 +24013,7 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 	if (EA.p_energyAssetInstance instanceof J_EAStorageHeat) {
 		p_ThermalStorageAsset = EA;
 	}
-	else if(EA.p_energyAssetInstance instanceof J_EAStorageElectric) {
+	else if(EA.p_energyAssetInstance instanceof J_EAStorageElectric && ((J_EAStorageElectric)EA.p_energyAssetInstance).getStorageCapacity_kWh() !=0) {
 		p_batteryAsset = EA;
 	}
 } else if (EA.p_energyAssetInstance instanceof J_EAConversion) {
@@ -24237,7 +24246,7 @@ if(p_ownerActor instanceof ConnectionOwner) {
 						<Name><![CDATA[batterySOC]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
-					<Body><![CDATA[if (p_batteryAsset.p_energyAssetInstance.capacityElectric_kW != 0){
+					<Body><![CDATA[if (((J_EAStorageElectric)p_batteryAsset.p_energyAssetInstance).getStorageCapacity_kWh() != 0){
 	if(p_ownerActor instanceof ConnectionOwner) {
 		if(((ConnectionOwner)p_ownerActor).p_holonParent instanceof EnergyHolon ) {
 	
@@ -24279,7 +24288,7 @@ if(p_ownerActor instanceof ConnectionOwner) {
 						<Name><![CDATA[currentBatteryStateOfCharge]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
-					<Body><![CDATA[if (p_batteryAsset.p_energyAssetInstance.capacityElectric_kW != 0){
+					<Body><![CDATA[if (((J_EAStorageElectric)p_batteryAsset.p_energyAssetInstance).getStorageCapacity_kWh() != 0){
 	//double willingnessToPayDefault_eurpkWh = 0.3;
 	double chargeDischarge_offset_eurpkWh = 0.0;
 	double WTPfeedbackGain_eurpSOC = 0.1; // When SOC-error is 100%, adjust WTP price by 1 eurpkWh
