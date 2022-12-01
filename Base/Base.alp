@@ -164,6 +164,14 @@
 			<Id>1659118426374</Id>
 			<Name><![CDATA[OL_EnergyAssetType]]></Name>
 			<Option>
+				<Id>1669816033364</Id>
+				<Name><![CDATA[ELECTRICITY_DEMAND]]></Name>
+			</Option>
+			<Option>
+				<Id>1669815514091</Id>
+				<Name><![CDATA[HEAT_DEMAND]]></Name>
+			</Option>
+			<Option>
 				<Id>1659118426728</Id>
 				<Name><![CDATA[WINDMILL]]></Name>
 			</Option>
@@ -174,10 +182,6 @@
 			<Option>
 				<Id>1659118482977</Id>
 				<Name><![CDATA[PHOTOTHERMAL]]></Name>
-			</Option>
-			<Option>
-				<Id>1659118495126</Id>
-				<Name><![CDATA[ELECTRICITY_CONSUMPTION_PROFILE]]></Name>
 			</Option>
 			<Option>
 				<Id>1659118532364</Id>
@@ -208,18 +212,6 @@
 				<Name><![CDATA[HEAT_DELIVERY_SET]]></Name>
 			</Option>
 			<Option>
-				<Id>1660202624229</Id>
-				<Name><![CDATA[ELECTRIC_VEHICLE]]></Name>
-			</Option>
-			<Option>
-				<Id>1665497996527</Id>
-				<Name><![CDATA[ELECTRICITY_DEMAND]]></Name>
-			</Option>
-			<Option>
-				<Id>1665498008245</Id>
-				<Name><![CDATA[HEAT_DEMAND]]></Name>
-			</Option>
-			<Option>
 				<Id>1665501765513</Id>
 				<Name><![CDATA[METHANE_FURNACE]]></Name>
 			</Option>
@@ -230,6 +222,10 @@
 			<Option>
 				<Id>1666267116036</Id>
 				<Name><![CDATA[BOILER]]></Name>
+			</Option>
+			<Option>
+				<Id>1660202624229</Id>
+				<Name><![CDATA[ELECTRIC_VEHICLE]]></Name>
 			</Option>
 			<Option>
 				<Id>1666950754271</Id>
@@ -1393,7 +1389,7 @@ traceln(" ");]]></StartupCode>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[false]]></Code>
+							<Code><![CDATA[true]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1658752734131</Id>
@@ -2783,13 +2779,13 @@ double totalSelfSufficiency_fr = 1 - (v_totalElectricityImport_MWh + v_totalMeth
 double totalSelfSufficiency_fr_check = (energyProduced_MWh - (v_totalElectricityExport_MWh + v_totalMethaneExport_MWh + v_totalHydrogenExport_MWh))/energyConsumed_MWh;
 traceln("Model-wide selfconsumption: " + totalSelfConsumption_fr + "%");
 traceln("Model-wide selfsufficiency: " + totalSelfSufficiency_fr + "%, doublecheck " + totalSelfSufficiency_fr_check);
-// TODO: Account for fuel imports/exports!!
+traceln("MS node peak load: " + v_gridNodePeakLoadElectricityMSLS_kW + " kW at hour: " + c_timesOfNodePeakLoads_h);
 
 double modelRunDuration_s = roundToDecimal( ( System.currentTimeMillis() - v_timeOfModelStart_ms ) / 1000 - v_modelStartUpDuration_s, 3);
 
 // add Total Cost KPI data:
-j_totalCostData.updateData( roundToDecimal( v_gridNodePeakLoadElectricityHSMS_kW , 2 ),
-							roundToDecimal( v_gridNodePeakLoadElectricityMSLS_kW, 2 ),
+j_totalCostData.updateData( roundToDecimal( max(v_gridNodePeakLoadElectricityHSMS_kW, pop_gridNodes.get(0).p_capacity_kW ), 2 ),
+							roundToDecimal( max(v_gridNodePeakLoadElectricityMSLS_kW, pop_gridNodes.get(0).p_capacity_kW ), 2 ),
 							c_timesOfNodePeakLoads_h,
 							c_gridConnectionOverload_fr,
 							v_totalElectricityImport_MWh,
@@ -9044,7 +9040,7 @@ v_chargingPower_kW = 0;
 v_batteryPower_kW = 0;
 v_productionPower_kW = 0;
 
-f_operateFixedProductionAssets();
+f_operateFixedAssets();
 for( EnergyAsset EA : c_productionAssets ){
 	v_currentPowerElectricity_kW += EA.v_currentConsumptionElectricity_kW - EA.v_currentProductionElectricity_kW;
 	v_productionPower_kW += EA.v_currentConsumptionElectricity_kW - EA.v_currentProductionElectricity_kW;
@@ -9052,8 +9048,6 @@ for( EnergyAsset EA : c_productionAssets ){
 	v_currentPowerHydrogen_kW += EA.v_currentConsumptionHydrogen_kW - EA.v_currentProductionHydrogen_kW;
 	v_currentPowerHeat_kW += EA.v_currentConsumptionHeat_kW - EA.v_currentProductionHeat_kW;
 }
-
-f_operateFixedConsumptionAssets();
 for( EnergyAsset EA : c_consumptionAssets ){
 	v_currentPowerElectricity_kW += EA.v_currentConsumptionElectricity_kW - EA.v_currentProductionElectricity_kW;
 	v_fixedConsumptionPower_kW += EA.v_currentConsumptionElectricity_kW - EA.v_currentProductionElectricity_kW;
@@ -9078,6 +9072,11 @@ for (EnergyAsset EA : c_energyAssets ) {
 	v_totalEnergyProduced_kWh -= min(0, energyUse_kWh);
 }
 
+/*if (p_batteryAsset != null){
+	v_totalEnergyUsed_kWh += ((J_EAStorageElectric)p_batteryAsset.p_energyAssetInstance).getTotalChargeAmount_kWh();
+	v_totalEnergyProduced_kWh += ((J_EAStorageElectric)p_batteryAsset.p_energyAssetInstance).getTotalDischargeAmount_kWh();
+}*/
+
 v_selfConsumption_fr = 1 - (v_electricityDelivered_kWh + v_heatDelivered_kWh + v_methaneDelivered_kWh + v_hydrogenDelivered_kWh + v_dieselDelivered_kWh ) / v_totalEnergyProduced_kWh; // Doesn't make sense to sum different energy carriers!
 v_selfSufficiency_fr = 1 - (v_electricityDrawn_kWh + v_heatDrawn_kWh + v_methaneDrawn_kWh + v_hydrogenDrawn_kWh + v_dieselDrawn_kWh) / v_totalEnergyUsed_kWh; // Need to account for energy in storages
 
@@ -9092,7 +9091,7 @@ if (main.b_addKpiVisuals) {
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1668528300576</Id>
-					<Name><![CDATA[f_operateFixedProductionAssets]]></Name>
+					<Name><![CDATA[f_operateFixedAssets]]></Name>
 					<X>800</X><Y>200</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -9105,19 +9104,69 @@ if (main.b_addKpiVisuals) {
 	else if(e.p_energyAssetType == OL_EnergyAssetType.WINDMILL) {
 		e.f_updateElectricityFlows( main.v_currentWindPowerNormalized_r );
 	}
-}]]></Body>
-				</Function>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1668773096833</Id>
-					<Name><![CDATA[f_operateFixedConsumptionAssets]]></Name>
-					<X>800</X><Y>220</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[
+	else {
+		traceln("ProductionAsset with unknown type, cannot operate!! Type: " + e.p_energyAssetType);
+		e.v_powerFraction_fr = 0;
+		throw new IllegalStateException("ProductionAsset with unknown type, cannot operate!! Type: " + e.p_energyAssetType);
+	}
+}
+
+for(EnergyAsset e : c_consumptionAssets) {
+	if( e.p_energyAssetType == OL_EnergyAssetType.ELECTRICITY_DEMAND ) { // TODO: Replace with more descriptive EnergyAssetType, don't switch based on GridConnectionCategory!
+		switch(e.p_defaultEnergyAssetPresetName) {
+			case "INDUSTRY_OTHER_ELECTRICITY_DEMAND":
+				e.f_updateElectricityFlows( main.v_currentIndustryOtherElectricityDemand_fr );
+			break;
+			case "LOGISTICS_FLEET_HGV_E" :
+				e.f_updateElectricityFlows( main.v_currentLogisticsFleetEDemand_fr );
+			break;
+			case "INDUSTRY_STEEL_ELECTRICITY_DEMAND" :
+				e.f_updateElectricityFlows( main.v_currentIndustrySteelElectricityDemand_fr );
+			break;
+			case "House_other_electricity":
+				e.f_updateElectricityFlows( main.v_currentHouseHoldOtherElectricityDemand_fr );
+			break;
+			case "Office_other_electricity":
+				e.f_updateElectricityFlows( main.v_currentBuildingOtherElectricityDemand_fr );
+			break;
+			case "Store_other_electricity":
+				e.f_updateElectricityFlows( main.v_currentBuildingOtherElectricityDemand_fr );
+			break;
+			default:
+				traceln("ConsumptionAsset with unknown type, cannot operate!! Type: " + e.p_energyAssetType);
+				throw new IllegalStateException("ELECTRICITY_DEMAND with unknown name, cannot operate!! Name: " + e.p_defaultEnergyAssetPresetName);
+		}				
+
+	} 
+	else if( e.p_energyAssetType == OL_EnergyAssetType.HOT_WATER_CONSUMPTION ){	
+		e.f_updateAllFlows( main.v_currentHouseHoldHotWaterDemand_fr );
+	}
+	else if( e.p_energyAssetType == OL_EnergyAssetType.HEAT_DEMAND ) {
+		switch(e.p_defaultEnergyAssetPresetName) {
+			case "INDUSTRY_OTHER_HEAT_DEMAND":
+				e.f_updateAllFlows( main.v_currentIndustryOtherHeatDemand_fr );
+			break;
+			case "Industry_steel_heat":
+				e.f_updateAllFlows( main.v_currentIndustrySteelHeatDemand_fr );
+			break;
+			default:
+				traceln("ConsumptionAsset with unknown type, cannot operate!! Type: " + e.p_energyAssetType);
+				throw new IllegalStateException("HEAT_DEMAND with unknown name, cannot operate!! Name: " + e.p_defaultEnergyAssetPresetName);
+		}
+	} 
+	/*	else if( e.p_energyAssetType == OL_EnergyAssetType.HEAT_DEMAND ) { // TODO: Re-introduce steel??
+		e.f_updateAllFlows( main.v_currentIndustrySteelHeatDemand_fr );
+	}*/
+	else {
+		traceln("ConsumptionAsset with unknown type, cannot operate!! Type: " + e.p_energyAssetType);
+		e.v_powerFraction_fr = 0;
+		throw new IllegalStateException("ConsumptionAsset with unknown type, cannot operate!! Type: " + e.p_energyAssetType);
+	} 
+}
+
+
+
+
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -9207,8 +9256,8 @@ if (((J_EAStorageElectric)p_batteryAsset.p_energyAssetInstance).getStorageCapaci
 					<Body><![CDATA[if (((J_EAStorageElectric)p_batteryAsset.p_energyAssetInstance).getStorageCapacity_kWh() != 0){
 	//double willingnessToPayDefault_eurpkWh = 0.3;
 	double chargeDischarge_offset_eurpkWh = 0.0;
-	double WTPfeedbackGain_eurpSOC = 0.15; // When SOC-error is 100%, adjust WTP price by 1 eurpkWh
-	double priceGain = 3; // How strongly to ramp up power with price-delta's
+	double WTPfeedbackGain_eurpSOC = 0.25; // When SOC-error is 100%, adjust WTP price by 1 eurpkWh
+	double priceGain = 5; // How strongly to ramp up power with price-delta's
 	//double congestionTariffHolon_eurpkWh = -(((ConnectionOwner)p_ownerActor).p_holonParent.v_electricitySurplus_kW + v_previousPowerElectricity_kW)/1200*0.1;
 	
 	double chargeSetpoint_kW = 0;
@@ -9303,7 +9352,9 @@ if ( p_ThermalStorageAsset == null ) {
 		}
 		p_secondaryHeatingAsset.f_updateAllFlows(p_secondaryHeatingAsset.v_powerFraction_fr);
 	}
-	p_primaryHeatingAsset.f_updateAllFlows(p_primaryHeatingAsset.v_powerFraction_fr);
+	if (p_primaryHeatingAsset != null) {
+		p_primaryHeatingAsset.f_updateAllFlows(p_primaryHeatingAsset.v_powerFraction_fr);
+	}
 } else { // TODO: Implement thermostat functionality for thermal storage asset. Where to get temp setpoint?
 	traceln("No thermostat functionality available to manage p_thermalStorageAsset!!");
 	p_primaryHeatingAsset.f_updateAllFlows(0);
@@ -9332,6 +9383,26 @@ if(p_nfatoLvl_kW == 0 && p_nfatoStart_HR == 0 && p_nfatoEnd_HR == 0){
 else {
 	e_startNonFirmATO.restartTo(p_nfatoStart_HR, HOUR);
 	e_endNonFirmATO.restartTo(p_nfatoEnd_HR, HOUR);
+}]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1669811773887</Id>
+					<Name><![CDATA[f_operateFixedProductionAssets]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>800</X><Y>220</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[for(EnergyAsset e : c_productionAssets) {
+	if( e.p_energyAssetType == OL_EnergyAssetType.PHOTOVOLTAIC) {
+		e.f_updateElectricityFlows( main.v_currentSolarPowerNormalized_r );
+	}
+	else if(e.p_energyAssetType == OL_EnergyAssetType.WINDMILL) {
+		e.f_updateElectricityFlows( main.v_currentWindPowerNormalized_r );
+	}
 }]]></Body>
 				</Function>
 			</Functions>
@@ -10630,7 +10701,6 @@ p_energyAssetType = assetType;]]></Body>
 
 switch(assetType) {
 	case STORAGE_ELECTRIC:
-
 	// EnergyAsset ownerAsset, double chargeCapacityElectricity_kW, double chargeCapacityHeat_kW, OL_EnergyCarrierType storageMedium, double capacity, double stateOfCharge, double lossFactor, double timestep_h
 	p_energyAssetInstance = new J_EAStorageElectric(this, capacityElectric_kW, chargeCapacity_kWh, InitialStateOfCharge_r, main.p_timeStep_h);   // (EnergyAsset ownerAsset, double capacityElectricity_kW, double storageCapacity_kWh, double stateOfCharge_r, double timestep_h)
 	break;
@@ -21095,10 +21165,11 @@ public void f_connectToChild(Agent ConnectingParentNode){
 	f_connectToChild_overwrite(ConnectingParentNode);
 }
 
-@Override
+/*@Override
 public void f_operateFixedConsumptionAssets(){
 	f_operateFixedConsumptionAssets_overwrite();
-}
+}*/
+
 @Override
 public void f_operateFlexAssets(){
 	f_operateFlexAssets_overwrite();
@@ -21338,6 +21409,7 @@ public void f_manageHeatingAssets(){
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1664441944336</Id>
 					<Name><![CDATA[f_operateFixedConsumptionAssets_overwrite]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>800</X><Y>220</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -21616,10 +21688,10 @@ public void f_operateFlexAssets(){
 	f_operateFlexAssets_overwrite();
 }
 
-@Override
+/*@Override
 public void f_operateFixedConsumptionAssets(){
 	f_operateFixedConsumptionAssets_overwrite();
-}
+}*/
 
 /*@Override
 public void f_batteryManagementBalance( double batterySOC ){
@@ -21969,6 +22041,7 @@ for ( int i = 0; i < copiedVehicleList.size(); i++ ){
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1668773071914</Id>
 					<Name><![CDATA[f_operateFixedConsumptionAssets_overwrite]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>800</X><Y>220</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -23385,10 +23458,10 @@ public void f_connectToChild(Agent ConnectingParentNode){
 	f_connectToChild_overwrite(ConnectingParentNode);
 }
 
-@Override
+/*@Override
 public void f_operateFixedConsumptionAssets(){
 	f_operateFixedConsumptionAssets_overwrite();
-}
+}*/
 @Override
 public void f_operateFlexAssets(){
 	f_operateFlexAssets_overwrite();
@@ -23616,6 +23689,7 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1665499506761</Id>
 					<Name><![CDATA[f_operateFixedConsumptionAssets_overwrite]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>800</X><Y>220</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -24079,6 +24153,7 @@ traceln("NetConnection connecting to " + numberOfEnergyAssets + " EnergyAssets")
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1666967854749</Id>
 					<Name><![CDATA[f_operateFixedConsumptionAssets_overwrite]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>800</X><Y>220</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -27002,6 +27077,6 @@ public class J_EAConversionDieselVehicle extends base.J_EAConversion implements 
 		<VersionMinor>0</VersionMinor>
 		<VersionBuild>5</VersionBuild>
     </RequiredLibraryReference>
-	<CloudModelUuid><![CDATA[5243b7f5-c932-47d0-b7be-e38728e9a370]]></CloudModelUuid>
+	<CloudModelUuid><![CDATA[237b2108-5b73-4e34-b014-c8940eec4699]]></CloudModelUuid>
 </Model>
 </AnyLogicWorkspace>
