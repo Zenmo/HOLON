@@ -3896,7 +3896,7 @@ for (GridConnection g: c_gridConnections) {
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/industry_case_actors_with_contracts.txt]]></ClassName>
+						<ClassName><![CDATA[cases/industry_case/nf_ato_individual_actors.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -7936,6 +7936,21 @@ import java.io.*;]]></Import>
 						<Type><![CDATA[double]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1670254349157</Id>
+					<Name><![CDATA[v_enable_nfATO_b]]></Name>
+					<X>40</X><Y>280</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[boolean]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[false]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1658499438204</Id>
 					<Name><![CDATA[p_gridConnectionCategory]]></Name>
@@ -9376,13 +9391,16 @@ if ( p_ThermalStorageAsset == null ) {
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[v_allowedCapacity_kW = p_connectionCapacity_kW;
-if(p_nfatoLvl_kW == 0 && p_nfatoStart_HR == 0 && p_nfatoEnd_HR == 0){
+//if(p_nfatoLvl_kW == 0 && p_nfatoStart_HR == 0 && p_nfatoEnd_HR == 0){
+if(!v_enable_nfATO_b){
 	e_startNonFirmATO.reset();
 	e_endNonFirmATO.reset();
+			
 }
 else {
 	e_startNonFirmATO.restartTo(p_nfatoStart_HR, HOUR);
 	e_endNonFirmATO.restartTo(p_nfatoEnd_HR, HOUR);
+	if(p_nfatoLvl_kW == 0.0) { p_nfatoLvl_kW = p_connectionCapacity_kW; }
 }]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -15939,6 +15957,9 @@ v_currentPriceBands.put(999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionPr
 					</Parameter>
 					<Body><![CDATA[subConnections.connectTo(ConnectingChildNode);
 v_ownedGridConnection = ConnectingChildNode;
+if (v_contractGridOperator.equals("NONFIRM")) {
+	ConnectingChildNode.v_enable_nfATO_b = true;
+}
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -16184,7 +16205,7 @@ for( HashMap l : c_actorContractList) {
 
 // set other values according to received contract type:
 switch( v_contractEnergySupplier ) {
-	case "DEFAULT":
+	case "FIXED":
 		v_electricityContractType = OL_ContractType.ELECTRICITY_FIXED;
 		v_heatContractType = OL_ContractType.HEAT_FIXED;
 		v_methaneContractType = OL_ContractType.METHANE_FIXED;
@@ -16203,10 +16224,16 @@ switch( v_contractEnergySupplier ) {
 
 switch( v_contractGridOperator ) {
 	case "DEFAULT":
-//		v_congestionTariff_b = false; // ? wat nog meer?
+		v_congestionTariff_b = false; // ? wat nog meer?
 	break;
 	case "NODALPRICING":
-//		v_congestionTariff_b = true; // ? wat nog meer? 
+		v_congestionTariff_b = true; // ? wat nog meer? 
+	break;
+	case "NONFIRM":
+		/*for (GridConnection gc : subConnections.getConnections()) {
+			gc.v_enable_nfATO_b = true;
+			traceln("Setting nfATO TRUE!!");
+		}*/
 	break;
 	default:
 		traceln("ConnectionOwner f_setContractValues: gridOperator contract type not implemented! No values set");
@@ -18369,7 +18396,7 @@ Supplier]]></Text>
 				<Variable Class="PlainVariable">
 					<Id>1669035973258</Id>
 					<Name><![CDATA[v_allowedCapacity_kW]]></Name>
-					<X>300</X><Y>560</Y>
+					<X>300</X><Y>580</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18400,6 +18427,21 @@ Supplier]]></Text>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[String]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1670254434536</Id>
+					<Name><![CDATA[v_enable_nfATO_b]]></Name>
+					<X>300</X><Y>520</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[boolean]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[false]]></Code>
+						</InitialValue>
 					</Properties>
 				</Variable>
 				<Variable Class="Parameter">
@@ -18599,6 +18641,7 @@ Supplier]]></Text>
 				<Variable Class="Parameter">
 					<Id>1669036172744</Id>
 					<Name><![CDATA[p_connectionCapacity_kW]]></Name>
+					<Description><![CDATA[TODO: This is still hardcoded! How should HOLON know where to 'gather' this data? (Capacity of shared connection)]]></Description>
 					<X>50</X><Y>220</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -18609,7 +18652,7 @@ Supplier]]></Text>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[0]]></Code>
+							<Code><![CDATA[2000]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1669036172742</Id>
@@ -18640,7 +18683,7 @@ Supplier]]></Text>
 				<Event>
 					<Id>1669035973262</Id>
 					<Name><![CDATA[e_startNonFirmATO]]></Name>
-					<X>300</X><Y>520</Y>
+					<X>300</X><Y>540</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18671,7 +18714,7 @@ Supplier]]></Text>
 				<Event>
 					<Id>1669035973267</Id>
 					<Name><![CDATA[e_endNonFirmATO]]></Name>
-					<X>300</X><Y>540</Y>
+					<X>300</X><Y>560</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18988,7 +19031,7 @@ for( HashMap l : c_actorContractList) {
 
 // set other values according to received contract type:
 switch( v_contractEnergySupplier ) {
-	case "DEFAULT":
+	case "FIXED":
 		v_electricityContractType = OL_ContractType.ELECTRICITY_FIXED;
 		v_heatContractType = OL_ContractType.HEAT_FIXED;
 		v_methaneContractType = OL_ContractType.METHANE_FIXED;
@@ -19011,6 +19054,9 @@ switch( v_contractGridOperator ) {
 	break;
 	case "NODALPRICING":
 //		v_congestionTariff_b = true; // ? wat nog meer? 
+	break;
+	case "NONFIRM":
+		v_enable_nfATO_b = true;
 	break;
 	default:
 		traceln("EnergyHolon f_setContractValues: gridOperator contract type not implemented! No values set");
@@ -19040,13 +19086,14 @@ switch( v_contractEnergyHolon ) {
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[v_allowedCapacity_kW = p_connectionCapacity_kW;
-if(p_nfatoLvl_kW == 0){
+if(!v_enable_nfATO_b){
 	e_startNonFirmATO.reset();
 	e_endNonFirmATO.reset();
 }
 else {
 	e_startNonFirmATO.restartTo(p_nfatoStart_HR, HOUR);
 	e_endNonFirmATO.restartTo(p_nfatoEnd_HR, HOUR);
+	if(p_nfatoLvl_kW == 0.0) { p_nfatoLvl_kW = p_connectionCapacity_kW; }
 }]]></Body>
 				</Function>
 			</Functions>
@@ -27049,10 +27096,6 @@ public class J_EAConversionDieselVehicle extends base.J_EAConversion implements 
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/industry_case_actors_with_contracts.txt]]></Path>
-			<ReferencedFromUserCode>false</ReferencedFromUserCode>
-		</Resource>
-		<Resource>
 			<Path><![CDATA[cases/industry_case/industry_case_gridconnections.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
@@ -27062,6 +27105,10 @@ public class J_EAConversionDieselVehicle extends base.J_EAConversion implements 
 		</Resource>
 		<Resource>
 			<Path><![CDATA[cases/industry_case/industry_case_policies.txt]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[cases/industry_case/nf_ato_individual_actors.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
