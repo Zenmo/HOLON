@@ -2829,6 +2829,7 @@ j_experimentSettingsData.updateData( p_timeStep_h+"",
 
 j_dataOut.runSettingsData.add(j_experimentSettingsData);
 
+traceln("Netload " + v_gridNodePeakLoadElectricityMSLS_kW/2000*100 + " %" );
 traceln("Model run duration: " + modelRunDuration_s + " seconds");
 
     //System.out.println(json);
@@ -3156,15 +3157,15 @@ for( EnergySupplier e : pop_energySuppliers ) {
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[// Bereken belasting per netvlak in het model (elektriciteit, absolute waarde) voor kosten-berekeningen gebied.
 for(GridNode h : c_gridNodesHSMS ) {
-	v_gridNodePeakLoadElectricityHSMS_kW += h.v_peakLoadAbsoluteElectricity_kW;
+	v_gridNodePeakLoadElectricityHSMS_kW += h.v_peakLoadFilteredElectricity_kW;
 	v_totalElectricityImport_MWh += h.v_electricityDrawn_kWh / 1000;
 	v_totalElectricityExport_MWh += h.v_electricityDelivered_kWh / 1000;
-	c_timesOfNodePeakLoads_h.put(h.p_agentID, h.v_timeOfPeakLoad_h);
+	c_timesOfNodePeakLoads_h.put(h.p_agentID, h.v_timeOfPeakLoadFiltered_h);
 }
 
 for(GridNode m : c_gridNodesMSLS ) {
-	v_gridNodePeakLoadElectricityMSLS_kW += m.v_peakLoadAbsoluteElectricity_kW;
-	c_timesOfNodePeakLoads_h.put(m.p_agentID, m.v_timeOfPeakLoad_h);
+	v_gridNodePeakLoadElectricityMSLS_kW += m.v_peakLoadFilteredElectricity_kW;
+	c_timesOfNodePeakLoads_h.put(m.p_agentID, m.v_timeOfPeakLoadFiltered_h);
 }
 
 for(GridConnection g: c_gridConnections){
@@ -3896,7 +3897,7 @@ for (GridConnection g: c_gridConnections) {
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/dayahead_gopacs_collective_actors.txt]]></ClassName>
+						<ClassName><![CDATA[cases/industry_case/reproduceWebsiteResults/latest_actors.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -3914,7 +3915,7 @@ for (GridConnection g: c_gridConnections) {
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/industry_case_gridnodes.txt]]></ClassName>
+						<ClassName><![CDATA[cases/industry_case/reproduceWebsiteResults/latest_gridnodes.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -3932,7 +3933,7 @@ for (GridConnection g: c_gridConnections) {
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/industry_case_gridconnections.txt]]></ClassName>
+						<ClassName><![CDATA[cases/industry_case/reproduceWebsiteResults/latest_gridconnections.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -3969,7 +3970,7 @@ for (GridConnection g: c_gridConnections) {
 					<Url><![CDATA[../CaseDefinitions/industry_case/industry_case_policies.txt]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/industry_case_policies.txt]]></ClassName>
+						<ClassName><![CDATA[cases/industry_case/reproduceWebsiteResults/latest_policies.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -6658,6 +6659,37 @@ geupdate vanuit
 						</InitialValue>
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1670404847922</Id>
+					<Name><![CDATA[v_peakLoadFilteredElectricity_kW]]></Name>
+					<Description><![CDATA[Houdt de piekbelasting in kW over de modelrun bij (absolute waarde) voor kostenberekeningen netverzwaringen (totale gebiedskosten). Geupdate in f_calculateEnergyBalance.
+
+@author: Jorrit
+@since: 27-10-2022]]></Description>
+					<X>480</X><Y>290</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1670405904360</Id>
+					<Name><![CDATA[v_timeOfPeakLoadFiltered_h]]></Name>
+					<X>480</X><Y>350</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1658477613290</Id>
 					<Name><![CDATA[p_agentID]]></Name>
@@ -7189,6 +7221,12 @@ if( abs( v_currentLoadElectricity_kW ) > abs(v_peakLoadAbsoluteElectricity_kW) )
 	v_peakLoadAbsoluteElectricity_kW = abs( v_currentLoadElectricity_kW );
 	v_timeOfPeakLoad_h = time(HOUR);
 }
+
+if( abs( v_currentLoadElectricityLowPassed_kW ) > abs(v_peakLoadFilteredElectricity_kW) ) { // store maximum absolute load, but retain sign!
+	v_peakLoadFilteredElectricity_kW = abs( v_currentLoadElectricityLowPassed_kW );
+	v_timeOfPeakLoadFiltered_h = time(HOUR);
+}
+
 
 // Low-pass filtered grid load
 //double lowPassFraction = min(1,1*1.2*main.p_timeStep_h); // smaller value results in more filtering
@@ -11620,6 +11658,25 @@ return v_currentConsumptionElectricity_kW;
 						<Type><![CDATA[double]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1670404202381</Id>
+					<Name><![CDATA[v_trafoLoadFiltered_kW]]></Name>
+					<Description><![CDATA[Summation of energy supplier bank balances for trading of all energy carriers. Should be equal to summed grid connection bank balances for all energy carriers!
+
+@author: Jorrit
+@since: Sprint 6]]></Description>
+					<X>-320</X><Y>770</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1660578629879</Id>
 					<Name><![CDATA[p_individualMode]]></Name>
@@ -11719,7 +11776,8 @@ v_PVproduction_kW = sumWhere(main.pop_energyAssets, p->p.v_currentConsumptionEle
 v_industryConsumption_kW = sum(main.Industries, i->i.v_currentPowerElectricity_kW );
 v_holonAvailableConnectionCapacity_kW = main.pop_energyHolons.size() == 0 ? 0 : main.pop_energyHolons(0).v_allowedCapacity_kW;
 v_holonTotalPower_kW = main.pop_energyHolons.size() == 0 ? 0 : -main.pop_energyHolons(0).v_electricitySurplus_kW;
-v_batterySOC_fr = main.GridBatteries.size() == 0 ? 0 : main.GridBatteries(0).v_batterySOC_fr;]]></Body>
+v_batterySOC_fr = main.GridBatteries.size() == 0 ? 0 : main.GridBatteries(0).v_batterySOC_fr;
+v_trafoLoadFiltered_kW = main.pop_gridNodes(0).v_currentLoadElectricityLowPassed_kW;]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -12590,6 +12648,16 @@ pl_batterySOC.updateData();]]></Body>
 					<Expression><![CDATA[my_dataset6]]></Expression>
 					<Color>-65536</Color>
 					<Expression2><![CDATA[-v_holonAvailableConnectionCapacity_kW]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>
+						<PointStyle>NONE</PointStyle>
+						<LineWidth>1.0</LineWidth>
+					</DatasetExpression>
+					<DatasetExpression>  
+						<Title><![CDATA[Trafoload filtered]]></Title>
+					<Id>0</Id>
+					<Expression><![CDATA[my_dataset7]]></Expression>
+					<Color>-9807155</Color>
+					<Expression2><![CDATA[v_trafoLoadFiltered_kW]]></Expression2>
 					<Expression2Flag>true</Expression2Flag>
 						<PointStyle>NONE</PointStyle>
 						<LineWidth>1.0</LineWidth>
@@ -27113,19 +27181,19 @@ public class J_EAConversionDieselVehicle extends base.J_EAConversion implements 
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/industry_case_gridconnections.txt]]></Path>
+			<Path><![CDATA[cases/industry_case/reproduceWebsiteResults/latest_actors.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/industry_case_gridnodes.txt]]></Path>
+			<Path><![CDATA[cases/industry_case/reproduceWebsiteResults/latest_gridconnections.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/industry_case_policies.txt]]></Path>
+			<Path><![CDATA[cases/industry_case/reproduceWebsiteResults/latest_gridnodes.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/dayahead_gopacs_collective_actors.txt]]></Path>
+			<Path><![CDATA[cases/industry_case/reproduceWebsiteResults/latest_policies.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
