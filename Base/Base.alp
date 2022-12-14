@@ -17233,9 +17233,9 @@ ea 2
 			<Name><![CDATA[ConnectionOwner]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
 			<StartupCode><![CDATA[v_currentPriceBands = new TreeMap<Double, Double>();
-v_currentPriceBands.put(-999.0, v_electricitySellPrice_eurpkWh + v_sellCongestionPrice_eurpkWh);
+v_currentPriceBands.put(-9999.0, v_electricitySellPrice_eurpkWh + v_sellCongestionPrice_eurpkWh);
 v_currentPriceBands.put(0.0, 0.0);
-v_currentPriceBands.put(999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionPrice_eurpkWh);
+v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionPrice_eurpkWh);
 ]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -18197,9 +18197,9 @@ for(GridConnection c : gridConnections.getConnections()){
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[v_currentPriceBands.replace(-999.0, v_electricitySellPrice_eurpkWh + v_sellCongestionPrice_eurpkWh);
+					<Body><![CDATA[v_currentPriceBands.replace(-9999.0, v_electricitySellPrice_eurpkWh + v_sellCongestionPrice_eurpkWh);
 //v_currentPriceBands.put(0.0, 0.0);
-v_currentPriceBands.replace(999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionPrice_eurpkWh);
+v_currentPriceBands.replace(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionPrice_eurpkWh);
 
 
 if (v_congestionTariffAllowance_kW != 0){
@@ -24117,7 +24117,9 @@ if (p_batteryAsset != null){
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[switch (p_chargingAttitudeVehicles) {
+					<Body><![CDATA[double availableCapacityFromBatteries = p_batteryAsset == null ? 0 : ((J_EAStorageElectric)p_batteryAsset.p_energyAssetInstance).getCapacityAvailable_kW(); 
+double availableChargingCapacity = v_allowedCapacity_kW + availableCapacityFromBatteries - v_currentPowerElectricity_kW;
+switch (p_chargingAttitudeVehicles) {
 	case SIMPLE:
 		v_evChargingPowerElectric_kW = f_simpleCharging();
 	break;
@@ -24134,7 +24136,7 @@ if (p_batteryAsset != null){
 		double currentElectricityPriceConsumption_eurpkWh = ((ConnectionOwner)p_ownerActor).v_currentPriceBands.ceilingEntry(v_allowedCapacity_kW).getValue(); // query price at max charging power
 		double currentElectricityPriceProduction_eurpkWh = ((ConnectionOwner)p_ownerActor).v_currentPriceBands.floorEntry(-v_allowedCapacity_kW).getValue();
 		v_electricityPriceLowPassed_eurpkWh += v_lowPassFactor_fr * ( currentElectricityPriceConsumption_eurpkWh - v_electricityPriceLowPassed_eurpkWh );
-		f_chargeOnPrice(currentElectricityPriceConsumption_eurpkWh);
+		f_chargeOnPrice(currentElectricityPriceConsumption_eurpkWh,max(0, availableChargingCapacity));
 	break;
 	default:
 		traceln("incorrect input for charging mode of electric vehicles, cant run model");
@@ -24249,8 +24251,14 @@ return chargingPower_kW;]]></Body>
 						<Name><![CDATA[currentElectricityPriceConsumption_eurpkWh]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
+					<Parameter>
+						<Name><![CDATA[availableChargingPower_kW]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
 					<Body><![CDATA[ArrayList<EnergyAsset> copiedVehicleList = new ArrayList<EnergyAsset>(c_vehiclesAvailableForCharging);
 int countDeletedItems = 0;
+
+double remainingChargePower_kW = availableChargingPower_kW;
 
 for ( int i = 0; i < copiedVehicleList.size(); i++ ){
 	EnergyAsset EA = copiedVehicleList.get(i);
@@ -24260,120 +24268,37 @@ for ( int i = 0; i < copiedVehicleList.size(); i++ ){
 		c_vehiclesAvailableForCharging.remove( i - countDeletedItems );
 		countDeletedItems ++;
 	} else {
+		//double availableChargingPower_kW = v_allowedCapacity_kW - v_currentPowerElectricity_kW - v_chargingPower_kW;
 		double energyNeedForNextTrip_kWh = vehicle.getEnergyConsumption_kWhpkm() * vehicle.getMobilityTracker().v_tripDist_km;
 		double chargeNeedForNextTrip_kWh = energyNeedForNextTrip_kWh - vehicle.getStorageCapacity_kWh()*vehicle.getCurrentStateOfCharge();
 		//double timeToNexTrip_min = vehicle.getMobilityTracker().v_nextTripStartTime_min - time( MINUTE );
 		double maxChargingPower_kW = vehicle.getElectricCapacity_kW();
 		double timeToNextTrip_min = vehicle.getMobilityTracker().v_nextTripStartTime_min - time ( MINUTE );
-		
 		double chargeDeadline_min = floor((vehicle.getMobilityTracker().v_nextTripStartTime_min/60 - chargeNeedForNextTrip_kWh / maxChargingPower_kW)/main.p_timeStep_h)*60*main.p_timeStep_h;
-		//double chargingLeeway_min = chargeDeadline_min - time( MINUTE );
-		
-		// Querry current price levels and keep track of recent price level via v_electricityPriceLowPassed_eurpkWh
+
+		double priceGain_kWhpeur = 1; // When WTP is higher than current  electricity price, ramp up charging power with this gain based on the price-delta.
+		double flexibilityGain_eurpkWh = 0.1; // How strongly WTP-price shifts based on charging flexibility
+		double maxSpreadChargingPower_kW = min(chargeNeedForNextTrip_kWh / ((timeToNextTrip_min-v_additionalTimeSpreadCharging_MIN)/60),maxChargingPower_kW);
+		double WTPoffset_eurpkWh = 0.15; // Adds an offset to the WTP price; this value is very much context specific, depending on market conditions during charging periods
 		
 		double chargeSetpoint_kW = 0;
-		double priceGain_kWhpeur = 2; // When price is this much lower than 'recent' (lowPassed) price, charge at full power
-		//double flexibilityGain_eurph = 0.01; // Scale WTP-price based on flexibility time left
-		double flexibilityGain_eurpkWh = 0.3;
-		double maxSpreadChargingPower_kW = chargeNeedForNextTrip_kWh / (timeToNextTrip_min/60);
-		double WTPoffset_eurpkWh = 0.2;
-		
-		if (chargeNeedForNextTrip_kWh > 0){ // Is charging needed to complete the next trip?
-			if ( time(MINUTE) >= ( chargeDeadline_min )) { // Must-charge time at max charging power
-				traceln("Urgency charging!");
-				chargeSetpoint_kW = maxChargingPower_kW;				
-			} else {
-				//double WTPprice_eurpkWh = v_electricityPriceLowPassed_eurpkWh - flexibilityGain_eurph * (chargeDeadline_min - time(MINUTE) - 600);
-				double WTPprice_eurpkWh = WTPoffset_eurpkWh + v_electricityPriceLowPassed_eurpkWh + flexibilityGain_eurpkWh * (maxSpreadChargingPower_kW/maxChargingPower_kW - 0.3); // Scale WTP based on flexibility expressed in terms of power-fraction
-				chargeSetpoint_kW = max(0,maxChargingPower_kW * (WTPprice_eurpkWh - currentElectricityPriceConsumption_eurpkWh) * priceGain_kWhpeur);
-				//traceln("Trying to charge cheaply, time " + time(MINUTE) + " minutes, charge setpoint: " + chargeSetpoint_kW + " kW");
-			}
+
+		if ( time(MINUTE) >= ( chargeDeadline_min )) { // Must-charge time at max charging power
+			traceln("Urgency charging!");
+			chargeSetpoint_kW = maxChargingPower_kW;				
+		} else {
+			//double WTPprice_eurpkWh = v_electricityPriceLowPassed_eurpkWh - flexibilityGain_eurph * (chargeDeadline_min - time(MINUTE) - 600);
+			double WTPprice_eurpkWh = WTPoffset_eurpkWh + v_electricityPriceLowPassed_eurpkWh + flexibilityGain_eurpkWh * (maxSpreadChargingPower_kW/maxChargingPower_kW); // Scale WTP based on flexibility expressed in terms of power-fraction
+			chargeSetpoint_kW = max(0,maxChargingPower_kW * (WTPprice_eurpkWh/currentElectricityPriceConsumption_eurpkWh-1) * priceGain_kWhpeur);
+			chargeSetpoint_kW = min(remainingChargePower_kW,chargeSetpoint_kW);
+			//traceln("Trying to charge cheaply, time " + time(MINUTE) + " minutes, charge setpoint: " + chargeSetpoint_kW + " kW");
 		}
+		//}
 		v_chargingPower_kW += EA.f_updateElectricityFlows( chargeSetpoint_kW / maxChargingPower_kW );
+		remainingChargePower_kW = availableChargingPower_kW - v_chargingPower_kW;
 	}
 }
-		
-		
-/*	
-		
-		// Between chargingDeadlineT1 and chargingDeadlineT2, charge against medium rate
-		else if ( time(MINUTE) >= ( car.starttimes.get(car.p_tripIndex) - car.v_minChargingTime_min*v_mediumTariffWindowFactor )  && car.huidigBatterijCap_kWh < car.v_chargingTarget_kWh ) { // Between t2 and t1 till charging, charge against medium rate
-			double chargingPower_kW = 0 ;
-			while ( chargingPower_kW < min(maxChargingPower_kW, car.maxLaadsnelheid_kW) && incentiveSource.tf_incentivePowerCosts( (double)chargingPower_kW + huishouden.v_gridPowerBalAfterPV_kW ) < v_bidPriceMedium_eurpkWh) { // TODO: this reacts spiky to a flat rate (which is logical but obscure)
-				 chargingPower_kW+=0.1;
-			}
-		    chargeSetpoint_kW = chargingPower_kW;		
-		}
-	}
-	// Low cost charging regardless of next trip planned, and if there was not already 'urgent' charging
-	if ( maxAffordableChargingPower_kW == 0 && car.huidigBatterijCap_kWh < car.maxBatterijCap_kWh) { // Longer than t1 till charging, only charge against cheapest rate when battery is not full
-		double chargingPower_kW = 0 ;
-		while ( chargingPower_kW < min(maxChargingPower_kW, car.maxLaadsnelheid_kW) && incentiveSource.tf_incentivePowerCosts( (double)chargingPower_kW + huishouden.v_gridPowerBalAfterPV_kW ) < v_bidPriceLow_eurpkWh) { // TODO: this reacts spiky to a flat rate (which is logical but obscure)
-			 chargingPower_kW+=0.1;
-		}
-	    chargeSetpoint_kW = chargingPower_kW;		
-	} 
-	if ( maxAffordableChargingPower_kW == 0 && car.huidigBatterijCap_kWh > car.v_chargingTarget_kWh) { // V2G!
-		double chargingPower_kW = 0 ;
-		while ( chargingPower_kW > -min(maxChargingPower_kW, car.maxLaadsnelheid_kW) && incentiveSource.tf_incentivePowerCosts( chargingPower_kW + huishouden.v_gridPowerBalAfterPV_kW ) > v_bidPriceV2G_eurpkWh ) { // TODO: this reacts spiky to a flat rate (which is logical but obscure)
-			 chargingPower_kW-=0.1;
-		}
-	    chargeSetpoint_kW = chargingPower_kW;				
-	}
-	
-	if ( chargeSetpoint_kW == 0 && car.laadsnelheid_kW != 0 ) { // When charging stops, update minChargingTime
-		car.v_minChargingTime_min = max( 0 , ( car.v_chargingTarget_kWh - car.huidigBatterijCap_kWh ) / car.maxLaadsnelheid_kW * 60 );
-		//traceln("Charging time updated");
-	}
-
-
-if (((J_EAStorageElectric)p_batteryAsset.p_energyAssetInstance).getStorageCapacity_kWh() != 0){
-	//double willingnessToPayDefault_eurpkWh = 0.3;
-	double chargeDischarge_offset_eurpkWh = 0.0;
-	double WTPfeedbackGain_eurpSOC = 0.1; // When SOC-error is 100%, adjust WTP price by 1 eurpkWh
-	double priceGain = 3; // How strongly to ramp up power with price-delta's
-	//double congestionTariffHolon_eurpkWh = -(((ConnectionOwner)p_ownerActor).p_holonParent.v_electricitySurplus_kW + v_previousPowerElectricity_kW)/1200*0.1;
-	
-	double chargeSetpoint_kW = 0;
-	
-	if(p_ownerActor instanceof ConnectionOwner) {
-		double currentElectricityPriceCharge_eurpkWh = ((ConnectionOwner)p_ownerActor).v_currentPriceBands.ceilingEntry(100.0).getValue(); // query price at 1kW
-		double currentElectricityPriceDischarge_eurpkWh = ((ConnectionOwner)p_ownerActor).v_currentPriceBands.floorEntry(-100.0).getValue(); // query price at 1kW
-		v_electricityPriceLowPassed_eurpkWh += v_lowPassFactor_fr * ( currentElectricityPriceCharge_eurpkWh - v_electricityPriceLowPassed_eurpkWh );
-		
-		double currentPricePowerBandPos_kW = ((ConnectionOwner)p_ownerActor).v_currentPriceBands.ceilingKey(100.0); // Up to what power does this price hold?
-		double currentPricePowerBandNeg_kW = ((ConnectionOwner)p_ownerActor).v_currentPriceBands.floorKey(100.0); // Down to what power does this price hold?
-		
-	
-		double SOC_setp_fr = 0.6 + 0.3 * Math.sin(2*Math.PI*(time(HOUR)-12)/24); // Sinusoidal setpoint: aim for low SOC at 6:00h, high SOC at 18:00h. 
-		double SOC_deficit_fr = SOC_setp_fr - currentBatteryStateOfCharge; // How far away from desired SOC? SOC too LOW is a POSITIVE deficit
-		
-		// Define WTP price for charging and discharging!
-		double WTP_charge_eurpkWh = v_electricityPriceLowPassed_eurpkWh - chargeDischarge_offset_eurpkWh + SOC_deficit_fr * WTPfeedbackGain_eurpSOC;
-		double WTP_discharge_eurpkWh = v_electricityPriceLowPassed_eurpkWh + chargeDischarge_offset_eurpkWh + SOC_deficit_fr * WTPfeedbackGain_eurpSOC;
-		
-		//traceln("WTP charge is " + WTP_charge_eurpkWh + " eurpkWh, discharge is " + WTP_discharge_eurpkWh + " eurpkWh");
-		// Choose charging power based on prices and desired SOC level
-		if ( WTP_charge_eurpkWh > currentElectricityPriceCharge_eurpkWh ) { // if willingness to pay higher than current electricity price
-			chargeSetpoint_kW = min(p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW()*(WTP_charge_eurpkWh - currentElectricityPriceCharge_eurpkWh)*priceGain, currentPricePowerBandPos_kW)  ;
-			//traceln("WTP charge " + WTP_charge_eurpkWh + " eurpkWh is high than electricity price " + currentElectricityPriceCharge_eurpkWh + " eurpkWh, so charge!") ;
-		} else if (WTP_discharge_eurpkWh < currentElectricityPriceDischarge_eurpkWh) {
-			chargeSetpoint_kW = -min(p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW()*(currentElectricityPriceDischarge_eurpkWh - WTP_discharge_eurpkWh)*priceGain, currentPricePowerBandPos_kW);
-			//traceln("WTP discharge " + WTP_discharge_eurpkWh + " eurpkWh is lower than electricity price " + currentElectricityPriceCharge_eurpkWh + " eurpkWh, so discharge!") ;
-		}
-		
-		// limit charging power to available connection capacity in HOLON when applicable
-		if(((ConnectionOwner)p_ownerActor).p_holonParent instanceof EnergyHolon ) {	
-			double currentHolonElectricitySurplus_kW = ((ConnectionOwner)p_ownerActor).p_holonParent.v_electricitySurplus_kW + v_previousPowerElectricity_kW;
-			double HolonConnectionCapacity_kW = 0.9*((ConnectionOwner)p_ownerActor).p_holonParent.p_connectionCapacity_kW; // Use only 90% of capacity for robustness against delay
-			double availableChargePower_kW = currentHolonElectricitySurplus_kW + HolonConnectionCapacity_kW; // Max battery charging power within grid capacity
-			double availableDischargePower_kW = currentHolonElectricitySurplus_kW - HolonConnectionCapacity_kW; // Max discharging power within grid capacity
-			//chargeSetpoint_kW = min(max(chargeSetpoint_kW, availableDischargePower_kW),availableChargePower_kW); // Don't allow too much (dis)charging!
-		}			
-	
-		p_batteryAsset.v_powerFraction_fr = max(-1,min(1, chargeSetpoint_kW / p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW())); // Convert to powerFraction and limit power
-	}
-}*/]]></Body>
+]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
