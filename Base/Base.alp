@@ -9511,7 +9511,8 @@ v_heatDelivered_kWh += max(-v_currentPowerHeat_kW, 0) * main.p_timeStep_h;
 v_dieselDrawn_kWh += max(v_currentPowerDiesel_kW, 0) * main.p_timeStep_h;
 v_dieselDelivered_kWh += max(-v_currentPowerDiesel_kW, 0) * main.p_timeStep_h;
 
-v_TotalEVcharged_kWh += v_chargingPower_kW*main.p_timeStep_h;
+v_electricityChargedByEVs_kWh += max(v_evChargingPowerElectric_kW, 0) * main.p_timeStep_h;
+v_electricityDischargedByEVs_kWh += max(-v_evChargingPowerElectric_kW, 0) * main.p_timeStep_h;
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -10085,8 +10086,8 @@ switch (p_chargingAttitudeVehicles) {
 	break;
 	case CHEAP:
 		//double availableChargingCapacity = v_allowedCapacity_kW + availableCapacityFromBatteries - v_currentPowerElectricity_kW;
-		double currentElectricityPriceConsumption_eurpkWh = ((ConnectionOwner)p_ownerActor).v_currentPriceBands.ceilingEntry(v_allowedCapacity_kW).getValue(); // query price at max charging power
-		double currentElectricityPriceProduction_eurpkWh = ((ConnectionOwner)p_ownerActor).v_currentPriceBands.floorEntry(-v_allowedCapacity_kW).getValue();
+		double currentElectricityPriceConsumption_eurpkWh = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).v_currentPriceBands.ceilingEntry(v_allowedCapacity_kW).getValue(); // query price at max charging power
+		double currentElectricityPriceProduction_eurpkWh = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).v_currentPriceBands.floorEntry(-v_allowedCapacity_kW).getValue();
 		v_electricityPriceLowPassed_eurpkWh += v_lowPassFactor_fr * ( currentElectricityPriceConsumption_eurpkWh - v_electricityPriceLowPassed_eurpkWh );
 		f_chargeOnPrice(currentElectricityPriceConsumption_eurpkWh,max(0, availableChargingCapacity));
 	break;
@@ -10107,7 +10108,7 @@ switch (p_chargingAttitudeVehicles) {
 	J_EAEV vehicle = (J_EAEV)EA.p_energyAssetInstance;
 
 	if( vehicle.getCurrentStateOfCharge() < 1) {
-		v_chargingPower_kW += EA.f_updateElectricityFlows( 1 );
+		v_evChargingPowerElectric_kW += EA.f_updateElectricityFlows( 1 );
 	}
 	else {
 		EA.f_updateElectricityFlows( 0 );
@@ -10136,7 +10137,7 @@ for ( int i = 0; i < copiedVehicleList.size(); i++ ){
 		countDeletedItems ++;
 	}
 	if( ev.getCurrentStateOfCharge() < 1 ) {
-		v_chargingPower_kW += EA.f_updateElectricityFlows( ev.getMaxSpreadChargingRatio() );
+		v_evChargingPowerElectric_kW += EA.f_updateElectricityFlows( ev.getMaxSpreadChargingRatio() );
 		//traceln( "charging ratio " + ev.getMaxSpreadChargingRatio());
 		//traceln( "charging speed " + ev.getElectricCapacity_kW() * ev.getMaxSpreadChargingRatio());
 	}
@@ -10176,7 +10177,7 @@ for ( int i = 0; i < copiedVehicleList.size(); i++ ){
 			if ( ev.getChargingTimeToFull_MIN() > ev.getMobilityTracker().nextActivityStartTimer.getRest(MINUTE) - main.p_timeStep_h * 60 ){
 				ratio = 1;
 			}
-			v_chargingPower_kW += EA.f_updateElectricityFlows( ratio );
+			v_evChargingPowerElectric_kW += EA.f_updateElectricityFlows( ratio );
 		}
 	}
 }]]></Body>
@@ -10238,8 +10239,8 @@ for ( int i = 0; i < copiedVehicleList.size(); i++ ){
 			//traceln("Trying to charge cheaply, time " + time(MINUTE) + " minutes, charge setpoint: " + chargeSetpoint_kW + " kW");
 		}
 		//}
-		v_chargingPower_kW += EA.f_updateElectricityFlows( chargeSetpoint_kW / maxChargingPower_kW );
-		remainingChargePower_kW = availableChargingPower_kW - v_chargingPower_kW;
+		v_evChargingPowerElectric_kW += EA.f_updateElectricityFlows( chargeSetpoint_kW / maxChargingPower_kW );
+		remainingChargePower_kW = availableChargingPower_kW - v_evChargingPowerElectric_kW;
 	}
 }
 ]]></Body>
@@ -10781,7 +10782,7 @@ for ( int i = 0; i < copiedVehicleList.size(); i++ ){
     			<TimePlot>
 					<Id>1668439095469</Id>
 					<Name><![CDATA[pl_powerFlows]]></Name>
-					<X>740</X><Y>420</Y>
+					<X>740</X><Y>470</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -10985,7 +10986,7 @@ for ( int i = 0; i < copiedVehicleList.size(); i++ ){
 				<Text>
 					<Id>1670512816306</Id>
 					<Name><![CDATA[text10]]></Name>
-					<X>860</X><Y>420</Y>
+					<X>850</X><Y>470</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -23848,7 +23849,8 @@ for( EnergyAsset EA : c_conversionAssets ){
 // Determine EV charging
 double availableCapacityFromBatteries = p_batteryAsset == null ? 0 : ((J_EAStorageElectric)p_batteryAsset.p_energyAssetInstance).getCapacityAvailable_kW(); 
 double availableChargingCapacity = v_allowedCapacity_kW + availableCapacityFromBatteries - v_currentPowerElectricity_kW;
-v_evChargingPowerElectric_kW = f_maxPowerCharging( max(0, availableChargingCapacity));
+//v_evChargingPowerElectric_kW = 
+f_maxPowerCharging( max(0, availableChargingCapacity));
 v_currentPowerElectricity_kW += v_evChargingPowerElectric_kW;
 
 
@@ -23965,6 +23967,7 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 					<Id>1670407528939</Id>
 					<Name><![CDATA[f_maxPowerCharging]]></Name>
 					<Description><![CDATA[Charge at max power taking grid constaints into account]]></Description>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>820</X><Y>360</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
