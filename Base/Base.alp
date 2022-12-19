@@ -239,6 +239,10 @@
 				<Id>1671111224507</Id>
 				<Name><![CDATA[ELEKTROLYSER]]></Name>
 			</Option>
+			<Option>
+				<Id>1671465832026</Id>
+				<Name><![CDATA[HYDROGEN_DEMAND]]></Name>
+			</Option>
 		</OptionList>
 		<OptionList>
 			<Id>1659525715752</Id>
@@ -3216,6 +3220,15 @@ for(GridConnection g: c_gridConnections){
 	v_totalHydrogenImport_MWh += g.v_hydrogenDrawn_kWh / 1000;
 	v_totalHydrogenExport_MWh += g.v_hydrogenDelivered_kWh / 1000;
 	v_totalDieselImport_MWh += g.v_dieselDrawn_kWh / 1000;
+}
+
+// Assume 'infinite storage' of hydrogen within model-scope; only nett total import/export counts.
+if (v_totalHydrogenImport_MWh > v_totalHydrogenExport_MWh) {
+	v_totalHydrogenImport_MWh = v_totalHydrogenImport_MWh - v_totalHydrogenExport_MWh;
+	v_totalHydrogenExport_MWh = 0;
+} else {
+	v_totalHydrogenExport_MWh = v_totalHydrogenExport_MWh - v_totalHydrogenImport_MWh;
+	v_totalHydrogenImport_MWh = 0;
 }]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -9616,8 +9629,9 @@ if( p_energyAssetList != null) {
 				consumerAsset.set_p_defaultEnergyAssetPresetName( (String)l.get( "name" ));
 				double yearlyDemandElectricity_kWh = l.get( "yearlyDemandElectricity_kWh")== null? 0.0: Double.valueOf( l.get( "yearlyDemandElectricity_kWh").toString()).doubleValue();
 				double yearlyDemandHeat_kWh = l.get( "yearlyDemandHeat_kWh")== null? 0.0: Double.valueOf( l.get( "yearlyDemandHeat_kWh").toString()).doubleValue();
-
-				consumerAsset.f_instantiateConsumerAsset( consumerAsset.p_energyAssetType, yearlyDemandElectricity_kWh , yearlyDemandHeat_kWh );
+				double yearlyDemandHydrogen_kWh = l.get( "yearlyDemandHydrogen_kWh")== null? 0.0: Double.valueOf( l.get( "yearlyDemandHydrogen_kWh").toString()).doubleValue();
+				double yearlyDemandMethane_kWh = l.get( "yearlyDemandMethane_kWh")== null? 0.0: Double.valueOf( l.get( "yearlyDemandMethane_kWh").toString()).doubleValue();
+				consumerAsset.f_instantiateConsumerAsset( consumerAsset.p_energyAssetType, yearlyDemandElectricity_kWh , yearlyDemandHeat_kWh , yearlyDemandHydrogen_kWh , yearlyDemandMethane_kWh);
 				consumerAsset.f_connectToParentNode( this );
 			break;
 			case PRODUCTION:
@@ -9829,7 +9843,8 @@ for(EnergyAsset e : c_consumptionAssets) {
 				traceln("ConsumptionAsset with unknown type, cannot operate!! Type: " + e.p_energyAssetType);
 				throw new IllegalStateException("ELECTRICITY_DEMAND with unknown name, cannot operate!! Name: " + e.p_defaultEnergyAssetPresetName);
 		}
-		v_fixedConsumptionElectric_kW += e.v_currentConsumptionElectricity_kW;	
+		v_fixedConsumptionElectric_kW += e.v_currentConsumptionElectricity_kW;
+			
 	} 
 	else if( e.p_energyAssetType == OL_EnergyAssetType.HOT_WATER_CONSUMPTION ){	
 		e.f_updateAllFlows( main.v_currentHouseHoldHotWaterDemand_fr );
@@ -9847,11 +9862,22 @@ for(EnergyAsset e : c_consumptionAssets) {
 				traceln("ConsumptionAsset with unknown type, cannot operate!! Type: " + e.p_energyAssetType);
 				throw new IllegalStateException("HEAT_DEMAND with unknown name, cannot operate!! Name: " + e.p_defaultEnergyAssetPresetName);
 		}
-		v_currentPowerHeat_kW += e.v_currentConsumptionHeat_kW - e.v_currentProductionHeat_kW;
+		//v_currentPowerHeat_kW += e.v_currentConsumptionHeat_kW - e.v_currentProductionHeat_kW;
 	} 
 	/*	else if( e.p_energyAssetType == OL_EnergyAssetType.HEAT_DEMAND ) { // TODO: Re-introduce steel??
 		e.f_updateAllFlows( main.v_currentIndustrySteelHeatDemand_fr );
 	}*/
+	else if( e.p_energyAssetType == OL_EnergyAssetType.HYDROGEN_DEMAND ) {
+		switch(e.p_defaultEnergyAssetPresetName) {
+			case "INDUSTRY_OTHER_HYDROGEN_DEMAND":
+				e.f_updateAllFlows( main.v_currentIndustryOtherHeatDemand_fr ); // TODO: Get actual hydrogen-demand curve from ETM!
+			break;
+			default:
+				traceln("ConsumptionAsset with unknown type, cannot operate!! Type: " + e.p_energyAssetType);
+				throw new IllegalStateException("HEAT_DEMAND with unknown name, cannot operate!! Name: " + e.p_defaultEnergyAssetPresetName);
+		}
+		//v_currentPowerHydrogen_kW += e.v_currentConsumptionHydrogen_kW - e.v_currentProductionHydrogen_kW;
+	} 
 	else {
 		traceln("ConsumptionAsset with unknown type, cannot operate!! Type: " + e.p_energyAssetType);
 		e.v_powerFraction_fr = 0;
@@ -11324,7 +11350,10 @@ for ( int i = 0; i < copiedVehicleList.size(); i++ ){
 			 p_energyAssetType.toString() + "; " +
 			"r = " + roundToDecimal(v_powerFraction_fr, 3) + "; " +
 			"kW = " + roundToDecimal((v_currentConsumptionElectricity_kW - v_currentProductionElectricity_kW 
-			+ v_currentConsumptionHeat_kW + v_currentConsumptionDiesel_kW),2);
+			+ v_currentConsumptionHeat_kW - v_currentProductionHeat_kW
+			+ v_currentConsumptionHydrogen_kW - v_currentProductionHydrogen_kW
+			+ v_currentConsumptionMethane_kW - v_currentProductionMethane_kW
+			+ v_currentConsumptionDiesel_kW),2);
 	}]]></AdditionalClassCode>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
 			<StartupCode><![CDATA[// f_connectToParentNode() --> made explicit function in main to avoid nested functions for easy profiling
@@ -11732,8 +11761,16 @@ if( ProvidedParentConnection instanceof GridConnection ) {
 						<Name><![CDATA[capacityHeat_kW]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
+					<Parameter>
+						<Name><![CDATA[capacityHydrogen_kW]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
+					<Parameter>
+						<Name><![CDATA[capacityMethane_kW]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
 					<Body><![CDATA[p_energyAssetInstance = (J_EAConsumption)p_energyAssetInstance;
-p_energyAssetInstance = new J_EAConsumption( this, capacityElectric_kW, capacityHeat_kW, main.p_timeStep_h );
+p_energyAssetInstance = new J_EAConsumption( this, capacityElectric_kW, capacityHeat_kW, capacityHydrogen_kW, capacityMethane_kW, main.p_timeStep_h );
 p_energyAssetType = assetType;]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -21222,6 +21259,15 @@ traceln("Holon Electricity exported: "+ v_electricityExported_kWh);
 traceln("Holon electricity costs: " + v_balanceElectricity_eur + " euro");
 //Total energy consumption and production 
 
+// Assume 'infinite storage' of hydrogen within model-scope; only nett total import/export counts.
+if (v_hydrogenImported_kWh > v_hydrogenExported_kWh) {
+	v_hydrogenImported_kWh = v_hydrogenImported_kWh - v_hydrogenExported_kWh;
+	v_hydrogenExported_kWh = 0;
+} else {
+	v_hydrogenExported_kWh = v_hydrogenExported_kWh - v_hydrogenImported_kWh;
+	v_hydrogenImported_kWh = 0;
+}
+
 double energyProduced_kWh = 0;
 double energyConsumed_kWh = 0;
 for(Agent a :  subConnections.getConnections() ) {
@@ -28139,6 +28185,8 @@ public class J_EAConversion extends base.J_EA implements Serializable {
 public class J_EAConsumption extends base.J_EA implements Serializable {
 	public double yearlyDemandElectricity_kWh;
 	public double yearlyDemandHeat_kWh;
+	public double yearlyDemandHydrogen_kWh;
+	public double yearlyDemandMethane_kWh;
 	/**
      * Default constructor
      */
@@ -28148,10 +28196,12 @@ public class J_EAConsumption extends base.J_EA implements Serializable {
     /**
      * Constructor initializing the fields
      */
-    public J_EAConsumption(EnergyAsset ownerAsset, double yearlyDemandElectricity_kWh, double yearlyDemandHeat_kWh, double timestep_h) {
+    public J_EAConsumption(EnergyAsset ownerAsset, double yearlyDemandElectricity_kWh, double yearlyDemandHeat_kWh, double yearlyDemandHydrogen_kWh, double yearlyDemandMethane_kWh, double timestep_h) {
 		this.ownerAsset = ownerAsset;
 		this.yearlyDemandElectricity_kWh = yearlyDemandElectricity_kWh;
 		this.yearlyDemandHeat_kWh = yearlyDemandHeat_kWh;
+		this.yearlyDemandHydrogen_kWh = yearlyDemandHydrogen_kWh;
+		this.yearlyDemandMethane_kWh = yearlyDemandMethane_kWh;
 		this.timestep_h = timestep_h;
     }
 
@@ -28159,10 +28209,12 @@ public class J_EAConsumption extends base.J_EA implements Serializable {
     public double[] operate(double ratioOfCapacity) {
     	this.electricityConsumption_kW = ratioOfCapacity * yearlyDemandElectricity_kWh;
     	this.heatConsumption_kW = ratioOfCapacity * yearlyDemandHeat_kWh;
+    	this.hydrogenConsumption_kW = ratioOfCapacity * yearlyDemandHydrogen_kWh;
+    	this.methaneConsumption_kW = ratioOfCapacity * yearlyDemandMethane_kWh;
 
     	//double[] arr = {this.electricityProduction_kW, this.methaneProduction_kW, this.hydrogenProduction_kW, this.heatProduction_kW, this.electricityConsumption_kW, this.methaneConsumption_kW, this.hydrogenConsumption_kW, this.heatConsumption_kW };
     	//return arr;
-    	energyUsed_kWh += (electricityConsumption_kW + heatConsumption_kW) * timestep_h;
+    	energyUsed_kWh += (electricityConsumption_kW + heatConsumption_kW + hydrogenConsumption_kW + methaneConsumption_kW) * timestep_h;
     	return returnEnergyFlows();
    	}
 
@@ -28172,7 +28224,9 @@ public class J_EAConsumption extends base.J_EA implements Serializable {
 			"type = " + this.getClass().toString() + " " +
 			"ownerAsset = " + ownerAsset +" " +
 			"yearlyDemandElectricity_kWh = " + yearlyDemandElectricity_kWh +" "+
-			"yearlyDemandHeat_kWh = " + yearlyDemandHeat_kWh +" ";
+			"yearlyDemandHeat_kWh = " + yearlyDemandHeat_kWh +" "+
+			"yearlyDemandHydrogen_kWh = " + yearlyDemandHydrogen_kWh +" "+
+			"yearlyDemandMethane_kWh = " + yearlyDemandMethane_kWh +" ";
 	}
 	/**
 	 * This number is here for model snapshot storing purpose<br>
