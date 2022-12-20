@@ -9643,8 +9643,10 @@ if( p_energyAssetList != null) {
 
 				double capacityElectricity_kW = l.get( "capacityElectricity_kW")== null? 0.0: Double.valueOf( l.get( "capacityElectricity_kW").toString()).doubleValue();
 				double capacityHeat_kW = l.get( "capacityHeat_kW")== null? 0.0: Double.valueOf( l.get( "capacityHeat_kW").toString()).doubleValue();
-
-				producerAsset.f_instantiateProducerAsset( producerAsset.p_energyAssetType, capacityElectricity_kW, capacityHeat_kW );
+				double yearlyProductionHydrogen_kWh = l.get( "yearlyProductionHydrogen_kWh")== null? 0.0: Double.valueOf( l.get( "yearlyProductionHydrogen_kWh").toString()).doubleValue();
+				double yearlyProductionMethane_kWh = l.get( "yearlyProductionMethane_kWh")== null? 0.0: Double.valueOf( l.get( "yearlyProductionMethane_kWh").toString()).doubleValue();
+			
+				producerAsset.f_instantiateProducerAsset( producerAsset.p_energyAssetType, capacityElectricity_kW, capacityHeat_kW, yearlyProductionHydrogen_kWh, yearlyProductionMethane_kWh);
 				producerAsset.f_connectToParentNode( this );
 				main.c_productionAssets.add(producerAsset);
 			break;
@@ -12012,8 +12014,16 @@ p_energyAssetType = assetType;]]></Body>
 						<Name><![CDATA[capacityHeat_kW]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
+					<Parameter>
+						<Name><![CDATA[yearlyProductionHydrogen_kWh]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
+					<Parameter>
+						<Name><![CDATA[yearlyProductionMethane_kWh]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
 					<Body><![CDATA[p_energyAssetInstance = (J_EAProduction)p_energyAssetInstance;
-p_energyAssetInstance = new J_EAProduction ( this, capacityElectric_kW, capacityHeat_kW, main.p_timeStep_h );
+p_energyAssetInstance = new J_EAProduction ( this, capacityElectric_kW, capacityHeat_kW, yearlyProductionMethane_kWh, yearlyProductionHydrogen_kWh, main.p_timeStep_h );
 p_energyAssetType = assetType;]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -25185,7 +25195,7 @@ if (p_elektrolyserOperationMode==OL_ElektrolyserOperationMode.BALANCE) {
 	double priceGain_peur = 5; // How strongly to ramp up power with price-delta's	
 	double WTP_eurpkWh = v_electricityPriceLowPassed_eurpkWh + deficitGain_eurpkWh * v_hydrogenProductionDeficit_kWh;
 	elektrolyserSetpointElectric_kW = max(0,ElektrolyserAsset.p_energyAssetInstance.getElectricCapacity_kW()*(WTP_eurpkWh - currentElectricityPriceCharge_eurpkWh)*priceGain_peur)  ;
-	traceln("WTP hydrogen production is " + roundToDecimal(WTP_eurpkWh,3) + " eurpkWh is high than electricity price " + roundToDecimal(currentElectricityPriceCharge_eurpkWh,3) + " eurpkWh, so electrolyse! Setpoint power: " + round(elektrolyserSetpointElectric_kW) + " kW");
+	//traceln("WTP hydrogen production is " + roundToDecimal(WTP_eurpkWh,3) + " eurpkWh is higher than electricity price " + roundToDecimal(currentElectricityPriceCharge_eurpkWh,3) + " eurpkWh, so produce! Setpoint power: " + round(elektrolyserSetpointElectric_kW) + " kW");
 }	
 
 // Limit elektrolyser power to available electric power on connection (assuming it is last in merit!)
@@ -27987,7 +27997,10 @@ nextActivityEndTimer.restart( endtimes.get(0), MINUTE);
  * J_EAProduction
  */
 public class J_EAProduction extends base.J_EA implements Serializable {
-
+	//public double yearlyProductionElectricity_kWh;
+	//public double yearlyProductionHeat_kWh;
+	public double yearlyProductionHydrogen_kWh;
+	public double yearlyProductionMethane_kWh;
     /**
      * Default constructor
      */
@@ -27997,10 +28010,12 @@ public class J_EAProduction extends base.J_EA implements Serializable {
 	/**
      * Constructor initializing the fields
      */
-	public J_EAProduction(EnergyAsset ownerAsset, double capacityElectric_kW_,double capacityHeat_kW, double timestep_h) {
+	public J_EAProduction(EnergyAsset ownerAsset, double capacityElectric_kW ,double capacityHeat_kW, double yearlyProductionHydrogen_kWh, double yearlyProductionMethane_kWh, double timestep_h) {
 	    this.ownerAsset = ownerAsset;
-	    this.capacityElectric_kW = capacityElectric_kW_;
+	    this.capacityElectric_kW = capacityElectric_kW;
 	    this.capacityHeat_kW = capacityHeat_kW;
+		this.yearlyProductionHydrogen_kWh = yearlyProductionHydrogen_kWh;
+		this.yearlyProductionMethane_kWh = yearlyProductionMethane_kWh;
 	    this.timestep_h = timestep_h;
 //	    traceln("I am instantiated! "+this+" owned by "+ownerAsset);
 	}
@@ -28009,7 +28024,9 @@ public class J_EAProduction extends base.J_EA implements Serializable {
     public double[] operate(double ratioOfCapacity) {
     	this.electricityProduction_kW = ratioOfCapacity * capacityElectric_kW;
     	this.heatProduction_kW = ratioOfCapacity * capacityHeat_kW;
-    	energyUsed_kWh -= (electricityProduction_kW + heatProduction_kW) * timestep_h;
+    	this.hydrogenProduction_kW = ratioOfCapacity * yearlyProductionHydrogen_kWh;
+    	this.methaneProduction_kW = ratioOfCapacity * yearlyProductionMethane_kWh;
+    	energyUsed_kWh -= (electricityProduction_kW + heatProduction_kW + hydrogenProduction_kW + methaneProduction_kW) * timestep_h;
     	//double[] arr = {this.electricityProduction_kW, this.methaneProduction_kW, this.hydrogenProduction_kW, this.heatProduction_kW, this.electricityConsumption_kW, this.methaneConsumption_kW, this.hydrogenConsumption_kW, this.heatConsumption_kW };
     	//return arr;
     	return returnEnergyFlows();
@@ -29653,6 +29670,69 @@ public class J_EAConversionElektrolyser extends base.J_EAConversion implements S
 	private static final long serialVersionUID = 1L;
 
 }                         ]]></Text>
+		</JavaClass>
+		<!--   =========   Java Class   ========  -->
+		<JavaClass>
+			<Id>1671522756085</Id>
+			<Name><![CDATA[J_EAConversionGasCHP]]></Name>
+			<Text><![CDATA[/**
+ * J_EAConversionGasCHP
+ */
+public class J_EAConversionGasCHP extends base.J_EAConversion implements Serializable {
+
+	private OL_EnergyCarrierType energyCarrierProduced = OL_EnergyCarrierType.ELECTRICITY;
+	private OL_EnergyCarrierType energyCarrierConsumed = OL_EnergyCarrierType.METHANE;
+    /**
+     * Default constructor
+     */
+    public J_EAConversionGasCHP() {
+    }
+
+    /**
+     * Constructor initializing the fields
+     */
+    public J_EAConversionGasCHP(EnergyAsset ownerAssetAgent, double capacityElectric_kW, double efficiency, double timestep_h) {
+	    this.ownerAsset = ownerAssetAgent;
+	    this.capacityElectric_kW = capacityElectric_kW;
+	    this.eta_r = efficiency;
+	    this.capacityHeat_kW = this.capacityElectric_kW * (1 - eta_r); // Energy not going into electricity, goes into heat (so total 100% efficiency!)
+	    this.timestep_h = timestep_h;
+	}
+
+    @Override
+    public double[] operate(double ratioOfCapacity) {
+		//traceln("I convert now! GasBurner @ " + (ratioOfCapacity * 100) + " %");
+    	this.electricityProduction_kW = capacityElectric_kW * ratioOfCapacity;
+		this.heatProduction_kW = capacityHeat_kW * ratioOfCapacity;
+		
+		this.methaneConsumption_kW = electricityProduction_kW / eta_r;
+
+		this.energyUsed_kWh += timestep_h * (methaneConsumption_kW - heatProduction_kW - electricityProduction_kW)  ; // This represents losses!
+		//double[] arr = {this.electricityProduction_kW, this.methaneProduction_kW, this.hydrogenProduction_kW, this.heatProduction_kW, this.electricityConsumption_kW, this.methaneConsumption_kW, this.hydrogenConsumption_kW, this.heatConsumption_kW };
+    	//return arr;
+		return returnEnergyFlows();
+    }
+
+	public double getEnergyUsed_kWh() {
+		return energyUsed_kWh;
+	}
+
+	@Override
+	public String toString() {
+		return
+			"ownerAsset = " + ownerAsset +" " +
+			"capacityElectric_kW = " + this.capacityElectric_kW +" "+
+			"capacityHeat_kW = " + this.capacityHeat_kW +" "+
+			"eta_r = " + this.eta_r+" ";
+	}
+
+	/**
+	 * This number is here for model snapshot storing purpose<br>
+	 * It needs to be changed when this class gets changed
+	 */
+	private static final long serialVersionUID = 1L;
+
+}]]></Text>
 		</JavaClass>
 	</JavaClasses>
 	<ModelResources>
