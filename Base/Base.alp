@@ -1368,6 +1368,30 @@ traceln(" ");]]></StartupCode>
 						<Type><![CDATA[double]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1671636172718</Id>
+					<Name><![CDATA[v_expectedWindYield24hours_fr]]></Name>
+					<X>540</X><Y>360</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1671636200983</Id>
+					<Name><![CDATA[v_expectedSolarYield24hours_fr]]></Name>
+					<X>540</X><Y>380</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1658496701675</Id>
 					<Name><![CDATA[p_timeStep_h]]></Name>
@@ -1698,6 +1722,34 @@ traceln(" ");]]></StartupCode>
 						<SdArray>false</SdArray>
 						<ParameterEditor>
 							<Id>1666880315949</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1671636582218</Id>
+					<Name><![CDATA[p_forecastTime_h]]></Name>
+					<Description><![CDATA[Model timestep in uren. Kan in experimenten aangepast worden naar wens.
+
+@since: Sprint 6
+@author: Gillis]]></Description>
+					<X>540</X><Y>400</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[24]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1671636582216</Id>
 							<EditorContolType>TEXT_BOX</EditorContolType>
 							<MinSliderValue><![CDATA[0]]></MinSliderValue>
 							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
@@ -2165,7 +2217,8 @@ v_timeStepsElapsed ++;
 					<Body><![CDATA[f_createActors();
 f_createGridNodes();
 f_createGridConnections();
-f_setActorPolicies();]]></Body>
+f_setActorPolicies();
+f_initializeWeatherForecast();]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -2974,7 +3027,11 @@ for( EnergyAsset e : c_ambientAirDependentAssets ) {
 	else if( e.p_energyAssetInstance instanceof J_EAConversionHeatPump ) {
 		((J_EAConversionHeatPump)e.p_energyAssetInstance).updateAmbientTemp( v_currentAmbientTemperature_degC );
 	}
-}]]></Body>
+}
+
+// Update weather forecast
+v_expectedSolarYield24hours_fr += (tf_p_solar_e_normalized(t_h+24)-v_currentSolarPowerNormalized_r)/(p_forecastTime_h/p_timeStep_h);
+v_expectedWindYield24hours_fr += (tf_p_wind_e_normalized(t_h+24)-v_currentWindPowerNormalized_r)/(p_forecastTime_h/p_timeStep_h);]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -3500,6 +3557,23 @@ for (GridConnection g: c_gridConnections) {
 			//traceln("connection id: "+g.p_agentID+", heatEnergySupplier: "+heatSuppliers+ ", owneractor: "+heatSuppliers.get(0).p_ownerActor);
 			o.v_energySupplierDistrictHeat = heatSuppliers.get(0).l_ownerActor.getConnectedAgent();
 	}
+}]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1671636439933</Id>
+					<Name><![CDATA[f_initializeWeatherForecast]]></Name>
+					<X>540</X><Y>340</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[v_expectedWindYield24hours_fr = 0;
+v_expectedSolarYield24hours_fr = 0;
+for (double ts_h = 0; ts_h<p_forecastTime_h; ts_h += p_timeStep_h) {
+	v_expectedWindYield24hours_fr += tf_p_wind_e_normalized(ts_h)/(p_forecastTime_h/p_timeStep_h);
+	v_expectedSolarYield24hours_fr += tf_p_solar_e_normalized(ts_h)/(p_forecastTime_h/p_timeStep_h);
 }]]></Body>
 				</Function>
 			</Functions>
@@ -27979,6 +28053,9 @@ nextActivityEndTimer.restart( endtimes.get(0), MINUTE);
 				</Parameter>
 				<Parameter>
 					<ParameterName><![CDATA[j_totalCostData]]></ParameterName>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_forecastTime_h]]></ParameterName>
 				</Parameter>
 			</Parameters>			
 			<PresentationProperties>
