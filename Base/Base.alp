@@ -3932,7 +3932,7 @@ for (GridConnection g: c_gridConnections) {
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/case9aanlandingWindOpZee/latest_actors.json]]></ClassName>
+						<ClassName><![CDATA[cases/industry_case/actors.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -3950,7 +3950,7 @@ for (GridConnection g: c_gridConnections) {
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/case9aanlandingWindOpZee/latest_gridnodes.json]]></ClassName>
+						<ClassName><![CDATA[cases/industry_case/gridnodes.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -3968,7 +3968,7 @@ for (GridConnection g: c_gridConnections) {
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/case9aanlandingWindOpZee/latest_gridconnections.json]]></ClassName>
+						<ClassName><![CDATA[cases/industry_case/gridconnections.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -4005,7 +4005,7 @@ for (GridConnection g: c_gridConnections) {
 					<Url><![CDATA[../CaseDefinitions/industry_case/industry_case_policies.txt]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/case9aanlandingWindOpZee/latest_policies.json]]></ClassName>
+						<ClassName><![CDATA[cases/industry_case/policies.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -9949,7 +9949,12 @@ if (((J_EAStorageElectric)p_batteryAsset.p_energyAssetInstance).getStorageCapaci
 	double connectionCapacity_kW = v_allowedCapacity_kW; // Use only 90% of capacity for robustness against delay
 	double availableChargePower_kW = connectionCapacity_kW + electricitySurplus_kW; // Max battery charging power within grid capacity
 	double availableDischargePower_kW = electricitySurplus_kW - connectionCapacity_kW; // Max discharging power within grid capacity
-	double SOC_setp_fr = 0.5 + 0.2 * Math.sin(2*Math.PI*(time(HOUR)-12)/24); // Sinusoidal setpoint: aim for low SOC at 6:00h, high SOC at 18:00h.
+
+	double SOC_setp_fr = 0.5;
+	//traceln("Current price is " + currentElectricityPriceCharge_eurpkWh + " eurpkWh, between " + currentPricePowerBandNeg_kW + " kW and " + currentPricePowerBandPos_kW + " kW");
+	if (!c_vehicleAssets.isEmpty()) {
+		SOC_setp_fr = 0.5 + 0.25 * Math.sin(2*Math.PI*(time(HOUR)-12)/24); // Sinusoidal setpoint: aim for low SOC at 6:00h, high SOC at 18:00h. 
+	}
 	//traceln("SOC setpoint at " + getHourOfDay() + " h is " + SOC_setp_fr*100 + "%");
 	double FeedbackGain_kWpSOC = 1.5 * p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW(); // How strongly to aim for SOC setpoint
 	double FeedforwardGain_kWpKw = 0.8; // Feedforward based on current surpluss in holon
@@ -9995,9 +10000,11 @@ if (((J_EAStorageElectric)p_batteryAsset.p_energyAssetInstance).getStorageCapaci
 		double currentPricePowerBandPos_kW = ownerActor.v_currentPriceBands.ceilingKey(100.0); // Up to what power does this price hold?
 		double currentPricePowerBandNeg_kW = ownerActor.v_currentPriceBands.floorKey(100.0); // Down to what power does this price hold?
 		
+		double SOC_setp_fr = 0.5;
 		//traceln("Current price is " + currentElectricityPriceCharge_eurpkWh + " eurpkWh, between " + currentPricePowerBandNeg_kW + " kW and " + currentPricePowerBandPos_kW + " kW");
-	
-		double SOC_setp_fr = 0.5 + 0.25 * Math.sin(2*Math.PI*(time(HOUR)-12)/24); // Sinusoidal setpoint: aim for low SOC at 6:00h, high SOC at 18:00h. 
+		if (!c_vehicleAssets.isEmpty()) {
+			SOC_setp_fr = 0.5 + 0.25 * Math.sin(2*Math.PI*(time(HOUR)-12)/24); // Sinusoidal setpoint: aim for low SOC at 6:00h, high SOC at 18:00h. 
+		}
 		double SOC_deficit_fr = SOC_setp_fr - currentBatteryStateOfCharge; // How far away from desired SOC? SOC too LOW is a POSITIVE deficit
 		
 		// Define WTP price for charging and discharging!
@@ -10278,7 +10285,7 @@ for ( int i = 0; i < copiedVehicleList.size(); i++ ){
 		double chargeSetpoint_kW = 0;
 
 		if ( time(MINUTE) >= ( chargeDeadline_min )) { // Must-charge time at max charging power
-			//traceln("Urgency charging!");
+			traceln("Urgency charging!");
 			chargeSetpoint_kW = maxChargingPower_kW;				
 		} else {
 			//double WTPprice_eurpkWh = v_electricityPriceLowPassed_eurpkWh - flexibilityGain_eurph * (chargeDeadline_min - time(MINUTE) - 600);
@@ -25172,39 +25179,41 @@ if (p_batteryAsset != null){
 						<Name><![CDATA[ElektrolyserAsset]]></Name>
 						<Type><![CDATA[EnergyAsset]]></Type>
 					</Parameter>
-					<Body><![CDATA[//double availableCapacityFromBatteries_kW = p_batteryAsset == null ? 0 : ((J_EAStorageElectric)p_batteryAsset.p_energyAssetInstance).getCapacityAvailable_kW(); 
-double availableElectricPower_kW = v_allowedCapacity_kW - v_currentPowerElectricity_kW;
-double excessElectricPower_kW = -(v_currentPowerElectricity_kW + v_allowedCapacity_kW); // Should at least draw this much power to stay within connection limits. Doesn't account for a battery!
-double eta_r = ((J_EAConversionElektrolyser)ElektrolyserAsset.p_energyAssetInstance).getEta_r();
-double connectionCapacity_kW = v_allowedCapacity_kW; // Use only 90% of capacity for robustness against delay
-double ProductionSetpoint_kW = ElektrolyserAsset.p_energyAssetInstance.getElectricCapacity_kW() * 0.5 * eta_r; // Aim for average production power of xx% of elektrolyser peak power
-double elektrolyserSetpointElectric_kW = 0;
-
-if (p_elektrolyserOperationMode==OL_ElektrolyserOperationMode.BALANCE) {
-	double FeedbackGain_kWpkWh = 1.0/24; // Try to recover deficit in 24 hours
-	elektrolyserSetpointElectric_kW = ProductionSetpoint_kW/eta_r + v_hydrogenProductionDeficit_kWh * FeedbackGain_kWpkWh /eta_r ;
-
-	//traceln("Elektrolyser electric power setpoint: " + elektrolyserSetpointElectric_kW + " kW");
-	//traceln("Elektrolyser power fraction: " + elektrolyserSetpointElectric_kW/ElektrolyserAsset.p_energyAssetInstance.getElectricCapacity_kW());
-} else if (p_elektrolyserOperationMode==OL_ElektrolyserOperationMode.PRICE) {
-	//if(l_ownerActor.getConnectedAgent() instanceof ConnectionOwner) {
-	ConnectionOwner ownerActor = (ConnectionOwner)l_ownerActor.getConnectedAgent();
-	double currentElectricityPriceCharge_eurpkWh = ownerActor.v_currentPriceBands.ceilingEntry(100.0).getValue(); // query price at 1kW
-	v_electricityPriceLowPassed_eurpkWh += v_lowPassFactor_fr * ( currentElectricityPriceCharge_eurpkWh - v_electricityPriceLowPassed_eurpkWh );
-	double deficitGain_eurpkWh = 1.0/1000000; // When SOC-error is 100%, adjust WTP price by 1 eurpkWh
-	double priceGain_peur = 3; // How strongly to ramp up power with price-delta's	
-	double WTP_eurpkWh = v_electricityPriceLowPassed_eurpkWh + deficitGain_eurpkWh * v_hydrogenProductionDeficit_kWh;
-	elektrolyserSetpointElectric_kW = max(0,ElektrolyserAsset.p_energyAssetInstance.getElectricCapacity_kW()*(WTP_eurpkWh - currentElectricityPriceCharge_eurpkWh)*priceGain_peur)  ;
-	//traceln("WTP hydrogen production is " + roundToDecimal(WTP_eurpkWh,3) + " eurpkWh is higher than electricity price " + roundToDecimal(currentElectricityPriceCharge_eurpkWh,3) + " eurpkWh, so produce! Setpoint power: " + round(elektrolyserSetpointElectric_kW) + " kW");
-}	
-
-// Limit elektrolyser power to available electric power on connection (assuming it is last in merit!)
-elektrolyserSetpointElectric_kW = min(availableElectricPower_kW,max(elektrolyserSetpointElectric_kW,excessElectricPower_kW));
-
-ElektrolyserAsset.f_updateAllFlows(elektrolyserSetpointElectric_kW/ElektrolyserAsset.p_energyAssetInstance.getElectricCapacity_kW());
-
-v_hydrogenProductionDeficit_kWh += ProductionSetpoint_kW - ElektrolyserAsset.v_currentProductionHydrogen_kW;	// Update hydrogen production deficit
-]]></Body>
+					<Body><![CDATA[if (ElektrolyserAsset.p_energyAssetInstance.getElectricCapacity_kW()>0) {
+	
+	//double availableCapacityFromBatteries_kW = p_batteryAsset == null ? 0 : ((J_EAStorageElectric)p_batteryAsset.p_energyAssetInstance).getCapacityAvailable_kW(); 
+	double availableElectricPower_kW = v_allowedCapacity_kW - v_currentPowerElectricity_kW;
+	double excessElectricPower_kW = -(v_currentPowerElectricity_kW + v_allowedCapacity_kW); // Should at least draw this much power to stay within connection limits. Doesn't account for a battery!
+	double eta_r = ((J_EAConversionElektrolyser)ElektrolyserAsset.p_energyAssetInstance).getEta_r();
+	double connectionCapacity_kW = v_allowedCapacity_kW; // Use only 90% of capacity for robustness against delay
+	double ProductionSetpoint_kW = ElektrolyserAsset.p_energyAssetInstance.getElectricCapacity_kW() * 0.5 * eta_r; // Aim for average production power of xx% of elektrolyser peak power
+	double elektrolyserSetpointElectric_kW = 0;
+	
+	if (p_elektrolyserOperationMode==OL_ElektrolyserOperationMode.BALANCE) {
+		double FeedbackGain_kWpkWh = 1.0/24; // Try to recover deficit in 24 hours
+		elektrolyserSetpointElectric_kW = ProductionSetpoint_kW/eta_r + v_hydrogenProductionDeficit_kWh * FeedbackGain_kWpkWh /eta_r ;
+	
+		//traceln("Elektrolyser electric power setpoint: " + elektrolyserSetpointElectric_kW + " kW");
+		//traceln("Elektrolyser power fraction: " + elektrolyserSetpointElectric_kW/ElektrolyserAsset.p_energyAssetInstance.getElectricCapacity_kW());
+	} else if (p_elektrolyserOperationMode==OL_ElektrolyserOperationMode.PRICE) {
+		//if(l_ownerActor.getConnectedAgent() instanceof ConnectionOwner) {
+		ConnectionOwner ownerActor = (ConnectionOwner)l_ownerActor.getConnectedAgent();
+		double currentElectricityPriceCharge_eurpkWh = ownerActor.v_currentPriceBands.ceilingEntry(100.0).getValue(); // query price at 1kW
+		v_electricityPriceLowPassed_eurpkWh += v_lowPassFactor_fr * ( currentElectricityPriceCharge_eurpkWh - v_electricityPriceLowPassed_eurpkWh );
+		double deficitGain_eurpkWh = 1.0/1000000; // When SOC-error is 100%, adjust WTP price by 1 eurpkWh
+		double priceGain_peur = 3; // How strongly to ramp up power with price-delta's	
+		double WTP_eurpkWh = v_electricityPriceLowPassed_eurpkWh + deficitGain_eurpkWh * v_hydrogenProductionDeficit_kWh;
+		elektrolyserSetpointElectric_kW = max(0,ElektrolyserAsset.p_energyAssetInstance.getElectricCapacity_kW()*(WTP_eurpkWh - currentElectricityPriceCharge_eurpkWh)*priceGain_peur)  ;
+		//traceln("WTP hydrogen production is " + roundToDecimal(WTP_eurpkWh,3) + " eurpkWh is higher than electricity price " + roundToDecimal(currentElectricityPriceCharge_eurpkWh,3) + " eurpkWh, so produce! Setpoint power: " + round(elektrolyserSetpointElectric_kW) + " kW");
+	}	
+	
+	// Limit elektrolyser power to available electric power on connection (assuming it is last in merit!)
+	elektrolyserSetpointElectric_kW = min(availableElectricPower_kW,max(elektrolyserSetpointElectric_kW,excessElectricPower_kW));
+	
+	ElektrolyserAsset.f_updateAllFlows(elektrolyserSetpointElectric_kW/ElektrolyserAsset.p_energyAssetInstance.getElectricCapacity_kW());
+	
+	v_hydrogenProductionDeficit_kWh += ProductionSetpoint_kW - ElektrolyserAsset.v_currentProductionHydrogen_kW;	// Update hydrogen production deficit
+}]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -29775,19 +29784,19 @@ public class J_EAConversionGasCHP extends base.J_EAConversion implements Seriali
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/case9aanlandingWindOpZee/latest_actors.json]]></Path>
+			<Path><![CDATA[cases/industry_case/actors.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/case9aanlandingWindOpZee/latest_gridconnections.json]]></Path>
+			<Path><![CDATA[cases/industry_case/policies.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/case9aanlandingWindOpZee/latest_gridnodes.json]]></Path>
+			<Path><![CDATA[cases/industry_case/gridconnections.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/case9aanlandingWindOpZee/latest_policies.json]]></Path>
+			<Path><![CDATA[cases/industry_case/gridnodes.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
