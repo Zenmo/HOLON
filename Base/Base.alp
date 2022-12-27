@@ -3377,9 +3377,9 @@ for(HashMap data : parsedJSONActors)
     String type = data.get( "type" ) == null? null : String.valueOf(data.get( "type" )); //traceln(actortype.toString());
     String parentActorID = String.valueOf(data.get( "parent_actor" ));
     actorContracts = data.get( "contracts") == null? null : (ArrayList)data.get( "contracts");
-	double NonFirmATOCapacity = data.get( "nfATO_capacity_kw" ) == null? 0.0 : (Double)data.get( "nfATO_capacity_kw" );
-    double NonFirmATOStarttime = data.get( "nfATO_starttime" ) == null? 0.0 : (Double)data.get( "nfATO_starttime" );
-	double NonFirmATOEndtime = data.get( "nfATO_endtime" ) == null? 0.0 : (Double)data.get( "nfATO_endtime" );
+	//double NonFirmATOCapacity = data.get( "nfATO_capacity_kw" ) == null? 0.0 : (Double)data.get( "nfATO_capacity_kw" );
+    //double NonFirmATOStarttime = data.get( "nfATO_starttime" ) == null? 0.0 : (Double)data.get( "nfATO_starttime" );
+	//double NonFirmATOEndtime = data.get( "nfATO_endtime" ) == null? 0.0 : (Double)data.get( "nfATO_endtime" );
 	double ConnectionCapacity_kW = data.get( "connectionCapacity_kW") == null? 0.0 : (Double)data.get( "connectionCapacity_kW" );
 	
 	if (actorcategory.equals(OL_ActorType.CONNECTIONOWNER) ) {
@@ -3405,9 +3405,9 @@ for(HashMap data : parsedJSONActors)
 	    Actor.set_p_parentActorID( parentActorID );
 	    Actor.set_p_actorContractList( actorContracts );
    		Actor.f_setContractValues();
-		Actor.set_p_nfatoEnd_HR( NonFirmATOEndtime );
-  		Actor.set_p_nfatoStart_HR( NonFirmATOStarttime);
-  		Actor.set_p_nfatoLvl_kW( NonFirmATOCapacity );
+		//Actor.set_p_nfatoEnd_h( NonFirmATOEndtime );
+  		//Actor.set_p_nfatoStart_h( NonFirmATOStarttime);
+  		//Actor.set_p_nfatoLvl_kW( NonFirmATOCapacity );
   		//Actor.set_p_connectionCapacity_kW( ConnectionCapacity_kW );
 	    
     } else if (actorcategory.equals(OL_ActorType.GRIDOPERATOR) ) {
@@ -4738,10 +4738,10 @@ v_epexNext24hours_eurpkWh += 0.17;]]></Body>
 							<Name><![CDATA[p_actorContractList]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_nfatoStart_HR]]></Name>
+							<Name><![CDATA[p_nfatoStart_h]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_nfatoEnd_HR]]></Name>
+							<Name><![CDATA[p_nfatoEnd_h]]></Name>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_nfatoLvl_kW]]></Name>
@@ -21157,7 +21157,7 @@ Supplier]]></Text>
 				</Variable>
 				<Variable Class="Parameter">
 					<Id>1669036120007</Id>
-					<Name><![CDATA[p_nfatoStart_HR]]></Name>
+					<Name><![CDATA[p_nfatoStart_h]]></Name>
 					<X>50</X><Y>160</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -21181,7 +21181,7 @@ Supplier]]></Text>
 				</Variable>
 				<Variable Class="Parameter">
 					<Id>1669036120010</Id>
-					<Name><![CDATA[p_nfatoEnd_HR]]></Name>
+					<Name><![CDATA[p_nfatoEnd_h]]></Name>
 					<X>50</X><Y>180</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -21636,7 +21636,7 @@ traceln("Holon selfsufficiency: " + totalSelfSufficiency_fr + "%, doublecheck " 
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1669037224999</Id>
 					<Name><![CDATA[f_setContractValues]]></Name>
-					<X>50</X><Y>270</Y>
+					<X>480</X><Y>280</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -21646,6 +21646,7 @@ traceln("Holon selfsufficiency: " + totalSelfSufficiency_fr + "%, doublecheck " 
 } else {
 	traceln( "No contract data for energyHolon "+p_actorID );
 }
+
 v_contractEnergySupplier = "DEFAULT"; // anders nullpointer-errors
 v_contractEnergyHolon = "DEFAULT";
 v_contractGridOperator = "DEFAULT";
@@ -21663,6 +21664,12 @@ for( HashMap l : c_actorContractList) {
 			break;
 			case GRIDOPERATOR:
 				v_contractGridOperator = (String)l.get( "type" );
+				if (v_contractGridOperator.equals("NONFIRMATO")) {
+					p_nfatoStart_h = (Double)l.get("nfATO_starttime_h");
+					p_nfatoEnd_h = (Double)l.get("nfATO_endtime_h");
+					p_nfatoLvl_kW = (Double)l.get("nfATO_capacity_kW");
+					v_enable_nfATO_b = true;
+				}
 			break;
 			default:
 				traceln("ConnectionOwner f_setContractValues exception: not a valid actor type");
@@ -21736,8 +21743,8 @@ if(!v_enable_nfATO_b){
 	e_endNonFirmATO.reset();
 }
 else {
-	e_startNonFirmATO.restartTo(p_nfatoStart_HR, HOUR);
-	e_endNonFirmATO.restartTo(p_nfatoEnd_HR, HOUR);
+	e_startNonFirmATO.restartTo(p_nfatoStart_h, HOUR);
+	e_endNonFirmATO.restartTo(p_nfatoEnd_h, HOUR);
 	if(p_nfatoLvl_kW == 0.0) { p_nfatoLvl_kW = p_connectionCapacity_kW; }
 }
 
