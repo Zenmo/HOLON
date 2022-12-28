@@ -795,9 +795,9 @@ import java.io.File;
 import java.io.IOException;]]></Import>
 			<StartupCode><![CDATA[double startTime = System.currentTimeMillis();
 v_timeOfModelStart_ms = startTime;
-traceln("--------------------------");
+traceln("---------------------------");
 traceln("======= STARTING UP =======");
-traceln("--------------------------");
+traceln("---------------------------");
 traceln("");
 
 // Get input
@@ -1370,7 +1370,7 @@ traceln(" ");]]></StartupCode>
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1671636172718</Id>
-					<Name><![CDATA[v_expectedWindYield24hours_fr]]></Name>
+					<Name><![CDATA[v_WindYieldForecast_fr]]></Name>
 					<X>70</X><Y>550</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1382,7 +1382,7 @@ traceln(" ");]]></StartupCode>
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1671636200983</Id>
-					<Name><![CDATA[v_expectedSolarYield24hours_fr]]></Name>
+					<Name><![CDATA[v_SolarYieldForecast_fr]]></Name>
 					<X>70</X><Y>570</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1394,7 +1394,7 @@ traceln(" ");]]></StartupCode>
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1671638019875</Id>
-					<Name><![CDATA[v_epexNext24hours_eurpkWh]]></Name>
+					<Name><![CDATA[v_epexForecast_eurpkWh]]></Name>
 					<X>70</X><Y>590</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1402,6 +1402,36 @@ traceln(" ");]]></StartupCode>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1672229241505</Id>
+					<Name><![CDATA[v_totalInstalledWindPower_kW]]></Name>
+					<X>1110</X><Y>210</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1672229257384</Id>
+					<Name><![CDATA[v_totalInstalledPVPower_kW]]></Name>
+					<X>1110</X><Y>230</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
 					</Properties>
 				</Variable>
 				<Variable Class="Parameter">
@@ -3042,9 +3072,9 @@ for( EnergyAsset e : c_ambientAirDependentAssets ) {
 }
 
 // Update weather forecast
-v_expectedSolarYield24hours_fr += (tf_p_solar_e_normalized(t_h+24)-v_currentSolarPowerNormalized_r)/(p_forecastTime_h/p_timeStep_h);
-v_expectedWindYield24hours_fr += (tf_p_wind_e_normalized(t_h+24)-v_currentWindPowerNormalized_r)/(p_forecastTime_h/p_timeStep_h);
-v_epexNext24hours_eurpkWh += (nationalEnergyMarket.tf_dayAheadElectricityPricing_eurpMWh(t_h+24)-nationalEnergyMarket.tf_dayAheadElectricityPricing_eurpMWh(t_h))/(p_forecastTime_h/p_timeStep_h)/1000;]]></Body>
+v_SolarYieldForecast_fr += (tf_p_solar_e_normalized(t_h+24)-v_currentSolarPowerNormalized_r)/(p_forecastTime_h/p_timeStep_h);
+v_WindYieldForecast_fr += (tf_p_wind_e_normalized(t_h+24)-v_currentWindPowerNormalized_r)/(p_forecastTime_h/p_timeStep_h);
+v_epexForecast_eurpkWh += (nationalEnergyMarket.tf_dayAheadElectricityPricing_eurpMWh(t_h+24)-nationalEnergyMarket.tf_dayAheadElectricityPricing_eurpMWh(t_h))/(p_forecastTime_h/p_timeStep_h)/1000;]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -3264,6 +3294,7 @@ for(GridNode h : c_gridNodesHSMS ) {
 for(GridNode m : c_gridNodesMSLS ) {
 	v_gridNodePeakLoadElectricityMSLS_kW += m.v_peakLoadFilteredElectricity_kW;
 	c_timesOfNodePeakLoads_h.put(m.p_agentID, m.v_timeOfPeakLoadFiltered_h);
+	traceln("MSLS node peak load unfiltered: " + m.v_peakLoadAbsoluteElectricity_kW + " kW");
 }
 
 for(GridConnection g: c_gridConnections){
@@ -3586,15 +3617,15 @@ for (GridConnection g: c_gridConnections) {
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[v_expectedWindYield24hours_fr = 0;
-v_expectedSolarYield24hours_fr = 0;
-v_epexNext24hours_eurpkWh = 0;
+					<Body><![CDATA[v_WindYieldForecast_fr = 0;
+v_SolarYieldForecast_fr = 0;
+v_epexForecast_eurpkWh = 0;
 for (double ts_h = 0; ts_h<p_forecastTime_h; ts_h += p_timeStep_h) {
-	v_expectedWindYield24hours_fr += tf_p_wind_e_normalized(ts_h)/(p_forecastTime_h/p_timeStep_h);
-	v_expectedSolarYield24hours_fr += tf_p_solar_e_normalized(ts_h)/(p_forecastTime_h/p_timeStep_h);
-	v_epexNext24hours_eurpkWh += nationalEnergyMarket.tf_dayAheadElectricityPricing_eurpMWh(ts_h)/(p_forecastTime_h/p_timeStep_h)/1000;
+	v_WindYieldForecast_fr += tf_p_wind_e_normalized(ts_h)/(p_forecastTime_h/p_timeStep_h);
+	v_SolarYieldForecast_fr += tf_p_solar_e_normalized(ts_h)/(p_forecastTime_h/p_timeStep_h);
+	v_epexForecast_eurpkWh += nationalEnergyMarket.tf_dayAheadElectricityPricing_eurpMWh(ts_h)/(p_forecastTime_h/p_timeStep_h)/1000;
 }
-v_epexNext24hours_eurpkWh += 0.17;]]></Body>
+v_epexForecast_eurpkWh += 0.17;]]></Body>
 				</Function>
 			</Functions>
 			<TableFunctions>
@@ -3649,7 +3680,7 @@ v_epexNext24hours_eurpkWh += 0.17;]]></Body>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<InterpolationMethod>LINEAR</InterpolationMethod>
-					<OutOfRangeBehaviour>REPEATING</OutOfRangeBehaviour>
+					<OutOfRangeBehaviour>NEAREST</OutOfRangeBehaviour>
 					<OutOfRangeCustomValue><![CDATA[0.0]]></OutOfRangeCustomValue>
 					<ApproximationOrder><![CDATA[1]]></ApproximationOrder>
 					<LoadFromDatabase><![CDATA[true]]></LoadFromDatabase>
@@ -3687,7 +3718,7 @@ v_epexNext24hours_eurpkWh += 0.17;]]></Body>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<InterpolationMethod>LINEAR</InterpolationMethod>
-					<OutOfRangeBehaviour>REPEATING</OutOfRangeBehaviour>
+					<OutOfRangeBehaviour>NEAREST</OutOfRangeBehaviour>
 					<OutOfRangeCustomValue><![CDATA[0.0]]></OutOfRangeCustomValue>
 					<ApproximationOrder><![CDATA[1]]></ApproximationOrder>
 					<LoadFromDatabase><![CDATA[true]]></LoadFromDatabase>
@@ -3724,7 +3755,7 @@ v_epexNext24hours_eurpkWh += 0.17;]]></Body>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<InterpolationMethod>LINEAR</InterpolationMethod>
-					<OutOfRangeBehaviour>REPEATING</OutOfRangeBehaviour>
+					<OutOfRangeBehaviour>NEAREST</OutOfRangeBehaviour>
 					<OutOfRangeCustomValue><![CDATA[0.0]]></OutOfRangeCustomValue>
 					<ApproximationOrder><![CDATA[1]]></ApproximationOrder>
 					<LoadFromDatabase><![CDATA[true]]></LoadFromDatabase>
@@ -4026,7 +4057,7 @@ v_epexNext24hours_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/actors.txt]]></ClassName>
+						<ClassName><![CDATA[cases/industry_case/actors_nfATO.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -4062,7 +4093,7 @@ v_epexNext24hours_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/gridconnections.txt]]></ClassName>
+						<ClassName><![CDATA[cases/industry_case/gridconnections_Optie2_NoBattery.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -9818,6 +9849,11 @@ if( p_energyAssetList != null) {
 				producerAsset.f_instantiateProducerAsset( producerAsset.p_energyAssetType, capacityElectricity_kW, capacityHeat_kW, yearlyProductionHydrogen_kWh, yearlyProductionMethane_kWh);
 				producerAsset.f_connectToParentNode( this );
 				main.c_productionAssets.add(producerAsset);
+				if ( l.get( "type" ).equals("WINDMILL") ) {
+					main.v_totalInstalledWindPower_kW += capacityElectricity_kW;
+				} else if ( l.get( "type" ).equals("PHOTOVOLTAIC") ) {
+					main.v_totalInstalledPVPower_kW += capacityElectricity_kW;
+				}
 			break;
 			case CONVERSION:
 				//traceln("conversion-asset detected!");
@@ -10124,7 +10160,7 @@ if (((J_EAStorageElectric)p_batteryAsset.p_energyAssetInstance).getStorageCapaci
 	if (!c_vehicleAssets.isEmpty()) {
 		SOC_setp_fr = 0.5 + 0.25 * Math.sin(2*Math.PI*(time(HOUR)-12)/24); // Sinusoidal setpoint: aim for low SOC at 6:00h, high SOC at 18:00h. 
 	} else if (p_gridConnectionCategory == OL_GridConnectionCategory.WINDFARM) { // Look at weather forecast to charge/discharge battery
-			SOC_setp_fr = 0.9 - 0.8 * main.v_expectedWindYield24hours_fr;
+			SOC_setp_fr = 0.9 - 0.8 * main.v_WindYieldForecast_fr;
 			//traceln("Forecast-based SOC setpoint: " + SOC_setp_fr + " %");
 	}
 	//traceln("SOC setpoint at " + getHourOfDay() + " h is " + SOC_setp_fr*100 + "%");
@@ -10177,7 +10213,7 @@ if (((J_EAStorageElectric)p_batteryAsset.p_energyAssetInstance).getStorageCapaci
 		if (!c_vehicleAssets.isEmpty()) {
 			SOC_setp_fr = 0.5 + 0.25 * Math.sin(2*Math.PI*(time(HOUR)-12)/24); // Sinusoidal setpoint: aim for low SOC at 6:00h, high SOC at 18:00h. 
 		} else if (p_gridConnectionCategory == OL_GridConnectionCategory.WINDFARM) {
-			SOC_setp_fr = 0.9 - 0.8 * main.v_expectedWindYield24hours_fr;
+			SOC_setp_fr = 0.9 - 0.8 * main.v_WindYieldForecast_fr;
 			//traceln("Forecast-based SOC setpoint: " + SOC_setp_fr + " %");
 		}
 		double SOC_deficit_fr = SOC_setp_fr - currentBatteryStateOfCharge; // How far away from desired SOC? SOC too LOW is a POSITIVE deficit
@@ -10461,7 +10497,7 @@ for ( int i = 0; i < copiedVehicleList.size(); i++ ){
 		double chargeSetpoint_kW = 0;
 
 		if ( time(MINUTE) >= chargeDeadline_min & chargeNeedForNextTrip_kWh > 0) { // Must-charge time at max charging power
-			traceln("Urgency charging!");
+			traceln("Urgency charging! Max exceed connection capacity!");
 			chargeSetpoint_kW = maxChargingPower_kW;				
 		} else {
 			//double WTPprice_eurpkWh = v_electricityPriceLowPassed_eurpkWh - flexibilityGain_eurph * (chargeDeadline_min - time(MINUTE) - 600);
@@ -27269,10 +27305,10 @@ if(p_ownerActor instanceof ConnectionOwner) {
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1669022533961</Id>
 					<Name><![CDATA[f_batteryManagementBalanceHolon]]></Name>
-					<Description><![CDATA[Simpele regeling voor balancering van holon-load.
+					<Description><![CDATA[Regeling voor balancering van holon-load.
 
-@author: JorritvandenHouten
-@since: 28-10-2022]]></Description>
+@author: Gillis Hommen
+@since: 28-12-2022]]></Description>
 					<X>800</X><Y>280</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -27287,18 +27323,23 @@ if(p_ownerActor instanceof ConnectionOwner) {
 		if(((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_holonParent instanceof EnergyHolon ) {
 	
 			double currentHolonElectricitySurplus_kW = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_holonParent.v_electricitySurplus_kW + v_previousPowerElectricity_kW;
-			v_electricityPriceLowPassed_eurpkWh += v_lowPassFactor_fr * ( currentHolonElectricitySurplus_kW - v_electricityPriceLowPassed_eurpkWh );
+			//v_electricityPriceLowPassed_eurpkWh += v_lowPassFactor_fr * ( currentHolonElectricitySurplus_kW - v_electricityPriceLowPassed_eurpkWh );
 			
 			double HolonConnectionCapacity_kW = 0.9*((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_holonParent.v_allowedCapacity_kW; // Use only 90% of capacity for robustness against delay
 			double availableChargePower_kW = HolonConnectionCapacity_kW + currentHolonElectricitySurplus_kW; // Max battery charging power within grid capacity
 			double availableDischargePower_kW = currentHolonElectricitySurplus_kW - HolonConnectionCapacity_kW; // Max discharging power within grid capacity
-			double SOC_setp_fr = 0.6 + 0.2 * Math.sin(2*Math.PI*(time(HOUR)-12)/24); // Sinusoidal setpoint: aim for low SOC at 6:00h, high SOC at 18:00h.
-			//traceln("SOC setpoint at " + getHourOfDay() + " h is " + SOC_setp_fr*100 + "%");
+			double SOC_setp_fr = 0.5;			
+			if (main.v_totalInstalledWindPower_kW > 5000) {
+				SOC_setp_fr = 0.9 - 0.8 * main.v_WindYieldForecast_fr;
+				//traceln("Forecast-based SOC setpoint: " + SOC_setp_fr + " %");
+			} else {
+				SOC_setp_fr = 0.6 + 0.25 * Math.sin(2*Math.PI*(time(HOUR)-12)/24); // Sinusoidal setpoint: aim for low SOC at 6:00h, high SOC at 18:00h. 
+			}
 			double FeedbackGain_kWpSOC = 1.5 * p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW(); // How strongly to aim for SOC setpoint
-			double FeedforwardGain_kWpKw = 0.8; // Feedforward based on current surpluss in holon
-			//double chargeOffset_kW = 100; // Charging 'bias', basically increases SOC setpoint slightly during the whole day.
+			double FeedforwardGain_kWpKw = 0.5; // Feedforward based on current surpluss in holon
+			double chargeOffset_kW = 0; // Charging 'bias', basically increases SOC setpoint slightly during the whole day.
 			double chargeSetpoint_kW = 0;
-			chargeSetpoint_kW = FeedforwardGain_kWpKw * (currentHolonElectricitySurplus_kW - v_electricityPriceLowPassed_eurpkWh) + (SOC_setp_fr - batterySOC) * FeedbackGain_kWpSOC;
+			chargeSetpoint_kW = FeedforwardGain_kWpKw * (currentHolonElectricitySurplus_kW - chargeOffset_kW) + (SOC_setp_fr - batterySOC) * FeedbackGain_kWpSOC;
 			chargeSetpoint_kW = min(max(chargeSetpoint_kW, availableDischargePower_kW),availableChargePower_kW); // Don't allow too much (dis)charging!
 			p_batteryAsset.v_powerFraction_fr = max(-1,min(1, chargeSetpoint_kW / p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW())); // Convert to powerFraction and limit power
 			//traceln("HOLON surpluss " + currentHolonElectricitySurplus_kW + "kW, Battery charging power " + p_batteryAsset.v_powerFraction_fr*p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW() + " kW at " + currentBatteryStateOfCharge*100 + " % SOC");
@@ -27311,10 +27352,10 @@ if(p_ownerActor instanceof ConnectionOwner) {
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1669022533963</Id>
 					<Name><![CDATA[f_batteryManagementPriceHolon]]></Name>
-					<Description><![CDATA[Simpele regeling voor balancering van holon-load.
+					<Description><![CDATA[Regeling voor prijsgestuurd balancering van holon-load.
 
-@author: JorritvandenHouten
-@since: 28-10-2022]]></Description>
+@author: Gillis Hommen
+@since: 28-12-2022]]></Description>
 					<X>800</X><Y>299</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -27343,16 +27384,12 @@ if(p_ownerActor instanceof ConnectionOwner) {
 		double currentPricePowerBandNeg_kW = ownerActor.v_currentPriceBands.floorKey(100.0); // Down to what power does this price hold?		
 //		double SOC_setp_fr = 0.6 + 0.3 * Math.sin(2*Math.PI*(time(HOUR)-12)/24); // Sinusoidal setpoint: aim for low SOC at 6:00h, high SOC at 18:00h. 
 //		double SOC_deficit_fr = SOC_setp_fr - currentBatteryStateOfCharge; // How far away from desired SOC? SOC too LOW is a POSITIVE deficit		
-		double SOC_setp_fr = 0.5;
-		//traceln("Current price is " + currentElectricityPriceCharge_eurpkWh + " eurpkWh, between " + currentPricePowerBandNeg_kW + " kW and " + currentPricePowerBandPos_kW + " kW");
-		if (!c_vehicleAssets.isEmpty()) {
-			SOC_setp_fr = 0.5 + 0.25 * Math.sin(2*Math.PI*(time(HOUR)-12)/24); // Sinusoidal setpoint: aim for low SOC at 6:00h, high SOC at 18:00h. 
-		} else if (p_gridConnectionCategory == OL_GridConnectionCategory.WINDFARM) {
-			SOC_setp_fr = 0.9 - 0.8 * main.v_expectedWindYield24hours_fr;
+		double SOC_setp_fr = 0.5;			
+		if (main.v_totalInstalledWindPower_kW > 5000) {
+			SOC_setp_fr = 0.9 - 0.8 * main.v_WindYieldForecast_fr;
 			//traceln("Forecast-based SOC setpoint: " + SOC_setp_fr + " %");
-		} else if (p_gridConnectionCategory == OL_GridConnectionCategory.GRIDBATTERY) {
-			SOC_setp_fr = 0.9 - 0.8 * main.v_expectedWindYield24hours_fr;
-			//traceln("Forecast-based SOC setpoint: " + SOC_setp_fr + " %");
+		} else {
+			SOC_setp_fr = 0.6 + 0.25 * Math.sin(2*Math.PI*(time(HOUR)-12)/24); // Sinusoidal setpoint: aim for low SOC at 6:00h, high SOC at 18:00h. 
 		}
 		double SOC_deficit_fr = SOC_setp_fr - currentBatteryStateOfCharge_fr;
 		
@@ -30272,19 +30309,23 @@ public class J_EAConversionGasCHP extends base.J_EAConversion implements Seriali
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/actors.txt]]></Path>
-			<ReferencedFromUserCode>false</ReferencedFromUserCode>
-		</Resource>
-		<Resource>
 			<Path><![CDATA[cases/industry_case/policies.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/gridconnections.txt]]></Path>
+			<Path><![CDATA[cases/industry_case/gridnodes.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/gridnodes.txt]]></Path>
+			<Path><![CDATA[cases/industry_case/actors_nfATO.txt]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[cases/industry_case/gridconnections_step7_nopolicies.txt]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[cases/industry_case/gridconnections_Optie2_NoBattery.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
@@ -30300,6 +30341,6 @@ public class J_EAConversionGasCHP extends base.J_EAConversion implements Seriali
 		<VersionMinor>0</VersionMinor>
 		<VersionBuild>5</VersionBuild>
     </RequiredLibraryReference>
-	<CloudModelUuid><![CDATA[ccbb2666-148e-4cd3-a9d3-2c089791a1ae]]></CloudModelUuid>
+	<CloudModelUuid><![CDATA[d59e1e77-4a82-455c-9bd7-79e3ece1069d]]></CloudModelUuid>
 </Model>
 </AnyLogicWorkspace>
