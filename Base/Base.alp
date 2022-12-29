@@ -2829,23 +2829,25 @@ traceln("--------------------------");
 traceln("");
 
 
-for (EnergyHolon e : pop_energyHolons) {
-	e.f_returnKPIData();
-}
+//for (EnergyHolon e : pop_energyHolons) {
+//	e.f_returnKPIData();
+//}
 
 ObjectMapper mapper = new ObjectMapper();
 
 //DataOut great_succes = new DataOut();
 j_dataOut.clearData();
 
-// Bereken netvlak-data:
-f_sumGridNodeLoads();
 f_sumMolecularEnergyFlows();
 f_sumBatteryUse();
+double batteryStoredEnergyDeltaSinceStart_MWh = v_totalBatteryChargeAmount_MWh - v_totalBatteryDischargeAmount_MWh - v_totalBatteryEnergyUsed_MWh;
+if (batteryStoredEnergyDeltaSinceStart_MWh == Double.NaN) {
+	batteryStoredEnergyDeltaSinceStart_MWh = 0;
+}
 
 //c_connectionOwners.parallelStream().forEach(c -> {
-traceln("connectionOwners left: "+pop_connectionOwners.size());
-traceln("connectionOwners in list: "+c_connectionOwners.size());
+//traceln("connectionOwners left: "+pop_connectionOwners.size());
+//traceln("connectionOwners in list: "+c_connectionOwners.size());
 for(ConnectionOwner c : pop_connectionOwners) {
 	try {
 		c.j_ConnectionOwnerData.updateData(c.p_actorID, c.p_actorType, c.p_parentActorID, c.p_energySupplier, c.v_ownedGridConnection, c.v_energySupplierDistrictHeat, roundToDecimal( c.v_electricityVolume_kWh, 2 ), roundToDecimal( c.v_heatVolume_kWh, 2), roundToDecimal( c.v_methaneVolume_kWh, 2), roundToDecimal( c.v_hydrogenVolume_kWh, 2 ), c.v_electricityContractType.toString(), c.v_heatContractType.toString(), c.v_methaneContractType.toString(), c.v_hydrogenContractType.toString(), roundToDecimal( c.v_balanceElectricity_eur, 2), roundToDecimal( c.v_balanceHeat_eur, 2), roundToDecimal( c.v_balanceMethane_eur, 2), roundToDecimal( c.v_balanceHydrogen_eur, 2));
@@ -2857,23 +2859,21 @@ for(ConnectionOwner c : pop_connectionOwners) {
 	}
 //});
 }
-double batteryStoredEnergyDeltaSinceStart_MWh = v_totalBatteryChargeAmount_MWh - v_totalBatteryDischargeAmount_MWh - v_totalBatteryEnergyUsed_MWh;
-if (batteryStoredEnergyDeltaSinceStart_MWh == Double.NaN) {
-	batteryStoredEnergyDeltaSinceStart_MWh = 0;
-}
 
+// Bereken netvlak-data:
+f_sumGridNodeLoads();
 traceln("Electricity imported: "+ v_totalElectricityImport_MWh + " MWh");
 traceln("Electricity exported: "+ v_totalElectricityExport_MWh + " MWh");
 traceln("Electricity delta in batteries: "+ batteryStoredEnergyDeltaSinceStart_MWh + " MWh");
 
 //Total energy consumption and production
-traceln("");
-traceln("__--** CONSUMPTION PER ASSET **--__");
+//traceln("");
+//traceln("__--** CONSUMPTION PER ASSET **--__");
 double energyProduced_MWh = 0;
 double energyConsumed_MWh = 0;
 for (EnergyAsset e : pop_energyAssets) {
 	double EnergyUsed_kWh = e.p_energyAssetInstance.getEnergyUsed_kWh();
-	traceln("EnergyAsset " + e.getIndex() + " of type " + e.p_defaultEnergyAssetPresetName + " used " + roundToInt(EnergyUsed_kWh) + " kWh energy");
+	//traceln("EnergyAsset " + e.getIndex() + " of type " + e.p_defaultEnergyAssetPresetName + " used " + roundToInt(EnergyUsed_kWh) + " kWh energy");
 	if (EnergyUsed_kWh > 0) {
 		energyConsumed_MWh += roundToDecimal(EnergyUsed_kWh/1000,2);
 	} else {
@@ -2898,7 +2898,7 @@ double totalSelfSufficiency_fr = 1 - (v_totalElectricityImport_MWh + v_totalMeth
 double totalSelfSufficiency_fr_check = (energyProduced_MWh - (v_totalElectricityExport_MWh + v_totalMethaneExport_MWh + v_totalHydrogenExport_MWh))/energyConsumed_MWh;
 traceln("Model-wide selfconsumption: " + totalSelfConsumption_fr + "%");
 traceln("Model-wide selfsufficiency: " + totalSelfSufficiency_fr + "%, doublecheck " + totalSelfSufficiency_fr_check);
-traceln("MS node peak load: " + v_gridNodePeakLoadElectricityMSLS_kW + " kW at hour: " + c_timesOfNodePeakLoads_h);
+//traceln("MS node peak load: " + v_gridNodePeakLoadElectricityMSLS_kW + " kW at hour: " + c_timesOfNodePeakLoads_h);
 
 double modelRunDuration_s = roundToDecimal( ( System.currentTimeMillis() - v_timeOfModelStart_ms ) / 1000 - v_modelStartUpDuration_s, 3);
 
@@ -2948,7 +2948,7 @@ j_experimentSettingsData.updateData( p_timeStep_h+"",
 
 j_dataOut.runSettingsData.add(j_experimentSettingsData);
 
-traceln("Netload " + v_gridNodePeakLoadElectricityMSLS_kW/pop_gridNodes.get(0).p_capacity_kW * 100 + " %" );
+//traceln("Netload " + v_gridNodePeakLoadElectricityMSLS_kW/pop_gridNodes.get(0).p_capacity_kW * 100 + " %" );
 traceln("Model run duration: " + modelRunDuration_s + " seconds");
 
     //System.out.println(json);
@@ -3285,16 +3285,19 @@ for( EnergyHolon e : pop_energyHolons ) {
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[// Bereken belasting per netvlak in het model (elektriciteit, absolute waarde) voor kosten-berekeningen gebied.
 for(GridNode h : c_gridNodesHSMS ) {
-	v_gridNodePeakLoadElectricityHSMS_kW += h.v_peakLoadFilteredElectricity_kW;
+	v_gridNodePeakLoadElectricityHSMS_kW = max(v_gridNodePeakLoadElectricityHSMS_kW,abs(h.v_peakLoadFilteredElectricity_kW));
 	v_totalElectricityImport_MWh += h.v_electricityDrawn_kWh / 1000;
 	v_totalElectricityExport_MWh += h.v_electricityDelivered_kWh / 1000;
 	c_timesOfNodePeakLoads_h.put(h.p_agentID, h.v_timeOfPeakLoadFiltered_h);
 }
 
 for(GridNode m : c_gridNodesMSLS ) {
-	v_gridNodePeakLoadElectricityMSLS_kW += m.v_peakLoadFilteredElectricity_kW;
+	v_gridNodePeakLoadElectricityMSLS_kW = max(v_gridNodePeakLoadElectricityMSLS_kW,m.v_peakLoadFilteredElectricity_kW);
 	c_timesOfNodePeakLoads_h.put(m.p_agentID, m.v_timeOfPeakLoadFiltered_h);
-	traceln("MSLS node peak load unfiltered: " + m.v_peakLoadAbsoluteElectricity_kW + " kW");
+	//traceln("MSLS node peak load unfiltered: " + m.v_peakLoadAbsoluteElectricity_kW + " kW");
+	traceln("");
+	traceln("MSLS peak positive load filtered: " + roundToDecimal(m.v_peakPosLoadElectricity_kW/m.p_capacity_kW*100,2) + " % at time: " + m.v_timeOfPeakPosLoadFiltered_h + " h");
+	traceln("MSLS peak negative load filtered: " + roundToDecimal(m.v_peakNegLoadElectricity_kW/m.p_capacity_kW*100,2) + " % at time: " + m.v_timeOfPeakNegLoadFiltered_h + " h");
 }
 
 for(GridConnection g: c_gridConnections){
@@ -4093,7 +4096,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/gridconnections_Optie2_NoBattery.txt]]></ClassName>
+						<ClassName><![CDATA[cases/industry_case/gridconnections_Optie1_MoarWind.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -6866,7 +6869,7 @@ geupdate vanuit
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1667553127377</Id>
-					<Name><![CDATA[v_timeOfPeakLoad_h]]></Name>
+					<Name><![CDATA[v_timeOfPeakPosLoadFiltered_h]]></Name>
 					<X>400</X><Y>560</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -6913,7 +6916,7 @@ geupdate vanuit
 
 @author: Jorrit
 @since: 27-10-2022]]></Description>
-					<X>480</X><Y>290</Y>
+					<X>400</X><Y>660</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -6928,7 +6931,57 @@ geupdate vanuit
 				<Variable Class="PlainVariable">
 					<Id>1670405904360</Id>
 					<Name><![CDATA[v_timeOfPeakLoadFiltered_h]]></Name>
-					<X>480</X><Y>350</Y>
+					<X>400</X><Y>680</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1672304003577</Id>
+					<Name><![CDATA[v_peakPosLoadElectricity_kW]]></Name>
+					<Description><![CDATA[Houdt de piekbelasting in kW over de modelrun bij (absolute waarde) voor kostenberekeningen netverzwaringen (totale gebiedskosten). Geupdate in f_calculateEnergyBalance.
+
+@author: Jorrit
+@since: 27-10-2022]]></Description>
+					<X>400</X><Y>600</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1672304030993</Id>
+					<Name><![CDATA[v_peakNegLoadElectricity_kW]]></Name>
+					<Description><![CDATA[Houdt de piekbelasting in kW over de modelrun bij (absolute waarde) voor kostenberekeningen netverzwaringen (totale gebiedskosten). Geupdate in f_calculateEnergyBalance.
+
+@author: Jorrit
+@since: 27-10-2022]]></Description>
+					<X>400</X><Y>620</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1672304151508</Id>
+					<Name><![CDATA[v_timeOfPeakNegLoadFiltered_h]]></Name>
+					<X>400</X><Y>580</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -7464,9 +7517,13 @@ for( Agent a : subConnections.getConnections() )
 	}
 }
 
+// Low-pass filtered grid load
+//double lowPassFraction = min(1,1*1.2*main.p_timeStep_h); // smaller value results in more filtering
+v_currentLoadElectricityLowPassed_kW += v_lowPassFactor_fr * ( v_currentLoadElectricity_kW - v_currentLoadElectricityLowPassed_kW );
+
 if( abs( v_currentLoadElectricity_kW ) > abs(v_peakLoadAbsoluteElectricity_kW) ) { // store maximum absolute load, but retain sign!
 	v_peakLoadAbsoluteElectricity_kW = ( v_currentLoadElectricity_kW );
-	v_timeOfPeakLoad_h = time(HOUR);
+	//v_timeOfPeakLoad_h = time(HOUR);
 }
 
 if( abs( v_currentLoadElectricityLowPassed_kW ) > abs(v_peakLoadFilteredElectricity_kW) ) { // store maximum absolute load, but retain sign!
@@ -7474,13 +7531,17 @@ if( abs( v_currentLoadElectricityLowPassed_kW ) > abs(v_peakLoadFilteredElectric
 	v_timeOfPeakLoadFiltered_h = time(HOUR);
 }
 
+if( v_currentLoadElectricityLowPassed_kW < v_peakNegLoadElectricity_kW ) { // store peak negative load and time
+	v_peakNegLoadElectricity_kW = v_currentLoadElectricityLowPassed_kW ;
+	v_timeOfPeakNegLoadFiltered_h = time(HOUR);
+}
 
-// Low-pass filtered grid load
-//double lowPassFraction = min(1,1*1.2*main.p_timeStep_h); // smaller value results in more filtering
-v_currentLoadElectricityLowPassed_kW += v_lowPassFactor_fr * ( v_currentLoadElectricity_kW - v_currentLoadElectricityLowPassed_kW );
+if( v_currentLoadElectricityLowPassed_kW > v_peakPosLoadElectricity_kW ) { // store peak negative load and time
+	v_peakPosLoadElectricity_kW = v_currentLoadElectricityLowPassed_kW ;
+	v_timeOfPeakPosLoadFiltered_h = time(HOUR);
+}
 
-
-if (p_energyType.equals(OL_EnergyCarrierType.HEAT)) { // Thermal load goes into transportBuffer
+if (p_energyType.equals(OL_EnergyCarrierType.HEAT)) { // Thermal load unbalance goes into transportBuffer
 	double v_powerFraction_fr = -v_currentLoadHeat_kW / p_transportBuffer.getHeatCapacity_kW();
 	p_transportBuffer.operate(v_powerFraction_fr);
 	//traceln("DistrictHeating network water temperature " + p_transportBuffer.getCurrentTemperature() + " deg C, buffer power fraction " + v_powerFraction_fr * 100 + " %, transportbuffer HeatCapacity_kW " + p_transportBuffer.getHeatCapacity_kW());
@@ -10497,7 +10558,7 @@ for ( int i = 0; i < copiedVehicleList.size(); i++ ){
 		double chargeSetpoint_kW = 0;
 
 		if ( time(MINUTE) >= chargeDeadline_min & chargeNeedForNextTrip_kWh > 0) { // Must-charge time at max charging power
-			traceln("Urgency charging! Max exceed connection capacity!");
+			traceln("Urgency charging! May exceed connection capacity!");
 			chargeSetpoint_kW = maxChargingPower_kW;				
 		} else {
 			//double WTPprice_eurpkWh = v_electricityPriceLowPassed_eurpkWh - flexibilityGain_eurph * (chargeDeadline_min - time(MINUTE) - 600);
@@ -30321,11 +30382,7 @@ public class J_EAConversionGasCHP extends base.J_EAConversion implements Seriali
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/gridconnections_step7_nopolicies.txt]]></Path>
-			<ReferencedFromUserCode>false</ReferencedFromUserCode>
-		</Resource>
-		<Resource>
-			<Path><![CDATA[cases/industry_case/gridconnections_Optie2_NoBattery.txt]]></Path>
+			<Path><![CDATA[cases/industry_case/gridconnections_Optie1_MoarWind.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
