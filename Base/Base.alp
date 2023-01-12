@@ -2937,7 +2937,7 @@ double totalSelfSufficiency_fr = 1 - (v_totalElectricityImport_MWh + v_totalMeth
 double totalSelfSufficiency_fr_check = (energyProduced_MWh - (v_totalElectricityExport_MWh + v_totalMethaneExport_MWh + v_totalHydrogenExport_MWh))/energyConsumed_MWh;
 traceln("Model-wide selfconsumption: " + totalSelfConsumption_fr + "%");
 traceln("Model-wide selfsufficiency: " + totalSelfSufficiency_fr + "%, doublecheck " + totalSelfSufficiency_fr_check);
-//traceln("MS node peak load: " + v_gridNodePeakLoadElectricityMSLS_kW + " kW at hour: " + c_timesOfNodePeakLoads_h);
+traceln("MS node peak load: " + v_gridNodePeakLoadElectricityMSLS_kW + " kW at hour: " + c_timesOfNodePeakLoads_h);
 
 double modelRunDuration_s = roundToDecimal( ( System.currentTimeMillis() - v_timeOfModelStart_ms ) / 1000 - v_modelStartUpDuration_s, 3);
 
@@ -3314,7 +3314,7 @@ for( EnergySupplier e : pop_energySuppliers ) {
 }
 
 for( EnergyHolon e : pop_energyHolons ) {
-	e.f_initialize();
+	e.f_initialize(); // Why is this here? 
 }
 ]]></Body>
 				</Function>
@@ -3334,14 +3334,15 @@ for( EnergyHolon e : pop_energyHolons ) {
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[// Bereken belasting per netvlak in het model (elektriciteit, absolute waarde) voor kosten-berekeningen gebied.
 for(GridNode h : c_gridNodesHSMS ) {
-	v_gridNodePeakLoadElectricityHSMS_kW = max(v_gridNodePeakLoadElectricityHSMS_kW,abs(h.v_peakLoadFilteredElectricity_kW));
+//	v_gridNodePeakLoadElectricityHSMS_kW = max(v_gridNodePeakLoadElectricityHSMS_kW,abs(h.v_peakLoadFilteredElectricity_kW));
+	v_gridNodePeakLoadElectricityHSMS_kW = h.v_peakLoadFilteredElectricity_kW;
 	v_totalElectricityImport_MWh += h.v_electricityDrawn_kWh / 1000;
 	v_totalElectricityExport_MWh += h.v_electricityDelivered_kWh / 1000;
 	c_timesOfNodePeakLoads_h.put(h.p_agentID, h.v_timeOfPeakLoadFiltered_h);
 }
 
 for(GridNode m : c_gridNodesMSLS ) {
-	v_gridNodePeakLoadElectricityMSLS_kW = max(v_gridNodePeakLoadElectricityMSLS_kW,m.v_peakLoadFilteredElectricity_kW);
+	v_gridNodePeakLoadElectricityMSLS_kW = m.v_peakLoadFilteredElectricity_kW;
 	c_timesOfNodePeakLoads_h.put(m.p_agentID, m.v_timeOfPeakLoadFiltered_h);
 	//traceln("MSLS node peak load unfiltered: " + m.v_peakLoadAbsoluteElectricity_kW + " kW");
 	traceln("");
@@ -3503,7 +3504,7 @@ for(HashMap data : parsedJSONActors)
 
 for (EnergyHolon a : pop_energyHolons) {
 	a.f_connectToParentActor();
-	a.f_initialize();
+	//a.f_initialize();
 }
 for (ConnectionOwner a : pop_connectionOwners) {
 	a.f_connectToParentActor();
@@ -4109,7 +4110,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/example_actors.json]]></ClassName>
+						<ClassName><![CDATA[cases/industry_case/actors.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -4127,7 +4128,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/example_gridnodes.json]]></ClassName>
+						<ClassName><![CDATA[cases/industry_case/gridnodes.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -4145,7 +4146,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/example_gridconnections.json]]></ClassName>
+						<ClassName><![CDATA[C:/Users/gilli/Documents/Project HOLON/Git_Local_Clone/HOLON-cloudclient/doc/assets/example_gridconnections.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -4182,7 +4183,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[../CaseDefinitions/industry_case/industry_case_policies.txt]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/example_policies.json]]></ClassName>
+						<ClassName><![CDATA[cases/industry_case/policies.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -18277,6 +18278,7 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 				<Variable Class="PlainVariable">
 					<Id>1663237725571</Id>
 					<Name><![CDATA[v_electricitySurpluss_kW]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>50</X><Y>530</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -18462,6 +18464,21 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[String]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1673455438812</Id>
+					<Name><![CDATA[v_enable_nfATO_b]]></Name>
+					<X>50</X><Y>270</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[boolean]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[false]]></Code>
+						</InitialValue>
 					</Properties>
 				</Variable>
 				<Variable Class="Parameter">
@@ -18709,7 +18726,7 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 				<Variable Class="Parameter">
 					<Id>1672145426515</Id>
 					<Name><![CDATA[p_nfatoStart_h]]></Name>
-					<X>50</X><Y>260</Y>
+					<X>50</X><Y>290</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18733,7 +18750,7 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 				<Variable Class="Parameter">
 					<Id>1672145426519</Id>
 					<Name><![CDATA[p_nfatoEnd_h]]></Name>
-					<X>50</X><Y>280</Y>
+					<X>50</X><Y>310</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18758,7 +18775,7 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 				<Variable Class="Parameter">
 					<Id>1672145426522</Id>
 					<Name><![CDATA[p_nfatoLvl_kW]]></Name>
-					<X>50</X><Y>300</Y>
+					<X>50</X><Y>330</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18784,7 +18801,7 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 					<Name><![CDATA[p_connectionCapacity_kW]]></Name>
 					<Description><![CDATA[TODO: This is still hardcoded! How should HOLON know where to 'gather' this data? (Capacity of shared connection)]]></Description>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>50</X><Y>320</Y>
+					<X>50</X><Y>350</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18838,12 +18855,12 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 					</Parameter>
 					<Body><![CDATA[gridConnections.connectTo(ConnectingChildNode);
 v_ownedGridConnection = ConnectingChildNode;
-if (v_contractGridOperator.equals("NONFIRMATO")) {
+if (v_enable_nfATO_b) {
 	ConnectingChildNode.v_enable_nfATO_b = true;
 	ConnectingChildNode.p_nfatoStart_h = p_nfatoStart_h;
 	ConnectingChildNode.p_nfatoEnd_h = p_nfatoEnd_h;
 	ConnectingChildNode.p_nfatoLvl_kW = p_nfatoLvl_kW;
-	traceln("Setting nfATO TRUE!");
+	traceln("Setting nfATO TRUE for gridConnection: " + ConnectingChildNode.p_agentID);
 }
 ]]></Body>
 				</Function>
@@ -19008,11 +19025,11 @@ if ( v_updatePriceBands_b ){
 	f_setElectricityPriceBands();
 }
 
-// Update energy balance
-v_electricitySurpluss_kW = 0;
+// Update energy balance. Where is this used? commented out for now.
+/*v_electricitySurpluss_kW = 0;
 for(GridConnection c : gridConnections.getConnections()){
 	v_electricitySurpluss_kW -= c.v_currentPowerElectricity_kW;
-}
+}*/
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -19091,7 +19108,7 @@ for( HashMap l : c_actorContractList) {
 						p_nfatoStart_h = (Double)l.get("nfATO_starttime_h");
 						p_nfatoEnd_h = (Double)l.get("nfATO_endtime_h");
 						p_nfatoLvl_kW = (Double)l.get("nfATO_capacity_kW");
-						//v_enable_nfATO_b = true;
+						v_enable_nfATO_b = true;
 					break;
 					default:
 						traceln("ConnectionOwner f_setContractValues: gridOperator contract type not implemented! No values set");
@@ -30045,8 +30062,8 @@ public class J_TotalCostData implements Serializable {
 	public double MSLSPeakLoadElectricity_kW;
 	public Map<String,Double> timesOfNodePeakLoads_h = new LinkedHashMap<String,Double>();
 	public Map<String,Double> gridConnectionMaxLoad_fr = new LinkedHashMap<String,Double>();
-	public double checkSumHourlyElectricityImport_MWh;
-	public double checkSumHourlyElectricityExport_MWh;
+	//public double checkSumHourlyElectricityImport_MWh;
+	//public double checkSumHourlyElectricityExport_MWh;
 	public double totalElectricityImport_MWh;
 	public double totalElectricityExport_MWh;
 	public double totalMethaneImport_MWh;
@@ -30109,8 +30126,8 @@ public class J_TotalCostData implements Serializable {
 		return
 			"HSMSPeakLoadElectricity_kW = " + HSMSPeakLoadElectricity_kW + " " +
 			"MSLSPeakLoadElectricity_kW = " + MSLSPeakLoadElectricity_kW + " " +
-			"checkSumHourlyElectricityImport_MWh = " + checkSumHourlyElectricityImport_MWh + " " +
-			"checkSumHourlyElectricityExport_MWh = " + checkSumHourlyElectricityExport_MWh + " " +
+			//"checkSumHourlyElectricityImport_MWh = " + checkSumHourlyElectricityImport_MWh + " " +
+			//"checkSumHourlyElectricityExport_MWh = " + checkSumHourlyElectricityExport_MWh + " " +
 			"totalElectricityImport_MWh = " + totalElectricityImport_MWh + " " +
 			"totalElectricityExport_MWh = " + totalElectricityExport_MWh + " " +
 			"totalMethaneImport_MWh = " + totalMethaneImport_MWh + " " +
@@ -30225,8 +30242,8 @@ public class J_HourlyCurvesData implements Serializable {
 		this.totalEVHourlyChargingProfile_kWh = totalEVHourlyChargingProfile_kWh;
 		this.totalEHGVHourlyChargingProfile_kWh = totalEHGVHourlyChargingProfile_kWh;
 		this.totalBatteryHourlyChargingProfile_kWh = totalBatteryHourlyChargingProfile_kWh;
-		//this.checkSumHourlyElectricityImport_MWh = SystemHourlyElectricityImport_MWh.values().stream().mapToDouble(d -> d).sum();
-		//this.checkSumHourlyElectricityExport_MWh = SystemHourlyElectricityExport_MWh.values().stream().mapToDouble(d -> d).sum();
+		this.checkSumHourlyElectricityImport_MWh = SystemHourlyElectricityImport_MWh.values().stream().mapToDouble(d -> d).sum();
+		this.checkSumHourlyElectricityExport_MWh = SystemHourlyElectricityExport_MWh.values().stream().mapToDouble(d -> d).sum();
 	}
 
 
@@ -30499,19 +30516,19 @@ public class J_EAConversionGasCHP extends base.J_EAConversion implements Seriali
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/example_actors.json]]></Path>
+			<Path><![CDATA[cases/industry_case/actors.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/example_gridconnections.json]]></Path>
+			<Path><![CDATA[cases/industry_case/gridnodes.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/example_gridnodes.json]]></Path>
+			<Path><![CDATA[cases/industry_case/policies.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/example_policies.json]]></Path>
+			<Path><![CDATA[C:/Users/gilli/Documents/Project HOLON/Git_Local_Clone/HOLON-cloudclient/doc/assets/example_gridconnections.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
