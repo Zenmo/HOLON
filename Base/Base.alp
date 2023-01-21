@@ -24783,7 +24783,7 @@ v_dayTempSetpoint_degC = uniform_discr(18, 23);]]></StartupCode>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[J_EAStorageHeat]]></Type>
+						<Type><![CDATA[EnergyAsset]]></Type>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<ParameterEditor>
@@ -24856,7 +24856,7 @@ if ( p_ThermalStorageAsset != null ) {
 				}
 			} 
 			else if (p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatPump){
-					f_heatWithHeatpump();
+					f_heatWithHeatpumpAndBuffer();
 			}
 			else {
 				traceln("House " + p_agentID + " has a single unsupported heating asset!");
@@ -24986,7 +24986,7 @@ else if (j_instance instanceof J_EAStorage ) {
 		}
 		else if ( ((J_EAStorageHeat)j_instance).heatStorageType == OL_EAStorageTypes.HEATBUFFER ) {
 			c_storageAssets.add(EA);
-			p_heatBuffer = (J_EAStorageHeat)EA.p_energyAssetInstance;
+			p_heatBuffer = EA;
 			//traceln( "Heatbuffer has kWH: " +((J_EAStorageHeat) j_instance).getStorageCapacity());
 		}
 	} 
@@ -25114,7 +25114,7 @@ if( ambientTempType != null && ambientTempType.equals("AIR") ) {
 					<Name><![CDATA[f_maxPowerCharging]]></Name>
 					<Description><![CDATA[Charge at max power taking grid constaints into account]]></Description>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>820</X><Y>360</Y>
+					<X>980</X><Y>420</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -25193,7 +25193,7 @@ else {
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1674294670923</Id>
-					<Name><![CDATA[f_heatWithHeatpump]]></Name>
+					<Name><![CDATA[f_heatWithHeatpumpAndBuffer]]></Name>
 					<X>1670</X><Y>60</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -25206,15 +25206,28 @@ else if (p_heatBuffer == null){
 	traceln("Error, f_heatWithHeatpump: household is trying to heat with buffer and heatpump, but has no buffer");
 }
 
+double powerfraction = 0.0;
+//heat the house
 if (v_currentHouseTemp_degC < v_tempSetpoint_degC - p_heatingKickinTreshold) {
-	//p_heatBuffer.getCurrentTemperature() < p_bufferThermalStorage.getTreshold();
-	p_primaryHeatingAsset.v_powerFraction_fr = 1;
-	p_ThermalStorageAsset.v_powerFraction_fr = p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW();
+	powerfraction = -1; 
+	p_ThermalStorageAsset.v_powerFraction_fr = (-(p_heatBuffer.p_energyAssetInstance.getHeatCapacity_kW() * powerfraction) - v_hotwaterDemand_kW) / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW();
 }
 else {
-	p_primaryHeatingAsset.v_powerFraction_fr = v_hotwaterDemand_kW / p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();
+	powerfraction = - v_hotwaterDemand_kW / p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();
 	p_ThermalStorageAsset.v_powerFraction_fr = 0;
-}]]></Body>
+}
+
+//heat the buffer
+if ( ((J_EAStorageHeat)p_heatBuffer.p_energyAssetInstance).requiresHeat){
+	p_primaryHeatingAsset.v_powerFraction_fr = 1;
+	powerfraction = powerfraction + p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() / p_heatBuffer.p_energyAssetInstance.getElectricCapacity_kW();
+}
+else {
+	p_primaryHeatingAsset.v_powerFraction_fr = 0;
+}
+p_heatBuffer.v_powerFraction_fr = powerfraction;
+p_heatBuffer.f_updateAllFlows(powerfraction);
+]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -25337,7 +25350,7 @@ else {
 					<Id>0</Id>
 					<Expression><![CDATA[my_dataset]]></Expression>
 					<Color>-14774017</Color>
-					<Expression2><![CDATA[p_heatBuffer == null ? 0 : p_heatBuffer.getCurrentTemperature()]]></Expression2>
+					<Expression2><![CDATA[p_heatBuffer == null ? 0 : ((J_EAStorageHeat)p_heatBuffer.p_energyAssetInstance).getCurrentTemperature()]]></Expression2>
 					<Expression2Flag>true</Expression2Flag>
 						<PointStyle>NONE</PointStyle>
 						<LineWidth>1.0</LineWidth>
@@ -30465,6 +30478,7 @@ public class J_EAStorageHeat extends base.J_EAStorage implements Serializable {
 	private double setTemperature_degC;
 	private double heatCapacity_JpK;
 	private double ambientTemperature_degC;
+	public boolean requiresHeat = false;
 	//private double energyUsed_kWh=0;
 
     /**
@@ -30488,6 +30502,7 @@ public class J_EAStorageHeat extends base.J_EAStorage implements Serializable {
 		this.setTemperature_degC = setTemperature_degC;
 		this.heatCapacity_JpK = heatCapacity_JpK;
 		this.ambientTempType = ambientTempType;
+		
 
 		this.storageCapacity_kWh = ( maxTemperature_degC - minTemperature_degC ) * heatCapacity_JpK / 3.6e+6;
 		this.stateOfCharge_r = (( initialTemperature_degC - minTemperature_degC ) / (maxTemperature_degC - minTemperature_degC ) );
@@ -30552,6 +30567,12 @@ public class J_EAStorageHeat extends base.J_EAStorage implements Serializable {
 	public void updateStateOfCharge( double tempDelta_degC ) {
 		temperature_degC += tempDelta_degC;
 		stateOfCharge_r = ( temperature_degC - minTemperature_degC) / (maxTemperature_degC - minTemperature_degC);
+		if (temperature_degC < setTemperature_degC) {
+			requiresHeat = true;
+		}
+		else if ( temperature_degC >= maxTemperature_degC ) {
+			requiresHeat = false;
+		}
 	}
 
 	@Override
