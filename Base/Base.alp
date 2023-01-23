@@ -2255,7 +2255,7 @@ traceln(" ");]]></StartupCode>
 
 @since: Sprint 6
 @author: Jorrit]]></Description>
-					<X>60</X><Y>590</Y>
+					<X>240</X><Y>580</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>false</PresentationFlag>
@@ -3097,7 +3097,7 @@ p_policiesConfigJSON = t_configPolicies.readString().replaceAll("^\"|\"$", "");]
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1664894248130</Id>
 					<Name><![CDATA[f_determinePricesForNextTimestep]]></Name>
-					<X>60</X><Y>720</Y>
+					<X>70</X><Y>740</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>false</PresentationFlag>
@@ -3127,7 +3127,7 @@ for (ConnectionOwner c : pop_connectionOwners) {
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1664952601107</Id>
 					<Name><![CDATA[f_updateTimeseries]]></Name>
-					<X>60</X><Y>620</Y>
+					<X>70</X><Y>640</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>false</PresentationFlag>
@@ -3203,7 +3203,7 @@ v_epexForecast_eurpkWh += (nationalEnergyMarket.tf_dayAheadElectricityPricing_eu
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1665051878402</Id>
 					<Name><![CDATA[f_calculateGridnodeFlows]]></Name>
-					<X>60</X><Y>670</Y>
+					<X>70</X><Y>690</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>false</PresentationFlag>
@@ -3269,7 +3269,7 @@ c_globalBatteryChargingProfile_kWhph.computeIfAbsent( timeIndex, k -> totalBatte
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1665051962956</Id>
 					<Name><![CDATA[f_calculateFinancialFlows]]></Name>
-					<X>60</X><Y>695</Y>
+					<X>70</X><Y>715</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>false</PresentationFlag>
@@ -3467,7 +3467,7 @@ for(EnergyAsset e : c_storageAssets ) {
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1668528129020</Id>
 					<Name><![CDATA[f_calculateGridConnectionFlows]]></Name>
-					<X>60</X><Y>645</Y>
+					<X>70</X><Y>665</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>false</PresentationFlag>
@@ -5262,6 +5262,9 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_heatingKickinTreshold]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_minEVChargeTarget_fr]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -24935,6 +24938,30 @@ v_dayTempSetpoint_degC = uniform_discr(18, 23);]]></StartupCode>
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1674464900101</Id>
+					<Name><![CDATA[p_minEVChargeTarget_fr]]></Name>
+					<X>250</X><Y>340</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[0.30]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1674464900099</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 			</Variables>
 			<Functions>
 				<Function AccessType="default" StaticFunction="false">
@@ -25337,6 +25364,14 @@ if ( ((J_EAStorageHeat)p_heatBuffer.p_energyAssetInstance).requiresHeat){
 	p_primaryHeatingAsset.v_powerFraction_fr = 1;
 	powerfraction = powerfraction + p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() / p_heatBuffer.p_energyAssetInstance.getHeatCapacity_kW();
 }
+else if( ((J_EAStorageHeat)p_heatBuffer.p_energyAssetInstance).getCurrentStateOfCharge() < 0.7 && c_vehicleAssets.size() > 0 ){
+	J_EAEV vehicle = ((J_EAEV)c_vehicleAssets.get(0).p_energyAssetInstance);
+	double chargeNeedForNextTrip_kWh = max(0, vehicle.energyNeedForNextTrip_kWh - vehicle.getStorageCapacity_kWh() * vehicle.getCurrentStateOfCharge());
+	if (vehicle.getCurrentStateOfCharge() > chargeNeedForNextTrip_kWh / vehicle.storageCapacity_kWh - p_minEVChargeTarget_fr) {
+		p_primaryHeatingAsset.v_powerFraction_fr = 1;
+		powerfraction = powerfraction + p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() / p_heatBuffer.p_energyAssetInstance.getHeatCapacity_kW();
+	}
+}
 else {
 	p_primaryHeatingAsset.v_powerFraction_fr = 0;
 }
@@ -25387,15 +25422,9 @@ for ( int i = 0; i < copiedVehicleList.size(); i++ ){
 		if( vehicle.getCurrentStateOfCharge() == 1.0) {
 			vehicle.chargingNeed = OL_EVChargingNeed.NONE;
 		}
-		else if (vehicle.getCurrentStateOfCharge() > chargeNeedForNextTrip_kWh / vehicle.storageCapacity_kWh + 0.25) { //a random hardcoded amount of reserve charge is implemented here
+		else if (vehicle.getCurrentStateOfCharge() > chargeNeedForNextTrip_kWh / vehicle.storageCapacity_kWh + p_minEVChargeTarget_fr) { 
 			vehicle.chargingNeed = OL_EVChargingNeed.LOW;
-			if ( v_currentPowerElectricity_kW < -2.0 ) { // this means if 2+ kW surplus a vehicle will charge at full power. Making sure that they wont fully charge at 10 in the morning when they have PV and noon is yet to come. 
-			//also they will charge at full power in this case. Because we may assume the rest of the neeighborhood also has a production surplus
-			//It also means that if each household has some slightly different PV system, we get more spread out and heterogenous behavior
-				chargingRatio = 1.0;// Pas op, het kan zijn dat je nu deels laadt op dure prijs! !!
- 
-			}
-			else if( v_currentElectricityPriceConsumption_eurpkWh < v_electricityPriceLowPassed_eurpkWh - priceDeviationBand_eur ) { 
+			if( v_currentElectricityPriceConsumption_eurpkWh < v_electricityPriceLowPassed_eurpkWh - priceDeviationBand_eur ) { 
 				if (availableChargingPower_kW > vehicle.getElectricCapacity_kW()){ // if gridconnection has little room, dont charge the vehicle.
 					chargingRatio = 1.0;
 				}
@@ -30371,8 +30400,6 @@ public class J_EAStorageHeat extends base.J_EAStorage implements Serializable {
 		this.setTemperature_degC = setTemperature_degC;
 		this.heatCapacity_JpK = heatCapacity_JpK;
 		this.ambientTempType = ambientTempType;
-		
-
 		this.storageCapacity_kWh = ( maxTemperature_degC - minTemperature_degC ) * heatCapacity_JpK / 3.6e+6;
 		this.stateOfCharge_r = (( initialTemperature_degC - minTemperature_degC ) / (maxTemperature_degC - minTemperature_degC ) );
     }
