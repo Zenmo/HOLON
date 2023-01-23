@@ -859,7 +859,7 @@ if( b_addKpiVisuals ) { add_kpiVisuals() ;}
 
 j_dataOut = new DataOut();
 j_experimentSettingsData = new J_ExperimentSettingsData();
-j_totalCostData = new J_TotalCostData();
+j_simulationResults = new J_SimulationResults();
 j_hourlyCurvesData = new J_HourlyCurvesData();
 
 double endTime = System.currentTimeMillis();
@@ -1036,7 +1036,7 @@ traceln(" ");]]></StartupCode>
 				</Output>
 				<Output>
 					<Id>1666880542545</Id>
-					<Name><![CDATA[o_totalCostData]]></Name>
+					<Name><![CDATA[o_simulationResults]]></Name>
 					<X>-920</X><Y>770</Y>
 					<Label><X>15</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1500,6 +1500,41 @@ traceln(" ");]]></StartupCode>
 						</InitialValue>
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1674039544084</Id>
+					<Name><![CDATA[v_MSLSnodePeakPositiveLoadElectricity_kW]]></Name>
+					<Description><![CDATA[Absolute piekbelastingen MSLS-nodes over de modelrun opgeteld voor externe berekening netinfrastructuurkosten.
+
+@author: JorritvandenHouten
+@since: 27-10-2022]]></Description>
+					<X>-560</X><Y>540</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1674039545764</Id>
+					<Name><![CDATA[v_MSLSnodePeakNegativeLoadElectricity_kW]]></Name>
+					<Description><![CDATA[Absolute piekbelastingen MSLS-nodes over de modelrun opgeteld voor externe berekening netinfrastructuurkosten.
+
+@author: JorritvandenHouten
+@since: 27-10-2022]]></Description>
+					<X>-560</X><Y>560</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1658496701675</Id>
 					<Name><![CDATA[p_timeStep_h]]></Name>
@@ -1818,14 +1853,14 @@ traceln(" ");]]></StartupCode>
 				</Variable>
 				<Variable Class="Parameter">
 					<Id>1666880315951</Id>
-					<Name><![CDATA[j_totalCostData]]></Name>
+					<Name><![CDATA[j_simulationResults]]></Name>
 					<X>-900</X><Y>660</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
-						<Type><![CDATA[J_TotalCostData]]></Type>
+						<Type><![CDATA[J_SimulationResults]]></Type>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<ParameterEditor>
@@ -2324,6 +2359,38 @@ if (b_addKpiVisuals) {
 
 v_timeStepsElapsed ++;
 ]]></Action>
+				</Event>
+				<Event>
+					<Id>1674058522977</Id>
+					<Name><![CDATA[pauseEvent]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>640</X><Y>460</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties TriggerType="timeout" Mode="occuresOnce">
+						<Timeout Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+						</Timeout>
+						<Rate Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="RateUnits"><![CDATA[PER_HOUR]]></Unit>
+						</Rate>
+						<OccurrenceAtTime>true</OccurrenceAtTime>
+						<OccurrenceDate>1674115200000</OccurrenceDate>
+						<OccurrenceTime Class="CodeUnitValue">
+							<Code><![CDATA[7750]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+						</OccurrenceTime>
+						<RecurrenceCode Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+						</RecurrenceCode>
+						<Condition><![CDATA[false]]></Condition>
+					</Properties>
+					<Action><![CDATA[pauseSimulation();]]></Action>
 				</Event>
 			</Events>
 			<Functions>
@@ -2993,10 +3060,12 @@ traceln("MS node peak load: " + v_gridNodePeakLoadElectricityMSLS_kW + " kW at h
 double modelRunDuration_s = roundToDecimal( ( System.currentTimeMillis() - v_timeOfModelStart_ms ) / 1000 - v_modelStartUpDuration_s, 3);
 
 // add Total Cost KPI data:
-j_totalCostData.updateData( roundToDecimal( v_gridNodePeakLoadElectricityHSMS_kW, 2 ),
+j_simulationResults.updateData( roundToDecimal( v_gridNodePeakLoadElectricityHSMS_kW, 2 ),
 							roundToDecimal( v_gridNodePeakLoadElectricityMSLS_kW, 2 ),
 							c_timesOfNodePeakLoads_h,
 							c_gridConnectionOverload_fr,
+							v_MSLSnodePeakPositiveLoadElectricity_kW,
+							v_MSLSnodePeakNegativeLoadElectricity_kW,
 							v_totalElectricityImport_MWh,
 							v_totalElectricityExport_MWh,
 							v_totalMethaneImport_MWh,
@@ -3018,7 +3087,7 @@ j_totalCostData.updateData( roundToDecimal( v_gridNodePeakLoadElectricityHSMS_kW
 							energyConsumed_MWh,
 							energyProduced_MWh );
 
-j_dataOut.totalCostData.add(j_totalCostData);
+j_dataOut.simulationResults.add(j_simulationResults);
 
 j_hourlyCurvesData.updateData( c_globalElectricityImportProfile_MWhph,
 							c_globalElectricityExportProfile_MWhph,
@@ -3052,17 +3121,17 @@ traceln("Model run duration: " + modelRunDuration_s + " seconds");
 
 String AgentDataJson = "";
 String settingsJson = "";
-String totalCostDataJson = "";
+String simulationResultsJson = "";
 String hourlyCurvesDataJson = "";
 
 try {
 	AgentDataJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString( j_dataOut.connectionOwnerData );
 	settingsJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString( j_dataOut.runSettingsData );
-	totalCostDataJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString( j_dataOut.totalCostData );
+	simulationResultsJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString( j_dataOut.simulationResults );
 	hourlyCurvesDataJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString( j_dataOut.hourlyCurvesData );
 	update_o_outputConnectionOwnerJSON( AgentDataJson );
 	update_o_outputSettings( settingsJson );
-	update_o_totalCostData( totalCostDataJson );
+	update_o_simulationResults( simulationResultsJson );
 	update_o_hourlyCurvesData ( hourlyCurvesDataJson );
 } catch(IOException e) {
 	e.printStackTrace();
@@ -3081,7 +3150,7 @@ try {
 //		traceln("file succes");
 
 		mapper.writerWithDefaultPrettyPrinter().writeValue(
-		new File(".\\OutputTotalCostData.json"), j_dataOut.totalCostData );
+		new File(".\\OutputTotalCostData.json"), j_dataOut.simulationResults );
 
 	}
 } catch (IOException e) {
@@ -3410,14 +3479,16 @@ for( EnergyHolon e : pop_energyHolons ) {
 					<Body><![CDATA[// Bereken belasting per netvlak in het model (elektriciteit, absolute waarde) voor kosten-berekeningen gebied.
 for(GridNode h : c_gridNodesHSMS ) {
 //	v_gridNodePeakLoadElectricityHSMS_kW = max(v_gridNodePeakLoadElectricityHSMS_kW,abs(h.v_peakLoadFilteredElectricity_kW));
-	v_gridNodePeakLoadElectricityHSMS_kW = h.v_peakLoadFilteredElectricity_kW;
+	v_gridNodePeakLoadElectricityHSMS_kW += h.v_peakLoadFilteredElectricity_kW;
 	v_totalElectricityImport_MWh += h.v_electricityDrawn_kWh / 1000;
 	v_totalElectricityExport_MWh += h.v_electricityDelivered_kWh / 1000;
 	c_timesOfNodePeakLoads_h.put(h.p_agentID, h.v_timeOfPeakLoadFiltered_h);
 }
 
 for(GridNode m : c_gridNodesMSLS ) {
-	v_gridNodePeakLoadElectricityMSLS_kW = m.v_peakLoadFilteredElectricity_kW;
+	v_gridNodePeakLoadElectricityMSLS_kW += m.v_peakLoadFilteredElectricity_kW;
+	v_MSLSnodePeakPositiveLoadElectricity_kW = max(v_MSLSnodePeakPositiveLoadElectricity_kW, m.v_peakPosLoadElectricity_kW);
+	v_MSLSnodePeakNegativeLoadElectricity_kW = max(v_MSLSnodePeakNegativeLoadElectricity_kW, -m.v_peakNegLoadElectricity_kW);
 	c_timesOfNodePeakLoads_h.put(m.p_agentID, m.v_timeOfPeakLoadFiltered_h);
 	//traceln("MSLS node peak load unfiltered: " + m.v_peakLoadAbsoluteElectricity_kW + " kW");
 	traceln("");
@@ -4193,7 +4264,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/actors.txt]]></ClassName>
+						<ClassName><![CDATA[C:/Users/gilli/Documents/Project HOLON/Git_Local_Clone/HOLON-cloudclient/doc/assets/example_actors.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -4229,7 +4300,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/gridconnections_step3_GridBattery.txt]]></ClassName>
+						<ClassName><![CDATA[C:/Users/gilli/Documents/Project HOLON/Git_Local_Clone/HOLON-cloudclient/doc/assets/example_gridconnections.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -8510,6 +8581,16 @@ subConnections.sendToAllConnected(msg);]]></OnReceive>
 						<PointStyle>NONE</PointStyle>
 						<LineWidth>1.0</LineWidth>
 					</DatasetExpression>
+					<DatasetExpression>  
+						<Title><![CDATA[Filtered load on grid [kW]]]></Title>
+					<Id>0</Id>
+					<Expression><![CDATA[my_dataset3]]></Expression>
+					<Color>-8097537</Color>
+					<Expression2><![CDATA[v_currentLoadElectricityLowPassed_kW]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>
+						<PointStyle>NONE</PointStyle>
+						<LineWidth>1.0</LineWidth>
+					</DatasetExpression>
 					<SamplesToKeep>1000</SamplesToKeep>
 					<TimeWindowExpression><![CDATA[3]]></TimeWindowExpression>
 					<FillAreaUnderLine>false</FillAreaUnderLine>
@@ -10737,7 +10818,7 @@ if (((J_EAStorageElectric)p_batteryAsset.p_energyAssetInstance).getStorageCapaci
 	double SOC_setp_fr = 0.5;
 	//traceln("Current price is " + currentElectricityPriceCharge_eurpkWh + " eurpkWh, between " + currentPricePowerBandNeg_kW + " kW and " + currentPricePowerBandPos_kW + " kW");
 	if (!c_vehicleAssets.isEmpty()) {
-		SOC_setp_fr = 0.5 + 0.25 * Math.sin(2*Math.PI*(time(HOUR)-12)/24); // Sinusoidal setpoint: aim for low SOC at 6:00h, high SOC at 18:00h. 
+		SOC_setp_fr = 0.6 + 0.25 * Math.sin(2*Math.PI*(time(HOUR)-12)/24); // Sinusoidal setpoint: aim for low SOC at 6:00h, high SOC at 18:00h. 
 	} else if (p_gridConnectionCategory == OL_GridConnectionCategory.WINDFARM) { // Look at weather forecast to charge/discharge battery
 			SOC_setp_fr = 0.9 - 0.8 * main.v_WindYieldForecast_fr;
 			//traceln("Forecast-based SOC setpoint: " + SOC_setp_fr + " %");
@@ -30761,11 +30842,11 @@ nextActivityEndTimer.restart( endtimes.get(0) - time( MINUTE ), MINUTE);
     		</RunConfigurationOutput>
     		<RunConfigurationOutput>
 				<Id>1668011807231</Id>
-				<Name><![CDATA[O total cost data]]></Name>
+				<Name><![CDATA[O simulation results]]></Name>
 				<OutputReference>
 					<PackageName><![CDATA[base]]></PackageName>
 					<ClassName><![CDATA[Main]]></ClassName>
-					<ItemName><![CDATA[o_totalCostData]]></ItemName>
+					<ItemName><![CDATA[o_simulationResults]]></ItemName>
 				</OutputReference>
     		</RunConfigurationOutput>
     		<RunConfigurationOutput>
@@ -30931,7 +31012,7 @@ nextActivityEndTimer.restart( endtimes.get(0) - time( MINUTE ), MINUTE);
 					<ParameterName><![CDATA[p_policiesConfigJSON]]></ParameterName>
 				</Parameter>
 				<Parameter>
-					<ParameterName><![CDATA[j_totalCostData]]></ParameterName>
+					<ParameterName><![CDATA[j_simulationResults]]></ParameterName>
 				</Parameter>
 				<Parameter>
 					<ParameterName><![CDATA[p_forecastTime_h]]></ParameterName>
@@ -32115,13 +32196,13 @@ public class DataOut implements Serializable {
 
 	public ArrayList connectionOwnerData = new ArrayList();
 	public ArrayList runSettingsData = new ArrayList(1);
-	public ArrayList totalCostData = new ArrayList(2);
+	public ArrayList simulationResults = new ArrayList(2);
 	public ArrayList hourlyCurvesData = new ArrayList();
 
 	public void clearData() {
 		connectionOwnerData.clear();
 		runSettingsData.clear();
-		totalCostData.clear();
+		simulationResults.clear();
 		hourlyCurvesData.clear();
 	}
 }]]></Text>
@@ -32355,16 +32436,18 @@ public class J_EAConversionBoiler extends J_EAConversion implements Serializable
 		<!--   =========   Java Class   ========  -->
 		<JavaClass>
 			<Id>1666879973864</Id>
-			<Name><![CDATA[J_TotalCostData]]></Name>
+			<Name><![CDATA[J_SimulationResults]]></Name>
 			<Text><![CDATA[/**
- * J_TotalCostData
+ * J_SimulationResults
  */
-public class J_TotalCostData implements Serializable {
+public class J_SimulationResults implements Serializable {
 
 	public double HSMSPeakLoadElectricity_kW;
 	public double MSLSPeakLoadElectricity_kW;
 	public Map<String,Double> timesOfNodePeakLoads_h = new LinkedHashMap<String,Double>();
 	public Map<String,Double> gridConnectionMaxLoad_fr = new LinkedHashMap<String,Double>();
+	public double MSLSnodePeakPositiveLoadElectricity_kW;
+	public double MSLSnodePeakNegativeLoadElectricity_kW;
 	//public double checkSumHourlyElectricityImport_MWh;
 	//public double checkSumHourlyElectricityExport_MWh;
 	public double totalElectricityImport_MWh;
@@ -32391,17 +32474,19 @@ public class J_TotalCostData implements Serializable {
 	 /**
      * Default constructor
      */
-    public J_TotalCostData() {
+    public J_SimulationResults() {
     }
 
     /**
      * Constructor initializing the fields
      */
-    public J_TotalCostData( double v_gridNodeLoadElectricityHSMS_kW, double v_gridNodeLoadElectricityMSLS_kW, LinkedHashMap<String,Double> c_timesOfNodePeakLoads_h, LinkedHashMap<String,Double> gridConnectionMaxLoad_fr, double totalElectricityImport_MWh, double totalElectricityExport_MWh, double totalMethaneImport_MWh, double totalMethaneExport_MWh, double totalHydrogenImport_MWh, double totalHydrogenExport_MWh, double totalDieselImport_MWh, LinkedHashMap<String,Double> totalBatteryUnitsInstalled, LinkedHashMap<String,Double> totalBatteryChargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryDischargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryInstalledCapacity_MWh, LinkedHashMap<Integer,Double> c_globalElectricityImportProfile_MWhph, LinkedHashMap<Integer,Double> c_globalElectricityExportProfile_MWhph, LinkedHashMap<Integer,Double> totalEVHourlyChargingProfile_kWh, LinkedHashMap<Integer,Double> totalEHGVHourlyChargingProfile_kWh, LinkedHashMap<Integer,Double> totalBatteryHourlyChargingProfile_kWh, double totalSelfConsumption_fr, double totalSelfSufficiency_fr, double TotalEnergyUsed_MWh, double TotalEnergyProduced_MWh) {
+    public J_SimulationResults( double v_gridNodeLoadElectricityHSMS_kW, double v_gridNodeLoadElectricityMSLS_kW, LinkedHashMap<String,Double> c_timesOfNodePeakLoads_h, LinkedHashMap<String,Double> gridConnectionMaxLoad_fr, double MSLSnodePeakPositiveLoadElectricity_kW, double MSLSnodePeakNegativeLoadElectricity_kW, double totalElectricityImport_MWh, double totalElectricityExport_MWh, double totalMethaneImport_MWh, double totalMethaneExport_MWh, double totalHydrogenImport_MWh, double totalHydrogenExport_MWh, double totalDieselImport_MWh, LinkedHashMap<String,Double> totalBatteryUnitsInstalled, LinkedHashMap<String,Double> totalBatteryChargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryDischargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryInstalledCapacity_MWh, LinkedHashMap<Integer,Double> c_globalElectricityImportProfile_MWhph, LinkedHashMap<Integer,Double> c_globalElectricityExportProfile_MWhph, LinkedHashMap<Integer,Double> totalEVHourlyChargingProfile_kWh, LinkedHashMap<Integer,Double> totalEHGVHourlyChargingProfile_kWh, LinkedHashMap<Integer,Double> totalBatteryHourlyChargingProfile_kWh, double totalSelfConsumption_fr, double totalSelfSufficiency_fr, double TotalEnergyUsed_MWh, double TotalEnergyProduced_MWh) {
 		this.HSMSPeakLoadElectricity_kW = v_gridNodeLoadElectricityHSMS_kW;
 		this.MSLSPeakLoadElectricity_kW = v_gridNodeLoadElectricityMSLS_kW;
 		this.timesOfNodePeakLoads_h = c_timesOfNodePeakLoads_h;
 		this.gridConnectionMaxLoad_fr = gridConnectionMaxLoad_fr;
+		this.MSLSnodePeakPositiveLoadElectricity_kW = MSLSnodePeakPositiveLoadElectricity_kW;
+		this.MSLSnodePeakNegativeLoadElectricity_kW = MSLSnodePeakNegativeLoadElectricity_kW;
 		this.totalElectricityImport_MWh = totalElectricityImport_MWh;
 		this.totalElectricityExport_MWh = totalElectricityExport_MWh;
 		this.totalMethaneImport_MWh = totalMethaneImport_MWh;
@@ -32429,6 +32514,8 @@ public class J_TotalCostData implements Serializable {
 		return
 			"HSMSPeakLoadElectricity_kW = " + HSMSPeakLoadElectricity_kW + " " +
 			"MSLSPeakLoadElectricity_kW = " + MSLSPeakLoadElectricity_kW + " " +
+			"MSLSnodePeakPositiveLoadElectricity_kW = " + MSLSnodePeakPositiveLoadElectricity_kW + " " +
+			"MSLSnodePeakNegativeLoadElectricity_kW = " + MSLSnodePeakNegativeLoadElectricity_kW + " " +
 			//"checkSumHourlyElectricityImport_MWh = " + checkSumHourlyElectricityImport_MWh + " " +
 			//"checkSumHourlyElectricityExport_MWh = " + checkSumHourlyElectricityExport_MWh + " " +
 			"totalElectricityImport_MWh = " + totalElectricityImport_MWh + " " +
@@ -32453,11 +32540,13 @@ public class J_TotalCostData implements Serializable {
 			"TotalEnergyProduced_MWh = " + TotalEnergyProduced_MWh + " MWh";
 	}
 
-	public void updateData( double v_gridNodePeakLoadElectricityHSMS_kW, double v_gridNodePeakLoadElectricityMSLS_kW, LinkedHashMap<String,Double> c_timesOfNodePeakLoads_h, LinkedHashMap<String,Double> gridConnectionMaxLoad_fr, double totalElectricityImport_MWh, double totalElectricityExport_MWh, double totalMethaneImport_MWh, double totalMethaneExport_MWh, double totalHydrogenImport_MWh, double totalHydrogenExport_MWh, double totalDieselImport_MWh, LinkedHashMap<String,Double> totalBatteryUnitsInstalled, LinkedHashMap<String,Double> totalBatteryChargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryDischargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryInstalledCapacity_MWh, double totalSelfConsumption_fr, double totalSelfSufficiency_fr, double TotalEnergyUsed_MWh, double TotalEnergyProduced_MWh ) {
+	public void updateData( double v_gridNodePeakLoadElectricityHSMS_kW, double v_gridNodePeakLoadElectricityMSLS_kW, LinkedHashMap<String,Double> c_timesOfNodePeakLoads_h, LinkedHashMap<String,Double> gridConnectionMaxLoad_fr, double MSLSnodePeakPositiveLoadElectricity_kW, double MSLSnodePeakNegativeLoadElectricity_kW, double totalElectricityImport_MWh, double totalElectricityExport_MWh, double totalMethaneImport_MWh, double totalMethaneExport_MWh, double totalHydrogenImport_MWh, double totalHydrogenExport_MWh, double totalDieselImport_MWh, LinkedHashMap<String,Double> totalBatteryUnitsInstalled, LinkedHashMap<String,Double> totalBatteryChargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryDischargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryInstalledCapacity_MWh, double totalSelfConsumption_fr, double totalSelfSufficiency_fr, double TotalEnergyUsed_MWh, double TotalEnergyProduced_MWh ) {
 		this.HSMSPeakLoadElectricity_kW = v_gridNodePeakLoadElectricityHSMS_kW;
 		this.MSLSPeakLoadElectricity_kW = v_gridNodePeakLoadElectricityMSLS_kW;
 		this.timesOfNodePeakLoads_h = c_timesOfNodePeakLoads_h;
 		this.gridConnectionMaxLoad_fr = gridConnectionMaxLoad_fr;
+		this.MSLSnodePeakPositiveLoadElectricity_kW = MSLSnodePeakPositiveLoadElectricity_kW;
+		this.MSLSnodePeakNegativeLoadElectricity_kW = MSLSnodePeakNegativeLoadElectricity_kW;
 		this.totalElectricityImport_MWh = roundToDecimal( totalElectricityImport_MWh , 2 );
 		this.totalElectricityExport_MWh = roundToDecimal( totalElectricityExport_MWh, 2 );
 		this.totalMethaneImport_MWh = roundToDecimal( totalMethaneImport_MWh, 2 );
@@ -32878,10 +32967,6 @@ public class J_EAElectricHob extends J_EA implements Serializable {
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/gridconnections_step3_GridBattery.txt]]></Path>
-			<ReferencedFromUserCode>false</ReferencedFromUserCode>
-		</Resource>
-		<Resource>
 			<Path><![CDATA[C:/Users/gilli/Documents/Project HOLON/Git_Local_Clone/HOLON-cloudclient/doc/assets/example_actors.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
@@ -32898,6 +32983,6 @@ public class J_EAElectricHob extends J_EA implements Serializable {
 		<VersionMinor>0</VersionMinor>
 		<VersionBuild>5</VersionBuild>
     </RequiredLibraryReference>
-	<CloudModelUuid><![CDATA[b7d6d768-2b01-48e9-8a2c-542ac94968ce]]></CloudModelUuid>
+	<CloudModelUuid><![CDATA[27ab7ca2-6d04-4e3a-8381-ee8cd4731b17]]></CloudModelUuid>
 </Model>
 </AnyLogicWorkspace>
