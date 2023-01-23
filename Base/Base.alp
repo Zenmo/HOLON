@@ -10458,11 +10458,11 @@ for(EnergyAsset e : c_consumptionAssets) {
 	} 
 	else if( e.p_energyAssetType == OL_EnergyAssetType.HOT_WATER_CONSUMPTION ){	
 		e.f_updateAllFlows( main.v_currentHouseHoldHotWaterDemand_fr );
-		v_currentPowerHeat_kW += e.v_currentConsumptionHeat_kW - e.v_currentProductionHeat_kW;
+		//v_currentPowerHeat_kW += e.v_currentConsumptionHeat_kW - e.v_currentProductionHeat_kW; // PowerFlows van consumption assets worden al in f_calculateEnergyBalance opgeteld, dus dit is dubbel!
 	}
 	else if( e.p_energyAssetType == OL_EnergyAssetType.ELECTRIC_HOB){
 		e.f_updateAllFlows( p_electricCookingTracker.v_ratio);
-		v_electricHobConsumption_kW += e.v_currentConsumptionElectricity_kW;
+		//v_electricHobConsumption_kW += e.v_currentConsumptionElectricity_kW; // PowerFlows van consumption assets worden al in f_calculateEnergyBalance opgeteld, dus dit is dubbel!
 	}
 	else if( e.p_energyAssetType == OL_EnergyAssetType.HEAT_DEMAND ) {
 		switch(e.p_defaultEnergyAssetPresetName) {
@@ -25068,6 +25068,11 @@ for( EnergyAsset EA : c_conversionAssets ){
 	v_currentPowerDiesel_kW += EA.v_currentConsumptionDiesel_kW; // Because f_updateAllFlows is not called for dieseltrucks, this value always remains zero!
 }
 
+v_currentPowerHeat_kW += p_ThermalStorageAsset.v_currentConsumptionHeat_kW - p_ThermalStorageAsset.v_currentProductionHeat_kW;
+for ( EnergyAsset EA : c_storageAssets ) {
+	v_currentPowerHeat_kW += EA.v_currentConsumptionHeat_kW - EA.v_currentProductionHeat_kW;
+}
+
 // Determine EV charging
 double availableCapacityFromBatteries = p_batteryAsset == null ? 0 : ((J_EAStorageElectric)p_batteryAsset.p_energyAssetInstance).getCapacityAvailable_kW(); 
 double availableChargingCapacity = v_allowedCapacity_kW + availableCapacityFromBatteries - v_currentPowerElectricity_kW;
@@ -25348,21 +25353,21 @@ else if (p_heatBuffer == null){
 	traceln("Error, f_heatWithHeatpump: household is trying to heat with buffer and heatpump, but has no buffer");
 }
 
-double powerfraction = 0.0;
 //heat the house
+double powerFraction_heatBuffer_fr = 0;
 if (v_currentHouseTemp_degC < v_tempSetpoint_degC - p_heatingKickinTreshold) {
-	powerfraction = -1; 
-	p_ThermalStorageAsset.v_powerFraction_fr = (-(p_heatBuffer.p_energyAssetInstance.getHeatCapacity_kW() * powerfraction) - v_hotwaterDemand_kW) / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW();
+	powerFraction_heatBuffer_fr = -1; 
+	p_ThermalStorageAsset.v_powerFraction_fr = (-(p_heatBuffer.p_energyAssetInstance.getHeatCapacity_kW() * powerFraction_heatBuffer_fr) - v_hotwaterDemand_kW) / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW(); // Draw maximum power from heat buffer
 }
 else {
-	powerfraction = - v_hotwaterDemand_kW / p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();
+	powerFraction_heatBuffer_fr = - v_hotwaterDemand_kW / p_heatBuffer.p_energyAssetInstance.getHeatCapacity_kW();
 	p_ThermalStorageAsset.v_powerFraction_fr = 0;
 }
 
 //heat the buffer
 if ( ((J_EAStorageHeat)p_heatBuffer.p_energyAssetInstance).requiresHeat){
 	p_primaryHeatingAsset.v_powerFraction_fr = 1;
-	powerfraction = powerfraction + p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() / p_heatBuffer.p_energyAssetInstance.getHeatCapacity_kW();
+	powerFraction_heatBuffer_fr = powerFraction_heatBuffer_fr + p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() / p_heatBuffer.p_energyAssetInstance.getHeatCapacity_kW();
 }
 else if( ((J_EAStorageHeat)p_heatBuffer.p_energyAssetInstance).getCurrentStateOfCharge() < 0.7 && c_vehicleAssets.size() > 0 ){
 	J_EAEV vehicle = ((J_EAEV)c_vehicleAssets.get(0).p_energyAssetInstance);
@@ -25375,8 +25380,8 @@ else if( ((J_EAStorageHeat)p_heatBuffer.p_energyAssetInstance).getCurrentStateOf
 else {
 	p_primaryHeatingAsset.v_powerFraction_fr = 0;
 }
-p_heatBuffer.v_powerFraction_fr = powerfraction;
-p_heatBuffer.f_updateAllFlows(powerfraction);
+p_heatBuffer.v_powerFraction_fr = powerFraction_heatBuffer_fr;
+p_heatBuffer.f_updateAllFlows(powerFraction_heatBuffer_fr);
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -31645,6 +31650,7 @@ public class J_EAElectricHob extends J_EA implements Serializable {
     @Override 
     public double[] operate( double ratioOfCapacity ) {
       	electricityConsumption_kW = capacityElectric_kW * ratioOfCapacity;
+    	energyUsed_kWh += (electricityConsumption_kW) * timestep_h;
     	return returnEnergyFlows();
     }
     
