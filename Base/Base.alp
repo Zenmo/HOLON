@@ -1457,7 +1457,7 @@ traceln(" ");]]></StartupCode>
 				<Variable Class="PlainVariable">
 					<Id>1672229241505</Id>
 					<Name><![CDATA[v_totalInstalledWindPower_kW]]></Name>
-					<X>1110</X><Y>210</Y>
+					<X>1110</X><Y>240</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -1472,7 +1472,7 @@ traceln(" ");]]></StartupCode>
 				<Variable Class="PlainVariable">
 					<Id>1672229257384</Id>
 					<Name><![CDATA[v_totalInstalledPVPower_kW]]></Name>
-					<X>1110</X><Y>230</Y>
+					<X>1110</X><Y>260</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -4480,6 +4480,9 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_electricCookingTracker]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_hasSmartFlexAssets]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -9711,6 +9714,30 @@ import java.io.*;]]></Import>
 						<ParameterEditor>
 							<Id>1673869994744</Id>
 							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1674485676538</Id>
+					<Name><![CDATA[p_hasSmartFlexAssets]]></Name>
+					<X>250</X><Y>320</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[boolean]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[true]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1674485676536</Id>
+							<EditorContolType>CHECK_BOX</EditorContolType>
 							<MinSliderValue><![CDATA[0]]></MinSliderValue>
 							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
 							<DelimeterType>NO_DELIMETER</DelimeterType>
@@ -24667,6 +24694,9 @@ public void f_manageHeatingAssets(){
 				<Parameter>
 					<Name><![CDATA[p_electricCookingTracker]]></Name>
 				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_hasSmartFlexAssets]]></Name>
+				</Parameter>
 			</Parameters>
 			<StartupCode><![CDATA[v_nightTempSetpoint_degC = uniform_discr(10, 18);
 v_dayTempSetpoint_degC = uniform_discr(18, 23);]]></StartupCode>
@@ -25354,35 +25384,63 @@ else if (p_heatBuffer == null){
 	traceln("Error, f_heatWithHeatpump: household is trying to heat with buffer and heatpump, but has no buffer");
 }
 
-//heat the house
 double powerFraction_heatBuffer_fr = 0;
-if (v_currentHouseTemp_degC < v_tempSetpoint_degC - p_heatingKickinTreshold) {
-	powerFraction_heatBuffer_fr = -1; 
-	p_ThermalStorageAsset.v_powerFraction_fr = (-(p_heatBuffer.p_energyAssetInstance.getHeatCapacity_kW() * powerFraction_heatBuffer_fr) - v_hotwaterDemand_kW) / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW(); // Draw maximum power from heat buffer
-}
-else {
-	powerFraction_heatBuffer_fr = - v_hotwaterDemand_kW / p_heatBuffer.p_energyAssetInstance.getHeatCapacity_kW();
-	p_ThermalStorageAsset.v_powerFraction_fr = 0;
-}
+double powerFraction_heatPump_fr = 0;
+double priceDeviationBand_eur = 0.03; //deze wordt nu op twee plekken gehardcode. Als dit naar input config gaat, houd hier rekening mee.
 
-//heat the buffer
+//heat the buffer if it requires heat
 if ( ((J_EAStorageHeat)p_heatBuffer.p_energyAssetInstance).requiresHeat){
-	p_primaryHeatingAsset.v_powerFraction_fr = 1;
-	powerFraction_heatBuffer_fr = powerFraction_heatBuffer_fr + p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() / p_heatBuffer.p_energyAssetInstance.getHeatCapacity_kW();
+	powerFraction_heatPump_fr = 1;
+	powerFraction_heatBuffer_fr = p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() / p_heatBuffer.p_energyAssetInstance.getHeatCapacity_kW() ;
 }
-else if( ((J_EAStorageHeat)p_heatBuffer.p_energyAssetInstance).getCurrentStateOfCharge() < 0.7 && c_vehicleAssets.size() > 0 ){
-	J_EAEV vehicle = ((J_EAEV)c_vehicleAssets.get(0).p_energyAssetInstance);
-	double chargeNeedForNextTrip_kWh = max(0, vehicle.energyNeedForNextTrip_kWh - vehicle.getStorageCapacity_kWh() * vehicle.getCurrentStateOfCharge());
-	if (vehicle.getCurrentStateOfCharge() > chargeNeedForNextTrip_kWh / vehicle.storageCapacity_kWh - p_minEVChargeTarget_fr) {
-		p_primaryHeatingAsset.v_powerFraction_fr = 1;
-		powerfraction = powerfraction + p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() / p_heatBuffer.p_energyAssetInstance.getHeatCapacity_kW();
+//also heat the buffer if the price is cheap, the buffer has some room and the vehicle does not need charging
+else if( 	p_hasSmartFlexAssets && v_currentElectricityPriceConsumption_eurpkWh < v_electricityPriceLowPassed_eurpkWh - priceDeviationBand_eur 
+			&& ((J_EAStorageHeat)p_heatBuffer.p_energyAssetInstance).getCurrentStateOfCharge() < 0.7)
+{
+	if( c_vehicleAssets.size() == 0){
+		powerFraction_heatPump_fr = 1;
+		powerFraction_heatBuffer_fr = p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() / p_heatBuffer.p_energyAssetInstance.getHeatCapacity_kW();
+	} else { // only use heatpump if the vehicle is not about to charge
+		J_EAEV vehicle = ((J_EAEV)c_vehicleAssets.get(0).p_energyAssetInstance);
+		double chargeNeedForNextTrip_kWh = max(0, vehicle.energyNeedForNextTrip_kWh - vehicle.getStorageCapacity_kWh() * vehicle.getCurrentStateOfCharge());
+		if (vehicle.getCurrentStateOfCharge() > chargeNeedForNextTrip_kWh / vehicle.storageCapacity_kWh - p_minEVChargeTarget_fr) {
+			powerFraction_heatPump_fr = 1;
+			powerFraction_heatBuffer_fr = p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() / p_heatBuffer.p_energyAssetInstance.getHeatCapacity_kW();
+		}
 	}
 }
-else {
-	p_primaryHeatingAsset.v_powerFraction_fr = 0;
+powerFraction_heatBuffer_fr += -v_hotwaterDemand_kW;
+
+//heat the house
+if( powerFraction_heatPump_fr == 0 ){
+	if (v_currentHouseTemp_degC < v_tempSetpoint_degC - p_heatingKickinTreshold ) {
+		powerFraction_heatPump_fr = 1; 
+		p_ThermalStorageAsset.v_powerFraction_fr = p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW();
+	}
+	//also heat the house if the price is cheap, the buffer has some room and the vehicle does not need charging
+	else if( 	p_hasSmartFlexAssets && v_currentElectricityPriceConsumption_eurpkWh < v_electricityPriceLowPassed_eurpkWh - priceDeviationBand_eur 
+				&& ((J_EAStorageHeat)p_heatBuffer.p_energyAssetInstance).getCurrentStateOfCharge() < 0.7)
+	{
+		if( c_vehicleAssets.size() == 0){
+			powerFraction_heatPump_fr = 1;
+			powerFraction_heatBuffer_fr = p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() / p_heatBuffer.p_energyAssetInstance.getHeatCapacity_kW();
+		} else { // only use heatpump if the vehicle is not about to charge
+			J_EAEV vehicle = ((J_EAEV)c_vehicleAssets.get(0).p_energyAssetInstance);
+			double chargeNeedForNextTrip_kWh = max(0, vehicle.energyNeedForNextTrip_kWh - vehicle.getStorageCapacity_kWh() * vehicle.getCurrentStateOfCharge());
+			if (vehicle.getCurrentStateOfCharge() > chargeNeedForNextTrip_kWh / vehicle.storageCapacity_kWh - p_minEVChargeTarget_fr) {
+				powerFraction_heatPump_fr = 1;
+				p_ThermalStorageAsset.v_powerFraction_fr = p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW();
+			}
+		}
+	}
+	else {
+		p_ThermalStorageAsset.v_powerFraction_fr = 0;
+	}
 }
 p_heatBuffer.v_powerFraction_fr = powerFraction_heatBuffer_fr;
 p_heatBuffer.f_updateAllFlows(powerFraction_heatBuffer_fr);
+p_primaryHeatingAsset.v_powerFraction_fr = powerFraction_heatPump_fr;
+
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -25985,6 +26043,9 @@ public void f_batteryManagementPrice( double batterySOC ){
 				<Parameter>
 					<Name><![CDATA[p_electricCookingTracker]]></Name>
 				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_hasSmartFlexAssets]]></Name>
+				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -26297,6 +26358,9 @@ public void f_connectToChild(Agent ConnectingChildNode){
 				</Parameter>
 				<Parameter>
 					<Name><![CDATA[p_electricCookingTracker]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_hasSmartFlexAssets]]></Name>
 				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
@@ -26759,6 +26823,9 @@ public void f_operateFlexAssets(){
 				<Parameter>
 					<Name><![CDATA[p_electricCookingTracker]]></Name>
 				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_hasSmartFlexAssets]]></Name>
+				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -27112,6 +27179,9 @@ if (p_batteryAsset != null){
 				<Parameter>
 					<Name><![CDATA[p_electricCookingTracker]]></Name>
 				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_hasSmartFlexAssets]]></Name>
+				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -27362,6 +27432,9 @@ public void f_operateFlexAssets(){
 				</Parameter>
 				<Parameter>
 					<Name><![CDATA[p_electricCookingTracker]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_hasSmartFlexAssets]]></Name>
 				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
@@ -27748,6 +27821,9 @@ public void f_batteryManagementPrice( double batterySOC ){
 				</Parameter>
 				<Parameter>
 					<Name><![CDATA[p_electricCookingTracker]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_hasSmartFlexAssets]]></Name>
 				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
