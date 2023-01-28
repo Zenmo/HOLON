@@ -2798,7 +2798,7 @@ c_productionAssets.add(e);
 @since: Sprint 6
 @author: Jorrit]]></Description>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>-720</X><Y>230</Y>
+					<X>-1270</X><Y>340</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3317,6 +3317,8 @@ double v_fixedMethanePrice_eurpkWh = Double.parseDouble( policyMap.get( "Fixed_m
 double v_fixedHydrogenPrice_eurpkWh = Double.parseDouble( policyMap.get( "Fixed_hydrogen_price_eurpkWh" ) );
 double v_fixedDieselPrice_eurpkWh = Double.parseDouble( policyMap.get( "Fixed_diesel_price_eurpkWh" ) );
 boolean v_salderenActive = Boolean.parseBoolean(policyMap.get("Salderen"));
+double v_capacitypricing_households_kW = Double.parseDouble( policyMap.get( "Capacitypricing_households_kW" ) );
+double v_capacitypricing_households_eur = Double.parseDouble( policyMap.get( "Capacitypricing_households_eur" ) );
 
 // get global battery charging parameter(s)
 int v_timeBufferForSpreadCharging_min = Integer.parseInt( policyMap.get("Time_buffer_for_spread_charging_min") );
@@ -3337,6 +3339,11 @@ for(GridOperator g : pop_gridOperators) {
 	g.v_congestionThreshold_fr = v_congestionThreshold_fr;
 	g.b_congestionPricingConsumption = b_congestionPricingConsumption;
 	g.b_congestionPricingProduction = b_congestionPricingProduction;
+	if( v_capacitypricing_households_eur > 0 ){
+		g.set_p_hasCapacityPricing( true );
+		g.set_p_capacitypricing_households_kW( v_capacitypricing_households_kW );
+		g.set_p_capacitypricing_households_eur( v_capacitypricing_households_eur );
+	}
 }
 
 // configure actor policy values
@@ -3348,6 +3355,15 @@ for( EnergySupplier e : pop_energySuppliers ) {
 	e.set_p_variableElectricityPriceOverNational_eurpkWh( v_energySupplierMarginOnElectricityPrice_eurpkWh );
 	e.set_p_fixedFeedinTariff_eurpkWh( v_fixedElectricityFeedInTariff_eurpkWh );
 	e.set_p_salderenActive(v_salderenActive);
+}
+
+for ( ConnectionOwner c : pop_connectionOwners){
+	if( v_capacitypricing_households_eur > 0 ){
+		c.set_p_capcityTariffApplicable( true );
+		c.set_p_capacityLevel_kW( v_capacitypricing_households_kW );
+		c.set_p_capacityPrice_eur( v_capacitypricing_households_eur );
+	}
+	c.f_setInitPriceBands();
 }
 
 for( EnergyHolon e : pop_energyHolons ) {
@@ -4716,6 +4732,18 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 						<Parameter>
 							<Name><![CDATA[p_nfatoLvl_kW]]></Name>
 						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_capcityTariffApplicable]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_capacityPrice_eur]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_capacityLevel_kW]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_congestionTariffApplicable]]></Name>
+						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
 					<Replication Class="CodeValue">
@@ -4973,6 +5001,15 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_parentActor]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_capacitypricing_households_kW]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_capacitypricing_households_eur]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_hasCapacityPricing]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -7076,6 +7113,9 @@ if (p_energyType.equals(OL_EnergyCarrierType.HEAT)) {
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[String]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA["No congestion atm"]]></Code>
+						</InitialValue>
 					</Properties>
 				</Variable>
 				<Variable Class="PlainVariable">
@@ -7863,11 +7903,11 @@ v_loadFactor_fr = v_averageAbsoluteLoadElectricity_kW / abs(v_peakLoadAbsoluteEl
 	// we gaan nu nog even uit van vaste congestietarieven en limiten
 	ConnectionOwner owner = ((ConnectionOwner)gc.l_ownerActor.getConnectedAgent());
 	//if( !owner.v_congestionTariff_b ) {
-		owner.v_buyCongestionPrice_eurpkWh = price_eurpkWh;
+		owner.v_currentCongestionTariffWhenBuying_eurpkWh = price_eurpkWh;
 		owner.v_congestionTariffAllowance_kW = allowance_kW;
 		//owner.v_congestionTariff_b = true; // This is controlled by the contract between connectionOwner and GridOperator! Do not overwrite from here!
 		//owner.v_updatePriceBands_b = true;
-		owner.v_congestionMode = v_congestionMode;
+		owner.v_currentCongestionType = v_congestionMode;
 	//}
 }]]></Body>
 				</Function>
@@ -7893,11 +7933,11 @@ v_loadFactor_fr = v_averageAbsoluteLoadElectricity_kW / abs(v_peakLoadAbsoluteEl
 	// we gaan nu nog even uit van vaste congestietarieven en limiten
 	ConnectionOwner owner = ((ConnectionOwner)gc.l_ownerActor.getConnectedAgent());
 	//if( !owner.v_congestionTariff_b ) {
-		owner.v_sellCongestionPrice_eurpkWh = price_eurpkWh;
+		owner.v_currentCongestionTariffWhenSelling_eurpkWh = price_eurpkWh;
 		owner.v_congestionTariffAllowance_kW = -allowance_kW;
 		//owner.v_congestionTariff_b = true; // This is controlled by the contract between connectionOwner and GridOperator! Do not overwrite from here!
 		//owner.v_updatePriceBands_b = true;
-		owner.v_congestionMode = v_congestionMode;
+		owner.v_currentCongestionType = v_congestionMode;
 	//}
 }]]></Body>
 				</Function>
@@ -7916,10 +7956,10 @@ v_loadFactor_fr = v_averageAbsoluteLoadElectricity_kW / abs(v_peakLoadAbsoluteEl
 	ConnectionOwner owner = ((ConnectionOwner)gc.l_ownerActor.getConnectedAgent());
 	//owner.v_congestionTariff_b = false;
 	//owner.v_updatePriceBands_b = true;
-	owner.v_buyCongestionPrice_eurpkWh = 0;
-	owner.v_sellCongestionPrice_eurpkWh = 0;
+	owner.v_currentCongestionTariffWhenBuying_eurpkWh = 0;
+	owner.v_currentCongestionTariffWhenSelling_eurpkWh = 0;
 	owner.v_congestionTariffAllowance_kW = 0;
-	owner.v_congestionMode = v_congestionMode;
+	owner.v_currentCongestionType = v_congestionMode;
 }]]></Body>
 				</Function>
 			</Functions>
@@ -18364,10 +18404,7 @@ ea 2
 					<Name><![CDATA[p_nfatoLvl_kW]]></Name>
 				</Parameter>
 			</Parameters>
-			<StartupCode><![CDATA[v_currentPriceBands = new TreeMap<Double, Double>();
-v_currentPriceBands.put(-9999.0, v_electricitySellPrice_eurpkWh + v_sellCongestionPrice_eurpkWh);
-v_currentPriceBands.put(0.0, 0.0);
-v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionPrice_eurpkWh);
+			<StartupCode><![CDATA[
 ]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -18465,7 +18502,7 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 				<Variable Class="PlainVariable">
 					<Id>1660744173993</Id>
 					<Name><![CDATA[v_electricityContractType]]></Name>
-					<X>390</X><Y>80</Y>
+					<X>930</X><Y>90</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18480,7 +18517,7 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 				<Variable Class="PlainVariable">
 					<Id>1660744181560</Id>
 					<Name><![CDATA[v_heatContractType]]></Name>
-					<X>390</X><Y>100</Y>
+					<X>930</X><Y>110</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18495,7 +18532,7 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 				<Variable Class="PlainVariable">
 					<Id>1660744190914</Id>
 					<Name><![CDATA[v_methaneContractType]]></Name>
-					<X>390</X><Y>120</Y>
+					<X>930</X><Y>130</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18510,7 +18547,7 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 				<Variable Class="PlainVariable">
 					<Id>1660744732007</Id>
 					<Name><![CDATA[v_electricityVolume_kWh]]></Name>
-					<X>50</X><Y>670</Y>
+					<X>740</X><Y>610</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18525,7 +18562,7 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 				<Variable Class="PlainVariable">
 					<Id>1660744756249</Id>
 					<Name><![CDATA[v_heatVolume_kWh]]></Name>
-					<X>50</X><Y>690</Y>
+					<X>740</X><Y>630</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18540,7 +18577,7 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 				<Variable Class="PlainVariable">
 					<Id>1660744762793</Id>
 					<Name><![CDATA[v_methaneVolume_kWh]]></Name>
-					<X>50</X><Y>710</Y>
+					<X>740</X><Y>650</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18555,7 +18592,7 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 				<Variable Class="PlainVariable">
 					<Id>1660745490749</Id>
 					<Name><![CDATA[v_balanceElectricity_eur]]></Name>
-					<X>280</X><Y>670</Y>
+					<X>970</X><Y>610</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18570,7 +18607,7 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 				<Variable Class="PlainVariable">
 					<Id>1660745504140</Id>
 					<Name><![CDATA[v_balanceHeat_eur]]></Name>
-					<X>280</X><Y>690</Y>
+					<X>970</X><Y>630</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18582,7 +18619,7 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 				<Variable Class="PlainVariable">
 					<Id>1660745513069</Id>
 					<Name><![CDATA[v_balanceMethane_eur]]></Name>
-					<X>280</X><Y>710</Y>
+					<X>970</X><Y>650</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18594,7 +18631,7 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 				<Variable Class="PlainVariable">
 					<Id>1661174627092</Id>
 					<Name><![CDATA[v_hydrogenContractType]]></Name>
-					<X>390</X><Y>140</Y>
+					<X>930</X><Y>150</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18609,7 +18646,7 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 				<Variable Class="PlainVariable">
 					<Id>1661174643058</Id>
 					<Name><![CDATA[v_balanceHydrogen_eur]]></Name>
-					<X>280</X><Y>730</Y>
+					<X>970</X><Y>670</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18621,7 +18658,7 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 				<Variable Class="PlainVariable">
 					<Id>1661175214034</Id>
 					<Name><![CDATA[v_hydrogenVolume_kWh]]></Name>
-					<X>50</X><Y>730</Y>
+					<X>740</X><Y>670</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18636,7 +18673,7 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 				<Variable Class="PlainVariable">
 					<Id>1661177954454</Id>
 					<Name><![CDATA[v_energySupplierDistrictHeat]]></Name>
-					<X>50</X><Y>440</Y>
+					<X>70</X><Y>320</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18648,7 +18685,7 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 				<Variable Class="PlainVariable">
 					<Id>1661179464769</Id>
 					<Name><![CDATA[v_ownedGridConnection]]></Name>
-					<X>50</X><Y>420</Y>
+					<X>70</X><Y>300</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18660,7 +18697,7 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 				<Variable Class="PlainVariable">
 					<Id>1661267039916</Id>
 					<Name><![CDATA[j_ConnectionOwnerData]]></Name>
-					<X>50</X><Y>400</Y>
+					<X>60</X><Y>170</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18672,7 +18709,7 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 				<Variable Class="PlainVariable">
 					<Id>1663237705961</Id>
 					<Name><![CDATA[v_electricityBuyPrice_eurpkWh]]></Name>
-					<X>50</X><Y>580</Y>
+					<X>60</X><Y>510</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18685,7 +18722,7 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 					<Id>1663237725571</Id>
 					<Name><![CDATA[v_electricitySurpluss_kW]]></Name>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>50</X><Y>530</Y>
+					<X>-210</X><Y>380</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18700,7 +18737,7 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 				<Variable Class="PlainVariable">
 					<Id>1666529984344</Id>
 					<Name><![CDATA[v_currentPriceBands]]></Name>
-					<X>50</X><Y>550</Y>
+					<X>60</X><Y>470</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18712,7 +18749,7 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 				<Variable Class="PlainVariable">
 					<Id>1666530785350</Id>
 					<Name><![CDATA[v_electricitySellPrice_eurpkWh]]></Name>
-					<X>50</X><Y>600</Y>
+					<X>60</X><Y>530</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18723,8 +18760,8 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1666531537644</Id>
-					<Name><![CDATA[v_sellCongestionPrice_eurpkWh]]></Name>
-					<X>50</X><Y>640</Y>
+					<Name><![CDATA[v_currentCongestionTariffWhenSelling_eurpkWh]]></Name>
+					<X>310</X><Y>530</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18738,8 +18775,8 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1666531542032</Id>
-					<Name><![CDATA[v_buyCongestionPrice_eurpkWh]]></Name>
-					<X>50</X><Y>620</Y>
+					<Name><![CDATA[v_currentCongestionTariffWhenBuying_eurpkWh]]></Name>
+					<X>310</X><Y>510</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18754,7 +18791,7 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 				<Variable Class="PlainVariable">
 					<Id>1666531573460</Id>
 					<Name><![CDATA[v_congestionTariffAllowance_kW]]></Name>
-					<X>280</X><Y>580</Y>
+					<X>310</X><Y>490</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18770,25 +18807,10 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 					<Id>1666531581003</Id>
 					<Name><![CDATA[v_updatePriceBands_b]]></Name>
 					<Description><![CDATA[Not visible as it is swtiched on and of in between timesteps ( for fixed tarifs at least)]]></Description>
-					<X>280</X><Y>640</Y>
+					<X>60</X><Y>490</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[boolean]]></Type>        
-						<InitialValue Class="CodeValue">
-							<Code><![CDATA[true]]></Code>
-						</InitialValue>
-					</Properties>
-				</Variable>
-				<Variable Class="PlainVariable">
-					<Id>1666546867711</Id>
-					<Name><![CDATA[v_congestionTariff_b]]></Name>
-					<X>280</X><Y>600</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
+					<PresentationFlag>false</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[boolean]]></Type>        
@@ -18799,20 +18821,23 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1667401120682</Id>
-					<Name><![CDATA[v_congestionMode]]></Name>
-					<X>280</X><Y>620</Y>
+					<Name><![CDATA[v_currentCongestionType]]></Name>
+					<X>310</X><Y>470</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[String]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA["No congestion atm"]]></Code>
+						</InitialValue>
 					</Properties>
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1669024165241</Id>
 					<Name><![CDATA[v_dieselVolume_kWh]]></Name>
-					<X>50</X><Y>750</Y>
+					<X>740</X><Y>690</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18827,7 +18852,7 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 				<Variable Class="PlainVariable">
 					<Id>1669024172107</Id>
 					<Name><![CDATA[v_balanceDiesel_eur]]></Name>
-					<X>280</X><Y>750</Y>
+					<X>970</X><Y>690</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18839,7 +18864,7 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 				<Variable Class="PlainVariable">
 					<Id>1669036835710</Id>
 					<Name><![CDATA[v_contractEnergyHolon]]></Name>
-					<X>390</X><Y>210</Y>
+					<X>930</X><Y>220</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18851,7 +18876,7 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 				<Variable Class="PlainVariable">
 					<Id>1669036845521</Id>
 					<Name><![CDATA[v_contractEnergySupplier]]></Name>
-					<X>390</X><Y>230</Y>
+					<X>930</X><Y>240</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18863,7 +18888,7 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 				<Variable Class="PlainVariable">
 					<Id>1669036853577</Id>
 					<Name><![CDATA[v_contractGridOperator]]></Name>
-					<X>390</X><Y>250</Y>
+					<X>930</X><Y>260</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18875,7 +18900,7 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 				<Variable Class="PlainVariable">
 					<Id>1673455438812</Id>
 					<Name><![CDATA[v_enable_nfATO_b]]></Name>
-					<X>50</X><Y>460</Y>
+					<X>70</X><Y>340</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18890,7 +18915,7 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 				<Variable Class="Parameter">
 					<Id>1666976143102</Id>
 					<Name><![CDATA[p_holonParent]]></Name>
-					<X>50</X><Y>380</Y>
+					<X>60</X><Y>150</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18911,7 +18936,7 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 				<Variable Class="Parameter">
 					<Id>1669036749740</Id>
 					<Name><![CDATA[p_actorContractList]]></Name>
-					<X>390</X><Y>160</Y>
+					<X>930</X><Y>170</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18929,10 +18954,94 @@ v_currentPriceBands.put(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionP
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1674905911483</Id>
+					<Name><![CDATA[p_capcityTariffApplicable]]></Name>
+					<X>250</X><Y>150</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[boolean]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1674905911481</Id>
+							<EditorContolType>CHECK_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1674906947038</Id>
+					<Name><![CDATA[p_capacityPrice_eur]]></Name>
+					<X>250</X><Y>170</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1674906947036</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1674906962435</Id>
+					<Name><![CDATA[p_capacityLevel_kW]]></Name>
+					<X>250</X><Y>190</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1674906962433</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1674920557400</Id>
+					<Name><![CDATA[p_congestionTariffApplicable]]></Name>
+					<X>250</X><Y>130</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[boolean]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1674920557398</Id>
+							<EditorContolType>CHECK_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1669036806038</Id>
 					<Name><![CDATA[c_actorContractList]]></Name>
-					<X>390</X><Y>180</Y>
+					<X>930</X><Y>190</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19058,11 +19167,8 @@ if( p_energySupplier != null) {
 }
 
 // Also needs to include congestion tariffs! 
-if (v_congestionTariff_b) {
-	double congestionCost_eur = v_electricityVolume_kWh * v_buyCongestionPrice_eurpkWh;
-	/*if (abs(congestionCost_eur) > 0) {
-		traceln("CongestionCosts this timestep " + congestionCost_eur + " euro for " + v_electricityVolume_kWh + " kWh electricity");
-	}*/
+if ( p_congestionTariffApplicable ) {
+	double congestionCost_eur = v_electricityVolume_kWh * v_currentCongestionTariffWhenBuying_eurpkWh;
 	v_balanceElectricity_eur -= congestionCost_eur; // TODO: This transaction is 'one-sided'; the gridOperator is not yet receiving/giving this money!!
 }
 
@@ -19116,27 +19222,19 @@ for(GridConnection n :  gridConnections.getConnections() ) {
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[// Update electricity price (if necessary)
-//if (v_electricityContractType == OL_ContractType.ELECTRICITY_VARIABLE) {
-	if (p_energySupplier instanceof EnergySupplier) {
-		v_electricityBuyPrice_eurpkWh = ((EnergySupplier)p_energySupplier).f_getEnergyPrice(v_electricityContractType, false);
-		v_electricitySellPrice_eurpkWh = ((EnergySupplier)p_energySupplier).f_getEnergyPrice(v_electricityContractType, true);
-	} else if (p_energySupplier instanceof EnergyHolon) {
-		v_electricityBuyPrice_eurpkWh = ((EnergyHolon)p_energySupplier).f_getEnergyPrice(v_electricityContractType, false);
-		v_electricitySellPrice_eurpkWh = ((EnergyHolon)p_energySupplier).f_getEnergyPrice(v_electricityContractType, true);
-	}
-//}
+					<Body><![CDATA[if (p_energySupplier instanceof EnergySupplier) {
+	v_electricityBuyPrice_eurpkWh = ((EnergySupplier)p_energySupplier).f_getEnergyPrice(v_electricityContractType, false);
+	v_electricitySellPrice_eurpkWh = ((EnergySupplier)p_energySupplier).f_getEnergyPrice(v_electricityContractType, true);
+} else if (p_energySupplier instanceof EnergyHolon) {
+	v_electricityBuyPrice_eurpkWh = ((EnergyHolon)p_energySupplier).f_getEnergyPrice(v_electricityContractType, false);
+	v_electricitySellPrice_eurpkWh = ((EnergyHolon)p_energySupplier).f_getEnergyPrice(v_electricityContractType, true);
+}
 
-//Onderstaand is allemaal voor elektriciteit, zijn er connectionowners dat puur warmtenetten zijn?
+
 if ( v_updatePriceBands_b ){
 	f_setElectricityPriceBands();
 }
 
-// Update energy balance. Where is this used? commented out for now.
-/*v_electricitySurpluss_kW = 0;
-for(GridConnection c : gridConnections.getConnections()){
-	v_electricitySurpluss_kW -= c.v_currentPowerElectricity_kW;
-}*/
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -19149,23 +19247,22 @@ for(GridConnection c : gridConnections.getConnections()){
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[v_currentPriceBands.replace(-9999.0, v_electricitySellPrice_eurpkWh + v_sellCongestionPrice_eurpkWh);
-//v_currentPriceBands.put(0.0, 0.0);
-v_currentPriceBands.replace(9999.0, v_electricityBuyPrice_eurpkWh + v_buyCongestionPrice_eurpkWh);
-
+					<Body><![CDATA[v_currentPriceBands.replace(-9999.0, v_electricitySellPrice_eurpkWh + v_currentCongestionTariffWhenSelling_eurpkWh - p_capacityPrice_eur);
+v_currentPriceBands.replace(- p_capacityLevel_kW, v_electricitySellPrice_eurpkWh + v_currentCongestionTariffWhenSelling_eurpkWh);
+v_currentPriceBands.replace(p_capacityLevel_kW, v_electricityBuyPrice_eurpkWh + v_currentCongestionTariffWhenBuying_eurpkWh);
+v_currentPriceBands.replace(9999.0, v_electricityBuyPrice_eurpkWh + v_currentCongestionTariffWhenBuying_eurpkWh + p_capacityPrice_eur);
 
 if (v_congestionTariffAllowance_kW != 0){
-	if(v_congestionMode == "Overconsumption"){
+	if(v_currentCongestionType == "Overconsumption"){
 		v_currentPriceBands.put( v_congestionTariffAllowance_kW,  v_electricityBuyPrice_eurpkWh);
 	}
-	else if (v_congestionMode == "Overproduction"){
+	else if (v_currentCongestionType == "Overproduction"){
 		v_currentPriceBands.put( v_congestionTariffAllowance_kW,  v_electricitySellPrice_eurpkWh);
 	}
 	else {
 		traceln("Connection owner --> f_setElectrcitiyPriceBands: geen congestie type gevonden");
 	}
 }
-
 
 
 
@@ -19206,10 +19303,10 @@ for( HashMap l : c_actorContractList) {
 				v_contractGridOperator = (String)l.get( "type" );
 				switch( v_contractGridOperator ) {
 					case "DEFAULT":
-						v_congestionTariff_b = false; // ? wat nog meer?
+						p_congestionTariffApplicable = false; // ? wat nog meer?
 					break;
 					case "NODALPRICING":
-						v_congestionTariff_b = true; // ? wat nog meer? 
+						p_congestionTariffApplicable = true; // ? wat nog meer? 
 					break;
 					case "NONFIRMATO":
 						p_nfatoStart_h = (Double)l.get("nfATO_starttime_h");
@@ -19281,6 +19378,24 @@ switch( v_contractEnergyHolon ) {
 		traceln("ConnectionOwner f_setContractValues: energyHolon contract type not implemented! No values set");
 	break;
 }
+]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1674919795415</Id>
+					<Name><![CDATA[f_setInitPriceBands]]></Name>
+					<X>660</X><Y>150</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[v_currentPriceBands = new TreeMap<Double, Double>();
+v_currentPriceBands.put(-9999.0, 0.0);
+v_currentPriceBands.put(- p_capacityLevel_kW, 0.0);
+v_currentPriceBands.put(0.0, 0.0);
+v_currentPriceBands.put(p_capacityLevel_kW, 0.0);
+v_currentPriceBands.put(9999.0, 0.0);
 ]]></Body>
 				</Function>
 			</Functions>
@@ -19387,7 +19502,7 @@ switch( v_contractEnergyHolon ) {
 				<Line>
 					<Id>1667917035332</Id>
 					<Name><![CDATA[line1]]></Name>
-					<X>380</X><Y>50</Y>
+					<X>920</X><Y>60</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19411,7 +19526,7 @@ switch( v_contractEnergyHolon ) {
 				<Text>
 					<Id>1667917035334</Id>
 					<Name><![CDATA[text1]]></Name>
-					<X>410</X><Y>30</Y>
+					<X>950</X><Y>40</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19422,6 +19537,113 @@ switch( v_contractEnergyHolon ) {
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
 					<Text><![CDATA[Contracts]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>11</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Rectangle>
+					<Id>1674921584423</Id>
+					<Name><![CDATA[rectangle4]]></Name>
+					<X>1910</X><Y>170</Y>
+					<Label><X>10</X><Y>10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>2</LineWidth>
+					<LineColor>-4144960</LineColor>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>DASHED</LineStyle>
+					<Width>510</Width>
+					<Height>330</Height>
+					<Rotation>0.0</Rotation>
+					<FillColor>-1</FillColor>
+					<FillMaterial>null</FillMaterial>
+				</Rectangle>
+				<Text>
+					<Id>1674921584426</Id>
+					<Name><![CDATA[text11]]></Name>
+					<X>2250</X><Y>174</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-8355712</Color>
+					<Text><![CDATA[In case of hybrid heating system]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>11</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Rectangle>
+					<Id>1674921588187</Id>
+					<Name><![CDATA[rectangle5]]></Name>
+					<X>700</X><Y>550</Y>
+					<Label><X>10</X><Y>10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>2</LineWidth>
+					<LineColor>-4144960</LineColor>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>DASHED</LineStyle>
+					<Width>469.199</Width>
+					<Height>189.967</Height>
+					<Rotation>0.0</Rotation>
+					<FillColor>-1</FillColor>
+					<FillMaterial>null</FillMaterial>
+				</Rectangle>
+				<Text>
+					<Id>1674921588189</Id>
+					<Name><![CDATA[text12]]></Name>
+					<X>730</X><Y>580</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-8355712</Color>
+					<Text><![CDATA[Current consumption volumes]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>11</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Text>
+					<Id>1674921619300</Id>
+					<Name><![CDATA[text13]]></Name>
+					<X>970</X><Y>580</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-8355712</Color>
+					<Text><![CDATA[Cumulative consumption cost]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>11</Size>
@@ -21496,7 +21718,7 @@ if ( v_contractGridOperator.equals("NODALPRICING")) {
 //	traceln("Enabling nodal pricing for HOLON memmber!");
 	if (ConnectingChildNode instanceof ConnectionOwner) {
 		//((ConnectionOwner)ConnectingChildNode).v_contractGridOperator = v_contractGridOperator;
-		((ConnectionOwner)ConnectingChildNode).v_congestionTariff_b = true;
+		((ConnectionOwner)ConnectingChildNode).p_congestionTariffApplicable = true;
 	}
 }
 if ( v_contractEnergySupplier.equals("VARIABLE")) {
@@ -22641,10 +22863,20 @@ if ( !feedIn ){
 else {
 	switch (contractType){
 		case ELECTRICITY_FIXED:
-			energyPrice_eurpkWh = p_fixedFeedinTariff_eurpkWh;
+			if (p_salderenActive){
+				energyPrice_eurpkWh = p_fixedElectricityPrice_eurpkWh;
+			}
+			else {
+				energyPrice_eurpkWh = p_fixedFeedinTariff_eurpkWh;
+			}
 		break;
 		case ELECTRICITY_VARIABLE:
-			energyPrice_eurpkWh = (p_variableElectricityPriceOverNational_eurpkWh + v_currentVariableElectricityPrice_eurpkWh);
+			if (p_salderenActive){
+				energyPrice_eurpkWh = (p_variableElectricityPriceOverNational_eurpkWh + v_currentVariableElectricityPrice_eurpkWh);
+			}
+			else {
+				energyPrice_eurpkWh = v_currentVariableElectricityPrice_eurpkWh;
+			}
 		break;
 		default:
 		throw new IllegalStateException("Invalid feed-in contract type: " + contractType);
@@ -23288,10 +23520,76 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1674907095514</Id>
+					<Name><![CDATA[p_capacitypricing_households_kW]]></Name>
+					<X>60</X><Y>190</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1674907095512</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1674907099647</Id>
+					<Name><![CDATA[p_capacitypricing_households_eur]]></Name>
+					<X>60</X><Y>210</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1674907099645</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1674907106415</Id>
+					<Name><![CDATA[p_hasCapacityPricing]]></Name>
+					<X>60</X><Y>170</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[boolean]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[false]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1674907106413</Id>
+							<EditorContolType>CHECK_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1665076694603</Id>
 					<Name><![CDATA[c_electricityGridNodes]]></Name>
-					<X>60</X><Y>140</Y>
+					<X>700</X><Y>160</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -23306,7 +23604,7 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 				<Variable Class="CollectionVariable">
 					<Id>1666594012871</Id>
 					<Name><![CDATA[c_congestedGNProduction]]></Name>
-					<X>80</X><Y>160</Y>
+					<X>720</X><Y>180</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -23321,7 +23619,7 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 				<Variable Class="CollectionVariable">
 					<Id>1666594046997</Id>
 					<Name><![CDATA[c_congestedGNConsumption]]></Name>
-					<X>80</X><Y>180</Y>
+					<X>720</X><Y>200</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -23423,7 +23721,7 @@ else {
 		if ( n.v_congested ){
 			n.f_resetCongestionTariffs();
 			n.v_congested = false;
-			n.v_congestionMode = "None";
+			n.v_congestionMode = "No congestion atm";
 			if (c_congestedGNProduction.contains(n)){ c_congestedGNProduction.remove(c_congestedGNProduction.indexOf(n));}
 			if (c_congestedGNConsumption.contains(n)){ c_congestedGNConsumption.remove(c_congestedGNConsumption.indexOf(n));}
 		}
@@ -24120,7 +24418,7 @@ v_dayTempSetpoint_degC = uniform_discr(18, 23);]]></StartupCode>
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1674900257329</Id>
-					<Name><![CDATA[v_dailyDemand]]></Name>
+					<Name><![CDATA[v_dailyHPConsumption_kWh]]></Name>
 					<X>2160</X><Y>80</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -24277,7 +24575,7 @@ v_dayTempSetpoint_degC = uniform_discr(18, 23);]]></StartupCode>
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
 					<Action><![CDATA[if( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatPump ){
-	v_dailyDemand = p_primaryHeatingAsset.p_energyAssetInstance.getEnergyUsed_kWh() - v_hpPreviousConsumptionLevel;
+	v_dailyHPConsumption_kWh = p_primaryHeatingAsset.p_energyAssetInstance.getEnergyUsed_kWh() - v_hpPreviousConsumptionLevel;
 	v_hpPreviousConsumptionLevel = p_primaryHeatingAsset.p_energyAssetInstance.getEnergyUsed_kWh();
 }]]></Action>
 				</Event>
@@ -24842,7 +25140,7 @@ p_secondaryHeatingAsset.f_updateAllFlows(p_secondaryHeatingAsset.v_powerFraction
 						<Unit Class="TimeUnits"><![CDATA[DAY]]></Unit>
 					</RecurrenceCode>
 					<FreezeXAxis>true</FreezeXAxis>
-					<VerticalAxisExpression><![CDATA[v_dailyDemand]]></VerticalAxisExpression>
+					<VerticalAxisExpression><![CDATA[v_dailyHPConsumption_kWh]]></VerticalAxisExpression>
 					<SamplesToKeep>100</SamplesToKeep>
 				</DataSet>
 			</AnalysisData>
@@ -25263,7 +25561,7 @@ p_secondaryHeatingAsset.f_updateAllFlows(p_secondaryHeatingAsset.v_powerFraction
     			<TimePlot>
 					<Id>1674899851745</Id>
 					<Name><![CDATA[plot]]></Name>
-					<X>2150</X><Y>90</Y>
+					<X>2120</X><Y>90</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -25282,14 +25580,14 @@ p_secondaryHeatingAsset.f_updateAllFlows(p_secondaryHeatingAsset.v_powerFraction
 					</RecurrenceCode>
 					<EmbeddedIcon>false</EmbeddedIcon>
 					<Width>490</Width>
-					<Height>210</Height>
+					<Height>260</Height>
 					<BackgroundColor/>
 					<BorderColor/>
 					<ChartArea>
 						<XOffset>50</XOffset>
 						<YOffset>30</YOffset>
 						<Width>410</Width>
-						<Height>120</Height>
+						<Height>170</Height>
 						<BackgroundColor>-1</BackgroundColor>
 						<BorderColor>-16777216</BorderColor>
 						<GridColor>-12566464</GridColor>
