@@ -5312,6 +5312,9 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 						<Parameter>
 							<Name><![CDATA[p_hasSmartFlexAssets]]></Name>
 						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_householdEV]]></Name>
+						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
 					<Replication Class="CodeValue">
@@ -10210,7 +10213,7 @@ else if (EA.p_energyAssetInstance instanceof J_EAProduction ) {
 		if(EA.p_energyAssetInstance instanceof J_EAEV && ((J_EAEV)EA.p_energyAssetInstance).getStorageCapacity_kWh() !=0) {
 			c_storageAssets.add(EA);
 			c_vehicleAssets.add( EA );
-			EA.v_powerFraction_fr = 1;
+			EA.v_powerFraction_fr = 1; //Waarom staat dit op 1? 29-01-23 PH
 			MobilityTracker m = main.add_mobilityTrackers();
 			c_mobilityTrackers.add( m );
 			m.p_vehicleIndex = v_vehicleIndex;
@@ -24241,6 +24244,11 @@ public void f_manageCharging(){
 public void f_chargeOnPrice(double a, double b){
 	f_chargeOnPrice_overwrite(a,b);
 }
+
+@Override
+public void f_fixedPriceCharging(){
+	f_fixedPriceCharging_overwrite();
+}
 ]]></AdditionalClassCode>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
 			<ExtendsReference>
@@ -24690,6 +24698,27 @@ v_dayTempSetpoint_degC = uniform_discr(18, 23);]]></StartupCode>
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1675032836511</Id>
+					<Name><![CDATA[p_householdEV]]></Name>
+					<X>610</X><Y>300</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[J_EAEV]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1675032836509</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 			</Variables>
 			<Events>
 				<Event>
@@ -24761,7 +24790,7 @@ if ( p_secondaryHeatingAsset == null ) {
 			}
 		} 
 		else if (p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatPump){
-				f_heatWithHeatpumpAndBuffer();
+				f_heatWithHeatpumpAndBuffer( v_currentElectricityPriceConsumption_eurpkWh );
 		}
 		else {
 			traceln("House " + p_agentID + " has a single unsupported heating asset!");
@@ -24795,6 +24824,8 @@ v_currentPriceLevel = f_getPriceLevel( v_currentElectricityPriceConsumption_eurp
 
 double electricityPrice_eurpkWh = v_currentElectricityPriceConsumption_eurpkWh;
 double availablePowerAtPrice_kW = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).f_getAvailablePowerAtPrice( v_currentPowerElectricity_kW );
+
+f_determineChargingDemandOfEV();
 
 f_manageHeatingAssets();
 
@@ -24878,8 +24909,8 @@ else if (j_instance instanceof J_EAStorage ) {
 		}
 	} 
 	else if (j_instance instanceof J_EAEV) {
-		c_storageAssets.add(EA);
-		c_vehicleAssets.add( EA );
+		//c_storageAssets.add(EA);
+		//c_vehicleAssets.add( EA );
 		//EA.v_powerFraction_fr = 1;
 		MobilityTracker m = main.add_mobilityTrackers();
 		c_mobilityTrackers.add( m );
@@ -24890,7 +24921,8 @@ else if (j_instance instanceof J_EAStorage ) {
 		m.p_vehicleInstance = (J_EAEV)EA.p_energyAssetInstance;
 		((J_EAEV)m.p_vehicleInstance).setMobilityTracker( m );
 		m.f_getData();
-		v_vehicleIndex ++;
+		p_householdEV = (J_EAEV)j_instance;
+		//v_vehicleIndex ++;
 	}
 	else{
 		traceln(getName() + "storage asset create that cannot be identified (i.e. its not an EV and not an heatstorage");
@@ -24996,48 +25028,6 @@ if( ambientTempType != null && ambientTempType.equals("AIR") ) {
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>RETURNS_VALUE</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1670407528939</Id>
-					<Name><![CDATA[f_maxPowerCharging]]></Name>
-					<Description><![CDATA[Charge at max power taking grid constaints into account]]></Description>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>830</X><Y>420</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Parameter>
-						<Name><![CDATA[availableCapacityForCharging]]></Name>
-						<Type><![CDATA[double]]></Type>
-					</Parameter>
-					<Body><![CDATA[double chargingPower_kW = 0;
-double totalElectricVehiclesCharging = sum( c_vehiclesAvailableForCharging, x -> ((J_EAEV)x.p_energyAssetInstance).vehicleScaling);
-double maxChargingSpeed = availableCapacityForCharging / totalElectricVehiclesCharging;
-ArrayList<EnergyAsset> copiedVehicleList = new ArrayList<EnergyAsset>(c_vehiclesAvailableForCharging);
-int countDeletedItems = 0;
-for ( int i = 0; i < copiedVehicleList.size(); i++ ){
-	EnergyAsset EA = copiedVehicleList.get(i);
-	J_EAEV ev = (J_EAEV)EA.p_energyAssetInstance;
-	if( !ev.getAvailability() || ev.getCurrentStateOfCharge() == 1 ){
-		EA.f_updateElectricityFlows( 0 );
-		c_vehiclesAvailableForCharging.remove( i - countDeletedItems );
-		countDeletedItems ++;
-	}
-	else {
-		if (ev.vehicleScaling != 0) {
-			double chargingSpeed = min (maxChargingSpeed, ev.capacityElectric_kW / ev.vehicleScaling );
-			double ratio = chargingSpeed / (ev.capacityElectric_kW / ev.vehicleScaling);
-			if ( ev.getChargingTimeToFull_MIN() > ev.getMobilityTracker().nextActivityStartTimer.getRest(MINUTE) - main.p_timeStep_h * 60 ){
-				ratio = 1;
-			}
-			chargingPower_kW += EA.f_updateElectricityFlows( ratio );
-		}
-	}
-}
-return chargingPower_kW;]]></Body>
-				</Function>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>RETURNS_VALUE</ReturnModificator>
 					<ReturnType><![CDATA[boolean]]></ReturnType>
 					<Id>1674044371588</Id>
 					<Name><![CDATA[f_calcCheapestHeatingPrice]]></Name>
@@ -25086,15 +25076,15 @@ else {
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[electricityPrice]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
 					<Body><![CDATA[if (p_heatingType != OL_GridConnectionHeatingType.HEATPUMP_AIR){
 	traceln("Error, f_heatWithHeatpump: "+ getName() + " is trying to heat with heatpump and buffer, but is not of correct type");
 }
 else if (p_heatBuffer == null){
 	traceln("Error, f_heatWithHeatpump: household is trying to heat with buffer and heatpump, but has no buffer");
-}
-double currentLeveledElectricityPrice_eurpkWh = 0;
-if( p_hasSmartFlexAssets && l_ownerActor.getConnectedAgent() instanceof ConnectionOwner ){
-	// currentLeveledElectricityPrice_eurpkWh = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).getLeveledElectricityPrice( p_primaryHeatingAsset.p_energyAssetInstance.getElectricCapacity_kW(), v_currentPowerElectricity_kW  );
 }
 
 double powerFraction_heatBuffer_fr = 0;
@@ -25108,20 +25098,16 @@ if ( ((J_EAStorageHeat)p_heatBuffer.p_energyAssetInstance).requiresHeat){
 	//traceln("heat buffer cus of need");
 }
 //also heat the buffer if the price is cheap, the buffer has some room and the vehicle does not need charging
-else if( 	p_hasSmartFlexAssets && currentLeveledElectricityPrice_eurpkWh < v_electricityPriceLowPassed_eurpkWh - priceDeviationBand_eur 
+else if( 	p_hasSmartFlexAssets && electricityPrice < v_electricityPriceLowPassed_eurpkWh - priceDeviationBand_eur 
 			&& ((J_EAStorageHeat)p_heatBuffer.p_energyAssetInstance).getCurrentStateOfCharge() < 0.7)
 {
 	if( c_vehicleAssets.size() == 0){
 		powerFraction_heatPump_fr = 1;
 		powerFraction_heatBuffer_fr = p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() / p_heatBuffer.p_energyAssetInstance.getHeatCapacity_kW();
-	} else { // only use heatpump if the vehicle is not about to charge
-		J_EAEV vehicle = ((J_EAEV)c_vehicleAssets.get(0).p_energyAssetInstance);
-		double chargeNeedForNextTrip_kWh = max(0, vehicle.energyNeedForNextTrip_kWh - vehicle.getStorageCapacity_kWh() * vehicle.getCurrentStateOfCharge());
-		if (vehicle.getCurrentStateOfCharge() > chargeNeedForNextTrip_kWh / vehicle.storageCapacity_kWh - p_minEVChargeTarget_fr) {
-			powerFraction_heatPump_fr = 1;
-			//traceln("heat buffer cus cheap");
-			powerFraction_heatBuffer_fr = p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() / p_heatBuffer.p_energyAssetInstance.getHeatCapacity_kW();
-		}
+	} else if (p_householdEV.chargingNeed != OL_EVChargingNeed.HIGH){
+		powerFraction_heatPump_fr = 1;
+		//traceln("heat buffer cus cheap");
+		powerFraction_heatBuffer_fr = p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() / p_heatBuffer.p_energyAssetInstance.getHeatCapacity_kW();
 	}
 }
 powerFraction_heatBuffer_fr += -v_hotwaterDemand_kW;
@@ -25134,20 +25120,16 @@ if( powerFraction_heatPump_fr == 0 ){
 		p_ThermalStorageAsset.v_powerFraction_fr = p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW();
 	}
 	//also heat the house if the price is cheap, the the house is colder than desired + 1 and the vehicle does not need charging
-	else if( 	p_hasSmartFlexAssets && currentLeveledElectricityPrice_eurpkWh < v_electricityPriceLowPassed_eurpkWh - priceDeviationBand_eur 
+	else if( 	p_hasSmartFlexAssets && electricityPrice < v_electricityPriceLowPassed_eurpkWh - priceDeviationBand_eur 
 				&& v_currentHouseTemp_degC < v_tempSetpoint_degC + 1)
 	{
 		if( c_vehicleAssets.size() == 0){
 			powerFraction_heatPump_fr = 1;
 			powerFraction_heatBuffer_fr = p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() / p_heatBuffer.p_energyAssetInstance.getHeatCapacity_kW();
-		} else { // only use heatpump if the vehicle is not about to charge
-			J_EAEV vehicle = ((J_EAEV)c_vehicleAssets.get(0).p_energyAssetInstance);
-			double chargeNeedForNextTrip_kWh = max(0, vehicle.energyNeedForNextTrip_kWh - vehicle.getStorageCapacity_kWh() * vehicle.getCurrentStateOfCharge());
-			if (vehicle.getCurrentStateOfCharge() > chargeNeedForNextTrip_kWh / vehicle.storageCapacity_kWh - p_minEVChargeTarget_fr) {
-				powerFraction_heatPump_fr = 1;
-				//traceln("heat house cus of cheap");
-				p_ThermalStorageAsset.v_powerFraction_fr = p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW();
-			}
+		} else if (p_householdEV.chargingNeed != OL_EVChargingNeed.HIGH){ // only use heatpump if the vehicle is not about to charge
+			powerFraction_heatPump_fr = 1;
+			//traceln("heat house cus of cheap");
+			p_ThermalStorageAsset.v_powerFraction_fr = p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW();
 		}
 	}
 	else {
@@ -25179,57 +25161,30 @@ p_primaryHeatingAsset.v_powerFraction_fr = powerFraction_heatPump_fr;
 						<Name><![CDATA[availableChargingPower_kW]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
-					<Body><![CDATA[ArrayList<EnergyAsset> copiedVehicleList = new ArrayList<EnergyAsset>(c_vehiclesAvailableForCharging);
-int countDeletedItems = 0;
-
-double remainingChargePower_kW = availableChargingPower_kW;
-
-for ( int i = 0; i < copiedVehicleList.size(); i++ ){
-	EnergyAsset EA = copiedVehicleList.get(i);
-	J_EAEV vehicle = (J_EAEV)EA.p_energyAssetInstance;
-	if(! vehicle.getAvailability() ){
-		EA.f_updateElectricityFlows( 0 );
-		c_vehiclesAvailableForCharging.remove( i - countDeletedItems );
-		vehicle.chargingNeed = OL_EVChargingNeed.EV_NOT_AVAILABLE;
-		countDeletedItems ++;
-	} 
-	else {
-		double chargeNeedForNextTrip_kWh = max(0, vehicle.energyNeedForNextTrip_kWh - vehicle.getStorageCapacity_kWh()*vehicle.getCurrentStateOfCharge());
-		double timeToNextTrip_min = vehicle.getMobilityTracker().v_nextTripStartTime_min - time ( MINUTE );
-		double chargeDeadline_min = floor((vehicle.getMobilityTracker().v_nextTripStartTime_min / 60 - chargeNeedForNextTrip_kWh / vehicle.getElectricCapacity_kW()) / main.p_timeStep_h) * 60 * main.p_timeStep_h;
-		// A way to improve this charging strategy from a local/holon perspective is to say that if the charging deadline comes near, say 2 times countdown EVs wil charge at 0.5% speed.
-		double chargingRatio = 0.0; // needs to be set at zero! 
-		v_priceDeviationBand_eur = 0.03; // Determines when the vehicle switches from low to medium to high charging need. Also allows to avoid schakelgedrag in neighborhood congestion(prices)
-		
-		if( vehicle.getCurrentStateOfCharge() == 1.0) {
-			vehicle.chargingNeed = OL_EVChargingNeed.NONE;
-		}
-		else if (vehicle.getCurrentStateOfCharge() > chargeNeedForNextTrip_kWh / vehicle.storageCapacity_kWh + p_minEVChargeTarget_fr) { 
-			vehicle.chargingNeed = OL_EVChargingNeed.LOW;
-			if( v_currentElectricityPriceConsumption_eurpkWh < v_electricityPriceLowPassed_eurpkWh - v_priceDeviationBand_eur ) { 
-				if (availableChargingPower_kW > vehicle.getElectricCapacity_kW()){ // if gridconnection has little room, dont charge the vehicle.
-					chargingRatio = 1.0;
-				}
+					<Body><![CDATA[double chargingRatio = 0.0; // needs to be set at zero! 
+if( p_householdEV.getAvailability() ){	
+	if ( p_householdEV.chargingNeed == OL_EVChargingNeed.LOW) { 
+		if( v_currentElectricityPriceConsumption_eurpkWh < v_electricityPriceLowPassed_eurpkWh - v_priceDeviationBand_eur ) { 
+			if (availableChargingPower_kW > p_householdEV.getElectricCapacity_kW()){ // if gridconnection has little room, dont charge the vehicle.
+				chargingRatio = 1.0;
 			}
 		}
-		else if ( time(MINUTE) < chargeDeadline_min ){
-			vehicle.chargingNeed = OL_EVChargingNeed.MEDIUM;
-			if( v_currentElectricityPriceConsumption_eurpkWh < v_electricityPriceLowPassed_eurpkWh - v_priceDeviationBand_eur) { 
-				chargingRatio = min(remainingChargePower_kW, vehicle.capacityElectric_kW) / vehicle.capacityElectric_kW ;
-			}
-			else if( v_currentElectricityPriceConsumption_eurpkWh < v_electricityPriceLowPassed_eurpkWh + v_priceDeviationBand_eur ) { 
-				chargingRatio = min(remainingChargePower_kW, vehicle.capacityElectric_kW) / vehicle.capacityElectric_kW / 4 ; //charge slow, if there is no hurry and price is average
-			}
-		}
-		else {
-			vehicle.chargingNeed = OL_EVChargingNeed.HIGH;
-			chargingRatio = 1.0; // Hier kan er boven de gridconnectie geladen worden. Zeker als je 11 kW laders hebt met een warmtepomp erbij
-		}
-		v_evChargingPowerElectric_kW += EA.f_updateElectricityFlows( chargingRatio );
 	}
-	v_vehicleChargingNeed = vehicle.chargingNeed;
-	v_vehicleSOC_fr = vehicle.getCurrentStateOfCharge();
+	else if ( p_householdEV.chargingNeed == OL_EVChargingNeed.MEDIUM){
+		if( v_currentElectricityPriceConsumption_eurpkWh < v_electricityPriceLowPassed_eurpkWh - v_priceDeviationBand_eur) { 
+			chargingRatio = min(availableChargingPower_kW, p_householdEV.capacityElectric_kW) / p_householdEV.capacityElectric_kW ;
+		}
+		else if( v_currentElectricityPriceConsumption_eurpkWh < v_electricityPriceLowPassed_eurpkWh + v_priceDeviationBand_eur ) { 
+			chargingRatio = min(availableChargingPower_kW, p_householdEV.capacityElectric_kW) / p_householdEV.capacityElectric_kW / 4 ; //charge slow, if there is no hurry and price is average
+		}
+	}
+	else {
+		chargingRatio = 1.0; // Hier kan er boven de gridconnectie geladen worden. Zeker als je 11 kW laders hebt met een warmtepomp erbij
+	}
 }
+v_evChargingPowerElectric_kW += p_householdEV.ownerAsset.f_updateElectricityFlows( chargingRatio );
+
+
 
 ]]></Body>
 				</Function>
@@ -25284,6 +25239,8 @@ p_secondaryHeatingAsset.f_updateAllFlows(p_secondaryHeatingAsset.v_powerFraction
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[double availableCapacityFromBatteries = p_batteryAsset == null ? 0 : ((J_EAStorageElectric)p_batteryAsset.p_energyAssetInstance).getCapacityAvailable_kW(); 
 double availableChargingCapacity = v_allowedCapacity_kW + availableCapacityFromBatteries - v_currentPowerElectricity_kW;
+v_vehicleSOC_fr = p_householdEV.getCurrentStateOfCharge();
+
 switch (p_chargingAttitudeVehicles) {
 	case SIMPLE:
 		f_fixedPriceCharging();
@@ -25322,6 +25279,73 @@ else {
 	level = OL_priceLevels.HIGH;
 }
 return level;]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1675033218897</Id>
+					<Name><![CDATA[f_fixedPriceCharging_overwrite]]></Name>
+					<Description><![CDATA[Charging when arriving home, not taking grid limits into account]]></Description>
+					<X>830</X><Y>380</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[double chargingRatio = 0;
+if( p_householdEV.getCurrentStateOfCharge() < 1 ) {
+	if (! p_hasSmartFlexAssets){
+		chargingRatio = 1;
+	}
+	else {
+		ConnectionOwner owner = ((ConnectionOwner)l_ownerActor.getConnectedAgent());
+		if (! owner.v_currentCongestionType.equals("Overconsumption")){
+			if ( owner.p_capacityTariffApplicable ){
+				chargingRatio = min (1, owner.p_capacityLevel_kW /p_householdEV.getElectricCapacity_kW()); // dont charge faster than the congestion level (although with household demand power drawn will be slightly higher)
+			}
+			else{
+				chargingRatio = 1;
+			}
+		}
+	}
+}
+v_evChargingPowerElectric_kW += p_householdEV.ownerAsset.f_updateElectricityFlows( chargingRatio );
+
+]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1675034695162</Id>
+					<Name><![CDATA[f_determineChargingDemandOfEV]]></Name>
+					<X>800</X><Y>480</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[if( p_householdEV != null && p_chargingAttitudeVehicles == OL_ChargingAttitude.CHEAP ){
+	if(! p_householdEV.getAvailability() ){ // not at home
+		p_householdEV.chargingNeed = OL_EVChargingNeed.EV_NOT_AVAILABLE;
+	}
+	else if( p_householdEV.getCurrentStateOfCharge() >= 1){ // is full
+		p_householdEV.chargingNeed = OL_EVChargingNeed.NONE;
+	}
+	else { // could use some charging
+		double chargeNeedForNextTrip_kWh = max(0, p_householdEV.energyNeedForNextTrip_kWh - p_householdEV.getStorageCapacity_kWh()*p_householdEV.getCurrentStateOfCharge());
+		double timeToNextTrip_min = p_householdEV.getMobilityTracker().v_nextTripStartTime_min - time ( MINUTE );
+		double chargeDeadline_min = floor((p_householdEV.getMobilityTracker().v_nextTripStartTime_min / 60 - chargeNeedForNextTrip_kWh / p_householdEV.getElectricCapacity_kW()) / main.p_timeStep_h) * 60 * main.p_timeStep_h;
+		if (p_householdEV.getCurrentStateOfCharge() > chargeNeedForNextTrip_kWh / p_householdEV.storageCapacity_kWh + p_minEVChargeTarget_fr) { 
+			p_householdEV.chargingNeed = OL_EVChargingNeed.LOW;
+		}
+		else if (time(MINUTE) < chargeDeadline_min ){
+			p_householdEV.chargingNeed = OL_EVChargingNeed.MEDIUM;
+		}
+		else {
+			p_householdEV.chargingNeed = OL_EVChargingNeed.HIGH;
+		}
+	}
+	v_vehicleChargingNeed = p_householdEV.chargingNeed;
+}
+]]></Body>
 				</Function>
 			</Functions>
 			<AnalysisData>
