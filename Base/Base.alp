@@ -800,6 +800,22 @@
 				<Name><![CDATA[EV_NOT_AVAILABLE]]></Name>
 			</Option>
 		</OptionList>
+		<OptionList>
+			<Id>1675025163072</Id>
+			<Name><![CDATA[OL_priceLevels]]></Name>
+			<Option>
+				<Id>1675025163073</Id>
+				<Name><![CDATA[LOW]]></Name>
+			</Option>
+			<Option>
+				<Id>1675025163074</Id>
+				<Name><![CDATA[MEDIUM]]></Name>
+			</Option>
+			<Option>
+				<Id>1675025163075</Id>
+				<Name><![CDATA[HIGH]]></Name>
+			</Option>
+		</OptionList>
 	</OptionLists>
 	<ActiveObjectClasses>
 		<!--   =========   Active Object Class   ========  -->
@@ -8935,9 +8951,6 @@ import java.io.*;]]></Import>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[double]]></Type>        
-						<InitialValue Class="CodeValue">
-							<Code><![CDATA[0.18]]></Code>
-						</InitialValue>
 					</Properties>
 				</Variable>
 				<Variable Class="PlainVariable">
@@ -9176,7 +9189,7 @@ import java.io.*;]]></Import>
 					<Id>1674329641809</Id>
 					<Name><![CDATA[v_currentElectricityPriceConsumption_eurpkWh]]></Name>
 					<X>1120</X><Y>380</Y>
-					<Label><X>10</X><Y>10</Y></Label>
+					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
@@ -10085,6 +10098,38 @@ import java.io.*;]]></Import>
 					</Properties>
 					<Action><![CDATA[v_allowedCapacity_kW = p_connectionCapacity_kW;]]></Action>
 				</Event>
+				<Event>
+					<Id>1675011317461</Id>
+					<Name><![CDATA[e_initializeLowPassEprice]]></Name>
+					<Description><![CDATA[Make sure this is correct, so after the first official timestep has passed]]></Description>
+					<X>1360</X><Y>310</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>false</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties TriggerType="timeout" Mode="occuresOnce">
+						<Timeout Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+						</Timeout>
+						<Rate Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="RateUnits"><![CDATA[PER_HOUR]]></Unit>
+						</Rate>
+						<OccurrenceAtTime>true</OccurrenceAtTime>
+						<OccurrenceDate>1675065600000</OccurrenceDate>
+						<OccurrenceTime Class="CodeUnitValue">
+							<Code><![CDATA[16]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
+						</OccurrenceTime>
+						<RecurrenceCode Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+						</RecurrenceCode>
+						<Condition><![CDATA[false]]></Condition>
+					</Properties>
+					<Action><![CDATA[v_electricityPriceLowPassed_eurpkWh = v_currentElectricityPriceConsumption_eurpkWh;]]></Action>
+				</Event>
 			</Events>
 			<Functions>
 				<Function AccessType="default" StaticFunction="false">
@@ -10835,14 +10880,8 @@ switch (p_chargingAttitudeVehicles) {
 	break;
 	case CHEAP:
 		v_currentElectricityPriceConsumption_eurpkWh = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).v_currentPriceBands.ceilingEntry(v_allowedCapacity_kW).getValue(); // query price at max charging power
-		//double currentElectricityPriceProduction_eurpkWh = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).v_currentPriceBands.floorEntry(-v_allowedCapacity_kW).getValue();
 		v_electricityPriceLowPassed_eurpkWh += v_lowPassFactor_fr * ( v_currentElectricityPriceConsumption_eurpkWh - v_electricityPriceLowPassed_eurpkWh );
-		if (this instanceof GCHouse){
-			((GCHouse)this).f_chargeOnPrice2( v_currentElectricityPriceConsumption_eurpkWh, max(0, availableChargingCapacity));
-		}
-		else {
-			f_chargeOnPrice( v_currentElectricityPriceConsumption_eurpkWh, max(0, availableChargingCapacity));
-		}
+		f_chargeOnPrice( v_currentElectricityPriceConsumption_eurpkWh, max(0, availableChargingCapacity));
 	break;
 }
 ]]></Body>
@@ -19410,6 +19449,54 @@ v_currentPriceBands.put(p_capacityLevel_kW, 0.0);
 v_currentPriceBands.put(9999.0, 0.0);
 ]]></Body>
 				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>RETURNS_VALUE</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1675011274392</Id>
+					<Name><![CDATA[f_getElectricityPrice]]></Name>
+					<X>660</X><Y>310</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[currentPowerDrawn_kW]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
+					<Body><![CDATA[double price = 0;
+if( currentPowerDrawn_kW > 0 ){
+	price = v_currentPriceBands.ceilingEntry( currentPowerDrawn_kW ).getValue();
+}
+else {
+	price = v_currentPriceBands.floorEntry( currentPowerDrawn_kW ).getValue() ;
+}
+
+return price;]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>RETURNS_VALUE</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1675012472432</Id>
+					<Name><![CDATA[f_getAvailablePowerAtPrice]]></Name>
+					<X>660</X><Y>330</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[currentPowerDrawn_kW]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
+					<Body><![CDATA[double availablePower = 0;
+if( currentPowerDrawn_kW > 0 ){
+	availablePower = v_currentPriceBands.ceilingKey( currentPowerDrawn_kW ) - currentPowerDrawn_kW;
+}
+else {
+	availablePower = - v_currentPriceBands.floorKey( currentPowerDrawn_kW ) + currentPowerDrawn_kW;
+}
+
+return availablePower;]]></Body>
+				</Function>
 			</Functions>
 			<AgentLinks>
 				<AgentLink>
@@ -24145,6 +24232,15 @@ public void f_operateFlexAssets(){
 public void f_manageHeatingAssets(){
 	f_manageHeatingAssets_overwrite();
 }
+
+@Override 
+public void f_manageCharging(){
+	f_manageCharging_overwrite();
+}
+@Override 
+public void f_chargeOnPrice(double a, double b){
+	f_chargeOnPrice_overwrite(a,b);
+}
 ]]></AdditionalClassCode>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
 			<ExtendsReference>
@@ -24440,6 +24536,45 @@ v_dayTempSetpoint_degC = uniform_discr(18, 23);]]></StartupCode>
 						<Type><![CDATA[double]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1675025204918</Id>
+					<Name><![CDATA[v_currentElectricityPriceLevel]]></Name>
+					<X>1120</X><Y>480</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[OL_priceLevels]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1675025320370</Id>
+					<Name><![CDATA[v_priceDeviationBand_eur]]></Name>
+					<X>1120</X><Y>500</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0.05]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1675025488988</Id>
+					<Name><![CDATA[v_currentPriceLevel]]></Name>
+					<X>1120</X><Y>520</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[OL_priceLevels]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1665487269767</Id>
 					<Name><![CDATA[p_isolationLabel]]></Name>
@@ -24654,7 +24789,14 @@ p_ThermalStorageAsset.f_updateAllFlows(p_ThermalStorageAsset.v_powerFraction_fr)
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[f_manageHeatingAssets();
+					<Body><![CDATA[v_currentElectricityPriceConsumption_eurpkWh = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).v_currentPriceBands.ceilingEntry( v_currentPowerElectricity_kW ).getValue(); // query price at power demand from fixed assets (can be negative)
+v_electricityPriceLowPassed_eurpkWh += v_lowPassFactor_fr * ( v_currentElectricityPriceConsumption_eurpkWh - v_electricityPriceLowPassed_eurpkWh );
+v_currentPriceLevel = f_getPriceLevel( v_currentElectricityPriceConsumption_eurpkWh );
+
+double electricityPrice_eurpkWh = v_currentElectricityPriceConsumption_eurpkWh;
+double availablePowerAtPrice_kW = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).f_getAvailablePowerAtPrice( v_currentPowerElectricity_kW );
+
+f_manageHeatingAssets();
 
 for( EnergyAsset EA : c_conversionAssets ){
 	v_currentPowerElectricity_kW += EA.v_currentConsumptionElectricity_kW - EA.v_currentProductionElectricity_kW;
@@ -24859,7 +25001,7 @@ if( ambientTempType != null && ambientTempType.equals("AIR") ) {
 					<Name><![CDATA[f_maxPowerCharging]]></Name>
 					<Description><![CDATA[Charge at max power taking grid constaints into account]]></Description>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>980</X><Y>420</Y>
+					<X>830</X><Y>420</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -24952,7 +25094,7 @@ else if (p_heatBuffer == null){
 }
 double currentLeveledElectricityPrice_eurpkWh = 0;
 if( p_hasSmartFlexAssets && l_ownerActor.getConnectedAgent() instanceof ConnectionOwner ){
-	 currentLeveledElectricityPrice_eurpkWh = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).getLeveledElectricityPrice( p_primaryHeatingAsset.p_energyAssetInstance.getElectricCapacity_kW(), v_currentPowerElectricity_kW  );
+	// currentLeveledElectricityPrice_eurpkWh = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).getLeveledElectricityPrice( p_primaryHeatingAsset.p_energyAssetInstance.getElectricCapacity_kW(), v_currentPowerElectricity_kW  );
 }
 
 double powerFraction_heatBuffer_fr = 0;
@@ -25023,8 +25165,8 @@ p_primaryHeatingAsset.v_powerFraction_fr = powerFraction_heatPump_fr;
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1674402121915</Id>
-					<Name><![CDATA[f_chargeOnPrice2]]></Name>
-					<X>830</X><Y>460</Y>
+					<Name><![CDATA[f_chargeOnPrice_overwrite]]></Name>
+					<X>830</X><Y>440</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -25057,14 +25199,14 @@ for ( int i = 0; i < copiedVehicleList.size(); i++ ){
 		double chargeDeadline_min = floor((vehicle.getMobilityTracker().v_nextTripStartTime_min / 60 - chargeNeedForNextTrip_kWh / vehicle.getElectricCapacity_kW()) / main.p_timeStep_h) * 60 * main.p_timeStep_h;
 		// A way to improve this charging strategy from a local/holon perspective is to say that if the charging deadline comes near, say 2 times countdown EVs wil charge at 0.5% speed.
 		double chargingRatio = 0.0; // needs to be set at zero! 
-		double priceDeviationBand_eur = 0.03; // Determines when the vehicle switches from low to medium to high charging need. Also allows to avoid schakelgedrag in neighborhood congestion(prices)
+		v_priceDeviationBand_eur = 0.03; // Determines when the vehicle switches from low to medium to high charging need. Also allows to avoid schakelgedrag in neighborhood congestion(prices)
 		
 		if( vehicle.getCurrentStateOfCharge() == 1.0) {
 			vehicle.chargingNeed = OL_EVChargingNeed.NONE;
 		}
 		else if (vehicle.getCurrentStateOfCharge() > chargeNeedForNextTrip_kWh / vehicle.storageCapacity_kWh + p_minEVChargeTarget_fr) { 
 			vehicle.chargingNeed = OL_EVChargingNeed.LOW;
-			if( v_currentElectricityPriceConsumption_eurpkWh < v_electricityPriceLowPassed_eurpkWh - priceDeviationBand_eur ) { 
+			if( v_currentElectricityPriceConsumption_eurpkWh < v_electricityPriceLowPassed_eurpkWh - v_priceDeviationBand_eur ) { 
 				if (availableChargingPower_kW > vehicle.getElectricCapacity_kW()){ // if gridconnection has little room, dont charge the vehicle.
 					chargingRatio = 1.0;
 				}
@@ -25072,10 +25214,10 @@ for ( int i = 0; i < copiedVehicleList.size(); i++ ){
 		}
 		else if ( time(MINUTE) < chargeDeadline_min ){
 			vehicle.chargingNeed = OL_EVChargingNeed.MEDIUM;
-			if( v_currentElectricityPriceConsumption_eurpkWh < v_electricityPriceLowPassed_eurpkWh - priceDeviationBand_eur) { 
+			if( v_currentElectricityPriceConsumption_eurpkWh < v_electricityPriceLowPassed_eurpkWh - v_priceDeviationBand_eur) { 
 				chargingRatio = min(remainingChargePower_kW, vehicle.capacityElectric_kW) / vehicle.capacityElectric_kW ;
 			}
-			else if( v_currentElectricityPriceConsumption_eurpkWh < v_electricityPriceLowPassed_eurpkWh + priceDeviationBand_eur ) { 
+			else if( v_currentElectricityPriceConsumption_eurpkWh < v_electricityPriceLowPassed_eurpkWh + v_priceDeviationBand_eur ) { 
 				chargingRatio = min(remainingChargePower_kW, vehicle.capacityElectric_kW) / vehicle.capacityElectric_kW / 4 ; //charge slow, if there is no hurry and price is average
 			}
 		}
@@ -25129,6 +25271,57 @@ for ( int i = 0; i < copiedVehicleList.size(); i++ ){
 	p_ThermalStorageAsset.v_powerFraction_fr = 0;
 }
 p_secondaryHeatingAsset.f_updateAllFlows(p_secondaryHeatingAsset.v_powerFraction_fr);]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1675014184707</Id>
+					<Name><![CDATA[f_manageCharging_overwrite]]></Name>
+					<X>800</X><Y>360</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[double availableCapacityFromBatteries = p_batteryAsset == null ? 0 : ((J_EAStorageElectric)p_batteryAsset.p_energyAssetInstance).getCapacityAvailable_kW(); 
+double availableChargingCapacity = v_allowedCapacity_kW + availableCapacityFromBatteries - v_currentPowerElectricity_kW;
+switch (p_chargingAttitudeVehicles) {
+	case SIMPLE:
+		f_fixedPriceCharging();
+	break;
+	case CHEAP:
+		f_chargeOnPrice( v_currentElectricityPriceConsumption_eurpkWh, max(0, availableChargingCapacity));
+	break;
+	default:
+		traceln("Incorrect charging mode in household @f_manageCharging_overwrite");
+}
+]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>RETURNS_VALUE</ReturnModificator>
+					<ReturnType><![CDATA[OL_priceLevels]]></ReturnType>
+					<Id>1675025370237</Id>
+					<Name><![CDATA[f_getPriceLevel]]></Name>
+					<X>800</X><Y>460</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[price]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
+					<Body><![CDATA[OL_priceLevels level = null;
+
+if( price < v_electricityPriceLowPassed_eurpkWh - v_priceDeviationBand_eur ){
+	level = OL_priceLevels.LOW;
+}
+else if ( price < v_electricityPriceLowPassed_eurpkWh + v_priceDeviationBand_eur){
+	level = OL_priceLevels.MEDIUM;
+}
+else {
+	level = OL_priceLevels.HIGH;
+}
+return level;]]></Body>
 				</Function>
 			</Functions>
 			<AnalysisData>
@@ -25506,7 +25699,7 @@ p_secondaryHeatingAsset.f_updateAllFlows(p_secondaryHeatingAsset.v_powerFraction
     			<TimePlot>
 					<Id>1674397022338</Id>
 					<Name><![CDATA[pl_SOC4]]></Name>
-					<X>960</X><Y>480</Y>
+					<X>1390</X><Y>480</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -28521,7 +28714,9 @@ nextActivityEndTimer.restart( endtimes.get(v_tripIndex) - time( MINUTE ), MINUTE
 if(p_vehicleInstance instanceof J_EAEV){
 	((J_EAEV)p_vehicleInstance).endTrip( v_tripDist_km, v_idleTimeToNextTrip_min);
 	((J_EAEV)p_vehicleInstance).energyNeedForNextTrip_kWh = ((J_EAEV)p_vehicleInstance).getEnergyConsumption_kWhpkm() * distances.get( v_tripIndex );
-	p_gridConnection.c_vehiclesAvailableForCharging.add( p_energyAsset );
+	if( ! (p_gridConnection instanceof GCHouse)){
+		p_gridConnection.c_vehiclesAvailableForCharging.add( p_energyAsset ); // for houses we dont use the collection. 
+	}
 	if (p_gridConnection.p_chargingAttitudeVehicles == MAX_SPREAD){
 		((J_EAEV)p_vehicleInstance).setMaxSpreadChargingRatio(p_gridConnection.v_additionalTimeSpreadCharging_MIN);
 		//traceln( "vehicle komt aan van " + v_tripDist_km + " km, charging ratio set at: " + p_vehicleInstance.getMaxSpreadChargingRatio());
@@ -29383,35 +29578,6 @@ nextActivityEndTimer.restart( endtimes.get(0) - time( MINUTE ), MINUTE);
 					</Properties>                 
 				</Variable>
 			</Variables>
-			<Functions>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>RETURNS_VALUE</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1674663150748</Id>
-					<Name><![CDATA[getLeveledElectricityPrice]]></Name>
-					<X>660</X><Y>180</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Parameter>
-						<Name><![CDATA[assetFullPower]]></Name>
-						<Type><![CDATA[double]]></Type>
-					</Parameter>
-					<Parameter>
-						<Name><![CDATA[currentGCPower]]></Name>
-						<Type><![CDATA[double]]></Type>
-					</Parameter>
-					<Body><![CDATA[ConnectionOwner owner = (ConnectionOwner)this;
-if ( currentGCPower > 0){
-	//traceln(" ");
-	//traceln(" power demand = " + currentGCPower);
-	//traceln(getName() + " current price ceilingKey = " + owner.v_currentPriceBands.ceilingKey(currentGCPower));
-}
-
-return 0.2;]]></Body>
-				</Function>
-			</Functions>
 			<AgentLinks>
 				<AgentLink>
 					<Id>1674662535381</Id>
