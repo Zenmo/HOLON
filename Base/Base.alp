@@ -3668,12 +3668,17 @@ for(HashMap data : parsedJSONGridConnections) {
 	OL_GridConnectionIsolationLabel gridConnectionIsolationLabel = data.get( "insulation_label" ) == null? null : OL_GridConnectionIsolationLabel.valueOf((String)data.get( "insulation_label" ));
 	OL_GridConnectionHeatingType gridConnectionHeatingType = data.get( "heating_type" ) == null? null : OL_GridConnectionHeatingType.valueOf((String)data.get( "heating_type" ));
 	boolean smartAssets = data.get("smart_assets") == null ? false:true;
+
 	
 	//traceln("data: " + "id = " + gridConnectionID + ", category = " + gridConnectionCategory + ", connectionType = " + gridConnectionType + ", parentElectric" + gridConnectionParentElectric + ", parentHeat = " + gridConnectionParentHeat + ", capacity = " + gridConnectionCapacity + "owner_actor = "+ ownerActorID);
 	switch(gridConnectionCategory) {
 		case HOUSE:
+			Double pricelevel_low_dif_from_avg_eurpkWh = data.get("pricelevel_low_dif_from_avg_eurpkWh") == null ? null : (Double)data.get("pricelevel_low_dif_from_avg_eurpkWh");
+			Double pricelevel_high_dif_from_avg_eurpkWh = data.get("pricelevel_high_dif_from_avg_eurpkWh") == null ? null : (Double)data.get("pricelevel_high_dif_from_avg_eurpkWh");
 			GC = add_Houses();
 			((GCHouse)GC).set_p_isolationLabel( gridConnectionIsolationLabel );
+			((GCHouse)GC).set_p_pricelevelHighDifFromAvg_eurpkWh( pricelevel_high_dif_from_avg_eurpkWh );
+			((GCHouse)GC).set_p_pricelevelLowDifFromAvg_eurpkWh( pricelevel_low_dif_from_avg_eurpkWh );
 			((GCHouse)GC).f_createHouseHeatModel();
 	 	break;
  		case BUILDING:
@@ -5314,6 +5319,12 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_householdEV]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_pricelevelLowDifFromAvg_eurpkWh]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_pricelevelHighDifFromAvg_eurpkWh]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -19467,13 +19478,23 @@ v_currentPriceBands.put(9999.0, 0.0);
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
 					<Body><![CDATA[double price = 0;
-if( currentPowerDrawn_kW > 0 ){
-	price = v_currentPriceBands.ceilingEntry( currentPowerDrawn_kW ).getValue();
+if( currentPowerDrawn_kW >= 0 ){
+	if( v_currentPriceBands.ceilingKey(currentPowerDrawn_kW) == currentPowerDrawn_kW ){
+		price = v_currentPriceBands.higherEntry( currentPowerDrawn_kW ).getValue();
+	}
+	else{
+		price = v_currentPriceBands.ceilingEntry( currentPowerDrawn_kW ).getValue();
+	}
 }
 else {
-	price = v_currentPriceBands.floorEntry( currentPowerDrawn_kW ).getValue() ;
+	if( v_currentPriceBands.ceilingKey(currentPowerDrawn_kW) == currentPowerDrawn_kW ){
+		price = v_currentPriceBands.higherEntry( currentPowerDrawn_kW ).getValue() ;
+	}
+	else{
+		price = v_currentPriceBands.floorEntry( currentPowerDrawn_kW ).getValue() ;
+	}
 }
-
+//traceln(price);
 return price;]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -19491,14 +19512,99 @@ return price;]]></Body>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
 					<Body><![CDATA[double availablePower = 0;
-if( currentPowerDrawn_kW > 0 ){
-	availablePower = v_currentPriceBands.ceilingKey( currentPowerDrawn_kW ) - currentPowerDrawn_kW;
+if( currentPowerDrawn_kW >= 0 ){
+	if( currentPowerDrawn_kW == v_currentPriceBands.ceilingKey( currentPowerDrawn_kW )){
+		availablePower = v_currentPriceBands.higherKey( currentPowerDrawn_kW ) - currentPowerDrawn_kW;
+	}
+	else {
+		availablePower = v_currentPriceBands.ceilingKey( currentPowerDrawn_kW ) - currentPowerDrawn_kW;
+	}
 }
 else {
-	availablePower = - v_currentPriceBands.floorKey( currentPowerDrawn_kW ) + currentPowerDrawn_kW;
+	if(currentPowerDrawn_kW == v_currentPriceBands.floorKey( currentPowerDrawn_kW ) ){
+		availablePower = v_currentPriceBands.higherKey( currentPowerDrawn_kW ) - currentPowerDrawn_kW;
+	}
+	else{
+		availablePower = v_currentPriceBands.ceilingKey( currentPowerDrawn_kW ) - currentPowerDrawn_kW;
+		
+	}
+}
+//traceln(availablePower);
+return availablePower;]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>RETURNS_VALUE</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1675068408612</Id>
+					<Name><![CDATA[f_getAveragedElectricityPrice]]></Name>
+					<Description><![CDATA[Returns the average electricity price of a given additional power demand above a current demand, taking all tariff structures into accounts. Mainly used for heatpumps that only operate at full ]]></Description>
+					<X>660</X><Y>350</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[baseDemand_kW]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
+					<Parameter>
+						<Name><![CDATA[requestedPower_kW]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
+					<Body><![CDATA[double price = 0; 
+double availablePower = 0; 
+double addedPrice;
+double addedPower;
+boolean isDemandMet = false;
+
+while (! isDemandMet ) {
+	if( baseDemand_kW >= 0 ){
+		if( baseDemand_kW == v_currentPriceBands.ceilingKey( baseDemand_kW ) ){
+			addedPrice = v_currentPriceBands.higherEntry( baseDemand_kW ).getValue();
+		}
+		else{
+			addedPrice = v_currentPriceBands.ceilingEntry( baseDemand_kW ).getValue();
+		}
+	}
+	else {
+		addedPrice = v_currentPriceBands.floorEntry( baseDemand_kW ).getValue() ;
+	}
+	
+	if( baseDemand_kW > 0 ){
+		addedPower = v_currentPriceBands.ceilingKey( baseDemand_kW ) - baseDemand_kW;
+		baseDemand_kW += v_currentPriceBands.ceilingKey( baseDemand_kW );
+	}
+	else {
+		if( baseDemand_kW == v_currentPriceBands.ceilingKey( baseDemand_kW ) ){
+			addedPower = v_currentPriceBands.higherKey( baseDemand_kW ) - baseDemand_kW;
+			baseDemand_kW = v_currentPriceBands.higherKey( baseDemand_kW );
+		}
+		else{
+			addedPower =  v_currentPriceBands.ceilingKey( baseDemand_kW ) - baseDemand_kW;
+			baseDemand_kW = v_currentPriceBands.ceilingKey( baseDemand_kW );
+		}
+	}
+	
+	if (availablePower + addedPower >= requestedPower_kW){
+		isDemandMet = true;
+		addedPower = requestedPower_kW - availablePower;
+	}
+	
+	price = price + addedPrice * addedPower;
+	availablePower += addedPower;
+	
+	//traceln("added Price " + addedPrice + ", at demand " + baseDemand_kW);	
+	//traceln("demand met "+ isDemandMet);
+	//traceln("added power " + addedPower + ", at demand " + baseDemand_kW);			
+	//traceln("new baseDemand " + baseDemand_kW);
+	//traceln( "Huidige totaalprijs = " + price);
+	//traceln( "price/kWh = " + price / availablePower);
+	//traceln( "Available power " + availablePower);
+	//traceln(" ");
 }
 
-return availablePower;]]></Body>
+return price / availablePower;
+]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -19753,6 +19859,37 @@ return availablePower;]]></Body>
 					</Font>
 					<Alignment>LEFT</Alignment>
 				</Text>
+				<Control Type="Button">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1675071708039</Id>
+					<Name><![CDATA[button]]></Name>
+					<X>660</X><Y>370</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="140" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<TextColor/>
+						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[//f_getAveragedElectricityPrice(-10, 10);
+f_getAvailablePowerAtPrice(5);
+f_getElectricityPrice(5);
+f_getAvailablePowerAtPrice(0);
+f_getElectricityPrice(0);
+f_getAvailablePowerAtPrice(-1);
+f_getElectricityPrice(-1);
+f_getAvailablePowerAtPrice(-10);
+f_getElectricityPrice(-10);
+
+]]></ActionCode>
+					</BasicProperties>
+					<ExtendedProperties>
+						<Font Name="Dialog" Size="11" Style="0"/>
+						<LabelText><![CDATA[test avg price function]]></LabelText>
+					</ExtendedProperties>
+				</Control>
 			</Presentation>
 
 				</Level>
@@ -24545,36 +24682,9 @@ v_dayTempSetpoint_degC = uniform_discr(18, 23);]]></StartupCode>
 					</Properties>
 				</Variable>
 				<Variable Class="PlainVariable">
-					<Id>1675025204918</Id>
-					<Name><![CDATA[v_currentElectricityPriceLevel]]></Name>
-					<X>1120</X><Y>480</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[OL_priceLevels]]></Type>        
-					</Properties>
-				</Variable>
-				<Variable Class="PlainVariable">
-					<Id>1675025320370</Id>
-					<Name><![CDATA[v_priceDeviationBand_eur]]></Name>
-					<X>1120</X><Y>500</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[double]]></Type>        
-						<InitialValue Class="CodeValue">
-							<Code><![CDATA[0.05]]></Code>
-						</InitialValue>
-					</Properties>
-				</Variable>
-				<Variable Class="PlainVariable">
 					<Id>1675025488988</Id>
 					<Name><![CDATA[v_currentPriceLevel]]></Name>
-					<X>1120</X><Y>520</Y>
+					<X>1120</X><Y>480</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -24607,7 +24717,7 @@ v_dayTempSetpoint_degC = uniform_discr(18, 23);]]></StartupCode>
 				<Variable Class="Parameter">
 					<Id>1666626554233</Id>
 					<Name><![CDATA[p_DHWAsset]]></Name>
-					<X>470</X><Y>410</Y>
+					<X>480</X><Y>410</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -24631,7 +24741,7 @@ v_dayTempSetpoint_degC = uniform_discr(18, 23);]]></StartupCode>
 				<Variable Class="Parameter">
 					<Id>1674057360864</Id>
 					<Name><![CDATA[p_heatBuffer]]></Name>
-					<X>470</X><Y>390</Y>
+					<X>480</X><Y>390</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -24701,7 +24811,7 @@ v_dayTempSetpoint_degC = uniform_discr(18, 23);]]></StartupCode>
 				<Variable Class="Parameter">
 					<Id>1675032836511</Id>
 					<Name><![CDATA[p_householdEV]]></Name>
-					<X>610</X><Y>300</Y>
+					<X>620</X><Y>300</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -24712,6 +24822,48 @@ v_dayTempSetpoint_degC = uniform_discr(18, 23);]]></StartupCode>
 						<SdArray>false</SdArray>
 						<ParameterEditor>
 							<Id>1675032836509</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1675103286088</Id>
+					<Name><![CDATA[p_pricelevelLowDifFromAvg_eurpkWh]]></Name>
+					<X>250</X><Y>380</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1675103286086</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1675103312088</Id>
+					<Name><![CDATA[p_pricelevelHighDifFromAvg_eurpkWh]]></Name>
+					<X>250</X><Y>400</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1675103312086</Id>
 							<EditorContolType>TEXT_BOX</EditorContolType>
 							<MinSliderValue><![CDATA[0]]></MinSliderValue>
 							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
@@ -24790,7 +24942,7 @@ if ( p_secondaryHeatingAsset == null ) {
 			}
 		} 
 		else if (p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatPump){
-				f_heatWithHeatpumpAndBuffer( v_currentElectricityPriceConsumption_eurpkWh );
+				f_heatWithHeatpumpAndBuffer( );
 		}
 		else {
 			traceln("House " + p_agentID + " has a single unsupported heating asset!");
@@ -24825,8 +24977,7 @@ v_currentPriceLevel = f_getPriceLevel( v_currentElectricityPriceConsumption_eurp
 double electricityPrice_eurpkWh = v_currentElectricityPriceConsumption_eurpkWh;
 double availablePowerAtPrice_kW = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).f_getAvailablePowerAtPrice( v_currentPowerElectricity_kW );
 
-f_determineChargingDemandOfEV();
-
+f_determineChargingDemandOfEV(); //we do this here because with smart assets the heatpumps will need information of the SOC of the EV
 f_manageHeatingAssets();
 
 for( EnergyAsset EA : c_conversionAssets ){
@@ -25031,7 +25182,7 @@ if( ambientTempType != null && ambientTempType.equals("AIR") ) {
 					<ReturnType><![CDATA[boolean]]></ReturnType>
 					<Id>1674044371588</Id>
 					<Name><![CDATA[f_calcCheapestHeatingPrice]]></Name>
-					<X>1670</X><Y>40</Y>
+					<X>1690</X><Y>80</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -25042,7 +25193,7 @@ boolean isGasCheaper = false;
 if(l_ownerActor.getConnectedAgent() instanceof ConnectionOwner) {
 	if( ((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_energySupplier instanceof EnergySupplier){
 		v_gasHeatingCost_eurpkWh_TEMPORARY = ((EnergySupplier)((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_energySupplier).p_fixedMethanePrice_eurpkWh;
-		v_eHeatingCost_eurpkWh_TEMPORARY = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).v_electricityBuyPrice_eurpkWh / HP_COP;
+		v_eHeatingCost_eurpkWh_TEMPORARY = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).f_getAveragedElectricityPrice( v_currentPowerElectricity_kW, p_primaryHeatingAsset.p_energyAssetInstance.getElectricCapacity_kW() ) / HP_COP;
 		isGasCheaper = v_gasHeatingCost_eurpkWh_TEMPORARY < v_eHeatingCost_eurpkWh_TEMPORARY ? true:false;
 	}
 }
@@ -25071,15 +25222,11 @@ else {
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1674294670923</Id>
 					<Name><![CDATA[f_heatWithHeatpumpAndBuffer]]></Name>
-					<X>1670</X><Y>60</Y>
+					<X>1670</X><Y>40</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Parameter>
-						<Name><![CDATA[electricityPrice]]></Name>
-						<Type><![CDATA[double]]></Type>
-					</Parameter>
 					<Body><![CDATA[if (p_heatingType != OL_GridConnectionHeatingType.HEATPUMP_AIR){
 	traceln("Error, f_heatWithHeatpump: "+ getName() + " is trying to heat with heatpump and buffer, but is not of correct type");
 }
@@ -25089,25 +25236,30 @@ else if (p_heatBuffer == null){
 
 double powerFraction_heatBuffer_fr = 0;
 double powerFraction_heatPump_fr = 0;
-double priceDeviationBand_eur = 0.03; //deze wordt nu op twee plekken gehardcode. Als dit naar input config gaat, houd hier rekening mee.
+double avgElectricityPrice_eurpkWh = 10;
+J_EAConversionHeatPump hp = (J_EAConversionHeatPump)p_primaryHeatingAsset.p_energyAssetInstance;
+
+if ( p_hasSmartFlexAssets ) {
+	avgElectricityPrice_eurpkWh = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).f_getAveragedElectricityPrice( v_currentPowerElectricity_kW, hp.getElectricCapacity_kW() );
+}
 
 //heat the buffer if it requires heat
 if ( ((J_EAStorageHeat)p_heatBuffer.p_energyAssetInstance).requiresHeat){ 
 	powerFraction_heatPump_fr = 1;
-	powerFraction_heatBuffer_fr = p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() / p_heatBuffer.p_energyAssetInstance.getHeatCapacity_kW() ;
+	powerFraction_heatBuffer_fr = hp.getHeatCapacity_kW() / p_heatBuffer.p_energyAssetInstance.getHeatCapacity_kW() ;
 	//traceln("heat buffer cus of need");
 }
 //also heat the buffer if the price is cheap, the buffer has some room and the vehicle does not need charging
-else if( 	p_hasSmartFlexAssets && electricityPrice < v_electricityPriceLowPassed_eurpkWh - priceDeviationBand_eur 
+else if( 	p_hasSmartFlexAssets && avgElectricityPrice_eurpkWh < v_electricityPriceLowPassed_eurpkWh - p_pricelevelLowDifFromAvg_eurpkWh 
 			&& ((J_EAStorageHeat)p_heatBuffer.p_energyAssetInstance).getCurrentStateOfCharge() < 0.7)
 {
-	if( c_vehicleAssets.size() == 0){
+	if( p_householdEV == null ){
 		powerFraction_heatPump_fr = 1;
-		powerFraction_heatBuffer_fr = p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() / p_heatBuffer.p_energyAssetInstance.getHeatCapacity_kW();
+		powerFraction_heatBuffer_fr = hp.getHeatCapacity_kW() / p_heatBuffer.p_energyAssetInstance.getHeatCapacity_kW();
 	} else if (p_householdEV.chargingNeed != OL_EVChargingNeed.HIGH){
 		powerFraction_heatPump_fr = 1;
 		//traceln("heat buffer cus cheap");
-		powerFraction_heatBuffer_fr = p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() / p_heatBuffer.p_energyAssetInstance.getHeatCapacity_kW();
+		powerFraction_heatBuffer_fr = hp.getHeatCapacity_kW() / p_heatBuffer.p_energyAssetInstance.getHeatCapacity_kW();
 	}
 }
 powerFraction_heatBuffer_fr += -v_hotwaterDemand_kW;
@@ -25117,19 +25269,19 @@ if( powerFraction_heatPump_fr == 0 ){
 	if (v_currentHouseTemp_degC < v_tempSetpoint_degC - p_heatingKickinTreshold ) {
 		powerFraction_heatPump_fr = 1; 
 		//traceln("heat house cus of need");
-		p_ThermalStorageAsset.v_powerFraction_fr = p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW();
+		p_ThermalStorageAsset.v_powerFraction_fr = hp.getHeatCapacity_kW() / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW();
 	}
 	//also heat the house if the price is cheap, the the house is colder than desired + 1 and the vehicle does not need charging
-	else if( 	p_hasSmartFlexAssets && electricityPrice < v_electricityPriceLowPassed_eurpkWh - priceDeviationBand_eur 
+	else if( 	p_hasSmartFlexAssets && avgElectricityPrice_eurpkWh < v_electricityPriceLowPassed_eurpkWh - p_pricelevelLowDifFromAvg_eurpkWh 
 				&& v_currentHouseTemp_degC < v_tempSetpoint_degC + 1)
 	{
-		if( c_vehicleAssets.size() == 0){
+		if( p_householdEV == null ){
 			powerFraction_heatPump_fr = 1;
-			powerFraction_heatBuffer_fr = p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() / p_heatBuffer.p_energyAssetInstance.getHeatCapacity_kW();
+			powerFraction_heatBuffer_fr = hp.getHeatCapacity_kW() / p_heatBuffer.p_energyAssetInstance.getHeatCapacity_kW();
 		} else if (p_householdEV.chargingNeed != OL_EVChargingNeed.HIGH){ // only use heatpump if the vehicle is not about to charge
 			powerFraction_heatPump_fr = 1;
 			//traceln("heat house cus of cheap");
-			p_ThermalStorageAsset.v_powerFraction_fr = p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW();
+			p_ThermalStorageAsset.v_powerFraction_fr = hp.getHeatCapacity_kW() / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW();
 		}
 	}
 	else {
@@ -25158,33 +25310,65 @@ p_primaryHeatingAsset.v_powerFraction_fr = powerFraction_heatPump_fr;
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
 					<Parameter>
-						<Name><![CDATA[availableChargingPower_kW]]></Name>
+						<Name><![CDATA[availablePowerOnGC_kW]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
 					<Body><![CDATA[double chargingRatio = 0.0; // needs to be set at zero! 
-if( p_householdEV.getAvailability() ){	
-	if ( p_householdEV.chargingNeed == OL_EVChargingNeed.LOW) { 
-		if( v_currentElectricityPriceConsumption_eurpkWh < v_electricityPriceLowPassed_eurpkWh - v_priceDeviationBand_eur ) { 
-			if (availableChargingPower_kW > p_householdEV.getElectricCapacity_kW()){ // if gridconnection has little room, dont charge the vehicle.
-				chargingRatio = 1.0;
+double powerAvailableAtPrice_kW = 0;
+double currentPowerDrawn_kW = v_currentPowerElectricity_kW;
+boolean continueLoop = true;
+double maxChargingPower_kW = p_householdEV.capacityElectric_kW;
+ConnectionOwner owner = (ConnectionOwner)l_ownerActor.getConnectedAgent();
+double electricityPrice_eurpkWh = 0;
+int index = 0;
+
+if( p_householdEV.getAvailability() ){
+	while ( continueLoop && index < 5 ){	
+		powerAvailableAtPrice_kW += owner.f_getAvailablePowerAtPrice( currentPowerDrawn_kW );
+		electricityPrice_eurpkWh = owner.f_getElectricityPrice( currentPowerDrawn_kW );
+		if (powerAvailableAtPrice_kW > 2){ // only charge if there is at least 2 kW available, hardcoded for now
+			// SCENARIO LOW CHARGING NEED -> Only when price is low
+			if ( p_householdEV.chargingNeed == OL_EVChargingNeed.LOW) { 
+				if( electricityPrice_eurpkWh < v_electricityPriceLowPassed_eurpkWh - p_pricelevelLowDifFromAvg_eurpkWh ) { 
+					if (availablePowerOnGC_kW > p_householdEV.getElectricCapacity_kW()){ // if gridconnection has little room, dont charge the vehicle.
+						if (powerAvailableAtPrice_kW >= p_householdEV.getElectricCapacity_kW() ){
+							chargingRatio = 1.0;
+							continueLoop = false;
+						}
+						else{
+							currentPowerDrawn_kW += powerAvailableAtPrice_kW;
+						}
+					}
+				}
+			}
+			// SCENARIO MEDIUM CHARGING NEED -> Only when price is low or a bit when medium
+			else if ( p_householdEV.chargingNeed == OL_EVChargingNeed.MEDIUM){
+				if( electricityPrice_eurpkWh < v_electricityPriceLowPassed_eurpkWh - p_pricelevelLowDifFromAvg_eurpkWh) { 
+					if (powerAvailableAtPrice_kW >= p_householdEV.getElectricCapacity_kW() ){
+						chargingRatio = min(availablePowerOnGC_kW, p_householdEV.capacityElectric_kW) / p_householdEV.capacityElectric_kW ;
+						continueLoop = false;
+					}
+					else{
+						currentPowerDrawn_kW += powerAvailableAtPrice_kW;
+					}
+				}
+				else if( electricityPrice_eurpkWh < v_electricityPriceLowPassed_eurpkWh + p_pricelevelHighDifFromAvg_eurpkWh ) { //TODO er is hier nog een randgeval waarbij een deel van het laden tegen een lage prijs kan, 
+				//maar doordat hij in de loop naar de volgende prijsband kijkt, die hier 'medium' geprijsd is, laadt de EV maar met 1/4 van de laadsnelheid. Terwijl hij eigenlijk sneller zou kunen ladem.
+					chargingRatio = min(powerAvailableAtPrice_kW, min(availablePowerOnGC_kW, p_householdEV.capacityElectric_kW) / p_householdEV.capacityElectric_kW / 4) ; //charge slow, if there is no hurry and price is average
+				}
+			}
+			// SCENARIO HIGH CHARGING NEED -> charge full power, otherwise the EV will not get full
+			else {
+				chargingRatio = 1.0; // Hier kan er boven de gridconnectie geladen worden. Zeker als je 11 kW laders hebt met een warmtepomp erbij
 			}
 		}
-	}
-	else if ( p_householdEV.chargingNeed == OL_EVChargingNeed.MEDIUM){
-		if( v_currentElectricityPriceConsumption_eurpkWh < v_electricityPriceLowPassed_eurpkWh - v_priceDeviationBand_eur) { 
-			chargingRatio = min(availableChargingPower_kW, p_householdEV.capacityElectric_kW) / p_householdEV.capacityElectric_kW ;
+		else { // Als er minder dan 2 kW beschikbaar is in deze prijsband (i.e. huidige loop), ga nog een keer door de loop heen in de volgende prijsband
+			currentPowerDrawn_kW += powerAvailableAtPrice_kW;
 		}
-		else if( v_currentElectricityPriceConsumption_eurpkWh < v_electricityPriceLowPassed_eurpkWh + v_priceDeviationBand_eur ) { 
-			chargingRatio = min(availableChargingPower_kW, p_householdEV.capacityElectric_kW) / p_householdEV.capacityElectric_kW / 4 ; //charge slow, if there is no hurry and price is average
-		}
-	}
-	else {
-		chargingRatio = 1.0; // Hier kan er boven de gridconnectie geladen worden. Zeker als je 11 kW laders hebt met een warmtepomp erbij
+		index ++;
 	}
 }
 v_evChargingPowerElectric_kW += p_householdEV.ownerAsset.f_updateElectricityFlows( chargingRatio );
-
-
 
 ]]></Body>
 				</Function>
@@ -25193,7 +25377,7 @@ v_evChargingPowerElectric_kW += p_householdEV.ownerAsset.f_updateElectricityFlow
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1674649429148</Id>
 					<Name><![CDATA[f_heatWithHybridHeatpump]]></Name>
-					<X>1670</X><Y>80</Y>
+					<X>1670</X><Y>60</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -25269,10 +25453,10 @@ switch (p_chargingAttitudeVehicles) {
 					</Parameter>
 					<Body><![CDATA[OL_priceLevels level = null;
 
-if( price < v_electricityPriceLowPassed_eurpkWh - v_priceDeviationBand_eur ){
+if( price < v_electricityPriceLowPassed_eurpkWh - p_pricelevelLowDifFromAvg_eurpkWh ){
 	level = OL_priceLevels.LOW;
 }
-else if ( price < v_electricityPriceLowPassed_eurpkWh + v_priceDeviationBand_eur){
+else if ( price < v_electricityPriceLowPassed_eurpkWh + p_pricelevelHighDifFromAvg_eurpkWh){
 	level = OL_priceLevels.MEDIUM;
 }
 else {
@@ -25723,7 +25907,7 @@ v_evChargingPowerElectric_kW += p_householdEV.ownerAsset.f_updateElectricityFlow
     			<TimePlot>
 					<Id>1674397022338</Id>
 					<Name><![CDATA[pl_SOC4]]></Name>
-					<X>1390</X><Y>480</Y>
+					<X>940</X><Y>480</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -30299,7 +30483,7 @@ nextActivityEndTimer.restart( endtimes.get(0) - time( MINUTE ), MINUTE);
 				<Title><![CDATA[MainModel : Simulation]]></Title>	
 				<EnableDeveloperPanel>true</EnableDeveloperPanel>
 				<ShowDeveloperPanelOnStart>false</ShowDeveloperPanelOnStart>
-				<RealTimeScale>5.0</RealTimeScale>
+				<RealTimeScale>0.04</RealTimeScale>
 			</PresentationProperties>
 			<ModelTimeProperties>
 				<StopOption><![CDATA[Stop at specified time]]></StopOption>
