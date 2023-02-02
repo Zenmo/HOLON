@@ -965,7 +965,7 @@ traceln(" ");]]></StartupCode>
 			<Outputs>
 				<Output>
 					<Id>1661516161016</Id>
-					<Name><![CDATA[o_outputConnectionOwnerJSON]]></Name>
+					<Name><![CDATA[o_outputActorData]]></Name>
 					<X>-920</X><Y>710</Y>
 					<Label><X>15</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -3005,12 +3005,30 @@ if (batteryStoredEnergyDeltaSinceStart_MWh == Double.NaN) {
 //c_connectionOwners.parallelStream().forEach(c -> {
 //traceln("connectionOwners left: "+pop_connectionOwners.size());
 //traceln("connectionOwners in list: "+c_connectionOwners.size());
+
+// Collect actor data for all relevant actor groups en place in j_dataOut.actorData
 for(ConnectionOwner c : pop_connectionOwners) {
 	try {
-		c.j_ConnectionOwnerData.updateData(c.p_actorID, c.p_actorType, c.p_parentActorID, c.p_energySupplier, c.v_ownedGridConnection, c.v_energySupplierDistrictHeat, roundToDecimal( c.v_electricityVolume_kWh, 2 ), roundToDecimal( c.v_heatVolume_kWh, 2), roundToDecimal( c.v_methaneVolume_kWh, 2), roundToDecimal( c.v_hydrogenVolume_kWh, 2 ), c.v_electricityContractType.toString(), c.v_heatContractType.toString(), c.v_methaneContractType.toString(), c.v_hydrogenContractType.toString(), roundToDecimal( c.v_balanceElectricity_eur, 2), roundToDecimal( c.v_balanceHeat_eur, 2), roundToDecimal( c.v_balanceMethane_eur, 2), roundToDecimal( c.v_balanceHydrogen_eur, 2));
-		J_ConnectionOwnerData data = c.j_ConnectionOwnerData;
+		//traceln("ConnectionOwner v_ownedGridConnection: " + c.v_ownedGridConnection.p_agentID);
+//		traceln("ConnectionOwner v_energySupplierDistrictHeat: " + c.v_energySupplierDistrictHeat.toString());
+//		c.j_ActorData.updateData(c.p_actorID, c.p_actorType, c.p_parentActorID, c.p_energySupplier, c.v_ownedGridConnection.toString(), c.v_energySupplierDistrictHeat.toString(), roundToDecimal( c.v_electricityVolume_kWh, 2 ), roundToDecimal( c.v_heatVolume_kWh, 2), roundToDecimal( c.v_methaneVolume_kWh, 2), roundToDecimal( c.v_hydrogenVolume_kWh, 2 ), c.v_electricityContractType.toString(), c.v_heatContractType.toString(), c.v_methaneContractType.toString(), c.v_hydrogenContractType.toString(), roundToDecimal( c.v_balanceElectricity_eur, 2), roundToDecimal( c.v_balanceHeat_eur, 2), roundToDecimal( c.v_balanceMethane_eur, 2), roundToDecimal( c.v_balanceHydrogen_eur, 2));
+		c.j_ActorData.updateData(c.p_actorID, c.p_actorType, c.p_parentActorID, c.p_energySupplier.toString(), c.v_ownedGridConnection.toString(), c.v_energySupplierDistrictHeat.toString(), roundToDecimal( c.v_electricityVolume_kWh, 2 ), roundToDecimal( c.v_heatVolume_kWh, 2), roundToDecimal( c.v_methaneVolume_kWh, 2), roundToDecimal( c.v_hydrogenVolume_kWh, 2 ), c.v_electricityContractType.toString(), c.v_heatContractType.toString(), c.v_methaneContractType.toString(), c.v_hydrogenContractType.toString(), roundToDecimal( c.v_balanceElectricity_eur, 2), roundToDecimal( c.v_balanceHeat_eur, 2), roundToDecimal( c.v_balanceMethane_eur, 2), roundToDecimal( c.v_balanceHydrogen_eur, 2));
+		J_ActorData data = c.j_ActorData;
 	//traceln(data);
-		j_dataOut.connectionOwnerData.add(data);
+		j_dataOut.actorData.add(data);
+	} catch (Exception e) {
+		e.printStackTrace();
+	}
+//});
+}
+
+for(EnergyHolon a : pop_energyHolons) {
+	try {
+		//traceln("ConnectionOwner v_ownedGridConnection: " + a.v_ownedGridConnection.p_agentID);
+		a.j_ActorData.updateData(a.p_actorID, a.p_actorType, a.p_parentActorID, a.p_energySupplier.toString(), a.p_gridNodeUnderResponsibility, null, roundToDecimal( a.v_electricityVolume_kWh, 2 ), roundToDecimal( a.v_heatVolume_kWh, 2), roundToDecimal( a.v_methaneVolume_kWh, 2), roundToDecimal( a.v_hydrogenVolume_kWh, 2 ), a.v_electricityContractType.toString(), a.v_heatContractType.toString(), a.v_methaneContractType.toString(), a.v_hydrogenContractType.toString(), roundToDecimal( a.v_balanceElectricity_eur, 2), roundToDecimal( a.v_balanceHeat_eur, 2), roundToDecimal( a.v_balanceMethane_eur, 2), roundToDecimal( a.v_balanceHydrogen_eur, 2));
+		J_ActorData data = a.j_ActorData;
+	//traceln(data);
+		j_dataOut.actorData.add(data);
 	} catch (Exception e) {
 		e.printStackTrace();
 	}
@@ -3119,17 +3137,17 @@ traceln("Model run duration: " + modelRunDuration_s + " seconds");
 
     //System.out.println(json);
 
-String AgentDataJson = "";
+String agentDataJson = "";
 String settingsJson = "";
 String simulationResultsJson = "";
 String hourlyCurvesDataJson = "";
 
 try {
-	AgentDataJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString( j_dataOut.connectionOwnerData );
+	agentDataJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString( j_dataOut.actorData );
 	settingsJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString( j_dataOut.runSettingsData );
 	simulationResultsJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString( j_dataOut.simulationResults );
 	hourlyCurvesDataJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString( j_dataOut.hourlyCurvesData );
-	update_o_outputConnectionOwnerJSON( AgentDataJson );
+	update_o_outputActorData( agentDataJson );
 	update_o_outputSettings( settingsJson );
 	update_o_simulationResults( simulationResultsJson );
 	update_o_hourlyCurvesData ( hourlyCurvesDataJson );
@@ -3143,7 +3161,7 @@ try {
     if(writeToDisk) {
     	traceln("Succes.... YES!");
     	mapper.writerWithDefaultPrettyPrinter().writeValue(
-		new File(".\\OutputAgentData.json"), j_dataOut.connectionOwnerData );
+		new File(".\\OutputAgentData.json"), j_dataOut.actorData );
 
 	   	mapper.writerWithDefaultPrettyPrinter().writeValue(
 		new File(".\\OutputRunSettingsData.json"), j_dataOut.runSettingsData );
@@ -3619,7 +3637,7 @@ for(HashMap data : parsedJSONActors)
 	    Actor.set_p_parentActorID( parentActorID );
 	    Actor.set_p_actorContractList( actorContracts );
    		Actor.f_setContractValues();
-	    Actor.j_ConnectionOwnerData = new J_ConnectionOwnerData(actorID, type, parentActorID);
+	    Actor.j_ActorData = new J_ActorData(actorID, type, parentActorID);
 	    c_connectionOwners.add(Actor);
 	    
     } else if (actorcategory.equals(OL_ActorType.ENERGYSUPPLIER) ) {
@@ -3627,14 +3645,16 @@ for(HashMap data : parsedJSONActors)
 		Actor.set_p_actorID( actorID );
 		Actor.set_p_actorType( type );
 		Actor.set_p_parentActorID( parentActorID );
+		Actor.j_ActorData = new J_ActorData(actorID, type, parentActorID);
 
     } else if (actorcategory.equals(OL_ActorType.ENERGYHOLON) ) {
 	    EnergyHolon Actor = add_pop_energyHolons();
 	    Actor.set_p_actorID( actorID );
-	    Actor.set_p_actorType( type );
+	    Actor.set_p_actorType( "EnergyHolon" );
 	    Actor.set_p_parentActorID( parentActorID );
 	    Actor.set_p_actorContractList( actorContracts );
    		Actor.f_setContractValues();
+  		Actor.j_ActorData = new J_ActorData(actorID, type, parentActorID);
 		//Actor.set_p_nfatoEnd_h( NonFirmATOEndtime );
   		//Actor.set_p_nfatoStart_h( NonFirmATOStarttime);
   		//Actor.set_p_nfatoLvl_kW( NonFirmATOCapacity );
@@ -3645,6 +3665,7 @@ for(HashMap data : parsedJSONActors)
 	    Actor.set_p_actorID( actorID );
 	    Actor.set_p_actorType( type );
 	    Actor.set_p_parentActorID( parentActorID );
+	    Actor.j_ActorData = new J_ActorData(actorID, type, parentActorID);
     }
 }
 
@@ -19044,7 +19065,19 @@ ea 2
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[J_ConnectionOwnerData]]></Type>        
+						<Type><![CDATA[J_ActorData]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1661267039917</Id>
+					<Name><![CDATA[j_ActorData]]></Name>
+					<X>50</X><Y>180</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[J_ActorData]]></Type>        
 					</Properties>
 				</Variable>
 				<Variable Class="PlainVariable">
@@ -22177,6 +22210,18 @@ Supplier]]></Text>
 						</InitialValue>
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1675335053811</Id>
+					<Name><![CDATA[j_ActorData]]></Name>
+					<X>50</X><Y>670</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[J_ActorData]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1669037234222</Id>
 					<Name><![CDATA[p_actorContractList]]></Name>
@@ -23104,6 +23149,18 @@ else {
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1675335068922</Id>
+					<Name><![CDATA[j_ActorData]]></Name>
+					<X>70</X><Y>680</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[J_ActorData]]></Type>        
 					</Properties>
 				</Variable>
 				<Variable Class="Parameter">
@@ -24057,6 +24114,18 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1675355743791</Id>
+					<Name><![CDATA[j_ActorData]]></Name>
+					<X>60</X><Y>500</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[J_ActorData]]></Type>        
 					</Properties>
 				</Variable>
 				<Variable Class="Parameter">
@@ -30819,7 +30888,7 @@ nextActivityEndTimer.restart( endtimes.get(0) - time( MINUTE ), MINUTE);
 				<OutputReference>
 					<PackageName><![CDATA[base]]></PackageName>
 					<ClassName><![CDATA[Main]]></ClassName>
-					<ItemName><![CDATA[o_outputConnectionOwnerJSON]]></ItemName>
+					<ItemName><![CDATA[o_outputActorData]]></ItemName>
 				</OutputReference>
     		</RunConfigurationOutput>
     		<RunConfigurationOutput>
@@ -32194,13 +32263,13 @@ public class J_ExperimentSettingsData implements Serializable {
  */
 public class DataOut implements Serializable {
 
-	public ArrayList connectionOwnerData = new ArrayList();
+	public ArrayList actorData = new ArrayList();
 	public ArrayList runSettingsData = new ArrayList(1);
 	public ArrayList simulationResults = new ArrayList(2);
 	public ArrayList hourlyCurvesData = new ArrayList();
 
 	public void clearData() {
-		connectionOwnerData.clear();
+		actorData.clear();
 		runSettingsData.clear();
 		simulationResults.clear();
 		hourlyCurvesData.clear();
@@ -32210,11 +32279,11 @@ public class DataOut implements Serializable {
 		<!--   =========   Java Class   ========  -->
 		<JavaClass>
 			<Id>1663238817163</Id>
-			<Name><![CDATA[J_ConnectionOwnerData]]></Name>
+			<Name><![CDATA[J_ActorData]]></Name>
 			<Text><![CDATA[/**
- * J_ConnectionOwnerData
+ * J_ActorData
  */
-public class J_ConnectionOwnerData implements Serializable {
+public class J_ActorData implements Serializable {
 
 	public String actorID;
 	public String actorType;
@@ -32238,13 +32307,13 @@ public class J_ConnectionOwnerData implements Serializable {
 	 /**
      * Default constructor
      */
-    public J_ConnectionOwnerData() {
+    public J_ActorData() {
     }
 
     /**
      * Constructor initializing the fields
      */
-    public J_ConnectionOwnerData(String actorID, String actorType, String parentActorID) {
+    public J_ActorData(String actorID, String actorType, String parentActorID) {
 		this.actorID = actorID;
 		this.actorType = actorType;
 		this.parentActorID = parentActorID;
@@ -32288,12 +32357,12 @@ public class J_ConnectionOwnerData implements Serializable {
 			"balanceHydrogen_eur = " + balanceHydrogen_eur +" ";
 	}
 
-	public void updateData(String actorID, String actorType, String parentActorID, Agent energySupplier, GridConnection ownedGridConnection, Agent energySupplierDistrictHeat,double electricityVolume_kWh, double heatVolume_kWh, double methaneVolume_kWh, double hydrogenVolume_kWh, String electricityContractType, String heatContractType, String methaneContractType, String hydrogenContractType, double balanceElectricity_eur, double balanceHeat_eur, double balanceMethane_eur, double balanceHydrogen_eur) {
+	public void updateData(String actorID, String actorType, String parentActorID, String energySupplier, String ownedGridConnection, String energySupplierDistrictHeat,double electricityVolume_kWh, double heatVolume_kWh, double methaneVolume_kWh, double hydrogenVolume_kWh, String electricityContractType, String heatContractType, String methaneContractType, String hydrogenContractType, double balanceElectricity_eur, double balanceHeat_eur, double balanceMethane_eur, double balanceHydrogen_eur) {
 		this.actorID = actorID;
 		this.actorType = actorType;
 		this.parentActorID = parentActorID;
-		this.energySupplier = energySupplier.toString();
-		this.ownedGridConnection = ownedGridConnection.toString();
+		this.energySupplier = energySupplier;
+		this.ownedGridConnection = ownedGridConnection;
 		this.energySupplierDistrictHeat = energySupplierDistrictHeat +"";
 		this.electricityVolume_kWh = electricityVolume_kWh + "";
 		this.heatVolume_kWh = heatVolume_kWh  + "";
