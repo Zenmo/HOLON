@@ -3673,8 +3673,8 @@ for(HashMap data : parsedJSONGridConnections) {
 	//traceln("data: " + "id = " + gridConnectionID + ", category = " + gridConnectionCategory + ", connectionType = " + gridConnectionType + ", parentElectric" + gridConnectionParentElectric + ", parentHeat = " + gridConnectionParentHeat + ", capacity = " + gridConnectionCapacity + "owner_actor = "+ ownerActorID);
 	switch(gridConnectionCategory) {
 		case HOUSE:
-			Double pricelevel_low_dif_from_avg_eurpkWh = data.get("pricelevel_low_dif_from_avg_eurpkWh") == null ? null : (Double)data.get("pricelevel_low_dif_from_avg_eurpkWh");
-			Double pricelevel_high_dif_from_avg_eurpkWh = data.get("pricelevel_high_dif_from_avg_eurpkWh") == null ? null : (Double)data.get("pricelevel_high_dif_from_avg_eurpkWh");
+			Double pricelevel_low_dif_from_avg_eurpkWh =  uniform_discr(1,6) / 100.0; //data.get("pricelevel_low_dif_from_avg_eurpkWh") == null ? null : (Double)data.get("pricelevel_low_dif_from_avg_eurpkWh");
+			Double pricelevel_high_dif_from_avg_eurpkWh = 0.07 - pricelevel_low_dif_from_avg_eurpkWh; //data.get("pricelevel_high_dif_from_avg_eurpkWh") == null ? null : (Double)data.get("pricelevel_high_dif_from_avg_eurpkWh");
 			GC = add_Houses();
 			((GCHouse)GC).set_p_isolationLabel( gridConnectionIsolationLabel );
 			((GCHouse)GC).set_p_pricelevelHighDifFromAvg_eurpkWh( pricelevel_high_dif_from_avg_eurpkWh );
@@ -25585,13 +25585,15 @@ v_evChargingPowerElectric_kW += p_householdEV.ownerAsset.f_updateElectricityFlow
 		p_householdEV.chargingNeed = OL_EVChargingNeed.NONE;
 	}
 	else { // could use some charging
-		double chargeNeedForNextTrip_kWh = min(p_householdEV.getStorageCapacity_kWh(), max(0, p_householdEV.energyNeedForNextTrip_kWh + p_householdEV.getStorageCapacity_kWh() * (p_minEVChargeTarget_fr - p_householdEV.getCurrentStateOfCharge())));
+		double chargeNeedForNextTrip_kWh = max(0, p_householdEV.energyNeedForNextTrip_kWh + p_householdEV.getStorageCapacity_kWh() * (p_minEVChargeTarget_fr - p_householdEV.getCurrentStateOfCharge()));
 		double timeToNextTrip_min = p_householdEV.getMobilityTracker().v_nextTripStartTime_min - time ( MINUTE );
 		double chargeDeadline_min = floor((p_householdEV.getMobilityTracker().v_nextTripStartTime_min / 60 - chargeNeedForNextTrip_kWh / p_householdEV.getElectricCapacity_kW()) / main.p_timeStep_h) * 60 * main.p_timeStep_h;
 		if ( chargeNeedForNextTrip_kWh == 0) { 
 			p_householdEV.chargingNeed = OL_EVChargingNeed.LOW;
 		}
 		else if (time(MINUTE) < chargeDeadline_min ){
+			//traceln(time(MINUTE) + ", " + chargeDeadline_min);
+			//traceln(chargeNeedForNextTrip_kWh);
 			p_householdEV.chargingNeed = OL_EVChargingNeed.MEDIUM;
 		}
 		else {
@@ -25992,7 +25994,7 @@ v_evChargingPowerElectric_kW += p_householdEV.ownerAsset.f_updateElectricityFlow
 						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
 					</OccurrenceTime>
 					<RecurrenceCode Class="CodeUnitValue">
-						<Code><![CDATA[15]]></Code>
+						<Code><![CDATA[5]]></Code>
 						<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
 					</RecurrenceCode>
 					<EmbeddedIcon>false</EmbeddedIcon>
@@ -26022,7 +26024,7 @@ v_evChargingPowerElectric_kW += p_householdEV.ownerAsset.f_updateElectricityFlow
 					<ShowLegend>true</ShowLegend>
 					<TimeWindowsMovementType>MOVEMENT_WITH_TIME</TimeWindowsMovementType>		
 					<TimeWindowUnits>MODEL_TIME_UNIT</TimeWindowUnits>
-					<VerScaleFromExpression><![CDATA[0]]></VerScaleFromExpression>
+					<VerScaleFromExpression><![CDATA[-5]]></VerScaleFromExpression>
 					<VerScaleToExpression><![CDATA[1]]></VerScaleToExpression>
 					<VerScaleType>FIXED</VerScaleType>
 					<DrawLine>true</DrawLine>
@@ -28751,6 +28753,18 @@ if(p_ownerActor instanceof ConnectionOwner) {
 						<Type><![CDATA[double]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1675635530400</Id>
+					<Name><![CDATA[v_tripPatternIndex]]></Name>
+					<X>190</X><Y>150</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[int]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1667742419409</Id>
 					<Name><![CDATA[p_mobilityPatternType]]></Name>
@@ -29073,7 +29087,8 @@ nextActivityEndTimer.restart( endtimes.get(0) - time( MINUTE ), MINUTE);
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>false</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[int rowIndex =  getIndex() % 581;
+					<Body><![CDATA[int rowIndex = 18;// getIndex() % 200;
+v_tripPatternIndex = rowIndex;
 
 int nbTrips = roundToInt(p_gridConnection.main.inputHouseholdTrips.getCellNumericValue("sheet1", rowIndex + 2, 2));
 
@@ -31395,7 +31410,7 @@ public class J_EAEV extends base.J_EAStorageElectric implements Serializable {
 	public double maxSpreadChargingRatio = 0; // the charging ratio of a session if the vehicle needs to be full before departure
 	public double energyNeedForNextTrip_kWh;
 	public OL_EVChargingNeed chargingNeed;
-
+	public double energyChargedOutsideModelArea_kWh = 0;
     /**
      * Default constructor
      */
@@ -31478,7 +31493,12 @@ public class J_EAEV extends base.J_EAStorageElectric implements Serializable {
 			//traceln("storage capacity: " + storageCapacity_kWh + ", state of charge: " + stateOfCharge_r);
 			energyUsed_kWh += tripDist_km * vehicleScaling * energyConsumption_kWhpkm;
 			if (stateOfCharge_r < 0) {
-				traceln("EV in " + this.toString() + " arrived home with negative SOC ! Negative charge " + -stateOfCharge_r * storageCapacity_kWh + " kWh");
+				//traceln( ownerAsset.date());
+				//traceln( "Trip distance: " + tripDist_km + ", vehicle scaling: " + vehicleScaling + ", energy cons_kWhpkm: " + energyConsumption_kWhpkm );
+				//traceln( "SOC before depature: " + stateOfCharge_r_1);
+				//traceln("EV from asset " + this.ownerAsset + " arrived home with negative SOC: " + stateOfCharge_r );
+				energyChargedOutsideModelArea_kWh += -stateOfCharge_r * storageCapacity_kWh;
+				stateOfCharge_r = 0;
 			}
 			idleTimeToNextTrip_MIN = idleTime;
 			availability = true;
