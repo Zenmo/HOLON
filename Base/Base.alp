@@ -3674,13 +3674,14 @@ for(HashMap data : parsedJSONGridConnections) {
 	OL_GridConnectionIsolationLabel gridConnectionIsolationLabel = data.get( "insulation_label" ) == null? null : OL_GridConnectionIsolationLabel.valueOf((String)data.get( "insulation_label" ));
 	OL_GridConnectionHeatingType gridConnectionHeatingType = data.get( "heating_type" ) == null? null : OL_GridConnectionHeatingType.valueOf((String)data.get( "heating_type" ));
 	boolean smartAssets = data.get("smart_assets") == null ? false:true;
-
+	
+	//gridConnectionChargingAttitude = OL_ChargingAttitude.SIMPLE;
 	
 	//traceln("data: " + "id = " + gridConnectionID + ", category = " + gridConnectionCategory + ", connectionType = " + gridConnectionType + ", parentElectric" + gridConnectionParentElectric + ", parentHeat = " + gridConnectionParentHeat + ", capacity = " + gridConnectionCapacity + "owner_actor = "+ ownerActorID);
 	switch(gridConnectionCategory) {
 		case HOUSE:
-			Double pricelevel_low_dif_from_avg_eurpkWh =  uniform_discr(1,6) / 100.0; //data.get("pricelevel_low_dif_from_avg_eurpkWh") == null ? null : (Double)data.get("pricelevel_low_dif_from_avg_eurpkWh");
-			Double pricelevel_high_dif_from_avg_eurpkWh = 0.07 - pricelevel_low_dif_from_avg_eurpkWh; //data.get("pricelevel_high_dif_from_avg_eurpkWh") == null ? null : (Double)data.get("pricelevel_high_dif_from_avg_eurpkWh");
+			Double pricelevel_low_dif_from_avg_eurpkWh =  uniform_discr(1,20) / 100.0; //data.get("pricelevel_low_dif_from_avg_eurpkWh") == null ? null : (Double)data.get("pricelevel_low_dif_from_avg_eurpkWh");
+			Double pricelevel_high_dif_from_avg_eurpkWh = 0.20 - pricelevel_low_dif_from_avg_eurpkWh; //data.get("pricelevel_high_dif_from_avg_eurpkWh") == null ? null : (Double)data.get("pricelevel_high_dif_from_avg_eurpkWh");
 			GC = add_Houses();
 			((GCHouse)GC).set_p_isolationLabel( gridConnectionIsolationLabel );
 			((GCHouse)GC).set_p_pricelevelHighDifFromAvg_eurpkWh( pricelevel_high_dif_from_avg_eurpkWh );
@@ -7255,7 +7256,7 @@ geupdate vanuit
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[double]]></Type>        
 						<InitialValue Class="CodeValue">
-							<Code><![CDATA[min(1, 0.25 * main.p_timeStep_h)]]></Code>
+							<Code><![CDATA[min(1, 0.5 * main.p_timeStep_h)]]></Code>
 						</InitialValue>
 					</Properties>
 				</Variable>
@@ -9199,7 +9200,8 @@ import java.io.*;]]></Import>
 				<Variable Class="PlainVariable">
 					<Id>1673870786520</Id>
 					<Name><![CDATA[v_electricHobConsumption_kW]]></Name>
-					<X>150</X><Y>1010</Y>
+					<Description><![CDATA[This is part of the v_fixedConsumptionElectric_kW, thus variable only exists for additional information]]></Description>
+					<X>180</X><Y>1010</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -10396,7 +10398,9 @@ if( p_energyAssetList != null) {
 					consumerAsset.f_instantiateConsumerAsset( consumerAsset.p_energyAssetType, capacity_kW , yearlyDemandHeat_kWh , yearlyDemandHydrogen_kWh , yearlyDemandMethane_kWh);
 				}
 				else {
-					yearlyDemandElectricity_kWh = uniform_discr(3000, 7000); // TO DELETE TEMP FIX
+					if( yearlyDemandElectricity_kWh != 0){
+						yearlyDemandElectricity_kWh = uniform_discr(2000, 7000); // TO DELETE TEMP FIX
+					}
 					consumerAsset.f_instantiateConsumerAsset( consumerAsset.p_energyAssetType, yearlyDemandElectricity_kWh , yearlyDemandHeat_kWh , yearlyDemandHydrogen_kWh , yearlyDemandMethane_kWh);
 				}
 				consumerAsset.f_connectToParentNode( this );
@@ -10630,7 +10634,7 @@ for(EnergyAsset e : c_consumptionAssets) {
 	}
 	else if( e.p_energyAssetType == OL_EnergyAssetType.ELECTRIC_HOB){
 		e.f_updateAllFlows( p_electricCookingTracker.v_ratio);
-		//v_electricHobConsumption_kW += e.v_currentConsumptionElectricity_kW; // PowerFlows van consumption assets worden al in f_calculateEnergyBalance opgeteld, dus dit is dubbel!
+		v_electricHobConsumption_kW += e.v_currentConsumptionElectricity_kW; // PowerFlows van consumption assets worden in f_calculateEnergyBalance opgeteld, dus ken dit niet toe aan totale consumptie!
 	}
 	else if( e.p_energyAssetType == OL_EnergyAssetType.HEAT_DEMAND ) {
 		switch(e.p_defaultEnergyAssetPresetName) {
@@ -12199,6 +12203,82 @@ for ( int i = 0; i < copiedVehicleList.size(); i++ ){
 					</Font>
 					<Alignment>LEFT</Alignment>
 				</Text>
+    			<TimePlot>
+					<Id>1675770089415</Id>
+					<Name><![CDATA[plotCheck]]></Name>
+					<X>-410</X><Y>780</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<AutoUpdate>true</AutoUpdate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1675843200000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[0.25]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</RecurrenceCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Width>350</Width>
+					<Height>210</Height>
+					<BackgroundColor/>
+					<BorderColor/>
+					<ChartArea>
+						<XOffset>50</XOffset>
+						<YOffset>30</YOffset>
+						<Width>270</Width>
+						<Height>120</Height>
+						<BackgroundColor>-1</BackgroundColor>
+						<BorderColor>-16777216</BorderColor>
+						<GridColor>-12566464</GridColor>
+					</ChartArea>
+					<Legend>
+						<Place>SOUTH</Place>
+						<TextColor>-16777216</TextColor>
+						<Size>30</Size>
+					</Legend>
+					<Labels>
+						<HorLabelsPosition>DEFAULT</HorLabelsPosition>
+						<VerLabelsPosition>DEFAULT</VerLabelsPosition>
+						<TextColor>-12566464</TextColor>
+					</Labels>
+					<ShowLegend>true</ShowLegend>
+					<TimeWindowsMovementType>MOVEMENT_WITH_TIME</TimeWindowsMovementType>		
+					<TimeWindowUnits>DAY</TimeWindowUnits>
+					<VerScaleFromExpression><![CDATA[0]]></VerScaleFromExpression>
+					<VerScaleToExpression><![CDATA[1]]></VerScaleToExpression>
+					<VerScaleType>AUTO</VerScaleType>
+					<DrawLine>true</DrawLine>
+					<Interpolation>LINEAR</Interpolation>
+					<DatasetExpression>  
+						<Title><![CDATA[Dataset Title]]></Title>
+					<Id>0</Id>
+					<Expression><![CDATA[my_dataset]]></Expression>
+					<Color>-12799119</Color>
+					<Expression2><![CDATA[v_fixedConsumptionElectric_kW + 
+v_electricHobConsumption_kW +
+v_conversionPowerElectric_kW +
+v_batteryPowerElectric_kW +
+v_evChargingPowerElectric_kW - 
+v_pvProductionElectric_kW -
+v_windProductionElectric_kW -
+v_currentPowerElectricity_kW
+
+]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>
+						<PointStyle>NONE</PointStyle>
+						<LineWidth>1.0</LineWidth>
+					</DatasetExpression>
+					<SamplesToKeep>1000</SamplesToKeep>
+					<TimeWindowExpression><![CDATA[1]]></TimeWindowExpression>
+					<FillAreaUnderLine>false</FillAreaUnderLine>
+					<LabelFormat>MODEL_TIME_UNITS</LabelFormat>
+    			</TimePlot>
 			</Presentation>
 
 				</Level>
@@ -24628,7 +24708,7 @@ public void f_fixedPriceCharging(){
 			</Parameters>
 			<StartupCode><![CDATA[v_dayTempSetpoint_degC = uniform_discr(18, 23);
 v_nightTempSetpoint_degC = v_dayTempSetpoint_degC - uniform_discr(8);
-v_heatingOn_time = roundToDecimal( normal(1, 8), 1 );
+v_heatingOn_time = roundToDecimal( normal(2, 8), 1 );
 v_heatingOff_time = roundToDecimal(uniform(21.5, 23.9), 1); ]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -25544,35 +25624,22 @@ double maxChargingPower_kW = p_householdEV.capacityElectric_kW;
 ConnectionOwner owner = (ConnectionOwner)l_ownerActor.getConnectedAgent();
 double electricityPrice_eurpkWh = 0;
 String lastLoopsPriceLevel = "";
+OL_priceLevels priceLevel;
 int index = 0; // purely to not let loop go wild, if something goes wrong
 
 
-if( p_householdEV.getAvailability() ){
+if( p_householdEV.getAvailability() && p_householdEV.chargingNeed != OL_EVChargingNeed.NONE ){
 	while ( continueLoop && index < 5 ){	
 		powerAvailableAtPrice_kW += owner.f_getAvailablePowerAtPrice( currentPowerDrawn_kW );
 		electricityPrice_eurpkWh = owner.f_getElectricityPrice( currentPowerDrawn_kW );
-		if (powerAvailableAtPrice_kW > p_minChargingPower_kW){ // only charge if there is at least 2 kW available, hardcoded for now
+		priceLevel = f_getPriceLevel( electricityPrice_eurpkWh );
+		
+		if (powerAvailableAtPrice_kW > p_minChargingPower_kW){ // only charge if there is at least 2 OR 1 kW availablE
 			// SCENARIO LOW CHARGING NEED -> Only when price is low
 			if ( p_householdEV.chargingNeed == OL_EVChargingNeed.LOW) { 
-				if( electricityPrice_eurpkWh < v_electricityPriceLowPassed_eurpkWh - p_pricelevelLowDifFromAvg_eurpkWh ) { 
-					if (availablePowerOnGC_kW > p_householdEV.getElectricCapacity_kW()){ // if gridconnection has little room, dont charge the vehicle.
-						if (powerAvailableAtPrice_kW >= p_householdEV.getElectricCapacity_kW() ){
-							chargingRatio = 1.0;
-							continueLoop = false;
-						}
-						else{
-							powerAvailableAtLastLoop_kW = powerAvailableAtPrice_kW;
-							currentPowerDrawn_kW += powerAvailableAtPrice_kW;
-							lastLoopsPriceLevel = "low";
-						}
-					}
-				}
-			}
-			// SCENARIO MEDIUM CHARGING NEED -> Only when price is low or a bit when medium
-			else if ( p_householdEV.chargingNeed == OL_EVChargingNeed.MEDIUM){
-				if( electricityPrice_eurpkWh < v_electricityPriceLowPassed_eurpkWh - p_pricelevelLowDifFromAvg_eurpkWh) { 
+				if( priceLevel == OL_priceLevels.LOW ) {
 					if (powerAvailableAtPrice_kW >= p_householdEV.getElectricCapacity_kW() ){
-						chargingRatio = min(availablePowerOnGC_kW, p_householdEV.capacityElectric_kW) / p_householdEV.capacityElectric_kW ;
+						chargingRatio = 1.0;
 						continueLoop = false;
 					}
 					else{
@@ -25581,9 +25648,30 @@ if( p_householdEV.getAvailability() ){
 						lastLoopsPriceLevel = "low";
 					}
 				}
-				else if( electricityPrice_eurpkWh < v_electricityPriceLowPassed_eurpkWh + p_pricelevelHighDifFromAvg_eurpkWh ) {   
+				else if ( lastLoopsPriceLevel.equals("low")) {
+					chargingRatio = min( powerAvailableAtLastLoop_kW, p_householdEV.getElectricCapacity_kW() ) / p_householdEV.capacityElectric_kW;
+					continueLoop = false;
+				}
+				else {
+					continueLoop = false;
+				}
+			}
+			// SCENARIO MEDIUM CHARGING NEED -> Only when price is low or a bit when medium
+			else if ( p_householdEV.chargingNeed == OL_EVChargingNeed.MEDIUM){
+				if(  priceLevel == OL_priceLevels.LOW) { 
+					if (powerAvailableAtPrice_kW >= p_householdEV.getElectricCapacity_kW() ){
+						chargingRatio = p_householdEV.capacityElectric_kW / p_householdEV.capacityElectric_kW ;
+						continueLoop = false;
+					}
+					else{
+						powerAvailableAtLastLoop_kW = powerAvailableAtPrice_kW;
+						currentPowerDrawn_kW += powerAvailableAtPrice_kW;
+						lastLoopsPriceLevel = "low";
+					}
+				}
+				else if(  priceLevel == OL_priceLevels.MEDIUM ) {   
 					if( lastLoopsPriceLevel.equals("low") && powerAvailableAtLastLoop_kW > p_minChargingPower_kW ) { // charge what you can at low price
-						chargingRatio = min(powerAvailableAtLastLoop_kW, availablePowerOnGC_kW) / p_householdEV.capacityElectric_kW;
+						chargingRatio = powerAvailableAtLastLoop_kW / p_householdEV.capacityElectric_kW;
 						continueLoop = false;
 
 					}
@@ -25593,7 +25681,7 @@ if( p_householdEV.getAvailability() ){
 					}
 				}
 				else if (lastLoopsPriceLevel.equals("low") && powerAvailableAtLastLoop_kW > p_minChargingPower_kW ){
-					chargingRatio = min( powerAvailableAtLastLoop_kW, availablePowerOnGC_kW ) / p_householdEV.capacityElectric_kW;
+					chargingRatio = powerAvailableAtLastLoop_kW / p_householdEV.capacityElectric_kW;
 					continueLoop = false;
 				}
 				else{
@@ -25612,6 +25700,9 @@ if( p_householdEV.getAvailability() ){
 		}
 		index ++;
 	}
+}
+if( p_householdEV.chargingNeed != OL_EVChargingNeed.HIGH){ //unless the charging need is high, limit the charging speed to grid connection.
+	chargingRatio = min( availablePowerOnGC_kW / p_householdEV.getElectricCapacity_kW(), chargingRatio);
 }
 v_evChargingPowerElectric_kW += p_householdEV.ownerAsset.f_updateElectricityFlows( chargingRatio );
 
@@ -26219,7 +26310,7 @@ v_evChargingPowerElectric_kW += p_householdEV.ownerAsset.f_updateElectricityFlow
     			</TimePlot>
     			<TimePlot>
 					<Id>1674899851745</Id>
-					<Name><![CDATA[plot]]></Name>
+					<Name><![CDATA[HeatpumpPlot]]></Name>
 					<X>1960</X><Y>90</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
@@ -32655,22 +32746,6 @@ public class J_EAElectricHob extends J_EA implements Serializable {
 		</Resource>
 		<Resource>
 			<Path><![CDATA[inputECookerPatterns.xlsx]]></Path>
-			<ReferencedFromUserCode>false</ReferencedFromUserCode>
-		</Resource>
-		<Resource>
-			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/case 2 actors.txt]]></Path>
-			<ReferencedFromUserCode>false</ReferencedFromUserCode>
-		</Resource>
-		<Resource>
-			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/case 2 gridconnections.txt]]></Path>
-			<ReferencedFromUserCode>false</ReferencedFromUserCode>
-		</Resource>
-		<Resource>
-			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/case 2 gridnodes.txt]]></Path>
-			<ReferencedFromUserCode>false</ReferencedFromUserCode>
-		</Resource>
-		<Resource>
-			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/case 2 policies.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
