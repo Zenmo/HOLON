@@ -3903,7 +3903,7 @@ for(HashMap data : parsedJSONGridConnections) {
 			((GCHouse)GC).set_p_isolationLabel( gridConnectionIsolationLabel );
 			((GCHouse)GC).set_p_pricelevelHighDifFromAvg_eurpkWh( pricelevel_high_dif_from_avg_eurpkWh );
 			((GCHouse)GC).set_p_pricelevelLowDifFromAvg_eurpkWh( pricelevel_low_dif_from_avg_eurpkWh );
-			((GCHouse)GC).f_createHouseHeatModel();
+			((GCHouse)GC).f_createThermalStorageModel();
 	 	break;
  		case BUILDING:
  			GC = add_Buildings();
@@ -27060,6 +27060,54 @@ v_heatingOff_time = roundToDecimal(uniform(21.5, 23.9), 1); ]]></StartupCode>
 						<Type><![CDATA[double]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1676381012488</Id>
+					<Name><![CDATA[buffer]]></Name>
+					<X>690</X><Y>950</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1676381020153</Id>
+					<Name><![CDATA[conversion]]></Name>
+					<X>690</X><Y>980</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1676381026495</Id>
+					<Name><![CDATA[house]]></Name>
+					<X>690</X><Y>920</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1676381036903</Id>
+					<Name><![CDATA[dif]]></Name>
+					<X>690</X><Y>1030</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1665487269767</Id>
 					<Name><![CDATA[p_isolationLabel]]></Name>
@@ -27388,6 +27436,14 @@ for ( EnergyAsset EA : c_storageAssets ) {
 	v_currentPowerHeat_kW += EA.v_currentConsumptionHeat_kW - EA.v_currentProductionHeat_kW;
 }
 
+conversion = 0;
+house = p_ThermalStorageAsset.v_currentConsumptionHeat_kW - p_ThermalStorageAsset.v_currentProductionHeat_kW;
+buffer = c_storageAssets.get(0).v_currentConsumptionHeat_kW - c_storageAssets.get(0).v_currentProductionHeat_kW;
+	for( EnergyAsset EA : c_conversionAssets ){
+		conversion += EA.v_currentConsumptionHeat_kW - EA.v_currentProductionHeat_kW;
+	}
+dif = conversion + house + buffer;
+
 if( p_householdEV != null){
 	// Determine EV charging
 	double availableCapacityFromBatteries = p_batteryAsset == null ? 0 : ((J_EAStorageElectric)p_batteryAsset.p_energyAssetInstance).getCapacityAvailable_kW(); 
@@ -27511,7 +27567,7 @@ else {
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1669203453155</Id>
-					<Name><![CDATA[f_createHouseHeatModel]]></Name>
+					<Name><![CDATA[f_createThermalStorageModel]]></Name>
 					<X>780</X><Y>150</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -27659,7 +27715,7 @@ if ( p_hasSmartFlexAssets ) {
 if ( ((J_EAStorageHeat)p_heatBuffer.p_energyAssetInstance).requiresHeat){ 
 	powerFraction_heatPump_fr = 1;
 	powerFraction_heatBuffer_fr = hp.getHeatCapacity_kW() / p_heatBuffer.p_energyAssetInstance.getHeatCapacity_kW() ;
-	//traceln("heat buffer cus of need");
+	//traceln(getName() + " heat buffer cus of need");
 }
 //also heat the buffer if the price is cheap, the buffer has some room and the vehicle does not need charging
 else if( 	p_hasSmartFlexAssets && avgElectricityPrice_eurpkWh < v_electricityPriceLowPassed_eurpkWh - p_pricelevelLowDifFromAvg_eurpkWh 
@@ -27674,6 +27730,7 @@ else if( 	p_hasSmartFlexAssets && avgElectricityPrice_eurpkWh < v_electricityPri
 		powerFraction_heatBuffer_fr = hp.getHeatCapacity_kW() / p_heatBuffer.p_energyAssetInstance.getHeatCapacity_kW();
 	}
 }
+//reduce the powerfraction in the buffer with the hot water demand.
 powerFraction_heatBuffer_fr += -v_hotwaterDemand_kW / p_heatBuffer.p_energyAssetInstance.getHeatCapacity_kW();
 
 //heat the house
@@ -27700,6 +27757,11 @@ if( powerFraction_heatPump_fr == 0 ){
 		p_ThermalStorageAsset.v_powerFraction_fr = 0;
 	}
 }
+else {
+	p_ThermalStorageAsset.v_powerFraction_fr = 0;
+}
+
+
 p_heatBuffer.v_powerFraction_fr = powerFraction_heatBuffer_fr;
 p_heatBuffer.f_updateAllFlows(powerFraction_heatBuffer_fr);
 p_primaryHeatingAsset.v_powerFraction_fr = powerFraction_heatPump_fr;
@@ -28762,6 +28824,87 @@ if (p_batteryAsset != null){
 		e.v_powerFraction_fr = 0;
 	}
 }]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1676386667397</Id>
+					<Name><![CDATA[f_createThermalStorageModel]]></Name>
+					<X>780</X><Y>150</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[OL_EAPresetStorageAssets isolationLevel;
+switch(p_isolationLabel) {
+	case A:
+		isolationLevel = OL_EAPresetStorageAssets.House_heatmodel_A;
+	break;
+	case B:
+		isolationLevel = OL_EAPresetStorageAssets.House_heatmodel_B;
+	break;
+	case C:
+		isolationLevel = OL_EAPresetStorageAssets.House_heatmodel_C;
+	break;
+	case D:
+		isolationLevel = OL_EAPresetStorageAssets.House_heatmodel_D;
+	break;
+	case E:
+		isolationLevel = OL_EAPresetStorageAssets.House_heatmodel_E;
+	break;
+	case F:
+		isolationLevel = OL_EAPresetStorageAssets.House_heatmodel_F;
+	break;
+	case G:
+		isolationLevel = OL_EAPresetStorageAssets.House_heatmodel_G;
+	break;
+	default:
+		traceln("f_createPresetStorageHeat: house without invalid label, label set to C");
+		isolationLevel = OL_EAPresetStorageAssets.House_heatmodel_C;
+	break;
+}
+
+//Get preset input from DB
+List< Tuple > data = selectFrom( storage_assets ).where( storage_assets.name.eq( isolationLevel ) ).
+list();
+
+OL_EnergyAssetType assetType = null;
+String energyAssetPresetName = isolationLevel.toString();
+double capacityHeat_kW = 0;
+double lossFactor_WpK = 0;
+double heatCapacity_JpK = 0;
+double minTemperature_degC = 0;
+double maxTemperature_degC = 0;
+double setTemperature_degC = 0;
+String ambientTempType = "";
+
+
+for( Tuple tup : data ) {
+	assetType = tup.get( storage_assets.energy_asset_type );
+	capacityHeat_kW = tup.get( storage_assets.capacity_heat_kw );
+	lossFactor_WpK =  tup.get( storage_assets.loss_factor_wpk );
+	heatCapacity_JpK =  tup.get( storage_assets.heat_capacity_jpk );
+	minTemperature_degC = tup.get( storage_assets.min_temp_degc);
+	maxTemperature_degC = tup.get( storage_assets.max_temp_degc);
+	setTemperature_degC = tup.get( storage_assets.set_temp_degc);
+	ambientTempType = tup.get( storage_assets.ambient_temp_type);
+}
+
+EnergyAsset e = main.add_pop_energyAssets( null, p_agentID,  assetType, isolationLevel.toString() );
+e.p_energyAssetInstance = new J_EAStorageHeat(e, OL_EAStorageTypes.HEATMODEL_BUILDING, capacityHeat_kW, lossFactor_WpK, main.p_timeStep_h, setTemperature_degC , minTemperature_degC, maxTemperature_degC, setTemperature_degC, heatCapacity_JpK, ambientTempType);
+e.f_connectToParentNode( this );
+main.c_storageAssets.add(e);
+main.c_ambientAirDependentAssets.add(e);
+
+// update static ambient temperature once for underground types
+if( ambientTempType != null && ambientTempType.equals("GROUND") ) {
+	e.p_energyAssetInstance.updateAmbientTemperature( main.p_undergroundTemperature_degC );
+}
+if( ambientTempType != null && ambientTempType.equals("AIR") ) {
+	e.p_energyAssetInstance.updateAmbientTemperature( main.v_currentAmbientTemperature_degC );
+}
+
+]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
