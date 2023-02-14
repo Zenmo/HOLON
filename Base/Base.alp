@@ -8530,6 +8530,60 @@ if( p_energyAssetList != null) {
 //traceln("GridConnection "+this.p_agentID+" has finished initializing its energyAssets!");
 }]]></Body>
 				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1676387466304</Id>
+					<Name><![CDATA[f_instantiateEnergyAssets]]></Name>
+					<X>780</X><Y>60</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[//traceln("asset " + p_energyAssetList);
+
+if( p_energyAssetList != null) {
+	c_energyAssetsData = p_energyAssetList;
+	for( HashMap l : c_energyAssetsData ) {
+		OL_EACategories assetCategory = OL_EACategories.valueOf((String)l.get( "category" ));
+		switch( assetCategory )  {		
+			case STORAGE:
+				EnergyAsset storageAsset = main.add_pop_energyAssets();
+				storageAsset.set_p_parentAgentID( this.p_agentID );
+				storageAsset.set_p_energyAssetType( OL_EnergyAssetType.valueOf((String)l.get( "type" ) ));
+				storageAsset.set_p_defaultEnergyAssetPresetName( (String)l.get( "name" ));
+				if( storageAsset.p_energyAssetType == OL_EnergyAssetType.STORAGE_HEAT){
+				    double capacityHeat_kW2 = l.get( "capacityHeat_kW") == null? 0.0: Double.valueOf( l.get( "capacityHeat_kW").toString()).doubleValue();
+					double lossFactor_WpK = l.get( "lossFactor_WpK" ) == null? 0.0: Double.valueOf( l.get( "lossFactor_WpK" ).toString()).doubleValue();
+					double heatCapacity_JpK = l.get( "heatCapacity_JpK" ) == null? 0.0: Double.valueOf( l.get( "heatCapacity_JpK" ).toString()).doubleValue();
+					double minTemperature_degC = l.get( "minTemperature_degC" ) == null? 40.0: Double.valueOf( l.get( "minTemperature_degC" ).toString()).doubleValue(); // provide default values
+					double maxTemperature_degC = l.get( "maxTemperature_degC" ) == null? 90.0: Double.valueOf( l.get( "maxTemperature_degC" ).toString()).doubleValue();
+					double setTemperature_degC = l.get( "setTemperature_degC" ) == null? 60.0: Double.valueOf( l.get( "setTemperature_degC" ).toString()).doubleValue();
+					double initialTemperature_degC = l.get( "initialTemperature_degC" ) == null? 0.0 : Double.valueOf( l.get( "initialTemperature_degC" ).toString()).doubleValue();		
+					String ambientTempType2 = (String)l.get( "ambientTempType" ) == null? "": (String)l.get( "ambientTempType" );
+					
+					minTemperature_degC = 35; // TO DELETE TEMP FIX
+					setTemperature_degC = uniform_discr(38, 45); // TO DELETE TEMP FIX
+					initialTemperature_degC = uniform_discr(70,80) * 1.0; // TO DELETE TEMP FIX
+					heatCapacity_JpK = heatCapacity_JpK * uniform(0.7, 1.3); // TO DELETE TEMP FIX
+					
+					storageAsset.p_energyAssetInstance = new J_EAStorageHeat(storageAsset, OL_EAStorageTypes.HEATBUFFER, capacityHeat_kW2, lossFactor_WpK, main.p_timeStep_h, initialTemperature_degC, minTemperature_degC, maxTemperature_degC, setTemperature_degC, heatCapacity_JpK, ambientTempType2);	
+					
+				}
+				else{
+					traceln("F_instantiateEnergyAssets: ERROR, storage asset type not available");
+				}
+				storageAsset.f_connectToParentNode( this );
+				main.c_storageAssets.add(storageAsset);
+			break;
+			default:
+				traceln("not a valid energy asset category." + assetCategory);
+			break;
+		}
+	}
+//traceln("GridConnection "+this.p_agentID+" has finished initializing its energyAssets!");
+}]]></Body>
+				</Function>
 			</Functions>
 			<AgentLinks>
 				<AgentLink>
