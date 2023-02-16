@@ -3076,7 +3076,8 @@ for(ConnectionOwner c : pop_connectionOwners) {
 for(EnergyHolon a : pop_energyHolons) {
 	try {
 		//traceln("ConnectionOwner v_ownedGridConnection: " + a.v_ownedGridConnection.p_agentID);
-		a.j_ActorData.updateData(a.p_actorID, a.p_actorType,  a.p_gridOperator.toString(), a.p_holonParent.toString(), a.p_energySupplier.toString(), a.p_gridNodeUnderResponsibility, 
+		String holonString = a.p_holonParent == null ? null : a.p_holonParent.toString();
+		a.j_ActorData.updateData(a.p_actorID, a.p_actorType,  a.p_gridOperator.toString(), holonString, a.p_energySupplier.toString(), a.p_gridNodeUnderResponsibility, 
 		null, roundToDecimal( a.v_electricityVolume_kWh, 2 ), roundToDecimal( a.v_heatVolume_kWh, 2), roundToDecimal( a.v_methaneVolume_kWh, 2), roundToDecimal( a.v_hydrogenVolume_kWh, 2 ), 
 		//a.v_electricityContractType.toString(), a.v_heatContractType.toString(), a.v_methaneContractType.toString(), a.v_hydrogenContractType.toString(),
 		null, null, null, null,
@@ -4345,7 +4346,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/actors_newContracts.txt]]></ClassName>
+						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/Jorrits JSON - Buurtelektrificatie/example_actors_newContracts.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -4363,7 +4364,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/gridnodes.txt]]></ClassName>
+						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/Jorrits JSON - Buurtelektrificatie/example_gridnodes.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -4381,7 +4382,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/gridconnections_step1_eTrucks.txt]]></ClassName>
+						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/Jorrits JSON - Buurtelektrificatie/example_gridconnections.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -4418,7 +4419,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[../CaseDefinitions/industry_case/industry_case_policies.txt]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/policies.txt]]></ClassName>
+						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/Jorrits JSON - Buurtelektrificatie/example_policies.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -7828,7 +7829,7 @@ geupdate vanuit
 				<Variable Class="CollectionVariable">
 					<Id>1666560357503</Id>
 					<Name><![CDATA[c_electricityGridConnections]]></Name>
-					<X>290</X><Y>160</Y>
+					<X>290</X><Y>180</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -7836,6 +7837,21 @@ geupdate vanuit
 					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
 						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
 						<ElementClass><![CDATA[GridConnection]]></ElementClass>
+						<ValueElementClass><![CDATA[String]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1676567375230</Id>
+					<Name><![CDATA[c_energyHolons]]></Name>
+					<X>290</X><Y>160</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
+						<ElementClass><![CDATA[EnergyHolon]]></ElementClass>
 						<ValueElementClass><![CDATA[String]]></ValueElementClass>
 					</Properties>
 
@@ -7883,11 +7899,11 @@ if( myParentGridOperator instanceof GridOperator) {
 					<Body><![CDATA[subConnections.connectTo(ConnectingChildNode);
 
 if ( ConnectingChildNode instanceof GridConnection) {
-	 //||
-	 //ConnectingChildNode instanceof GCBuilding ||
-	 //ConnectingChildNode instanceof GCIndustry)
-	 
 	 c_electricityGridConnections.add( (GridConnection)ConnectingChildNode );
+}
+
+if ( ConnectingChildNode instanceof EnergyHolon) {
+	 c_energyHolons.add( (EnergyHolon)ConnectingChildNode );
 }
 
 if( ConnectingChildNode instanceof EnergyAsset ) {
@@ -8098,10 +8114,10 @@ v_loadFactor_fr = v_averageAbsoluteLoadElectricity_kW / abs(v_peakLoadAbsoluteEl
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1666556555538</Id>
 					<Name><![CDATA[f_setCongestionTariff]]></Name>
-					<X>780</X><Y>140</Y>
+					<X>780</X><Y>160</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>false</PresentationFlag>
+					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Parameter>
 						<Name><![CDATA[price_eurpkWh]]></Name>
@@ -8112,15 +8128,11 @@ v_loadFactor_fr = v_averageAbsoluteLoadElectricity_kW / abs(v_peakLoadAbsoluteEl
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
 					<Body><![CDATA[for (GridConnection gc: c_electricityGridConnections){
-	// we gaan nu nog even uit van vaste congestietarieven en limiten
 	ConnectionOwner owner = ((ConnectionOwner)gc.l_ownerActor.getConnectedAgent());
-	//if( !owner.v_congestionTariff_b ) {
-		owner.v_currentNodalPrice_eurpkWh = price_eurpkWh;
-		//owner.v_congestionTariffAllowance_kW = allowance_kW;
-		//owner.v_congestionTariff_b = true; // This is controlled by the contract between connectionOwner and GridOperator! Do not overwrite from here!
-		//owner.v_updatePriceBands_b = true;
-		//owner.v_currentCongestionType = v_congestionMode;
-	//}
+	owner.v_currentNodalPrice_eurpkWh = price_eurpkWh;
+}
+for (EnergyHolon e: c_energyHolons){
+	e.v_currentNodalPrice_eurpkWh = price_eurpkWh;
 }]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -8129,7 +8141,7 @@ v_loadFactor_fr = v_averageAbsoluteLoadElectricity_kW / abs(v_peakLoadAbsoluteEl
 					<Id>1666556578433</Id>
 					<Name><![CDATA[f_setProductionCongestionTariff]]></Name>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>780</X><Y>160</Y>
+					<X>1100</X><Y>130</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>false</PresentationFlag>
@@ -8167,12 +8179,10 @@ v_loadFactor_fr = v_averageAbsoluteLoadElectricity_kW / abs(v_peakLoadAbsoluteEl
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[for (GridConnection gc: c_electricityGridConnections){
 	ConnectionOwner owner = ((ConnectionOwner)gc.l_ownerActor.getConnectedAgent());
-	//owner.v_congestionTariff_b = false;
-	//owner.v_updatePriceBands_b = true;
 	owner.v_currentNodalPrice_eurpkWh = 0;
-	//owner.v_currentCongestionTariffWhenSelling_eurpkWh = 0;
-	//owner.v_congestionTariffAllowance_kW = 0;
-	//owner.v_currentCongestionType = v_congestionMode;
+}
+for (EnergyHolon e: c_energyHolons){
+	e.v_currentNodalPrice_eurpkWh = 0;
 }]]></Body>
 				</Function>
 			</Functions>
@@ -10500,10 +10510,10 @@ v_hydrogenDelivered_kWh += max(-v_currentPowerHydrogen_kW, 0) * main.p_timeStep_
 v_heatDrawn_kWh += max(v_currentPowerHeat_kW, 0) * main.p_timeStep_h;
 v_heatDelivered_kWh += max(-v_currentPowerHeat_kW, 0) * main.p_timeStep_h;
 
-if ( abs(v_currentPowerHeat_kW) > 0.1 ) {
+/*if ( abs(v_currentPowerHeat_kW) > 0.1 ) {
 	traceln("Heat unbalance in gridConnection: " + p_agentID);
 	pauseSimulation();
-}
+}*/
 
 v_dieselDrawn_kWh += max(v_currentPowerDiesel_kW, 0) * main.p_timeStep_h;
 v_dieselDelivered_kWh += max(-v_currentPowerDiesel_kW, 0) * main.p_timeStep_h;
@@ -19847,6 +19857,7 @@ if (mySupplier != null) {
 	mySupplier = findFirst(main.pop_energyHolons, p->p.p_actorID.equals(v_contractDelivery.contractScope)) ;
 	if (mySupplier != null) {
 		((EnergyHolon)mySupplier).f_connectToChild(this);	
+		p_holonParent = (EnergyHolon)mySupplier;
 	}
 }
 
@@ -20295,7 +20306,7 @@ else {
 		price = v_priceBandsDelivery.floorEntry( currentPowerDrawn_kW ).getValue() ;
 	}*/
 }
-traceln(price);
+//traceln(price);
 return price;]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -20383,59 +20394,32 @@ return availablePower;]]></Body>
 						<Name><![CDATA[requestedPower_kW]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
-					<Body><![CDATA[double price = 0; 
-double availablePower = 0; 
-double addedPrice;
-double addedPower;
+					<Body><![CDATA[double price_eurph = 0; 
+double availablePower_kW = 0; 
+double addedPrice_eurpkWh;
+double addedPower_kW;
+
 boolean isDemandMet = false;
 
-while (! isDemandMet ) {
-	if( baseDemand_kW >= 0 ){
-		if( baseDemand_kW == v_priceBandsDelivery.ceilingKey( baseDemand_kW ) ){
-			addedPrice = v_priceBandsDelivery.higherEntry( baseDemand_kW ).getValue();
-		}
-		else{
-			addedPrice = v_priceBandsDelivery.ceilingEntry( baseDemand_kW ).getValue();
-		}
-	}
-	else {
-		addedPrice = v_priceBandsDelivery.floorEntry( baseDemand_kW ).getValue() ;
-	}
+double loopcount = 1;
+while (! isDemandMet ) { // Loop door de treemap tot je requestedPower_kW bereikt
+	addedPrice_eurpkWh = f_getElectricityPrice(baseDemand_kW+availablePower_kW);
+	addedPower_kW = f_getAvailablePowerAtPrice(baseDemand_kW+availablePower_kW);
 	
-	if( baseDemand_kW > 0 ){
-		addedPower = v_priceBandsDelivery.ceilingKey( baseDemand_kW ) - baseDemand_kW;
-		baseDemand_kW += v_priceBandsDelivery.ceilingKey( baseDemand_kW );
-	}
-	else {
-		if( baseDemand_kW == v_priceBandsDelivery.ceilingKey( baseDemand_kW ) ){
-			addedPower = v_priceBandsDelivery.higherKey( baseDemand_kW ) - baseDemand_kW;
-			baseDemand_kW = v_priceBandsDelivery.higherKey( baseDemand_kW );
-		}
-		else{
-			addedPower =  v_priceBandsDelivery.ceilingKey( baseDemand_kW ) - baseDemand_kW;
-			baseDemand_kW = v_priceBandsDelivery.ceilingKey( baseDemand_kW );
-		}
-	}
-	
-	if (availablePower + addedPower >= requestedPower_kW){
+	if(addedPower_kW + availablePower_kW >= requestedPower_kW) {
+		addedPower_kW = requestedPower_kW-availablePower_kW;
+		price_eurph += addedPrice_eurpkWh*addedPower_kW;
 		isDemandMet = true;
-		addedPower = requestedPower_kW - availablePower;
+		//traceln("f_getAveragedElectricityPrice: demand met price-band: " + loopcount);
+	} else {
+		availablePower_kW += addedPower_kW;
+		price_eurph += addedPrice_eurpkWh * addedPower_kW;		
+		loopcount += 1;
 	}
-	
-	price = price + addedPrice * addedPower;
-	availablePower += addedPower;
-	
-	//traceln("added Price " + addedPrice + ", at demand " + baseDemand_kW);	
-	//traceln("demand met "+ isDemandMet);
-	//traceln("added power " + addedPower + ", at demand " + baseDemand_kW);			
-	//traceln("new baseDemand " + baseDemand_kW);
-	//traceln( "Huidige totaalprijs = " + price);
-	//traceln( "price/kWh = " + price / availablePower);
-	//traceln( "Available power " + availablePower);
-	//traceln(" ");
 }
 
-return price / availablePower;
+return price_eurph / requestedPower_kW;
+
 ]]></Body>
 				</Function>
 			</Functions>
@@ -20705,7 +20689,11 @@ return price / availablePower;
                         <EmbeddedIcon>false</EmbeddedIcon>	
 						<TextColor/>
 						<Enabled>true</Enabled>
-						<ActionCode><![CDATA[//f_getAveragedElectricityPrice(-10, 10);
+						<ActionCode><![CDATA[traceln("f_getAveragedElectricityPrice(-5, 10): " + f_getAveragedElectricityPrice(-5, 10));
+traceln("f_getAveragedElectricityPrice(-5, 5): " + f_getAveragedElectricityPrice(-5, 5));
+traceln("f_getAveragedElectricityPrice(-5, 4): " + f_getAveragedElectricityPrice(-5, 4));
+
+/*
 traceln("f_getAvailablePowerAtPrice(5) " + f_getAvailablePowerAtPrice(5));
 traceln("f_getElectricityPrice(5) " + f_getElectricityPrice(5));
 traceln("f_getAvailablePowerAtPrice(0) " + f_getAvailablePowerAtPrice(0));
@@ -20714,7 +20702,7 @@ traceln("f_getAvailablePowerAtPrice(-1) " + f_getAvailablePowerAtPrice(-1));
 traceln("f_getElectricityPrice(-1) " + f_getElectricityPrice(-1));
 traceln("f_getAvailablePowerAtPrice(-10) " + f_getAvailablePowerAtPrice(-10));
 traceln("f_getElectricityPrice(-10) " + f_getElectricityPrice(-10));
-
+*/
 ]]></ActionCode>
 					</BasicProperties>
 					<ExtendedProperties>
@@ -22838,7 +22826,7 @@ Supplier]]></Text>
 					<Id>1669036172744</Id>
 					<Name><![CDATA[p_connectionCapacity_kW]]></Name>
 					<Description><![CDATA[TODO: This is still hardcoded! How should HOLON know where to 'gather' this data? (Capacity of shared connection)]]></Description>
-					<X>50</X><Y>170</Y>
+					<X>50</X><Y>210</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22847,9 +22835,6 @@ Supplier]]></Text>
 						<Type><![CDATA[double]]></Type>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
-						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[2000]]></Code>
-						</DefaultValue>
 						<ParameterEditor>
 							<Id>1669036172742</Id>
 							<EditorContolType>TEXT_BOX</EditorContolType>
@@ -23000,6 +22985,9 @@ Supplier]]></Text>
 						<Type><![CDATA[EnergyHolon]]></Type>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[null]]></Code>
+						</DefaultValue>
 						<ParameterEditor>
 							<Id>1676551708073</Id>
 							<EditorContolType>TEXT_BOX</EditorContolType>
@@ -23316,7 +23304,7 @@ v_dieselImported_kWh += v_dieselVolume_kWh;]]></Body>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[double energyPrice_eurpkWh = ((EnergySupplier)p_energySupplier).f_getVariableEnergyPrice();
+					<Body><![CDATA[double energyPrice_eurpkWh = v_electricityVariablePrice_eurpkWh + v_currentNodalPrice_eurpkWh + v_contractDelivery.deliveryPrice_eurpkWh;
 //traceln("Holon received energy price of: " + energyPrice_eurpkWh + " eur/kWh");
 return energyPrice_eurpkWh;]]></Body>
 				</Function>
@@ -23469,9 +23457,21 @@ for( HashMap l : c_actorContractList) {
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[GridNode gridNodeUnderResponsibility = findFirst(main.pop_gridNodes, p->p.p_agentID.equals(p_gridNodeUnderResponsibility)) ;
-traceln("GridNode for HOLON " + gridNodeUnderResponsibility );
-p_connectionCapacity_kW = gridNodeUnderResponsibility == null ? 0 : gridNodeUnderResponsibility.p_capacity_kW;
+					<Body><![CDATA[
+if (p_gridNodeUnderResponsibility != null){
+	GridNode myParentNodeElectric = findFirst(main.pop_gridNodes, p->p.p_agentID.equals(p_gridNodeUnderResponsibility)) ;
+	if( myParentNodeElectric instanceof GridNode ) {
+		//l_parentNodeElectric.connectTo(myParentNodeElectric);
+		myParentNodeElectric.f_connectToChild(this);	
+		p_connectionCapacity_kW = myParentNodeElectric.p_capacity_kW;
+		traceln("Adding HOLON to children of GridNode " + myParentNodeElectric);
+	} else {
+		traceln("Parent GridNode for energyHolon not found!");
+		p_connectionCapacity_kW = 0;
+	}
+} else {
+	p_connectionCapacity_kW = 0;
+}
 
 v_allowedCapacity_kW = p_connectionCapacity_kW;
 if(!v_enable_nfATO_b){
@@ -33921,19 +33921,19 @@ public class J_ConnectionContract implements Serializable {
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/gridconnections_step1_eTrucks.txt]]></Path>
+			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/Jorrits JSON - Buurtelektrificatie/example_gridconnections.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/gridnodes.txt]]></Path>
+			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/Jorrits JSON - Buurtelektrificatie/example_gridnodes.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/policies.txt]]></Path>
+			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/Jorrits JSON - Buurtelektrificatie/example_policies.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/actors_newContracts.txt]]></Path>
+			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/Jorrits JSON - Buurtelektrificatie/example_actors_newContracts.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
