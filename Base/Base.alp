@@ -3060,11 +3060,11 @@ for(ConnectionOwner c : pop_connectionOwners) {
 		//traceln("ConnectionOwner v_ownedGridConnection: " + c.v_ownedGridConnection.p_agentID);
 //		traceln("ConnectionOwner v_energySupplierDistrictHeat: " + c.v_energySupplierDistrictHeat.toString());
 //		c.j_ActorData.updateData(c.p_actorID, c.p_actorType, c.p_parentActorID, c.p_energySupplier.toString(), c.v_ownedGridConnection.toString(), c.v_energySupplierDistrictHeat.toString(), roundToDecimal( c.v_electricityVolume_kWh, 2 ), roundToDecimal( c.v_heatVolume_kWh, 2), roundToDecimal( c.v_methaneVolume_kWh, 2), roundToDecimal( c.v_hydrogenVolume_kWh, 2 ), c.v_electricityContractType.toString(), c.v_heatContractType.toString(), c.v_methaneContractType.toString(), c.v_hydrogenContractType.toString(), roundToDecimal( c.v_balanceElectricity_eur, 2), roundToDecimal( c.v_balanceHeat_eur, 2), roundToDecimal( c.v_balanceMethane_eur, 2), roundToDecimal( c.v_balanceHydrogen_eur, 2));
-		c.j_ActorData.updateData(c.p_actorID, c.p_actorType, c.p_parentActorID, c.p_energySupplier.toString(), c.v_ownedGridConnection.toString(),
+		c.j_ActorData.updateData(c.p_actorID, c.p_actorType, c.p_gridOperator.toString(), c.p_holonParent.toString(), c.p_energySupplier.toString(), c.v_ownedGridConnection.toString(),
 		null, roundToDecimal( c.v_electricityVolume_kWh, 2 ), roundToDecimal( c.v_heatVolume_kWh, 2), roundToDecimal( c.v_methaneVolume_kWh, 2), roundToDecimal( c.v_hydrogenVolume_kWh, 2 ),		
 		//c.v_electricityContractType.toString(), c.v_heatContractType.toString(), c.v_methaneContractType.toString(), c.v_hydrogenContractType.toString(), 
 		null, null, null, null,
-		roundToDecimal( c.v_balanceElectricity_eur, 2), roundToDecimal( c.v_balanceHeat_eur, 2), roundToDecimal( c.v_balanceMethane_eur, 2), roundToDecimal( c.v_balanceHydrogen_eur, 2));
+		roundToDecimal( c.v_balanceElectricity_eur, 2), roundToDecimal( c.v_balanceElectricityDelivery_eur, 2), roundToDecimal( c.v_balanceElectricityTransport_eur, 2), roundToDecimal( c.v_balanceElectricityTax_eur, 2));
 		J_ActorData data = c.j_ActorData;
 		j_dataOut.actorData.add(data);
 	} catch (Exception e) {
@@ -3076,13 +3076,11 @@ for(ConnectionOwner c : pop_connectionOwners) {
 for(EnergyHolon a : pop_energyHolons) {
 	try {
 		//traceln("ConnectionOwner v_ownedGridConnection: " + a.v_ownedGridConnection.p_agentID);
-		a.j_ActorData.updateData(a.p_actorID, a.p_actorType, a.p_parentActorID, a.p_energySupplier.toString(), 
-		a.p_gridNodeUnderResponsibility, null, roundToDecimal( a.v_electricityVolume_kWh, 2 ), roundToDecimal( a.v_heatVolume_kWh, 2),
-		roundToDecimal( a.v_methaneVolume_kWh, 2), roundToDecimal( a.v_hydrogenVolume_kWh, 2 ), 
+		a.j_ActorData.updateData(a.p_actorID, a.p_actorType,  a.p_gridOperator.toString(), a.p_holonParent.toString(), a.p_energySupplier.toString(), a.p_gridNodeUnderResponsibility, 
+		null, roundToDecimal( a.v_electricityVolume_kWh, 2 ), roundToDecimal( a.v_heatVolume_kWh, 2), roundToDecimal( a.v_methaneVolume_kWh, 2), roundToDecimal( a.v_hydrogenVolume_kWh, 2 ), 
 		//a.v_electricityContractType.toString(), a.v_heatContractType.toString(), a.v_methaneContractType.toString(), a.v_hydrogenContractType.toString(),
 		null, null, null, null,
-		roundToDecimal( a.v_balanceElectricity_eur, 2), roundToDecimal( a.v_balanceHeat_eur, 2), roundToDecimal( a.v_balanceMethane_eur, 2),
-		roundToDecimal( a.v_balanceHydrogen_eur, 2));
+		roundToDecimal( a.v_balanceElectricity_eur, 2), roundToDecimal( a.v_balanceElectricityDelivery_eur, 2), roundToDecimal( a.v_balanceElectricityTransport_eur, 2), roundToDecimal( a.v_balanceElectricityTax_eur, 2));
 		J_ActorData data = a.j_ActorData;
 		j_dataOut.actorData.add(data);
 	} catch (Exception e) {
@@ -3278,6 +3276,7 @@ for (EnergyHolon e : pop_energyHolons) {
 	//e.f_updateEnergyPrice();
 	//e.f_updateOtherIncentives();
 	//e.f_setPriceBandsExperiment();
+	e.f_updateIncentives();
 }
 
 for (ConnectionOwner c : pop_connectionOwners) {
@@ -3684,7 +3683,7 @@ for(HashMap data : parsedJSONActors)
     String actorID = data.get( "id" ).toString();
     OL_ActorType actorcategory = OL_ActorType.valueOf((String)data.get( "category" ));
     String type = data.get( "type" ) == null? null : String.valueOf(data.get( "type" )); //traceln(actortype.toString());
-    String parentActorID = String.valueOf(data.get( "parent_actor" ));
+    //String parentActorID = String.valueOf(data.get( "parent_actor" ));
     actorContracts = data.get( "contracts") == null? null : (ArrayList)data.get( "contracts");
 	//double NonFirmATOCapacity = data.get( "nfATO_capacity_kw" ) == null? 0.0 : (Double)data.get( "nfATO_capacity_kw" );
     //double NonFirmATOStarttime = data.get( "nfATO_starttime" ) == null? 0.0 : (Double)data.get( "nfATO_starttime" );
@@ -3695,27 +3694,27 @@ for(HashMap data : parsedJSONActors)
 	    ConnectionOwner Actor = add_pop_connectionOwners();
 	    Actor.set_p_actorID( actorID );
 	    Actor.set_p_actorType( type );
-	    Actor.set_p_parentActorID( parentActorID );
+	    //Actor.set_p_parentActorID( parentActorID );
 	    Actor.set_p_actorContractList( actorContracts );
    		Actor.f_setContractValues();
-	    Actor.j_ActorData = new J_ActorData(actorID, type, parentActorID);
+	    Actor.j_ActorData = new J_ActorData(actorID, type);
 	    c_connectionOwners.add(Actor);
 	    
     } else if (actorcategory.equals(OL_ActorType.ENERGYSUPPLIER) ) {
 		EnergySupplier Actor = add_pop_energySuppliers();
 		Actor.set_p_actorID( actorID );
 		Actor.set_p_actorType( type );
-		Actor.set_p_parentActorID( parentActorID );
-		Actor.j_ActorData = new J_ActorData(actorID, type, parentActorID);
+		//Actor.set_p_parentActorID( parentActorID );
+		Actor.j_ActorData = new J_ActorData(actorID, type);
 
     } else if (actorcategory.equals(OL_ActorType.ENERGYHOLON) ) {
 	    EnergyHolon Actor = add_pop_energyHolons();
 	    Actor.set_p_actorID( actorID );
 	    Actor.set_p_actorType( "EnergyHolon" );
-	    Actor.set_p_parentActorID( parentActorID );
+	    //Actor.set_p_parentActorID( parentActorID );
 	    Actor.set_p_actorContractList( actorContracts );
    		Actor.f_setContractValues();
-  		Actor.j_ActorData = new J_ActorData(actorID, type, parentActorID);
+  		Actor.j_ActorData = new J_ActorData(actorID, type);
 		//Actor.set_p_nfatoEnd_h( NonFirmATOEndtime );
   		//Actor.set_p_nfatoStart_h( NonFirmATOStarttime);
   		//Actor.set_p_nfatoLvl_kW( NonFirmATOCapacity );
@@ -3725,8 +3724,8 @@ for(HashMap data : parsedJSONActors)
 	    GridOperator Actor = add_pop_gridOperators();
 	    Actor.set_p_actorID( actorID );
 	    Actor.set_p_actorType( type );
-	    Actor.set_p_parentActorID( parentActorID );
-	    Actor.j_ActorData = new J_ActorData(actorID, type, parentActorID);
+	    //Actor.set_p_parentActorID( parentActorID );
+	    Actor.j_ActorData = new J_ActorData(actorID, type);
     }
 }
 
@@ -5110,13 +5109,10 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 							<Name><![CDATA[p_energySupplier]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_nfatoStart_h]]></Name>
+							<Name><![CDATA[p_holonParent]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_nfatoEnd_h]]></Name>
-						</Parameter>
-						<Parameter>
-							<Name><![CDATA[p_nfatoLvl_kW]]></Name>
+							<Name><![CDATA[p_gridOperator]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -10435,7 +10431,7 @@ else if (EA.p_energyAssetInstance instanceof J_EAProduction ) {
 		else if (((J_EAStorageElectric)EA.p_energyAssetInstance).getStorageCapacity_kWh() !=0) {
 			c_storageAssets.add(EA);
 			p_batteryAsset = EA;
-		}
+		}		
 		else{
 			traceln(getName() + "storage asset create that cannot be identified (i.e. its not an EV and not an heatstorage");
 		}
@@ -14319,7 +14315,7 @@ if( p_individualMode ) {
 	for ( Iterator<EnergyHolon> it = Holons.iterator(); it.hasNext(); index++ )
 	{
 	    EnergyHolon holon = it.next();
-		String parent = holon.p_parentActorID;
+		String parent = "";//holon.p_parentActorID;
  	   	String actorID = holon.p_actorID;
  	   	OL_ActorType actorType = OL_ActorType.ENERGYHOLON;
 		UI_Actor holonActor = add_uI_Actors(actorType, parent, actorID);
@@ -14466,9 +14462,9 @@ double hydrogenBalance_eur = 0;
 for( UI_Actor a : filter( uI_Actors, p -> p.p_actorType.equals(CONNECTIONOWNER)) ) {
 	ConnectionOwner realAgent = (ConnectionOwner)a.realAgent.getConnectedAgent(0);
 	electricityBalance_eur += realAgent.v_balanceElectricity_eur;
-	heatBalance_eur += realAgent.v_balanceHeat_eur;
-	methaneBalance_eur += realAgent.v_balanceMethane_eur;
-	hydrogenBalance_eur += realAgent.v_balanceHydrogen_eur;
+	//heatBalance_eur += realAgent.v_balanceHeat_eur;
+	//methaneBalance_eur += realAgent.v_balanceMethane_eur;
+	//hydrogenBalance_eur += realAgent.v_balanceHydrogen_eur;
 }
 v_gridConnectionBalanceElectricity_eur = electricityBalance_eur;
 v_gridConnectionBalanceHeat_eur = heatBalance_eur;
@@ -18910,7 +18906,8 @@ ea 2
 				<Variable Class="PlainVariable">
 					<Id>1660744173993</Id>
 					<Name><![CDATA[v_electricityContractType]]></Name>
-					<X>930</X><Y>310</Y>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>-200</X><Y>200</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18926,7 +18923,7 @@ ea 2
 					<Id>1660744181560</Id>
 					<Name><![CDATA[v_heatContractType]]></Name>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>930</X><Y>110</Y>
+					<X>-200</X><Y>120</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18942,7 +18939,7 @@ ea 2
 					<Id>1660744190914</Id>
 					<Name><![CDATA[v_methaneContractType]]></Name>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>930</X><Y>130</Y>
+					<X>-200</X><Y>140</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19017,7 +19014,8 @@ ea 2
 				<Variable Class="PlainVariable">
 					<Id>1660745504140</Id>
 					<Name><![CDATA[v_balanceHeat_eur]]></Name>
-					<X>970</X><Y>630</Y>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>-200</X><Y>690</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19029,7 +19027,8 @@ ea 2
 				<Variable Class="PlainVariable">
 					<Id>1660745513069</Id>
 					<Name><![CDATA[v_balanceMethane_eur]]></Name>
-					<X>970</X><Y>650</Y>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>-200</X><Y>710</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19042,7 +19041,7 @@ ea 2
 					<Id>1661174627092</Id>
 					<Name><![CDATA[v_hydrogenContractType]]></Name>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>930</X><Y>150</Y>
+					<X>-200</X><Y>160</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19057,7 +19056,8 @@ ea 2
 				<Variable Class="PlainVariable">
 					<Id>1661174643058</Id>
 					<Name><![CDATA[v_balanceHydrogen_eur]]></Name>
-					<X>970</X><Y>670</Y>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>-200</X><Y>730</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19084,7 +19084,7 @@ ea 2
 				<Variable Class="PlainVariable">
 					<Id>1661177954454</Id>
 					<Name><![CDATA[v_energySupplierDistrictHeat]]></Name>
-					<X>63</X><Y>320</Y>
+					<X>61</X><Y>270</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19096,7 +19096,7 @@ ea 2
 				<Variable Class="PlainVariable">
 					<Id>1661179464769</Id>
 					<Name><![CDATA[v_ownedGridConnection]]></Name>
-					<X>63</X><Y>300</Y>
+					<X>61</X><Y>250</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19121,7 +19121,7 @@ ea 2
 				<Variable Class="PlainVariable">
 					<Id>1661267039917</Id>
 					<Name><![CDATA[j_ActorData]]></Name>
-					<X>55</X><Y>215</Y>
+					<X>60</X><Y>210</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19133,7 +19133,7 @@ ea 2
 				<Variable Class="PlainVariable">
 					<Id>1663237705961</Id>
 					<Name><![CDATA[v_electricityVariablePrice_eurpkWh]]></Name>
-					<X>550</X><Y>450</Y>
+					<X>740</X><Y>480</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19161,7 +19161,7 @@ ea 2
 				<Variable Class="PlainVariable">
 					<Id>1666529984344</Id>
 					<Name><![CDATA[v_priceBandsDelivery]]></Name>
-					<X>790</X><Y>450</Y>
+					<X>964</X><Y>478</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19173,7 +19173,7 @@ ea 2
 				<Variable Class="PlainVariable">
 					<Id>1666531542032</Id>
 					<Name><![CDATA[v_currentNodalPrice_eurpkWh]]></Name>
-					<X>550</X><Y>470</Y>
+					<X>740</X><Y>500</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19206,7 +19206,7 @@ ea 2
 					<Name><![CDATA[v_updatePriceBands_b]]></Name>
 					<Description><![CDATA[Not visible as it is swtiched on and of in between timesteps ( for fixed tarifs at least)]]></Description>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>60</X><Y>400</Y>
+					<X>-200</X><Y>490</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>false</PresentationFlag>
@@ -19252,7 +19252,8 @@ ea 2
 				<Variable Class="PlainVariable">
 					<Id>1669024172107</Id>
 					<Name><![CDATA[v_balanceDiesel_eur]]></Name>
-					<X>970</X><Y>690</Y>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>-200</X><Y>750</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19264,7 +19265,7 @@ ea 2
 				<Variable Class="PlainVariable">
 					<Id>1669036835710</Id>
 					<Name><![CDATA[v_contractDelivery]]></Name>
-					<X>930</X><Y>220</Y>
+					<X>940</X><Y>130</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19276,7 +19277,7 @@ ea 2
 				<Variable Class="PlainVariable">
 					<Id>1669036845521</Id>
 					<Name><![CDATA[v_contractTransport]]></Name>
-					<X>930</X><Y>240</Y>
+					<X>940</X><Y>150</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19288,7 +19289,7 @@ ea 2
 				<Variable Class="PlainVariable">
 					<Id>1669036853577</Id>
 					<Name><![CDATA[v_contractTax]]></Name>
-					<X>930</X><Y>260</Y>
+					<X>940</X><Y>170</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19301,7 +19302,7 @@ ea 2
 					<Id>1673455438812</Id>
 					<Name><![CDATA[v_enable_nfATO_b]]></Name>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>250</X><Y>110</Y>
+					<X>-200</X><Y>660</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19317,7 +19318,7 @@ ea 2
 					<Id>1675864492131</Id>
 					<Name><![CDATA[v_congestionTariff_b]]></Name>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>60</X><Y>440</Y>
+					<X>-200</X><Y>530</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19332,7 +19333,7 @@ ea 2
 				<Variable Class="PlainVariable">
 					<Id>1676282750780</Id>
 					<Name><![CDATA[v_contractConnection]]></Name>
-					<X>930</X><Y>280</Y>
+					<X>940</X><Y>190</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19344,7 +19345,7 @@ ea 2
 				<Variable Class="PlainVariable">
 					<Id>1676459405457</Id>
 					<Name><![CDATA[v_balanceElectricityDelivery_eur]]></Name>
-					<X>970</X><Y>450</Y>
+					<X>970</X><Y>630</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19359,7 +19360,7 @@ ea 2
 				<Variable Class="PlainVariable">
 					<Id>1676459420019</Id>
 					<Name><![CDATA[v_balanceElectricityTransport_eur]]></Name>
-					<X>970</X><Y>470</Y>
+					<X>970</X><Y>650</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19374,7 +19375,7 @@ ea 2
 				<Variable Class="PlainVariable">
 					<Id>1676459433986</Id>
 					<Name><![CDATA[v_balanceElectricityTax_eur]]></Name>
-					<X>970</X><Y>490</Y>
+					<X>970</X><Y>670</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19389,7 +19390,7 @@ ea 2
 				<Variable Class="PlainVariable">
 					<Id>1676459631796</Id>
 					<Name><![CDATA[v_priceBandsTransport]]></Name>
-					<X>790</X><Y>470</Y>
+					<X>964</X><Y>498</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19401,7 +19402,7 @@ ea 2
 				<Variable Class="PlainVariable">
 					<Id>1676459645240</Id>
 					<Name><![CDATA[v_priceBandsTax]]></Name>
-					<X>790</X><Y>490</Y>
+					<X>964</X><Y>518</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19414,7 +19415,7 @@ ea 2
 					<Id>1676540839762</Id>
 					<Name><![CDATA[v_capacityTariff_b]]></Name>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>60</X><Y>480</Y>
+					<X>-200</X><Y>570</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19450,7 +19451,7 @@ ea 2
 				<Variable Class="Parameter">
 					<Id>1669036749740</Id>
 					<Name><![CDATA[p_actorContractList]]></Name>
-					<X>930</X><Y>170</Y>
+					<X>940</X><Y>80</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19686,7 +19687,7 @@ ea 2
 					<Id>1675870562141</Id>
 					<Name><![CDATA[p_nfatoStart_h]]></Name>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>250</X><Y>50</Y>
+					<X>-200</X><Y>600</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19711,7 +19712,7 @@ ea 2
 					<Id>1675870562144</Id>
 					<Name><![CDATA[p_nfatoEnd_h]]></Name>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>250</X><Y>70</Y>
+					<X>-200</X><Y>620</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19737,7 +19738,7 @@ ea 2
 					<Id>1675870562147</Id>
 					<Name><![CDATA[p_nfatoLvl_kW]]></Name>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>250</X><Y>90</Y>
+					<X>-200</X><Y>640</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19782,7 +19783,7 @@ ea 2
 				<Variable Class="CollectionVariable">
 					<Id>1669036806038</Id>
 					<Name><![CDATA[c_actorContractList]]></Name>
-					<X>930</X><Y>190</Y>
+					<X>940</X><Y>100</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -19860,13 +19861,8 @@ if (mySupplier != null) {
 // Connect to grid operator (can be a holon!)
 Agent myGridoperator = null;
 myGridoperator = findFirst(main.pop_gridOperators, p->p.p_actorID.equals(v_contractTransport.contractScope)) ;
-if (myGridoperator != null) {
-	//((GridOperator)myGridoperator).f_connectToChild(this); // GridOperator 'children' are GridNodes, not connectionOwners! (for now...?)
-} else {
+if (myGridoperator == null) {
 	myGridoperator = findFirst(main.pop_energyHolons, p->p.p_actorID.equals(v_contractTransport.contractScope)) ;
-	//if (myGridoperator != null) {
-		//((EnergyHolon)myGridoperator).f_connectToChild(this);	// GridOperator 'children' are GridNodes, not connectionOwners! (for now...?)
-	//}
 }
 
 if (myGridoperator != null) {
@@ -19875,41 +19871,7 @@ if (myGridoperator != null) {
 	traceln("Connection owner --> f_connectToParentActor --> no parent actor found, this should not be happening");
 }
 
-/*
-if ( p_parentActorID != null ) {
-	Agent myParentActor = findFirst(main.pop_energySuppliers, p->p.p_actorID.equals(p_parentActorID)) ;
-	if( myParentActor != null) {
-		energySupplier.connectTo(myParentActor);
-		p_energySupplier = myParentActor;
-		EnergySupplier energySupplier =  (EnergySupplier)myParentActor;
-		energySupplier.f_connectToChild(this);
-		
-		//if ( v_electricityContractType == ELECTRICITY_FIXED ){
-		//	v_electricityBuyPrice_eurpkWh = energySupplier.f_getEnergyPrice( ELECTRICITY_FIXED, false );
-		//	v_electricitySellPrice_eurpkWh = energySupplier.f_getEnergyPrice( ELECTRICITY_FIXED, true );
-		//}
-		
-	}
-	else {
-		myParentActor = findFirst(main.pop_energyHolons, p->p.p_actorID.equals(p_parentActorID)) ;
-		if( myParentActor != null) {
-			energySupplier.connectTo(myParentActor);
-			p_energySupplier = myParentActor;
-			EnergyHolon energySupplier = (EnergyHolon)myParentActor;
-			energySupplier.f_connectToChild(this);
-			p_holonParent = energySupplier;
-			
-			//if ( v_electricityContractType == ELECTRICITY_FIXED ){
-			//	v_electricityBuyPrice_eurpkWh = energySupplier.f_getEnergyPrice( ELECTRICITY_FIXED, false );
-			//	v_electricitySellPrice_eurpkWh = energySupplier.f_getEnergyPrice( ELECTRICITY_FIXED, true );
-			//}
-			
-		}
-		else {
-			traceln("Connection owner --> f_connectToParentActor --> no parent actor found, this should not be happening");
-		}
-	}
-}*/]]></Body>
+]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -20023,36 +19985,24 @@ for(GridConnection n :  gridConnections.getConnections() ) {
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[//if ( v_updatePriceBands_b ){
-	if (v_electricityContractType==OL_DeliveryContractType.ELECTRICITY_VARIABLE) {
-		if (p_energySupplier instanceof EnergySupplier) {
-			v_electricityVariablePrice_eurpkWh = ((EnergySupplier)p_energySupplier).f_getVariableEnergyPrice();
-			//v_electricitySellPrice_eurpkWh = ((EnergySupplier)p_energySupplier).f_getEnergyPrice(v_electricityContractType, true);
-		} else if (p_energySupplier instanceof EnergyHolon) {
-			v_electricityVariablePrice_eurpkWh = ((EnergyHolon)p_energySupplier).f_getVariableEnergyPrice(v_electricityContractType, false);
-			//v_electricitySellPrice_eurpkWh = ((EnergyHolon)p_energySupplier).f_getEnergyPrice(v_electricityContractType, true);
-		}
+					<Body><![CDATA[if (v_contractDelivery.contractType==OL_DeliveryContractType.ELECTRICITY_VARIABLE) {
+	if (p_energySupplier instanceof EnergySupplier) {
+		v_electricityVariablePrice_eurpkWh = ((EnergySupplier)p_energySupplier).f_getVariableEnergyPrice();
+	} else if (p_energySupplier instanceof EnergyHolon) {
+		v_electricityVariablePrice_eurpkWh = ((EnergyHolon)p_energySupplier).f_getVariableEnergyPrice();
 	}
-	
-	// Transport pricing (nodal pricing) is 'pushed' to the connectionOwner from the GridNode, so don't have to ask for the price here.
-	/*if (v_contractTransport.transportContractType.equals(OL_TransportContractType.NODALPRICING)) {
-		if (p_gridOperator instanceof GridOperator) {
-			v_electricityVariablePrice_eurpkWh = ((GridOperator)p_gridOperator).f_getVariableEnergyPrice(v_electricityContractType, false);
-			//v_electricitySellPrice_eurpkWh = ((EnergySupplier)p_energySupplier).f_getEnergyPrice(v_electricityContractType, true);
-		} else if (p_gridOperator instanceof EnergyHolon) {
-			v_electricityVariablePrice_eurpkWh = ((EnergyHolon)p_gridOperator).f_getEnergyPrice(v_electricityContractType, false);
-			//v_electricitySellPrice_eurpkWh = ((EnergyHolon)p_energySupplier).f_getEnergyPrice(v_electricityContractType, true);
-		}
-	}*/	
-	
-	f_setElectricityPriceBands();	
-//}
+}
 
-// Update energy balance. Where is this used? commented out for now.
-/*v_electricitySurpluss_kW = 0;
-for(GridConnection c : gridConnections.getConnections()){
-	v_electricitySurpluss_kW -= c.v_currentPowerElectricity_kW;
-}*/
+// Transport pricing (nodal pricing) is 'pushed' to the connectionOwner from the GridNode, so don't have to ask for the price here.
+/*if (v_contractTransport.transportContractType.equals(OL_TransportContractType.NODALPRICING)) {
+	if (p_gridOperator instanceof GridOperator) {
+		v_electricityVariablePrice_eurpkWh = ((GridOperator)p_gridOperator).f_getVariableEnergyPrice(v_electricityContractType, false);
+	} else if (p_gridOperator instanceof EnergyHolon) {
+		v_electricityVariablePrice_eurpkWh = ((EnergyHolon)p_gridOperator).f_getEnergyPrice(v_electricityContractType, false);
+	}
+}*/	
+
+f_setElectricityPriceBands();	
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -20127,10 +20077,10 @@ for( HashMap l : c_actorContractList) {
 				double deliveryPrice_eurpkWh = (double)l.get("deliveryPrice_eurpkWh");
 				double feedinPrice_eurpkWh = (double)l.get("feedinPrice_eurpkWh");
 				v_contractDelivery = new J_DeliveryContract(contractScope, deliveryContractType, OL_EnergyCarrierType.ELECTRICITY, deliveryPrice_eurpkWh, feedinPrice_eurpkWh);
-				traceln("Delivery contract: " + v_contractDelivery);
+				//traceln("Delivery contract: " + v_contractDelivery);
 			break;
 			case TRANSPORT:
-				OL_TransportContractType transportContractType = OL_TransportContractType.valueOf((String)l.get("transportTariffType"));
+				OL_TransportContractType transportContractType = OL_TransportContractType.valueOf((String)l.get("transportContractType"));
 				double bandwidthTreshold_kW = l.get("bandwidthTreshold_kW") == null ? 0.0 : (double)l.get("bandwidthTreshold_kW");
 				double bandwidthTariff_eurpkWh = l.get("bandwidthTariff_eurpkWh") == null ? 0.0 : (double)l.get("bandwidthTariff_eurpkWh");
 				v_contractTransport = new J_TransportContract(contractScope, transportContractType, bandwidthTreshold_kW, bandwidthTariff_eurpkWh);			
@@ -20756,14 +20706,14 @@ return price / availablePower;
 						<TextColor/>
 						<Enabled>true</Enabled>
 						<ActionCode><![CDATA[//f_getAveragedElectricityPrice(-10, 10);
-traceln(f_getAvailablePowerAtPrice(5));
-traceln(f_getElectricityPrice(5));
-traceln(f_getAvailablePowerAtPrice(0));
-traceln(f_getElectricityPrice(0));
-traceln(f_getAvailablePowerAtPrice(-1));
-traceln(f_getElectricityPrice(-1));
-traceln(f_getAvailablePowerAtPrice(-10));
-traceln(f_getElectricityPrice(-10));
+traceln("f_getAvailablePowerAtPrice(5) " + f_getAvailablePowerAtPrice(5));
+traceln("f_getElectricityPrice(5) " + f_getElectricityPrice(5));
+traceln("f_getAvailablePowerAtPrice(0) " + f_getAvailablePowerAtPrice(0));
+traceln("f_getElectricityPrice(0) " + f_getElectricityPrice(0));
+traceln("f_getAvailablePowerAtPrice(-1) " + f_getAvailablePowerAtPrice(-1));
+traceln("f_getElectricityPrice(-1) " + f_getElectricityPrice(-1));
+traceln("f_getAvailablePowerAtPrice(-10) " + f_getAvailablePowerAtPrice(-10));
+traceln("f_getElectricityPrice(-10) " + f_getElectricityPrice(-10));
 
 ]]></ActionCode>
 					</BasicProperties>
@@ -22152,33 +22102,6 @@ Supplier]]></Text>
 			<Id>1660731375016</Id>
 			<Name><![CDATA[EnergyHolon]]></Name>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
-			<ExtendsReference>
-				<PackageName><![CDATA[base]]></PackageName>
-				<ClassName><![CDATA[GCOwnerActor]]></ClassName>
-			</ExtendsReference>
-			<Parameters>
-				<Parameter>
-					<Name><![CDATA[p_actorID]]></Name>
-				</Parameter>
-				<Parameter>
-					<Name><![CDATA[p_actorType]]></Name>
-				</Parameter>
-				<Parameter>
-					<Name><![CDATA[p_parentActorID]]></Name>
-				</Parameter>
-				<Parameter>
-					<Name><![CDATA[p_energySupplier]]></Name>
-				</Parameter>
-				<Parameter>
-					<Name><![CDATA[p_nfatoStart_h]]></Name>
-				</Parameter>
-				<Parameter>
-					<Name><![CDATA[p_nfatoEnd_h]]></Name>
-				</Parameter>
-				<Parameter>
-					<Name><![CDATA[p_nfatoLvl_kW]]></Name>
-				</Parameter>
-			</Parameters>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1660731375014</Id>
@@ -22275,7 +22198,8 @@ Supplier]]></Text>
 				<Variable Class="PlainVariable">
 					<Id>1667983361361</Id>
 					<Name><![CDATA[v_energyPassedThrough_kWh]]></Name>
-					<X>41</X><Y>639</Y>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>-170</X><Y>860</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22290,7 +22214,7 @@ Supplier]]></Text>
 				<Variable Class="PlainVariable">
 					<Id>1667983361363</Id>
 					<Name><![CDATA[v_electricityVolume_kWh]]></Name>
-					<X>41</X><Y>519</Y>
+					<X>41</X><Y>449</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22305,7 +22229,7 @@ Supplier]]></Text>
 				<Variable Class="PlainVariable">
 					<Id>1667983361365</Id>
 					<Name><![CDATA[v_heatVolume_kWh]]></Name>
-					<X>41</X><Y>539</Y>
+					<X>41</X><Y>469</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22320,7 +22244,7 @@ Supplier]]></Text>
 				<Variable Class="PlainVariable">
 					<Id>1667983361367</Id>
 					<Name><![CDATA[v_methaneVolume_kWh]]></Name>
-					<X>41</X><Y>559</Y>
+					<X>41</X><Y>489</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22335,7 +22259,7 @@ Supplier]]></Text>
 				<Variable Class="PlainVariable">
 					<Id>1667983361369</Id>
 					<Name><![CDATA[v_electricitySurplus_kW]]></Name>
-					<X>41</X><Y>659</Y>
+					<X>41</X><Y>589</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22350,7 +22274,7 @@ Supplier]]></Text>
 				<Variable Class="PlainVariable">
 					<Id>1667983361373</Id>
 					<Name><![CDATA[v_electricityImported_kWh]]></Name>
-					<X>291</X><Y>449</Y>
+					<X>254</X><Y>449</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22365,7 +22289,7 @@ Supplier]]></Text>
 				<Variable Class="PlainVariable">
 					<Id>1667983361375</Id>
 					<Name><![CDATA[v_electricityExported_kWh]]></Name>
-					<X>511</X><Y>447</Y>
+					<X>471</X><Y>447</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22380,7 +22304,7 @@ Supplier]]></Text>
 				<Variable Class="PlainVariable">
 					<Id>1667983361377</Id>
 					<Name><![CDATA[v_methaneImported_kWh]]></Name>
-					<X>291</X><Y>469</Y>
+					<X>254</X><Y>469</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22395,7 +22319,7 @@ Supplier]]></Text>
 				<Variable Class="PlainVariable">
 					<Id>1667983361379</Id>
 					<Name><![CDATA[v_methaneExported_kWh]]></Name>
-					<X>511</X><Y>467</Y>
+					<X>471</X><Y>467</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22410,7 +22334,7 @@ Supplier]]></Text>
 				<Variable Class="PlainVariable">
 					<Id>1667983361381</Id>
 					<Name><![CDATA[v_heatImported_kWh]]></Name>
-					<X>291</X><Y>489</Y>
+					<X>254</X><Y>489</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22425,7 +22349,7 @@ Supplier]]></Text>
 				<Variable Class="PlainVariable">
 					<Id>1667983361383</Id>
 					<Name><![CDATA[v_heatExported_kWh]]></Name>
-					<X>511</X><Y>487</Y>
+					<X>471</X><Y>487</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22440,7 +22364,7 @@ Supplier]]></Text>
 				<Variable Class="PlainVariable">
 					<Id>1667983361385</Id>
 					<Name><![CDATA[v_hydrogenImported_kWh]]></Name>
-					<X>291</X><Y>509</Y>
+					<X>254</X><Y>509</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22455,7 +22379,7 @@ Supplier]]></Text>
 				<Variable Class="PlainVariable">
 					<Id>1667983361387</Id>
 					<Name><![CDATA[v_hydrogenExported_kWh]]></Name>
-					<X>511</X><Y>507</Y>
+					<X>471</X><Y>507</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22470,7 +22394,7 @@ Supplier]]></Text>
 				<Variable Class="PlainVariable">
 					<Id>1667983361389</Id>
 					<Name><![CDATA[v_hydrogenVolume_kWh]]></Name>
-					<X>41</X><Y>579</Y>
+					<X>41</X><Y>509</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22485,7 +22409,7 @@ Supplier]]></Text>
 				<Variable Class="PlainVariable">
 					<Id>1668587453344</Id>
 					<Name><![CDATA[v_balanceElectricity_eur]]></Name>
-					<X>510</X><Y>560</Y>
+					<X>470</X><Y>339</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22500,7 +22424,8 @@ Supplier]]></Text>
 				<Variable Class="PlainVariable">
 					<Id>1668587453348</Id>
 					<Name><![CDATA[v_balanceMethane_eur]]></Name>
-					<X>510</X><Y>580</Y>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>-170</X><Y>760</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22515,7 +22440,8 @@ Supplier]]></Text>
 				<Variable Class="PlainVariable">
 					<Id>1668587453350</Id>
 					<Name><![CDATA[v_balanceHeat_eur]]></Name>
-					<X>510</X><Y>600</Y>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>-170</X><Y>780</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22530,7 +22456,8 @@ Supplier]]></Text>
 				<Variable Class="PlainVariable">
 					<Id>1668587453352</Id>
 					<Name><![CDATA[v_balanceHydrogen_eur]]></Name>
-					<X>510</X><Y>620</Y>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>-170</X><Y>800</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22546,7 +22473,7 @@ Supplier]]></Text>
 					<Id>1668587944764</Id>
 					<Name><![CDATA[v_electricityContractType]]></Name>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>40</X><Y>410</Y>
+					<X>-170</X><Y>580</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22562,7 +22489,7 @@ Supplier]]></Text>
 					<Id>1668587944767</Id>
 					<Name><![CDATA[v_heatContractType]]></Name>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>40</X><Y>430</Y>
+					<X>-170</X><Y>600</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22578,7 +22505,7 @@ Supplier]]></Text>
 					<Id>1668587944769</Id>
 					<Name><![CDATA[v_methaneContractType]]></Name>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>40</X><Y>450</Y>
+					<X>-170</X><Y>620</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22594,7 +22521,7 @@ Supplier]]></Text>
 					<Id>1668587944771</Id>
 					<Name><![CDATA[v_hydrogenContractType]]></Name>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>40</X><Y>470</Y>
+					<X>-170</X><Y>640</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22609,7 +22536,7 @@ Supplier]]></Text>
 				<Variable Class="PlainVariable">
 					<Id>1669024077839</Id>
 					<Name><![CDATA[v_dieselImported_kWh]]></Name>
-					<X>290</X><Y>530</Y>
+					<X>253</X><Y>530</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22624,7 +22551,7 @@ Supplier]]></Text>
 				<Variable Class="PlainVariable">
 					<Id>1669024099515</Id>
 					<Name><![CDATA[v_dieselVolume_kWh]]></Name>
-					<X>40</X><Y>600</Y>
+					<X>40</X><Y>530</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22639,7 +22566,8 @@ Supplier]]></Text>
 				<Variable Class="PlainVariable">
 					<Id>1669024644541</Id>
 					<Name><![CDATA[v_balanceDiesel_eur]]></Name>
-					<X>510</X><Y>640</Y>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>-170</X><Y>820</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22655,7 +22583,7 @@ Supplier]]></Text>
 					<Id>1669037269503</Id>
 					<Name><![CDATA[v_contractEnergyHolon]]></Name>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>40</X><Y>710</Y>
+					<X>-170</X><Y>680</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22667,7 +22595,7 @@ Supplier]]></Text>
 				<Variable Class="PlainVariable">
 					<Id>1669035973258</Id>
 					<Name><![CDATA[v_allowedCapacity_kW]]></Name>
-					<X>290</X><Y>630</Y>
+					<X>253</X><Y>630</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22680,7 +22608,7 @@ Supplier]]></Text>
 					<Id>1669037284540</Id>
 					<Name><![CDATA[v_contractEnergySupplier]]></Name>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>40</X><Y>730</Y>
+					<X>-170</X><Y>700</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22693,7 +22621,7 @@ Supplier]]></Text>
 					<Id>1669037300744</Id>
 					<Name><![CDATA[v_contractGridOperator]]></Name>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>40</X><Y>750</Y>
+					<X>-170</X><Y>720</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22705,7 +22633,7 @@ Supplier]]></Text>
 				<Variable Class="PlainVariable">
 					<Id>1670254434536</Id>
 					<Name><![CDATA[v_enable_nfATO_b]]></Name>
-					<X>290</X><Y>570</Y>
+					<X>253</X><Y>570</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22720,7 +22648,7 @@ Supplier]]></Text>
 				<Variable Class="PlainVariable">
 					<Id>1675335053811</Id>
 					<Name><![CDATA[j_ActorData]]></Name>
-					<X>40</X><Y>680</Y>
+					<X>41</X><Y>610</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22729,10 +22657,166 @@ Supplier]]></Text>
 						<Type><![CDATA[J_ActorData]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1676552003055</Id>
+					<Name><![CDATA[v_contractDelivery]]></Name>
+					<X>390</X><Y>100</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[J_DeliveryContract]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1676552003057</Id>
+					<Name><![CDATA[v_contractTransport]]></Name>
+					<X>390</X><Y>120</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[J_TransportContract]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1676552003059</Id>
+					<Name><![CDATA[v_contractTax]]></Name>
+					<X>390</X><Y>140</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[J_TaxContract]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1676552003061</Id>
+					<Name><![CDATA[v_contractConnection]]></Name>
+					<X>390</X><Y>160</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[J_ConnectionContract]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1676552997739</Id>
+					<Name><![CDATA[v_balanceElectricityDelivery_eur]]></Name>
+					<X>470</X><Y>359</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1676552997741</Id>
+					<Name><![CDATA[v_balanceElectricityTransport_eur]]></Name>
+					<X>470</X><Y>379</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1676552997743</Id>
+					<Name><![CDATA[v_balanceElectricityTax_eur]]></Name>
+					<X>470</X><Y>399</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1676553064622</Id>
+					<Name><![CDATA[v_electricityVariablePrice_eurpkWh]]></Name>
+					<X>40</X><Y>340</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1676553064625</Id>
+					<Name><![CDATA[v_priceBandsDelivery]]></Name>
+					<X>254</X><Y>339</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[TreeMap<Double, Double>]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1676553064627</Id>
+					<Name><![CDATA[v_currentNodalPrice_eurpkWh]]></Name>
+					<X>40</X><Y>360</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1676553064629</Id>
+					<Name><![CDATA[v_priceBandsTransport]]></Name>
+					<X>254</X><Y>358</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[TreeMap<Double, Double>]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1676553064631</Id>
+					<Name><![CDATA[v_priceBandsTax]]></Name>
+					<X>254</X><Y>378</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[TreeMap<Double, Double>]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1669037234222</Id>
 					<Name><![CDATA[p_actorContractList]]></Name>
-					<X>250</X><Y>190</Y>
+					<X>390</X><Y>50</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22754,7 +22838,7 @@ Supplier]]></Text>
 					<Id>1669036172744</Id>
 					<Name><![CDATA[p_connectionCapacity_kW]]></Name>
 					<Description><![CDATA[TODO: This is still hardcoded! How should HOLON know where to 'gather' this data? (Capacity of shared connection)]]></Description>
-					<X>250</X><Y>150</Y>
+					<X>50</X><Y>170</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22782,7 +22866,7 @@ Supplier]]></Text>
 
 @since: Sprint 6
 @author: Gillis]]></Description>
-					<X>250</X><Y>170</Y>
+					<X>50</X><Y>190</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22803,10 +22887,153 @@ Supplier]]></Text>
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1676551040549</Id>
+					<Name><![CDATA[p_actorID]]></Name>
+					<Description><![CDATA[Unique identifier of this actor in String format. Designated in Config-excel and used to link actors to netConnections.
+
+@since: Sprint 6
+@author: Gillis]]></Description>
+					<X>50</X><Y>50</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[String]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1676551040547</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1676551040552</Id>
+					<Name><![CDATA[p_actorType]]></Name>
+					<Description><![CDATA[Actor type in OL_ActorType format. Designated in Config-excel and used to determine actor-type specific functionalities later.
+
+@since: Sprint 6
+@author: Gillis]]></Description>
+					<X>50</X><Y>70</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[String]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1676551040550</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1676551040555</Id>
+					<Name><![CDATA[p_parentActorID]]></Name>
+					<Description><![CDATA[Unique actor identifier in String format of a designated parent actor. This may be designated in Config-excel and is used to create an agent link with a higher lying agent (e.g. a holon or energy supplier)
+
+@since: Sprint 6
+@author: Gillis]]></Description>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>-170</X><Y>550</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[String]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1676551040553</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1676551040558</Id>
+					<Name><![CDATA[p_energySupplier]]></Name>
+					<Description><![CDATA[Pointer of the designated parent actor (e.g. a holon or energy supplier)
+
+@since: Sprint 6
+@author: Gillis]]></Description>
+					<X>50</X><Y>110</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[Agent]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1676551040556</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1676551708075</Id>
+					<Name><![CDATA[p_holonParent]]></Name>
+					<X>50</X><Y>150</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[EnergyHolon]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1676551708073</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1676551708078</Id>
+					<Name><![CDATA[p_gridOperator]]></Name>
+					<X>50</X><Y>130</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[Agent]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1676551708076</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1669042483034</Id>
 					<Name><![CDATA[c_actorContractList]]></Name>
-					<X>250</X><Y>210</Y>
+					<X>390</X><Y>70</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22823,7 +23050,7 @@ Supplier]]></Text>
 				<Event>
 					<Id>1669035973262</Id>
 					<Name><![CDATA[e_startNonFirmATO]]></Name>
-					<X>290</X><Y>590</Y>
+					<X>253</X><Y>590</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22849,12 +23076,12 @@ Supplier]]></Text>
 						</RecurrenceCode>
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
-					<Action><![CDATA[v_allowedCapacity_kW = p_nfatoLvl_kW;]]></Action>
+					<Action><![CDATA[v_allowedCapacity_kW = v_contractConnection.nfATOpower_kW;// p_nfatoLvl_kW;]]></Action>
 				</Event>
 				<Event>
 					<Id>1669035973267</Id>
 					<Name><![CDATA[e_endNonFirmATO]]></Name>
-					<X>290</X><Y>610</Y>
+					<X>253</X><Y>610</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22889,7 +23116,7 @@ Supplier]]></Text>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1660736326703</Id>
 					<Name><![CDATA[f_connectToChild]]></Name>
-					<X>660</X><Y>90</Y>
+					<X>660</X><Y>50</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22921,7 +23148,7 @@ if ( v_contractEnergySupplier.equals("VARIABLE")) {
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1660806150226</Id>
 					<Name><![CDATA[f_updateFinances]]></Name>
-					<X>660</X><Y>230</Y>
+					<X>660</X><Y>220</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22929,15 +23156,29 @@ if ( v_contractEnergySupplier.equals("VARIABLE")) {
 					<Body><![CDATA[// get current energy flows
 f_gatherEnergyFlows();
 
-// trigger transaction with supplier/holon
+double currentPowerDrawn_kW = v_electricityVolume_kWh / main.p_timeStep_h;
 
+double transactionCostDelivery_eur = v_priceBandsDelivery.ceilingEntry( currentPowerDrawn_kW ).getValue() * v_electricityVolume_kWh;
+v_balanceElectricityDelivery_eur -= transactionCostDelivery_eur;
+v_balanceElectricity_eur -= transactionCostDelivery_eur;
+
+double transactionCostTransport_eur = v_priceBandsTransport.ceilingEntry( currentPowerDrawn_kW ).getValue() * v_electricityVolume_kWh;
+v_balanceElectricityTransport_eur -= transactionCostTransport_eur;
+v_balanceElectricity_eur -= transactionCostTransport_eur;
+
+double transactionCostTax_eur = v_priceBandsTax.ceilingEntry( currentPowerDrawn_kW ).getValue() * v_electricityVolume_kWh;
+v_balanceElectricityTax_eur -= transactionCostTax_eur;
+v_balanceElectricity_eur -= transactionCostTax_eur;
+
+// trigger transaction with supplier/holon
+/*
 double transactionCost_eur = 0;//((EnergySupplier)p_energySupplier).f_doEnergyTransaction(v_electricityVolume_kWh, v_electricityContractType);
 v_balanceElectricity_eur -= transactionCost_eur;
- transactionCost_eur = 0;//((EnergySupplier)p_energySupplier).f_doEnergyTransaction(v_heatVolume_kWh, v_heatContractType);
-v_balanceHeat_eur -= transactionCost_eur;
+transactionCost_eur = 0;//((EnergySupplier)p_energySupplier).f_doEnergyTransaction(v_heatVolume_kWh, v_heatContractType);
+//v_balanceHeat_eur -= transactionCost_eur;
 transactionCost_eur = 0;//((EnergySupplier)p_energySupplier).f_doEnergyTransaction(v_methaneVolume_kWh, v_methaneContractType);
-v_balanceMethane_eur -= transactionCost_eur;
-
+//v_balanceMethane_eur -= transactionCost_eur;
+*/
 // TODO: Also needs to include congestion tariffs! So HOLON needs to know to which GridNode it's connected! How should that work?]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -22945,7 +23186,8 @@ v_balanceMethane_eur -= transactionCost_eur;
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1660825183645</Id>
 					<Name><![CDATA[f_doEnergyTransaction]]></Name>
-					<X>660</X><Y>210</Y>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>-170</X><Y>530</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -22983,35 +23225,47 @@ return transactionCostClient_eur;]]></Body>
 @return: none
 @since: Sprint 6
 @author: HOUJ]]></Description>
-					<X>660</X><Y>110</Y>
+					<X>660</X><Y>70</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[if ( p_parentActorID != null ) {
-	Agent myParentActor = findFirst(main.pop_energySuppliers, p->p.p_actorID.equals(p_parentActorID)) ;
-	if( myParentActor != null) {
-		superConnection.connectTo(myParentActor);
-		p_energySupplier = myParentActor;
-		EnergySupplier energySupplier =  (EnergySupplier)myParentActor;
-		energySupplier.f_connectToChild(this);
+					<Body><![CDATA[Agent mySupplier = null;
+mySupplier = findFirst(main.pop_energySuppliers, p->p.p_actorID.equals(v_contractDelivery.contractScope)) ;
+if (mySupplier != null) {
+	((EnergySupplier)mySupplier).f_connectToChild(this);	
+} else {
+	mySupplier = findFirst(main.pop_energyHolons, p->p.p_actorID.equals(v_contractDelivery.contractScope)) ;
+	if (mySupplier != null) {
+		((EnergyHolon)mySupplier).f_connectToChild(this);	
 	}
+}
 
-	myParentActor = findFirst(main.pop_energyHolons, p->p.p_actorID.equals(p_parentActorID)) ;
-	if( myParentActor != null) {
-		superConnection.connectTo(myParentActor);
-		p_energySupplier = myParentActor;
-		EnergyHolon energySupplier = (EnergyHolon)myParentActor;
-		energySupplier.f_connectToChild(this);
-	}
-}]]></Body>
+if (mySupplier != null) {
+	p_energySupplier = mySupplier;
+} else { 
+	traceln("Connection owner --> f_connectToParentActor --> no parent actor found, this should not be happening");
+}
+
+// Connect to grid operator (can be a holon!)
+Agent myGridoperator = null;
+myGridoperator = findFirst(main.pop_gridOperators, p->p.p_actorID.equals(v_contractTransport.contractScope)) ;
+if (myGridoperator == null) {
+	myGridoperator = findFirst(main.pop_energyHolons, p->p.p_actorID.equals(v_contractTransport.contractScope)) ;
+}
+if (myGridoperator != null) {
+	p_gridOperator = myGridoperator;	
+} else { 
+	traceln("Connection owner --> f_connectToParentActor --> no parent actor found, this should not be happening");
+}
+]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1667983361355</Id>
 					<Name><![CDATA[f_gatherEnergyFlows]]></Name>
-					<X>661</X><Y>249</Y>
+					<X>661</X><Y>239</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -23057,19 +23311,11 @@ v_dieselImported_kWh += v_dieselVolume_kWh;]]></Body>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1667983361357</Id>
 					<Name><![CDATA[f_getVariableEnergyPrice]]></Name>
-					<X>661</X><Y>269</Y>
+					<X>661</X><Y>259</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Parameter>
-						<Name><![CDATA[contractType]]></Name>
-						<Type><![CDATA[OL_DeliveryContractType]]></Type>
-					</Parameter>
-					<Parameter>
-						<Name><![CDATA[feedIn]]></Name>
-						<Type><![CDATA[boolean]]></Type>
-					</Parameter>
 					<Body><![CDATA[double energyPrice_eurpkWh = ((EnergySupplier)p_energySupplier).f_getVariableEnergyPrice();
 //traceln("Holon received energy price of: " + energyPrice_eurpkWh + " eur/kWh");
 return energyPrice_eurpkWh;]]></Body>
@@ -23083,7 +23329,7 @@ return energyPrice_eurpkWh;]]></Body>
 
 @author: JorritvandenHouten
 @since: Sprint 6]]></Description>
-					<X>660</X><Y>310</Y>
+					<X>660</X><Y>150</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -23160,7 +23406,7 @@ traceln("Holon selfsufficiency: " + totalSelfSufficiency_fr + "%, doublecheck " 
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1669037224999</Id>
 					<Name><![CDATA[f_setContractValues]]></Name>
-					<X>40</X><Y>390</Y>
+					<X>660</X><Y>90</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -23172,84 +23418,53 @@ traceln("Holon selfsufficiency: " + totalSelfSufficiency_fr + "%, doublecheck " 
 }
 
 c_actorContractList = p_actorContractList;
-/*for( HashMap l : c_actorContractList) {
-		String contractScope = OL_ActorType.valueOf((String)l.get( "contract_scope" ));
-
-		switch( contractScope ) {
-			case ENERGYSUPPLIER:
-				v_contractEnergySupplier = (String)l.get( "type" );
+for( HashMap l : c_actorContractList) {
+		OL_ContractType contractService = OL_ContractType.valueOf((String)l.get( "type" ));
+		String contractScope = (String)l.get( "contract_scope" );
+		switch( contractService ) {
+			case DELIVERY:
+				//String contractScope = (String)l.get( "contract_scope" );
+				OL_DeliveryContractType deliveryContractType = OL_DeliveryContractType.valueOf((String)l.get("DeliveryContractType"));
+				double deliveryPrice_eurpkWh = (double)l.get("deliveryPrice_eurpkWh");
+				double feedinPrice_eurpkWh = (double)l.get("feedinPrice_eurpkWh");
+				v_contractDelivery = new J_DeliveryContract(contractScope, deliveryContractType, OL_EnergyCarrierType.ELECTRICITY, deliveryPrice_eurpkWh, feedinPrice_eurpkWh);
+				//traceln("Delivery contract: " + v_contractDelivery);
 			break;
-			case ENERGYHOLON:
-				v_contractEnergyHolon = (String)l.get( "type" );
+			case TRANSPORT:
+				OL_TransportContractType transportContractType = OL_TransportContractType.valueOf((String)l.get("transportContractType"));
+				double bandwidthTreshold_kW = l.get("bandwidthTreshold_kW") == null ? 0.0 : (double)l.get("bandwidthTreshold_kW");
+				double bandwidthTariff_eurpkWh = l.get("bandwidthTariff_eurpkWh") == null ? 0.0 : (double)l.get("bandwidthTariff_eurpkWh");
+				v_contractTransport = new J_TransportContract(contractScope, transportContractType, bandwidthTreshold_kW, bandwidthTariff_eurpkWh);			
 			break;
-			case GRIDOPERATOR:
-				v_contractGridOperator = (String)l.get( "type" );
-				if (v_contractGridOperator.equals("NONFIRMATO")) {
-					p_nfatoStart_h = (Double)l.get("nfATO_starttime_h");
-					p_nfatoEnd_h = (Double)l.get("nfATO_endtime_h");
-					p_nfatoLvl_kW = (Double)l.get("nfATO_capacity_kW");
+			case CONNECTION:
+				OL_ConnectionContractType connectionContractType = OL_ConnectionContractType.valueOf((String)l.get("ConnectionContracType"));
+				double nfATOstart_h = l.get("nfATO_starttime_h") == null ? 0.0 : (double)l.get("nfATO_starttime_h");
+				double nfATOend_h = l.get("nfATO_endtime_h") == null ? 0.0 : (double)l.get("nfATO_endtime_h");
+				double nfATOcapacity_kW = l.get("nfATO_capacity_kW") ==  null ? 0.0 : (double)l.get("nfATO_capacity_kW");
+				if (connectionContractType.equals(OL_ConnectionContractType.NFATO)) {
 					v_enable_nfATO_b = true;
 				}
+				v_contractConnection = new J_ConnectionContract(contractScope, connectionContractType, nfATOstart_h, nfATOend_h, nfATOcapacity_kW );
+			break;
+			case TAX:
+				double taxDelivery_eurpkWh = (double)l.get("taxDelivery_eurpkWh");
+				double taxFeedin_eurpkWh = (double)l.get("taxFeedin_eurpkWh");
+				v_contractTax = new J_TaxContract(contractScope, OL_EnergyCarrierType.ELECTRICITY, taxDelivery_eurpkWh, taxFeedin_eurpkWh );
 			break;
 			default:
-				traceln("ConnectionOwner f_setContractValues exception: not a valid actor type");
-			break;
-		}			
-}*/
-
-// set other values according to received contract type:
-/*
-switch( v_contractEnergySupplier ) {
-	case "FIXED":
-		v_electricityContractType = OL_ContractType.ELECTRICITY_FIXED;
-		v_heatContractType = OL_ContractType.HEAT_FIXED;
-		v_methaneContractType = OL_ContractType.METHANE_FIXED;
-		v_hydrogenContractType = OL_ContractType.HYDROGEN_FIXED;
-	break;
-	case "VARIABLE":
-		v_electricityContractType = OL_ContractType.ELECTRICITY_VARIABLE;
-		v_heatContractType = OL_ContractType.HEAT_FIXED;
-		v_methaneContractType = OL_ContractType.METHANE_FIXED;
-		v_hydrogenContractType = OL_ContractType.HYDROGEN_FIXED;
-	break;
-	default:
-		traceln("EnergyHolon f_setContractValues: energySupplier contract type not implemented! No values set");
-	break;
+			
+			break;		
+		}
 }
 
-switch( v_contractGridOperator ) {
-	case "DEFAULT":
-//		v_congestionTariff_b = false; // ? wat nog meer?
-	break;
-	case "NODALPRICING":
-//		v_congestionTariff_b = true; // ? wat nog meer? 
-	break;
-	case "NONFIRMATO":
-		v_enable_nfATO_b = true;
-	break;
-	default:
-		traceln("EnergyHolon f_setContractValues: gridOperator contract type not implemented! No values set");
-	break;
-}
-
-switch( v_contractEnergyHolon ) {
-	case "DEFAULT":
-	
-	break;
-	case "VARIABLE":
-	
-	break;
-	default:
-		traceln("EnergyHolon f_setContractValues: energyHolon contract type not implemented! No values set");
-	break;				
-}*/]]></Body>
+]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1669042410671</Id>
 					<Name><![CDATA[f_initialize]]></Name>
-					<X>660</X><Y>330</Y>
+					<X>660</X><Y>110</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -23264,12 +23479,119 @@ if(!v_enable_nfATO_b){
 	e_endNonFirmATO.reset();
 }
 else {
-	e_startNonFirmATO.restartTo(p_nfatoStart_h, HOUR);
-	e_endNonFirmATO.restartTo(p_nfatoEnd_h, HOUR);
-	if(p_nfatoLvl_kW == 0.0) { p_nfatoLvl_kW = p_connectionCapacity_kW; }
+	e_startNonFirmATO.restartTo(v_contractConnection.nfATOstart_h, HOUR);
+	e_endNonFirmATO.restartTo(v_contractConnection.nfATOend_h, HOUR);
+	if(v_contractConnection.nfATOpower_kW == 0.0) { v_contractConnection.nfATOpower_kW = p_connectionCapacity_kW; }
 }
 
+f_setInitPriceBands();]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1676553303568</Id>
+					<Name><![CDATA[f_updateIncentives]]></Name>
+					<X>661</X><Y>281</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[if (v_contractDelivery.contractType==OL_DeliveryContractType.ELECTRICITY_VARIABLE) {
+	if (p_energySupplier instanceof EnergySupplier) {
+		v_electricityVariablePrice_eurpkWh = ((EnergySupplier)p_energySupplier).f_getVariableEnergyPrice();
+	} else if (p_energySupplier instanceof EnergyHolon) {
+		v_electricityVariablePrice_eurpkWh = ((EnergyHolon)p_energySupplier).f_getVariableEnergyPrice();
+	}
+}
+
+// Transport pricing (nodal pricing) is 'pushed' to the connectionOwner from the GridNode, so don't have to ask for the price here.
+/*if (v_contractTransport.transportContractType.equals(OL_TransportContractType.NODALPRICING)) {
+	if (p_gridOperator instanceof GridOperator) {
+		v_electricityVariablePrice_eurpkWh = ((GridOperator)p_gridOperator).f_getVariableEnergyPrice(v_electricityContractType, false);
+	} else if (p_gridOperator instanceof EnergyHolon) {
+		v_electricityVariablePrice_eurpkWh = ((EnergyHolon)p_gridOperator).f_getEnergyPrice(v_electricityContractType, false);
+	}
+}*/	
+
+f_setElectricityPriceBands();	
 ]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1676553303571</Id>
+					<Name><![CDATA[f_setElectricityPriceBands]]></Name>
+					<X>681</X><Y>301</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[if (v_contractDelivery.contractType.equals(OL_DeliveryContractType.ELECTRICITY_VARIABLE)) {
+	v_priceBandsDelivery.replace(-99999.0, v_contractDelivery.feedinPrice_eurpkWh + v_electricityVariablePrice_eurpkWh );
+	v_priceBandsDelivery.replace(99999.0, v_contractDelivery.deliveryPrice_eurpkWh + v_electricityVariablePrice_eurpkWh );
+}
+if (v_contractTransport.transportContractType.equals(OL_TransportContractType.NODALPRICING)) {
+	v_priceBandsTransport.replace(-99999.0, v_currentNodalPrice_eurpkWh);
+	v_priceBandsTransport.replace(99999.0, v_currentNodalPrice_eurpkWh);
+}
+
+// Assuming Tax is not varying in time!!
+
+/*
+if( p_capacityTariffApplicable ){
+	v_priceBandsDelivery.replace(- p_capacityLevel_kW, v_electricitySellPrice_eurpkWh + v_currentCongestionTariffWhenSelling_eurpkWh);
+	v_priceBandsDelivery.replace(p_capacityLevel_kW, v_electricityVariablePrice_eurpkWh + v_currentNodalPrice_eurpkWh);
+}
+*/
+
+/* // Deze code was alleen actief bij bandbreedte-tarief, maar dat gaan we anders doen
+if (v_congestionTariffAllowance_kW != 0){
+	if(v_currentCongestionType == "Overconsumption"){
+		v_priceBandsDelivery.put( v_congestionTariffAllowance_kW,  v_electricityBuyPrice_eurpkWh);
+	}
+	else if (v_currentCongestionType == "Overproduction"){
+		v_priceBandsDelivery.put( v_congestionTariffAllowance_kW,  v_electricitySellPrice_eurpkWh);
+	}
+	else {
+		traceln("Connection owner --> f_setElectrcitiyPriceBands: geen congestie type gevonden");
+	}
+}*/
+
+
+
+	]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1676553472755</Id>
+					<Name><![CDATA[f_setInitPriceBands]]></Name>
+					<X>660</X><Y>130</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[v_priceBandsDelivery = new TreeMap<Double, Double>();
+v_priceBandsDelivery.put(-99999.0, 0.0);
+v_priceBandsDelivery.put(0.0, 0.0);
+v_priceBandsDelivery.put(99999.0, 0.0);
+
+v_priceBandsTransport = new TreeMap<Double, Double>();
+v_priceBandsTransport.put(-99999.0, 0.0);
+v_priceBandsTransport.put(0.0, 0.0);
+v_priceBandsTransport.put(99999.0, 0.0);
+
+v_priceBandsTax = new TreeMap<Double, Double>();
+v_priceBandsTax.put(-99999.0, v_contractTax.feedinTax_eurpkWh);
+v_priceBandsTax.put(0.0, 0.0);
+v_priceBandsTax.put(99999.0, v_contractTax.deliveryTax_eurpkWh);
+
+/*
+if( p_congestionTariffApplicable ){
+	v_priceBandsDelivery.put(- p_capacityLevel_kW, 0.0);
+	v_priceBandsDelivery.put(p_capacityLevel_kW, 0.0);
+}
+*/]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -30584,6 +30906,7 @@ nextActivityEndTimer.restart( endtimes.get(0) - time( MINUTE ), MINUTE);
 		<ActiveObjectClass>
 			<Id>1674662535386</Id>
 			<Name><![CDATA[GCOwnerActor]]></Name>
+			<ExcludeFromBuild>true</ExcludeFromBuild>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -32740,7 +33063,8 @@ public class J_ActorData implements Serializable {
 
 	public String actorID;
 	public String actorType;
-	public String parentActorID;
+	public String gridOperator;
+	public String parentHolon;
 	public String energySupplier;
 	public String ownedGridConnection;
 	public String energySupplierDistrictHeat;
@@ -32753,9 +33077,9 @@ public class J_ActorData implements Serializable {
 	public String methaneContractType;
 	public String hydrogenContractType;
 	public String balanceElectricity_eur;
-	public String balanceHeat_eur;
-	public String balanceMethane_eur;
-	public String balanceHydrogen_eur;
+	public String balanceElectricityDelivery_eur;
+	public String balanceElectricityTransport_eur;
+	public String balanceElectricityTax_eur;
 
 	 /**
      * Default constructor
@@ -32766,10 +33090,11 @@ public class J_ActorData implements Serializable {
     /**
      * Constructor initializing the fields
      */
-    public J_ActorData(String actorID, String actorType, String parentActorID) {
+    public J_ActorData(String actorID, String actorType) {
 		this.actorID = actorID;
 		this.actorType = actorType;
-		this.parentActorID = parentActorID;
+		this.gridOperator = "";
+		this.parentHolon = "";
 		this.energySupplier = "";
 		this.ownedGridConnection = "";
 		this.energySupplierDistrictHeat = "";
@@ -32782,9 +33107,9 @@ public class J_ActorData implements Serializable {
 		this.methaneContractType = "";
 		this.hydrogenContractType = "";
 		this.balanceElectricity_eur = "";
-		this.balanceHeat_eur = "";
-		this.balanceMethane_eur = "";
-		this.balanceHydrogen_eur = "";
+		this.balanceElectricityDelivery_eur = "";
+		this.balanceElectricityTransport_eur = "";
+		this.balanceElectricityTax_eur = "";
     }
 
 	@Override
@@ -32792,7 +33117,8 @@ public class J_ActorData implements Serializable {
 		return
 			"actorID = " + actorID +" " +
 			"actorType = " + actorType +" " +
-			"parentActorID = " + parentActorID +" " +
+			"gridOperator = " + gridOperator +" " +
+			"parentHolon = " + parentHolon +" " +
 			"energySupplier = " + energySupplier +" " +
 			"ownedGridConnection = " + ownedGridConnection +" " +
 			"energySupplierDistrictHeat = " + energySupplierDistrictHeat +" " +
@@ -32805,15 +33131,16 @@ public class J_ActorData implements Serializable {
 			"methaneContractType = " + methaneContractType +" " +
 			"hydrogenContractType = " + hydrogenContractType +" " +
 			"balanceElectricity_eur = " + balanceElectricity_eur +" " +
-			"balanceHeat_eur = " + balanceHeat_eur +" " +
-			"balanceMethane_eur = " + balanceMethane_eur +" " +
-			"balanceHydrogen_eur = " + balanceHydrogen_eur +" ";
+			"balanceElectricityDelivery_eur = " + balanceElectricityDelivery_eur +" " +
+			"balanceElectricityTransport_eur = " + balanceElectricityTransport_eur +" " +
+			"balanceElectricityTax_eur = " + balanceElectricityTax_eur +" ";
 	}
 
-	public void updateData(String actorID, String actorType, String parentActorID, String energySupplier, String ownedGridConnection, String energySupplierDistrictHeat,double electricityVolume_kWh, double heatVolume_kWh, double methaneVolume_kWh, double hydrogenVolume_kWh, String electricityContractType, String heatContractType, String methaneContractType, String hydrogenContractType, double balanceElectricity_eur, double balanceHeat_eur, double balanceMethane_eur, double balanceHydrogen_eur) {
+	public void updateData(String actorID, String actorType, String gridOperator, String parentHolon, String energySupplier, String ownedGridConnection, String energySupplierDistrictHeat,double electricityVolume_kWh, double heatVolume_kWh, double methaneVolume_kWh, double hydrogenVolume_kWh, String electricityContractType, String heatContractType, String methaneContractType, String hydrogenContractType, double balanceElectricity_eur, double balanceElectricityDelivery_eur, double balanceElectricityTransport_eur, double balanceElectricityTax_eur) {
 		this.actorID = actorID;
 		this.actorType = actorType;
-		this.parentActorID = parentActorID;
+		this.gridOperator = gridOperator;
+		this.parentHolon = parentHolon;
 		this.energySupplier = energySupplier;
 		this.ownedGridConnection = ownedGridConnection;
 		this.energySupplierDistrictHeat = energySupplierDistrictHeat +"";
@@ -32826,9 +33153,9 @@ public class J_ActorData implements Serializable {
 		this.methaneContractType = methaneContractType + "";
 		this.hydrogenContractType = hydrogenContractType + "";
 		this.balanceElectricity_eur = balanceElectricity_eur + "";
-		this.balanceHeat_eur = balanceHeat_eur + "";
-		this.balanceMethane_eur = balanceMethane_eur + "";
-		this.balanceHydrogen_eur = balanceHydrogen_eur + "";
+		this.balanceElectricityDelivery_eur = balanceElectricityDelivery_eur + "";
+		this.balanceElectricityTransport_eur = balanceElectricityTransport_eur + "";
+		this.balanceElectricityTax_eur = balanceElectricityTax_eur + "";
 	}
 	/*
 	public ArrayList returnData() {
@@ -33535,9 +33862,9 @@ public class J_ConnectionContract implements Serializable {
 
 	public String contractScope; // Kan energySupplier of Holon zijn
 	public OL_ConnectionContractType contractType; // Fixed of variable
-	public double nfATOstart_h;
-	public double nfATOend_h;
-	public double nfATOpower_kW;
+	public double nfATOstart_h = 0;
+	public double nfATOend_h = 0;
+	public double nfATOpower_kW = 0;
 	
 	  /**
      * Constructor initializing the fields
