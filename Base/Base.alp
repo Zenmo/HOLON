@@ -255,6 +255,10 @@
 				<Id>1676383232204</Id>
 				<Name><![CDATA[RESIDUALHEAT]]></Name>
 			</Option>
+			<Option>
+				<Id>1676466480037</Id>
+				<Name><![CDATA[METHANE_CHP]]></Name>
+			</Option>
 		</OptionList>
 		<OptionList>
 			<Id>1659525715752</Id>
@@ -686,6 +690,10 @@
 			<Option>
 				<Id>1666258251099</Id>
 				<Name><![CDATA[HEATPUMP_BOILERPEAK]]></Name>
+			</Option>
+			<Option>
+				<Id>1676468183199</Id>
+				<Name><![CDATA[GASFIRED_CHPPEAK]]></Name>
 			</Option>
 		</OptionList>
 		<OptionList>
@@ -8373,13 +8381,16 @@ if( p_energyAssetList != null) {
 					double minTemperature_degC = l.get( "minTemp_degC" ) == null? 40.0: Double.valueOf( l.get( "minTemp_degC" ).toString()).doubleValue(); // provide default values
 					double maxTemperature_degC = l.get( "maxTemp_degC" ) == null? 90.0: Double.valueOf( l.get( "maxTemp_degC" ).toString()).doubleValue();
 					double setTemperature_degC = l.get( "setTemp_degC" ) == null? 60.0: Double.valueOf( l.get( "setTemp_degC" ).toString()).doubleValue();
-					double initialTemperature_degC = l.get( "initialTemperature_degC" ) == null? 0.0 : Double.valueOf( l.get( "initialTemperature_degC" ).toString()).doubleValue();		
+					double initialTemperature_degC = l.get( "initial_temperature_degC" ) == null? 0.0 : Double.valueOf( l.get( "initial_temperature_degC" ).toString()).doubleValue();		
 					String ambientTempType2 = (String)l.get( "ambientTempType" ) == null? "": (String)l.get( "ambientTempType" );
 					
 					// minTemperature_degC = 35; // TO DELETE TEMP FIX
 					// setTemperature_degC = uniform_discr(38, 45); // TO DELETE TEMP FIX
 					// initialTemperature_degC = uniform_discr(70,80) * 1.0; // TO DELETE TEMP FIX
 					// heatCapacity_JpK = heatCapacity_JpK * uniform(0.7, 1.3); // TO DELETE TEMP FIX
+					
+					traceln("Heat Storage init: minTemperature = "+minTemperature_degC+", maxTemperature_degC = "+maxTemperature_degC+", setTemperature_degC = "+setTemperature_degC+", initialTemperature_degC = "+initialTemperature_degC);
+					
 					
 					storageAsset.p_energyAssetInstance = new J_EAStorageHeat(storageAsset, OL_EAStorageTypes.HEATBUFFER, capacityHeat_kW2, lossFactor_WpK, main.p_timeStep_h, initialTemperature_degC, minTemperature_degC, maxTemperature_degC, setTemperature_degC, heatCapacity_JpK, ambientTempType2);	
 					p_transportBuffer = (J_EAStorageHeat)storageAsset.p_energyAssetInstance;
@@ -10855,9 +10866,10 @@ if( p_energyAssetList != null) {
 					double minTemperature_degC = l.get( "minTemp_degC" ) == null? 44.0: Double.valueOf( l.get( "minTemp_degC" ).toString()).doubleValue(); // provide default values
 					double maxTemperature_degC = l.get( "maxTemp_degC" ) == null? 99.0: Double.valueOf( l.get( "maxTemp_degC" ).toString()).doubleValue();
 					double setTemperature_degC = l.get( "setTemp_degC" ) == null? 66.0: Double.valueOf( l.get( "setTemp_degC" ).toString()).doubleValue();
-					double initialTemperature_degC = l.get( "initialTemperature_degC" ) == null? 0.0 : Double.valueOf( l.get( "initialTemperature_degC" ).toString()).doubleValue();		
+					double initialTemperature_degC = l.get( "initial_temperature_degC" ) == null? 0.0 : Double.valueOf( l.get( "initial_temperature_degC" ).toString()).doubleValue();		
 					String ambientTempType2 = (String)l.get( "ambientTempType" ) == null? "": (String)l.get( "ambientTempType" );
 					
+					traceln("Heat Storage init: minTemperature = "+minTemperature_degC+", maxTemperature_degC = "+maxTemperature_degC+", setTemperature_degC = "+setTemperature_degC+", initialTemperature_degC = "+initialTemperature_degC);
 					//minTemperature_degC = 35; // TO DELETE TEMP FIX
 					//setTemperature_degC = uniform_discr(38, 45); // TO DELETE TEMP FIX
 					//initialTemperature_degC = uniform_discr(70,80) * 1.0; // TO DELETE TEMP FIX
@@ -13247,6 +13259,10 @@ switch(assetType) {
 	case DIESEL_VEHICLE:
 		p_energyAssetInstance = (J_EAConversionDieselVehicle)p_energyAssetInstance;
 		p_energyAssetInstance = new J_EAConversionDieselVehicle( this, eta_r, energyConsumption_kWhpkm, main.p_timeStep_h, vehicleScaling);
+	break;
+	case METHANE_CHP:
+		p_energyAssetInstance = (J_EAConversionGasCHP)p_energyAssetInstance;
+		p_energyAssetInstance = new J_EAConversionGasCHP(this, capacityElectric_kW, eta_r, main.p_timeStep_h);
 	break;
 	default:
 		traceln("exception: not a valid conversion asset!");
@@ -28201,14 +28217,11 @@ public void f_connectToChild(Agent ConnectingChildNode){
 					<Body><![CDATA[// District heating system, heating power based on temperature of buffer of heating system. (big or small) Heat transfer from DH_GridConnection to heat NetNode is based on temperature difference between heating-buffer and water in heating network
 //traceln("Operating District Heating agent = "+ this + " -> DH primary heating asset = " + p_primaryHeatingAsset.p_energyAssetInstance.ownerAsset.toString());
 //traceln("Operating District Heating agent = "+ this + " -> DH secondary heating asset = " + p_secondaryHeatingAsset.p_energyAssetInstance.ownerAsset.toString());
-
-double tempSetpoint_degC = p_ThermalStorageAsset.p_energyAssetInstance.getSetTemperature_degC();
-double minBufferTemp_degC = 50;
-double maxTempBuffer_degC = 100;
-double storageTemp_degC = p_ThermalStorageAsset.p_energyAssetInstance.getCurrentTemperature();
-v_bufferTemp_degC = storageTemp_degC;
-double heatTransferToNetworkCoefficient_kWpK = 100;
-double heatTransferToNetwork_kW = max( min( storageTemp_degC, tempSetpoint_degC ) - l_parentNodeHeat.getConnectedAgent().p_transportBuffer.getCurrentTemperature(), 0) * heatTransferToNetworkCoefficient_kWpK;
+double tempSetpoint_degC = 0;
+double minBufferTemp_degC = 0;
+double maxTempBuffer_degC = 0;
+double storageTemp_degC = 0;
+double DHnetworkTemp_degC = 0;
 
 double electricitySurplussHolon_kW = 0;
 double totalHeatingPower_kWth = 0;
@@ -28217,8 +28230,55 @@ if (l_ownerActor.getConnectedAgent() instanceof EnergyHolon){
 	electricitySurplussHolon_kW = ((EnergyHolon)l_ownerActor.getConnectedAgent()).v_electricitySurplus_kW + v_previousPowerElectricity_kW; // From last timestep! So compensate for own electric power
 	//traceln("DH function! Electricity surpluss in HOLON: " + electricitySurplussHolon_kW + ", own power " + v_previousPowerElectricity_kW,1 );
 }
+
+DHnetworkTemp_degC = l_parentNodeHeat.getConnectedAgent().p_transportBuffer.getCurrentTemperature();
+
+// first update parameters of any heatpumps if present
+for(EnergyAsset e : c_energyAssets) {
+	if(e.p_energyAssetInstance instanceof J_EAConversionHeatPump) {
+		((J_EAConversionHeatPump)e.p_energyAssetInstance).updateParameters(main.p_undergroundTemperature_degC, storageTemp_degC); // update heatpump temp levels!
+	} else if(e.p_energyAssetInstance instanceof J_EAStorageHeat) {
+		tempSetpoint_degC = ((J_EAStorageHeat)e.p_energyAssetInstance).getSetTemperature_degC();
+		minBufferTemp_degC = ((J_EAStorageHeat)e.p_energyAssetInstance).getMinTemperature_degC();
+		maxTempBuffer_degC = ((J_EAStorageHeat)e.p_energyAssetInstance).getMaxTemperature_degC();
+		storageTemp_degC = ((J_EAStorageHeat)e.p_energyAssetInstance).getCurrentTemperature();	
+	}
+}
+
+boolean b_monovalentSystem = p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EA & p_secondaryHeatingAsset == null;
+boolean b_bivalentSystem = p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EA & p_secondaryHeatingAsset != null;
+boolean b_localBuffer = p_ThermalStorageAsset.p_energyAssetInstance instanceof J_EA;
+boolean b_storageBelowSetpoint = storageTemp_degC < tempSetpoint_degC;
+boolean b_storageBelowMinimum = storageTemp_degC < minBufferTemp_degC;
+boolean b_storageBelowNetworkTemp = storageTemp_degC < DHnetworkTemp_degC;
+
+traceln("network temperature: "+DHnetworkTemp_degC+", bivalent system? :"+b_bivalentSystem+", localBuffer? :"+b_localBuffer +", storage below setpoint ? : "+b_storageBelowSetpoint + ", storage below minimumTemp? "+b_storageBelowMinimum+", storage below network temp: "+b_storageBelowNetworkTemp);
+
+v_bufferTemp_degC = storageTemp_degC;
+double heatTransferToNetworkCoefficient_kWpK = 100;
+double heatTransferToNetwork_kW = max( min( storageTemp_degC, tempSetpoint_degC ) - l_parentNodeHeat.getConnectedAgent().p_transportBuffer.getCurrentTemperature(), 0) * heatTransferToNetworkCoefficient_kWpK;
 traceln("tempSetpoint_degC: "+tempSetpoint_degC+", minBufferTemp_degC: "+minBufferTemp_degC+", maxTempBuffer_degC: "+maxTempBuffer_degC+", storageTemp_degC: "+storageTemp_degC+", heatTransferToNetwork_kW: "+heatTransferToNetwork_kW);
 
+if( b_monovalentSystem ) {
+	traceln("monovalent DHsystem logic");
+	p_primaryHeatingAsset.v_powerFraction_fr = b_storageBelowSetpoint? 1 : 0;
+	
+	totalHeatingPower_kWth = p_primaryHeatingAsset.v_powerFraction_fr * p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();
+	traceln("totalHeatingPower " +totalHeatingPower_kWth);
+}
+else if( b_bivalentSystem ) {
+	double maxPrimaryPower_kW = p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();
+	
+	p_primaryHeatingAsset.v_powerFraction_fr = b_storageBelowSetpoint? 1 : 0;
+	p_secondaryHeatingAsset.v_powerFraction_fr = b_storageBelowMinimum || b_storageBelowNetworkTemp? 1 : 0;
+	
+	totalHeatingPower_kWth = p_primaryHeatingAsset.v_powerFraction_fr * p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() +
+	p_secondaryHeatingAsset.v_powerFraction_fr * p_secondaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() ;// + p_backupHeatingAsset.v_powerFraction_fr * p_backupHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();
+	
+}
+
+		
+/*
 if ( p_heatingType == OL_GridConnectionHeatingType.GASFIRED ) {
 
 //if ( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionGasBurner & p_secondaryHeatingAsset == null) { // Only gas burner, use simple thermostat controller
@@ -28230,8 +28290,7 @@ if ( p_heatingType == OL_GridConnectionHeatingType.GASFIRED ) {
 		p_primaryHeatingAsset.v_powerFraction_fr = 0;
 		//traceln("we don't need no fire:  Powerfraction: "+p_primaryHeatingAsset.v_powerFraction_fr );
 	}
-	totalHeatingPower_kWth = p_primaryHeatingAsset.v_powerFraction_fr * p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();
-	traceln("totalHeatingPower " +totalHeatingPower_kWth);
+	
 	
 } else if ( p_heatingType == OL_GridConnectionHeatingType.HEATPUMP_GASPEAK ) { //else if ( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatPump & p_secondaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionBoiler) { // Heatpump and eboiler, use energysurpluss
 	traceln("second conditional: true");
@@ -28273,14 +28332,23 @@ if ( p_heatingType == OL_GridConnectionHeatingType.GASFIRED ) {
 	//traceln("Total thermal heating power " + TotalHeatingPower_kWt + "primary power fraction: " + p_primaryHeatingAsset.v_powerFraction_fr
 	//	+ " secondary power fraction: " + p_secondaryHeatingAsset.v_powerFraction_fr
 	//	+ " backup power fraction: " + p_backupHeatingAsset.v_powerFraction_fr );
-	
-
+} else if( p_heatingType == OL_GridConnectionHeatingType.GASFIRED_CHPPEAK ) {
+	traceln("new type logic needed");
 }
+*/
+// Block (passive energy flows if too cold
+heatTransferToNetwork_kW = b_storageBelowNetworkTemp? 0 : heatTransferToNetwork_kW;
+
 traceln("GCDistrictHeating f_operateAssetsDistrictHeating debug: heatTransferToNetwork_kW = "+heatTransferToNetwork_kW );
 p_ThermalStorageAsset.v_powerFraction_fr = (totalHeatingPower_kWth - heatTransferToNetwork_kW) / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW();
 p_primaryHeatingAsset.f_updateAllFlows(p_primaryHeatingAsset.v_powerFraction_fr);
-p_secondaryHeatingAsset.f_updateAllFlows(p_secondaryHeatingAsset.v_powerFraction_fr);
-p_ThermalStorageAsset.f_updateAllFlows(p_ThermalStorageAsset.v_powerFraction_fr);
+if( b_bivalentSystem ) {
+	p_secondaryHeatingAsset.f_updateAllFlows(p_secondaryHeatingAsset.v_powerFraction_fr);
+}
+if( b_localBuffer ) {
+	p_ThermalStorageAsset.f_updateAllFlows(p_ThermalStorageAsset.v_powerFraction_fr);
+}
+
 //traceln("District heating " + p_parentNodeHeatID + " storage temperature " + storageTemp_degC + " degC" + ", district heating network temperature " + p_parentNodeHeat.p_transportBuffer.getCurrentTemperature() + " deg C" );
 
 for( EnergyAsset EA : c_conversionAssets ){
@@ -28327,7 +28395,7 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 	}
 } else if (EA.p_energyAssetInstance instanceof J_EAConversion) {
 	c_conversionAssets.add(EA);
-	if (EA.p_energyAssetInstance instanceof J_EAConversionGasBurner || EA.p_energyAssetInstance instanceof J_EAConversionHeatPump || EA.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet || EA.p_energyAssetInstance instanceof J_EAConversionBoiler ) {
+	if (EA.p_energyAssetInstance instanceof J_EAConversionGasBurner || EA.p_energyAssetInstance instanceof J_EAConversionHeatPump || EA.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet || EA.p_energyAssetInstance instanceof J_EAConversionBoiler || EA.p_energyAssetInstance instanceof J_EAConversionGasCHP ) {
 		if (p_primaryHeatingAsset == null) {
 			p_primaryHeatingAsset = EA;
 		} else if (p_secondaryHeatingAsset == null) {
@@ -32808,6 +32876,14 @@ public class J_EA {
     public double getSetTemperature_degC() {
     	return 0;
     }
+    
+    public double getMinTemperature_degC() {
+    	return 0;
+    }
+    
+    public double getMaxTemperature_degC() {
+    	return 0;
+    }
 
 	@Override
 	public String toString() {
@@ -33124,6 +33200,16 @@ public class J_EAStorageHeat extends base.J_EAStorage implements Serializable {
 	@Override
 	public double getSetTemperature_degC() {
 		return setTemperature_degC;
+	}
+	
+	@Override
+	public double getMinTemperature_degC() {
+		return minTemperature_degC;
+	}
+	
+	@Override
+	public double getMaxTemperature_degC() {
+		return maxTemperature_degC;
 	}
 
 	public double getStorageCapacity() {
