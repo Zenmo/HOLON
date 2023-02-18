@@ -3537,9 +3537,6 @@ for ( ConnectionOwner c : pop_connectionOwners){
 	c.f_setInitPriceBands();
 }
 
-for( EnergyHolon e : pop_energyHolons ) {
-	e.f_initialize(); // Why is this here? 
-}
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -3684,7 +3681,7 @@ for(HashMap data : parsedJSONActors)
 {
     String actorID = data.get( "id" ).toString();
     OL_ActorType actorcategory = OL_ActorType.valueOf((String)data.get( "category" ));
-    String type = data.get( "type" ) == null? null : String.valueOf(data.get( "type" )); //traceln(actortype.toString());
+    String type = data.get( "group" ) == null? null : String.valueOf(data.get( "group" )); //traceln(actortype.toString());
     //String parentActorID = String.valueOf(data.get( "parent_actor" ));
     actorContracts = data.get( "contracts") == null? null : (ArrayList)data.get( "contracts");
 	//double NonFirmATOCapacity = data.get( "nfATO_capacity_kw" ) == null? 0.0 : (Double)data.get( "nfATO_capacity_kw" );
@@ -3700,28 +3697,22 @@ for(HashMap data : parsedJSONActors)
 	    Actor.set_p_actorContractList( actorContracts );
    		Actor.f_setContractValues();
 	    Actor.j_ActorData = new J_ActorData(actorID, type);
-	    c_connectionOwners.add(Actor);
-	    
+	    c_connectionOwners.add(Actor);	    
     } else if (actorcategory.equals(OL_ActorType.ENERGYSUPPLIER) ) {
 		EnergySupplier Actor = add_pop_energySuppliers();
 		Actor.set_p_actorID( actorID );
 		Actor.set_p_actorType( type );
 		//Actor.set_p_parentActorID( parentActorID );
 		Actor.j_ActorData = new J_ActorData(actorID, type);
-
     } else if (actorcategory.equals(OL_ActorType.ENERGYHOLON) ) {
 	    EnergyHolon Actor = add_pop_energyHolons();
 	    Actor.set_p_actorID( actorID );
-	    Actor.set_p_actorType( "EnergyHolon" );
+	    //Actor.set_p_actorType( "EnergyHolon" );
+	    Actor.set_p_actorType( type );
 	    //Actor.set_p_parentActorID( parentActorID );
 	    Actor.set_p_actorContractList( actorContracts );
    		Actor.f_setContractValues();
   		Actor.j_ActorData = new J_ActorData(actorID, type);
-		//Actor.set_p_nfatoEnd_h( NonFirmATOEndtime );
-  		//Actor.set_p_nfatoStart_h( NonFirmATOStarttime);
-  		//Actor.set_p_nfatoLvl_kW( NonFirmATOCapacity );
-  		//Actor.set_p_connectionCapacity_kW( ConnectionCapacity_kW );
-	    
     } else if (actorcategory.equals(OL_ActorType.GRIDOPERATOR) ) {
 	    GridOperator Actor = add_pop_gridOperators();
 	    Actor.set_p_actorID( actorID );
@@ -3733,7 +3724,7 @@ for(HashMap data : parsedJSONActors)
 
 for (EnergyHolon a : pop_energyHolons) {
 	a.f_connectToParentActor();
-	//a.f_initialize();
+	//a.f_initialize(); // This one is called in f_setActorPoliciers instead! Because at this point gridNodes have not been created yet.
 }
 for (ConnectionOwner a : pop_connectionOwners) {
 	a.f_connectToParentActor();
@@ -3792,6 +3783,10 @@ for(HashMap data : parsedJSONGridNodes)
 // do this only after all GridNodes have been created! Or connections might be missed
 for( GridNode g : pop_gridNodes ) {
 	g.f_connectToParentNode();
+}
+
+for( EnergyHolon e : pop_energyHolons ) {
+	e.f_initialize(); // This function is called here because gridNodes need to be created before holons can link to them.
 }
 
 ]]></Body>
@@ -20080,38 +20075,43 @@ if (v_congestionTariffAllowance_kW != 0){
 
 c_actorContractList = p_actorContractList;
 for( HashMap l : c_actorContractList) {
-		OL_ContractType contractService = OL_ContractType.valueOf((String)l.get( "type" ));
-		String contractScope = (String)l.get( "contract_scope" );
-		switch( contractService ) {
-			case DELIVERY:
-				//String contractScope = (String)l.get( "contract_scope" );
-				OL_DeliveryContractType deliveryContractType = OL_DeliveryContractType.valueOf((String)l.get("DeliveryContractType"));
-				double deliveryPrice_eurpkWh = (double)l.get("deliveryPrice_eurpkWh");
-				double feedinPrice_eurpkWh = (double)l.get("feedinPrice_eurpkWh");
-				v_contractDelivery = new J_DeliveryContract(contractScope, deliveryContractType, OL_EnergyCarrierType.ELECTRICITY, deliveryPrice_eurpkWh, feedinPrice_eurpkWh);
-				//traceln("Delivery contract: " + v_contractDelivery);
-			break;
-			case TRANSPORT:
-				OL_TransportContractType transportContractType = OL_TransportContractType.valueOf((String)l.get("transportContractType"));
-				double bandwidthTreshold_kW = l.get("bandwidthTreshold_kW") == null ? 0.0 : (double)l.get("bandwidthTreshold_kW");
-				double bandwidthTariff_eurpkWh = l.get("bandwidthTariff_eurpkWh") == null ? 0.0 : (double)l.get("bandwidthTariff_eurpkWh");
-				v_contractTransport = new J_TransportContract(contractScope, transportContractType, bandwidthTreshold_kW, bandwidthTariff_eurpkWh);			
-			break;
-			case CONNECTION:
-				OL_ConnectionContractType connectionContractType = OL_ConnectionContractType.valueOf((String)l.get("ConnectionContracType"));
-				double nfATOstart_h = l.get("nfATO_starttime_h") == null ? 0.0 : (double)l.get("nfATO_starttime_h");
-				double nfATOend_h = l.get("nfATO_endtime_h") == null ? 0.0 : (double)l.get("nfATO_endtime_h");
-				double nfATOcapacity_kW = l.get("nfATO_capacity_kW") ==  null ? 0.0 : (double)l.get("nfATO_capacity_kW");
-				v_contractConnection = new J_ConnectionContract(contractScope, connectionContractType, nfATOstart_h, nfATOend_h, nfATOcapacity_kW );
-			break;
-			case TAX:
-				double taxDelivery_eurpkWh = (double)l.get("taxDelivery_eurpkWh");
-				double taxFeedin_eurpkWh = (double)l.get("taxFeedin_eurpkWh");
-				v_contractTax = new J_TaxContract(contractScope, OL_EnergyCarrierType.ELECTRICITY, taxDelivery_eurpkWh, taxFeedin_eurpkWh );
-			break;
-			default:
-			
-			break;		
+		OL_ContractType contractService = OL_ContractType.valueOf((String)l.get( "contractType" ));
+		String contractScope = (String)l.get( "contractScope" );
+		OL_EnergyCarrierType energyCarrier = OL_EnergyCarrierType.valueOf((String)l.get("energyCarrier"));
+		if (energyCarrier.equals(OL_EnergyCarrierType.ELECTRICITY)){
+			switch( contractService ) {
+				case DELIVERY:
+					//String contractScope = (String)l.get( "contract_scope" );
+					OL_DeliveryContractType deliveryContractType = OL_DeliveryContractType.valueOf((String)l.get("DeliveryContractType"));
+					double deliveryPrice_eurpkWh = (double)l.get("deliveryPrice_eurpkWh");
+					double feedinPrice_eurpkWh = (double)l.get("feedinPrice_eurpkWh");
+					v_contractDelivery = new J_DeliveryContract(contractScope, deliveryContractType, OL_EnergyCarrierType.ELECTRICITY, deliveryPrice_eurpkWh, feedinPrice_eurpkWh);
+					//traceln("Delivery contract: " + v_contractDelivery);
+				break;
+				case TRANSPORT:
+					OL_TransportContractType transportContractType = OL_TransportContractType.valueOf((String)l.get("transportContractType"));
+					double bandwidthTreshold_kW = l.get("bandwidthTreshold_kW") == null ? 0.0 : (double)l.get("bandwidthTreshold_kW");
+					double bandwidthTariff_eurpkWh = l.get("bandwidthTariff_eurpkWh") == null ? 0.0 : (double)l.get("bandwidthTariff_eurpkWh");
+					v_contractTransport = new J_TransportContract(contractScope, transportContractType, bandwidthTreshold_kW, bandwidthTariff_eurpkWh);			
+				break;
+				case CONNECTION:
+					OL_ConnectionContractType connectionContractType = OL_ConnectionContractType.valueOf((String)l.get("ConnectionContracType"));
+					double nfATOstart_h = l.get("nfATO_starttime_h") == null ? 0.0 : (double)l.get("nfATO_starttime_h");
+					double nfATOend_h = l.get("nfATO_endtime_h") == null ? 0.0 : (double)l.get("nfATO_endtime_h");
+					double nfATOcapacity_kW = l.get("nfATO_capacity_kW") ==  null ? 0.0 : (double)l.get("nfATO_capacity_kW");
+					v_contractConnection = new J_ConnectionContract(contractScope, connectionContractType, nfATOstart_h, nfATOend_h, nfATOcapacity_kW );
+				break;
+				case TAX:
+					double taxDelivery_eurpkWh = (double)l.get("taxDelivery_eurpkWh");
+					double taxFeedin_eurpkWh = (double)l.get("taxFeedin_eurpkWh");
+					v_contractTax = new J_TaxContract(contractScope, OL_EnergyCarrierType.ELECTRICITY, taxDelivery_eurpkWh, taxFeedin_eurpkWh );
+				break;
+				default:
+				
+				break;		
+			}
+		} else {
+			traceln("Contract for energycarrier other than Electricity!");
 		}
 }
 
@@ -23408,41 +23408,46 @@ traceln("Holon selfsufficiency: " + totalSelfSufficiency_fr + "%, doublecheck " 
 
 c_actorContractList = p_actorContractList;
 for( HashMap l : c_actorContractList) {
-		OL_ContractType contractService = OL_ContractType.valueOf((String)l.get( "type" ));
-		String contractScope = (String)l.get( "contract_scope" );
+		OL_ContractType contractService = OL_ContractType.valueOf((String)l.get( "contractType" ));
+		String contractScope = (String)l.get( "contractScope" );
+		OL_EnergyCarrierType energyCarrier = OL_EnergyCarrierType.valueOf((String)l.get("energyCarrier"));
+		if (energyCarrier.equals(OL_EnergyCarrierType.ELECTRICITY)){
 		switch( contractService ) {
-			case DELIVERY:
-				//String contractScope = (String)l.get( "contract_scope" );
-				OL_DeliveryContractType deliveryContractType = OL_DeliveryContractType.valueOf((String)l.get("DeliveryContractType"));
-				double deliveryPrice_eurpkWh = (double)l.get("deliveryPrice_eurpkWh");
-				double feedinPrice_eurpkWh = (double)l.get("feedinPrice_eurpkWh");
-				v_contractDelivery = new J_DeliveryContract(contractScope, deliveryContractType, OL_EnergyCarrierType.ELECTRICITY, deliveryPrice_eurpkWh, feedinPrice_eurpkWh);
-				//traceln("Delivery contract: " + v_contractDelivery);
-			break;
-			case TRANSPORT:
-				OL_TransportContractType transportContractType = OL_TransportContractType.valueOf((String)l.get("transportContractType"));
-				double bandwidthTreshold_kW = l.get("bandwidthTreshold_kW") == null ? 0.0 : (double)l.get("bandwidthTreshold_kW");
-				double bandwidthTariff_eurpkWh = l.get("bandwidthTariff_eurpkWh") == null ? 0.0 : (double)l.get("bandwidthTariff_eurpkWh");
-				v_contractTransport = new J_TransportContract(contractScope, transportContractType, bandwidthTreshold_kW, bandwidthTariff_eurpkWh);			
-			break;
-			case CONNECTION:
-				OL_ConnectionContractType connectionContractType = OL_ConnectionContractType.valueOf((String)l.get("ConnectionContracType"));
-				double nfATOstart_h = l.get("nfATO_starttime_h") == null ? 0.0 : (double)l.get("nfATO_starttime_h");
-				double nfATOend_h = l.get("nfATO_endtime_h") == null ? 0.0 : (double)l.get("nfATO_endtime_h");
-				double nfATOcapacity_kW = l.get("nfATO_capacity_kW") ==  null ? 0.0 : (double)l.get("nfATO_capacity_kW");
-				if (connectionContractType.equals(OL_ConnectionContractType.NFATO)) {
-					v_enable_nfATO_b = true;
-				}
-				v_contractConnection = new J_ConnectionContract(contractScope, connectionContractType, nfATOstart_h, nfATOend_h, nfATOcapacity_kW );
-			break;
-			case TAX:
-				double taxDelivery_eurpkWh = (double)l.get("taxDelivery_eurpkWh");
-				double taxFeedin_eurpkWh = (double)l.get("taxFeedin_eurpkWh");
-				v_contractTax = new J_TaxContract(contractScope, OL_EnergyCarrierType.ELECTRICITY, taxDelivery_eurpkWh, taxFeedin_eurpkWh );
-			break;
-			default:
-			
-			break;		
+				case DELIVERY:
+					//String contractScope = (String)l.get( "contract_scope" );
+					OL_DeliveryContractType deliveryContractType = OL_DeliveryContractType.valueOf((String)l.get("DeliveryContractType"));
+					double deliveryPrice_eurpkWh = (double)l.get("deliveryPrice_eurpkWh");
+					double feedinPrice_eurpkWh = (double)l.get("feedinPrice_eurpkWh");
+					v_contractDelivery = new J_DeliveryContract(contractScope, deliveryContractType, OL_EnergyCarrierType.ELECTRICITY, deliveryPrice_eurpkWh, feedinPrice_eurpkWh);
+					//traceln("Delivery contract: " + v_contractDelivery);
+				break;
+				case TRANSPORT:
+					OL_TransportContractType transportContractType = OL_TransportContractType.valueOf((String)l.get("transportContractType"));
+					double bandwidthTreshold_kW = l.get("bandwidthTreshold_kW") == null ? 0.0 : (double)l.get("bandwidthTreshold_kW");
+					double bandwidthTariff_eurpkWh = l.get("bandwidthTariff_eurpkWh") == null ? 0.0 : (double)l.get("bandwidthTariff_eurpkWh");
+					v_contractTransport = new J_TransportContract(contractScope, transportContractType, bandwidthTreshold_kW, bandwidthTariff_eurpkWh);			
+				break;
+				case CONNECTION:
+					OL_ConnectionContractType connectionContractType = OL_ConnectionContractType.valueOf((String)l.get("ConnectionContracType"));
+					double nfATOstart_h = l.get("nfATO_starttime_h") == null ? 0.0 : (double)l.get("nfATO_starttime_h");
+					double nfATOend_h = l.get("nfATO_endtime_h") == null ? 0.0 : (double)l.get("nfATO_endtime_h");
+					double nfATOcapacity_kW = l.get("nfATO_capacity_kW") ==  null ? 0.0 : (double)l.get("nfATO_capacity_kW");
+					if (connectionContractType.equals(OL_ConnectionContractType.NFATO)) {
+						v_enable_nfATO_b = true;
+					}
+					v_contractConnection = new J_ConnectionContract(contractScope, connectionContractType, nfATOstart_h, nfATOend_h, nfATOcapacity_kW );
+				break;
+				case TAX:
+					double taxDelivery_eurpkWh = (double)l.get("taxDelivery_eurpkWh");
+					double taxFeedin_eurpkWh = (double)l.get("taxFeedin_eurpkWh");
+					v_contractTax = new J_TaxContract(contractScope, OL_EnergyCarrierType.ELECTRICITY, taxDelivery_eurpkWh, taxFeedin_eurpkWh );
+				break;
+				default:
+				
+				break;		
+			}
+		} else {
+			traceln("Contract for energycarrier other than Electricity!");
 		}
 }
 
@@ -24074,6 +24079,7 @@ if( p_congestionTariffApplicable ){
 
 @since: Sprint 6
 @author: Gillis]]></Description>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>70</X><Y>130</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
