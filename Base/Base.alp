@@ -20237,7 +20237,10 @@ if (v_contractTransport.transportContractType.equals(OL_TransportContractType.NO
 	v_priceBandsTransport.replace(99999.0, v_currentNodalPrice_eurpkWh);
 }
 
-// Assuming Tax is not varying in time!!
+if (v_contractTax.proportionalTax_pct != 0.0) { // Add VAT (BTW), over all other cost components. At this point assumes there are only 2 price-bands, for delivery and feedin! No other 'steps'! Not true for capacity-tariff (bandbreedtemodel)!
+	v_priceBandsTax.replace(-99999.0, v_contractTax.feedinTax_eurpkWh + v_contractTax.proportionalTax_pct*(v_contractDelivery.feedinPrice_eurpkWh + v_electricityVariablePrice_eurpkWh + v_currentNodalPrice_eurpkWh + v_contractTax.feedinTax_eurpkWh));
+	v_priceBandsTax.replace(99999.0, v_contractTax.deliveryTax_eurpkWh + v_contractTax.proportionalTax_pct*(v_contractDelivery.deliveryPrice_eurpkWh + v_electricityVariablePrice_eurpkWh + v_currentNodalPrice_eurpkWh + v_contractTax.deliveryTax_eurpkWh));
+}
 
 /*
 if( p_capacityTariffApplicable ){
@@ -20310,7 +20313,8 @@ for( HashMap l : c_actorContractList) {
 				case TAX:
 					double taxDelivery_eurpkWh = (double)l.get("taxDelivery_eurpkWh");
 					double taxFeedin_eurpkWh = (double)l.get("taxFeedin_eurpkWh");
-					v_contractTax = new J_TaxContract(contractScope, OL_EnergyCarrierType.ELECTRICITY, taxDelivery_eurpkWh, taxFeedin_eurpkWh );
+					double proportionalTax_pct = (double)l.get("proportionalTax_pct");
+					v_contractTax = new J_TaxContract(contractScope, OL_EnergyCarrierType.ELECTRICITY, taxDelivery_eurpkWh, taxFeedin_eurpkWh, proportionalTax_pct);
 				break;
 				default:
 				
@@ -20432,6 +20436,18 @@ v_priceBandsTransport = new TreeMap<Double, Double>();
 v_priceBandsTransport.put(-99999.0, 0.0);
 v_priceBandsTransport.put(0.0, 0.0);
 v_priceBandsTransport.put(99999.0, 0.0);
+if (v_contractTransport.transportContractType.equals(OL_TransportContractType.BANDWIDTH)) {
+	traceln("Setting capacity tariff for " + p_actorID);
+	v_priceBandsTransport.put(-99999.0, v_contractTransport.bandwidthTariff_eurpkWh);
+	v_priceBandsTransport.put(-v_contractTransport.bandwidthTreshold_kW, 0.0);
+	v_priceBandsTransport.put(0.0, 0.0);
+	v_priceBandsTransport.put(v_contractTransport.bandwidthTreshold_kW, 0.0);	
+	v_priceBandsTransport.put(99999.0, v_contractTransport.bandwidthTariff_eurpkWh);
+} else {
+	v_priceBandsTransport.put(-99999.0, 0.0);
+	v_priceBandsTransport.put(0.0, 0.0);
+	v_priceBandsTransport.put(99999.0, 0.0);
+}
 
 v_priceBandsTax = new TreeMap<Double, Double>();
 v_priceBandsTax.put(-99999.0, v_contractTax.feedinTax_eurpkWh);
@@ -23648,7 +23664,8 @@ for( HashMap l : c_actorContractList) {
 				case TAX:
 					double taxDelivery_eurpkWh = (double)l.get("taxDelivery_eurpkWh");
 					double taxFeedin_eurpkWh = (double)l.get("taxFeedin_eurpkWh");
-					v_contractTax = new J_TaxContract(contractScope, OL_EnergyCarrierType.ELECTRICITY, taxDelivery_eurpkWh, taxFeedin_eurpkWh );
+					double proportionalTax_pct = (double)l.get("proportionalTax_pct");
+					v_contractTax = new J_TaxContract(contractScope, OL_EnergyCarrierType.ELECTRICITY, taxDelivery_eurpkWh, taxFeedin_eurpkWh, proportionalTax_pct);
 				break;
 				default:
 				
@@ -33912,16 +33929,18 @@ public class J_TaxContract implements Serializable {
 	//public OL_ContractType contractType; // Fixed of variable
 	public double deliveryTax_eurpkWh;
 	public double feedinTax_eurpkWh;
+	public double proportionalTax_pct;
 	public OL_EnergyCarrierType energyCarrier;
 	
 	  /**
      * Constructor initializing the fields
      */
-    public J_TaxContract(String contractScope, OL_EnergyCarrierType energyCarrier, double deliveryTax_eurpkWh, double feedinTax_eurpkWh ) {
+    public J_TaxContract(String contractScope, OL_EnergyCarrierType energyCarrier, double deliveryTax_eurpkWh, double feedinTax_eurpkWh, double proportionalTax_pct ) {
 	    this.contractScope = contractScope; // ID of actor that is the other 'end' of this contract.	    
 	    this.energyCarrier = energyCarrier;
 	    this.deliveryTax_eurpkWh = deliveryTax_eurpkWh;
 	    this.feedinTax_eurpkWh = feedinTax_eurpkWh;
+	    this.proportionalTax_pct = proportionalTax_pct;
 	}
 }]]></Text>
 		</JavaClass>
