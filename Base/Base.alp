@@ -4638,7 +4638,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 							<Name><![CDATA[p_pricelevelHighDifFromAvg_eurpkWh]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_heatingKickinTreshold]]></Name>
+							<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -5450,7 +5450,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 							<Name><![CDATA[p_pricelevelHighDifFromAvg_eurpkWh]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_heatingKickinTreshold]]></Name>
+							<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -5601,7 +5601,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 							<Name><![CDATA[p_pricelevelHighDifFromAvg_eurpkWh]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_heatingKickinTreshold]]></Name>
+							<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -5752,7 +5752,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 							<Name><![CDATA[p_pricelevelHighDifFromAvg_eurpkWh]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_heatingKickinTreshold]]></Name>
+							<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -5903,7 +5903,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 							<Name><![CDATA[p_pricelevelHighDifFromAvg_eurpkWh]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_heatingKickinTreshold]]></Name>
+							<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -6054,7 +6054,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 							<Name><![CDATA[p_pricelevelHighDifFromAvg_eurpkWh]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_heatingKickinTreshold]]></Name>
+							<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -6205,7 +6205,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 							<Name><![CDATA[p_pricelevelHighDifFromAvg_eurpkWh]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_heatingKickinTreshold]]></Name>
+							<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -6356,7 +6356,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 							<Name><![CDATA[p_pricelevelHighDifFromAvg_eurpkWh]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_heatingKickinTreshold]]></Name>
+							<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -9214,7 +9214,7 @@ import java.io.*;]]></Import>
 				<Variable Class="PlainVariable">
 					<Id>1670416926898</Id>
 					<Name><![CDATA[v_tempSetpoint_degC]]></Name>
-					<X>250</X><Y>280</Y>
+					<X>1470</X><Y>60</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -10162,9 +10162,9 @@ import java.io.*;]]></Import>
 				</Variable>
 				<Variable Class="Parameter">
 					<Id>1676476049181</Id>
-					<Name><![CDATA[p_heatingKickinTreshold]]></Name>
+					<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
 					<Description><![CDATA[[degrees]]]></Description>
-					<X>1470</X><Y>60</Y>
+					<X>250</X><Y>280</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -10619,8 +10619,14 @@ else if (EA.p_energyAssetInstance instanceof J_EAStorage ) {
 } 
 else if (EA.p_energyAssetInstance instanceof J_EAConversion) {
 	c_conversionAssets.add(EA);
-	if (EA.p_energyAssetInstance instanceof J_EAConversionGasBurner || EA.p_energyAssetInstance instanceof J_EAConversionHeatPump || EA.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet || EA.p_energyAssetInstance instanceof J_EAConversionHydrogenBurner ) {
-		p_primaryHeatingAsset = EA;
+	if (EA.p_energyAssetType == OL_EnergyAssetType.GAS_BURNER || EA.p_energyAssetInstance instanceof J_EAConversionHeatPump || EA.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet ) {
+		if (p_primaryHeatingAsset == null) {
+			p_primaryHeatingAsset = EA;
+		} else if (p_secondaryHeatingAsset == null) {
+			p_secondaryHeatingAsset = EA;
+		} else {
+			traceln("House " + p_agentID + " already has two heating systems!");
+		}
 		//traceln("heatingAsset class " + p_spaceHeatingAsset.getClass().toString());
 	}
 	else if (EA.p_energyAssetInstance instanceof J_EAConversionDieselVehicle) {
@@ -11220,7 +11226,7 @@ if ( p_ThermalStorageAsset == null ) {
 		}
 	} else { // Two heating assets
 		if ( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatPump & p_secondaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionGasBurner) { // Heatpump and gasburner, switch based on heatpump COP)
-			((J_EAConversionHeatPump)p_primaryHeatingAsset.p_energyAssetInstance).updateAmbientTemp(main.v_currentAmbientTemperature_degC); // update heatpump temp levels!
+			//((J_EAConversionHeatPump)p_primaryHeatingAsset.p_energyAssetInstance).updateAmbientTemp(main.v_currentAmbientTemperature_degC); // update heatpump temp levels! <-- waarom dit gebeurt al in de main (peter 21-02-23)
 			double HP_COP = ((J_EAConversionHeatPump)p_primaryHeatingAsset.p_energyAssetInstance).getCOP();
 			double COP_tres = 3.5; // TODO: Make data agnostic! Also, this line doesn't have to be evaluated every timestep.
 			if ( HP_COP < COP_tres ) { // switch to gasburner when HP COP is below treshold
@@ -11494,7 +11500,14 @@ boolean isGasCheaper = false;
 
 if(l_ownerActor.getConnectedAgent() instanceof ConnectionOwner) {
 	if( ((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_energySupplier instanceof EnergySupplier){
+		traceln("test");
 		v_gasHeatingCost_eurpkWh_TEMPORARY = ((EnergySupplier)((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_energySupplier).p_fixedMethanePrice_eurpkWh;
+		v_eHeatingCost_eurpkWh_TEMPORARY = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).f_getAveragedElectricityPrice( v_currentPowerElectricity_kW, p_primaryHeatingAsset.p_energyAssetInstance.getElectricCapacity_kW() ) / HP_COP;
+		isGasCheaper = v_gasHeatingCost_eurpkWh_TEMPORARY < v_eHeatingCost_eurpkWh_TEMPORARY ? true:false;
+	}
+	else { // in case supplier is a holon
+		EnergySupplier es = (EnergySupplier)((EnergyHolon)((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_energySupplier).p_energySupplier;
+		v_gasHeatingCost_eurpkWh_TEMPORARY = es.p_fixedMethanePrice_eurpkWh;
 		v_eHeatingCost_eurpkWh_TEMPORARY = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).f_getAveragedElectricityPrice( v_currentPowerElectricity_kW, p_primaryHeatingAsset.p_energyAssetInstance.getElectricCapacity_kW() ) / HP_COP;
 		isGasCheaper = v_gasHeatingCost_eurpkWh_TEMPORARY < v_eHeatingCost_eurpkWh_TEMPORARY ? true:false;
 	}
@@ -11541,7 +11554,7 @@ if ( p_hasSmartFlexAssets ) {
 }
 
 //heat the house
-if (v_currentIndoorTemp_degC < v_tempSetpoint_degC - p_heatingKickinTreshold ) {
+if (v_currentIndoorTemp_degC < v_tempSetpoint_degC - p_heatingKickinTreshold_degC ) {
 	powerFraction_heatPump_fr = 1; 
 	powerFraction_heatModel_fr = hp.getHeatCapacity_kW() / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW();
 }
@@ -11566,33 +11579,29 @@ p_primaryHeatingAsset.v_powerFraction_fr = powerFraction_heatPump_fr;
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[if ( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatPump & p_secondaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionGasBurner) { // Heatpump and gasburner, switch based on heatpump COP)
-	if (v_currentIndoorTemp_degC < v_tempSetpoint_degC - p_heatingKickinTreshold) {
-		J_EAConversionHeatPump HP = (J_EAConversionHeatPump)p_primaryHeatingAsset.p_energyAssetInstance;
-		HP.updateAmbientTemp(main.v_currentAmbientTemperature_degC); // update heatpump temp levels!
-		boolean gasCheaper = f_calcCheapestHeatingPrice();
-		if ( gasCheaper ) { // heat with gas
-			double powerDemand_kW = v_hotwaterDemand_kW + (v_tempSetpoint_degC - v_currentIndoorTemp_degC) * ((J_EAStorageHeat)p_ThermalStorageAsset.p_energyAssetInstance).getHeatCapacity_JpK() / 3.6e6;
-			p_primaryHeatingAsset.v_powerFraction_fr = 0;
-			p_secondaryHeatingAsset.v_powerFraction_fr = min(1, powerDemand_kW / p_secondaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
-			p_ThermalStorageAsset.v_powerFraction_fr = (p_secondaryHeatingAsset.v_powerFraction_fr * p_secondaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() - v_hotwaterDemand_kW ) / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW();
-		} else { // heat with heatpump
-			//double powerDemand_kW = (v_tempSetpoint_degC - houseTemp) * ((J_EAStorageHeat)p_ThermalStorageAsset.p_energyAssetInstance).getHeatCapacity_JpK() / 3.6e6;
-			p_primaryHeatingAsset.v_powerFraction_fr = 1;//min(1,powerDemand_kW / p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
-			p_secondaryHeatingAsset.v_powerFraction_fr = min(1,v_hotwaterDemand_kW / p_secondaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
-			p_ThermalStorageAsset.v_powerFraction_fr = HP.getHeatCapacity_kW() / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW();
-		}
-	} else { // Just supply DHW demand with gas burner
-		p_secondaryHeatingAsset.v_powerFraction_fr = v_hotwaterDemand_kW / p_secondaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();
+					<Body><![CDATA[// Heatpump and gasburner, switch based on heatpump COP)
+if (v_currentIndoorTemp_degC < v_tempSetpoint_degC - p_heatingKickinTreshold_degC) {
+	
+	J_EAConversionHeatPump HP = (J_EAConversionHeatPump)p_primaryHeatingAsset.p_energyAssetInstance;
+	//HP.updateAmbientTemp(main.v_currentAmbientTemperature_degC); // update heatpump temp levels! <-- waarom dit gebeurt al in de main (peter 21-02-23)
+	boolean gasCheaper = f_calcCheapestHeatingPrice();
+	if ( gasCheaper ) { // heat with gas
+		double powerDemand_kW = (v_tempSetpoint_degC - v_currentIndoorTemp_degC) * ((J_EAStorageHeat)p_ThermalStorageAsset.p_energyAssetInstance).getHeatCapacity_JpK() / 3.6e6;
 		p_primaryHeatingAsset.v_powerFraction_fr = 0;
-		p_ThermalStorageAsset.v_powerFraction_fr = 0;
+		p_secondaryHeatingAsset.v_powerFraction_fr = min(1, powerDemand_kW / p_secondaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
+		p_ThermalStorageAsset.v_powerFraction_fr = p_secondaryHeatingAsset.v_powerFraction_fr * p_secondaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW();
+	} else { // heat with heatpump
+		p_primaryHeatingAsset.v_powerFraction_fr = 1;//min(1,powerDemand_kW / p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
+		p_secondaryHeatingAsset.v_powerFraction_fr = 0;
+		p_ThermalStorageAsset.v_powerFraction_fr = HP.getHeatCapacity_kW() / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW();
 	}
-} else {
-	traceln("**** EXCEPTION ****: Unsupported combination of heatings systems in house " + p_agentID);
+}
+else{
 	p_primaryHeatingAsset.v_powerFraction_fr = 0;
 	p_secondaryHeatingAsset.v_powerFraction_fr = 0;
 	p_ThermalStorageAsset.v_powerFraction_fr = 0;
 }
+
 p_secondaryHeatingAsset.f_updateAllFlows(p_secondaryHeatingAsset.v_powerFraction_fr);]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -25581,6 +25590,11 @@ public void f_simpleCharging(){
 public void f_heatWithHeatpump(){
 	f_heatWithHeatpump_overwrite();
 }
+
+@Override
+void f_heatWithHybridHeatpump() {
+	f_heatWithHybridHeatpump_overwrite();
+}
 ]]></AdditionalClassCode>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
 			<ExtendsReference>
@@ -25676,7 +25690,7 @@ public void f_heatWithHeatpump(){
 					<Name><![CDATA[p_pricelevelHighDifFromAvg_eurpkWh]]></Name>
 				</Parameter>
 				<Parameter>
-					<Name><![CDATA[p_heatingKickinTreshold]]></Name>
+					<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
 				</Parameter>
 			</Parameters>
 			<StartupCode><![CDATA[v_dayTempSetpoint_degC = uniform_discr(18, 23);
@@ -26013,7 +26027,7 @@ if ( p_secondaryHeatingAsset == null ) {
 	} 
 	else {
 		if ( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionGasBurner || p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet) { // when there is only a gas burner or DH set
-			if (v_currentIndoorTemp_degC < v_tempSetpoint_degC - p_heatingKickinTreshold) {
+			if (v_currentIndoorTemp_degC < v_tempSetpoint_degC - p_heatingKickinTreshold_degC) {
 				double powerDemand_kW = v_hotwaterDemand_kW + (v_tempSetpoint_degC - v_currentIndoorTemp_degC) * ((J_EAStorageHeat)p_ThermalStorageAsset.p_energyAssetInstance).getHeatCapacity_JpK() / 3.6e6;
 				p_primaryHeatingAsset.v_powerFraction_fr = min(1, powerDemand_kW / p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
 				p_ThermalStorageAsset.v_powerFraction_fr = (p_primaryHeatingAsset.v_powerFraction_fr * p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() - v_hotwaterDemand_kW ) / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW();
@@ -26062,21 +26076,13 @@ p_ThermalStorageAsset.f_updateAllFlows(p_ThermalStorageAsset.v_powerFraction_fr)
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[// ICE vehicle tanking
-f_manageTanking();
+					<Body><![CDATA[f_manageTanking();
 
-//if( c_currentPowerElectricity_kW < 0 ){
-	//v_currentElectricityPriceConsumption_eurpkWh = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).v_currentPriceBands.floorEntry( v_currentPowerElectricity_kW ).getValue();
-//}
-//else {
-	//v_currentElectricityPriceConsumption_eurpkWh = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).v_currentPriceBands.ceilingEntry( v_currentPowerElectricity_kW ).getValue(); // query price at power demand from fixed assets (can be negative)
-//}
-v_currentElectricityPriceConsumption_eurpkWh= ((ConnectionOwner)l_ownerActor.getConnectedAgent()).f_getElectricityPrice( v_currentPowerElectricity_kW );
-
+v_currentElectricityPriceConsumption_eurpkWh = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).f_getElectricityPrice( v_currentPowerElectricity_kW );
 v_electricityPriceLowPassed_eurpkWh += v_lowPassFactor_fr * ( v_currentElectricityPriceConsumption_eurpkWh - v_electricityPriceLowPassed_eurpkWh );
 v_currentPriceLevel = f_getPriceLevel( v_currentElectricityPriceConsumption_eurpkWh );
 
-double electricityPrice_eurpkWh = v_currentElectricityPriceConsumption_eurpkWh;
+double electricityPrice_eurpkWh = v_currentElectricityPriceConsumption_eurpkWh; // is deze nog nodig?
 double availablePowerAtPrice_kW = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).f_getAvailablePowerAtPrice( v_currentPowerElectricity_kW );
 
 f_determineChargingDemandOfEV(); //we do this here because with smart assets the heatpumps will need information of the SOC of the EV
@@ -26554,7 +26560,7 @@ powerFraction_heatBuffer_fr += -v_hotwaterDemand_kW / p_heatBuffer.p_energyAsset
 
 //heat the house
 if( powerFraction_heatPump_fr == 0 ){
-	if (v_currentIndoorTemp_degC < v_tempSetpoint_degC - p_heatingKickinTreshold ) {
+	if (v_currentIndoorTemp_degC < v_tempSetpoint_degC - p_heatingKickinTreshold_degC ) {
 		powerFraction_heatPump_fr = 1; 
 		//traceln("heat house cus of need");
 		p_ThermalStorageAsset.v_powerFraction_fr = hp.getHeatCapacity_kW() / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW();
@@ -26586,6 +26592,45 @@ p_heatBuffer.f_updateAllFlows(powerFraction_heatBuffer_fr);
 p_primaryHeatingAsset.v_powerFraction_fr = powerFraction_heatPump_fr;
 //traceln( "heatpumpt power fraction: " + powerFraction_heatPump_fr);
 ]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1676976246060</Id>
+					<Name><![CDATA[f_heatWithHybridHeatpump_overwrite]]></Name>
+					<X>1730</X><Y>100</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[if ( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatPump & p_secondaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionGasBurner) { // Heatpump and gasburner, switch based on heatpump COP)
+	if (v_currentIndoorTemp_degC < v_tempSetpoint_degC - p_heatingKickinTreshold_degC) {
+		J_EAConversionHeatPump HP = (J_EAConversionHeatPump)p_primaryHeatingAsset.p_energyAssetInstance;
+		//HP.updateAmbientTemp(main.v_currentAmbientTemperature_degC); // update heatpump temp levels! <-- waarom dit gebeurt al in de main (peter 21-02-23)
+		boolean gasCheaper = f_calcCheapestHeatingPrice();
+		if ( gasCheaper ) { // heat with gas
+			double powerDemand_kW = v_hotwaterDemand_kW + (v_tempSetpoint_degC - v_currentIndoorTemp_degC) * ((J_EAStorageHeat)p_ThermalStorageAsset.p_energyAssetInstance).getHeatCapacity_JpK() / 3.6e6;
+			p_primaryHeatingAsset.v_powerFraction_fr = 0;
+			p_secondaryHeatingAsset.v_powerFraction_fr = min(1, powerDemand_kW / p_secondaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
+			p_ThermalStorageAsset.v_powerFraction_fr = (p_secondaryHeatingAsset.v_powerFraction_fr * p_secondaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() - v_hotwaterDemand_kW ) / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW();
+		} else { // heat with heatpump
+			//double powerDemand_kW = (v_tempSetpoint_degC - houseTemp) * ((J_EAStorageHeat)p_ThermalStorageAsset.p_energyAssetInstance).getHeatCapacity_JpK() / 3.6e6;
+			p_primaryHeatingAsset.v_powerFraction_fr = 1;//min(1,powerDemand_kW / p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
+			p_secondaryHeatingAsset.v_powerFraction_fr = min(1,v_hotwaterDemand_kW / p_secondaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
+			p_ThermalStorageAsset.v_powerFraction_fr = HP.getHeatCapacity_kW() / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW();
+		}
+	} else { // Just supply DHW demand with gas burner
+		p_secondaryHeatingAsset.v_powerFraction_fr = v_hotwaterDemand_kW / p_secondaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();
+		p_primaryHeatingAsset.v_powerFraction_fr = 0;
+		p_ThermalStorageAsset.v_powerFraction_fr = 0;
+	}
+} else {
+	traceln("**** EXCEPTION ****: Unsupported combination of heatings systems in house " + p_agentID);
+	p_primaryHeatingAsset.v_powerFraction_fr = 0;
+	p_secondaryHeatingAsset.v_powerFraction_fr = 0;
+	p_ThermalStorageAsset.v_powerFraction_fr = 0;
+}
+p_secondaryHeatingAsset.f_updateAllFlows(p_secondaryHeatingAsset.v_powerFraction_fr);]]></Body>
 				</Function>
 			</Functions>
 			<AnalysisData>
@@ -26984,6 +27029,73 @@ p_primaryHeatingAsset.v_powerFraction_fr = powerFraction_heatPump_fr;
 					<FillAreaUnderLine>false</FillAreaUnderLine>
 					<LabelFormat>dd_MM</LabelFormat>
     			</TimePlot>
+    			<TimePlot>
+					<Id>1676974325361</Id>
+					<Name><![CDATA[plot]]></Name>
+					<X>1990</X><Y>410</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<AutoUpdate>true</AutoUpdate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1677052800000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</RecurrenceCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Width>450</Width>
+					<Height>250</Height>
+					<BackgroundColor/>
+					<BorderColor/>
+					<ChartArea>
+						<XOffset>50</XOffset>
+						<YOffset>30</YOffset>
+						<Width>370</Width>
+						<Height>160</Height>
+						<BackgroundColor>-1</BackgroundColor>
+						<BorderColor>-16777216</BorderColor>
+						<GridColor>-12566464</GridColor>
+					</ChartArea>
+					<Legend>
+						<Place>SOUTH</Place>
+						<TextColor>-16777216</TextColor>
+						<Size>30</Size>
+					</Legend>
+					<Labels>
+						<HorLabelsPosition>DEFAULT</HorLabelsPosition>
+						<VerLabelsPosition>DEFAULT</VerLabelsPosition>
+						<TextColor>-12566464</TextColor>
+					</Labels>
+					<ShowLegend>true</ShowLegend>
+					<TimeWindowsMovementType>MOVEMENT_WITH_TIME</TimeWindowsMovementType>		
+					<TimeWindowUnits>DAY</TimeWindowUnits>
+					<VerScaleFromExpression><![CDATA[0]]></VerScaleFromExpression>
+					<VerScaleToExpression><![CDATA[1]]></VerScaleToExpression>
+					<VerScaleType>AUTO</VerScaleType>
+					<DrawLine>true</DrawLine>
+					<Interpolation>LINEAR</Interpolation>
+					<DatasetExpression>  
+						<Title><![CDATA[COP warmtepomp]]></Title>
+					<Id>0</Id>
+					<Expression><![CDATA[my_dataset]]></Expression>
+					<Color>-2354116</Color>
+					<Expression2><![CDATA[0]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>
+						<PointStyle>NONE</PointStyle>
+						<LineWidth>1.0</LineWidth>
+					</DatasetExpression>
+					<SamplesToKeep>1000</SamplesToKeep>
+					<TimeWindowExpression><![CDATA[2]]></TimeWindowExpression>
+					<FillAreaUnderLine>false</FillAreaUnderLine>
+					<LabelFormat>MODEL_TIME_UNITS</LabelFormat>
+    			</TimePlot>
 			</Presentation>
 
 				</Level>
@@ -27112,7 +27224,7 @@ public void f_batteryManagementPrice( double batterySOC ){
 					<Name><![CDATA[p_pricelevelHighDifFromAvg_eurpkWh]]></Name>
 				</Parameter>
 				<Parameter>
-					<Name><![CDATA[p_heatingKickinTreshold]]></Name>
+					<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
 				</Parameter>
 			</Parameters>
 			<StartupCode><![CDATA[v_dayTempSetpoint_degC = 23;
@@ -27236,6 +27348,12 @@ for( EnergyAsset EA : c_conversionAssets ){
 	v_currentPowerDiesel_kW += EA.v_currentConsumptionDiesel_kW; // Because f_updateAllFlows is not called for dieseltrucks, this value always remains zero!
 }
 
+
+v_currentPowerHeat_kW += p_ThermalStorageAsset.v_currentConsumptionHeat_kW - p_ThermalStorageAsset.v_currentProductionHeat_kW;
+
+for ( EnergyAsset EA : c_storageAssets ) {
+	v_currentPowerHeat_kW += EA.v_currentConsumptionHeat_kW - EA.v_currentProductionHeat_kW;
+}
 // Determine EV charging
 f_manageCharging();
 v_currentPowerElectricity_kW += v_evChargingPowerElectric_kW;
@@ -27298,7 +27416,7 @@ if ( p_secondaryHeatingAsset == null ) {
 	} 
 	else {
 		if ( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionGasBurner || p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet) { // when there is only a gas burner or DH set
-			if (v_currentIndoorTemp_degC < v_tempSetpoint_degC - p_heatingKickinTreshold) {
+			if (v_currentIndoorTemp_degC < v_tempSetpoint_degC - p_heatingKickinTreshold_degC) {
 				double powerDemand_kW = (v_tempSetpoint_degC - v_currentIndoorTemp_degC) * ((J_EAStorageHeat)p_ThermalStorageAsset.p_energyAssetInstance).getHeatCapacity_JpK() / 3.6e6;
 				p_primaryHeatingAsset.v_powerFraction_fr = min(1, powerDemand_kW / p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
 				p_ThermalStorageAsset.v_powerFraction_fr = (p_primaryHeatingAsset.v_powerFraction_fr * p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() ) / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW();
@@ -27317,20 +27435,12 @@ if ( p_secondaryHeatingAsset == null ) {
 }
 	
 // CASE: TWO HEATING ASSETS	-------------------------------------------------------------------------------------------------------------------------------------
-else {
+else if (p_heatingType == OL_GridConnectionHeatingType.HEATPUMP_GASPEAK){
 	f_heatWithHybridHeatpump();
 }
-
-for (EnergyAsset e: c_conversionAssets) {
-	if ( e.p_energyAssetType == OL_EnergyAssetType.GAS_PIT){
-		e.f_updateAllFlows( p_cookingTracker.v_ratio);
-		double heatIntoHouse = e.v_currentConsumptionMethane_kW - e.v_currentProductionHeat_kW; //simplify the heat going into house as the methane consumed - effectively produced heat. that will be about 70% of the heat produced by burning the methane	
-		p_ThermalStorageAsset.v_powerFraction_fr += heatIntoHouse / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW();
-		e.v_currentProductionHeat_kW += heatIntoHouse;
-		e.v_currentConsumptionHeat_kW += e.v_currentConsumptionMethane_kW - heatIntoHouse;
-	}
+else{
+	traceln("ERROR NO CORRECT HEATING TYPE IN " + getName());
 }
-
 
 p_primaryHeatingAsset.f_updateAllFlows(p_primaryHeatingAsset.v_powerFraction_fr);
 p_ThermalStorageAsset.f_updateAllFlows(p_ThermalStorageAsset.v_powerFraction_fr);
@@ -27406,7 +27516,7 @@ p_ThermalStorageAsset.f_updateAllFlows(p_ThermalStorageAsset.v_powerFraction_fr)
 						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
 					</OccurrenceTime>
 					<RecurrenceCode Class="CodeUnitValue">
-						<Code><![CDATA[15]]></Code>
+						<Code><![CDATA[16]]></Code>
 						<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
 					</RecurrenceCode>
 					<EmbeddedIcon>false</EmbeddedIcon>
@@ -27579,7 +27689,7 @@ public void f_connectToChild(Agent ConnectingChildNode){
 					<Name><![CDATA[p_pricelevelHighDifFromAvg_eurpkWh]]></Name>
 				</Parameter>
 				<Parameter>
-					<Name><![CDATA[p_heatingKickinTreshold]]></Name>
+					<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
 				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
@@ -28052,7 +28162,7 @@ public void f_operateFlexAssets(){
 					<Name><![CDATA[p_pricelevelHighDifFromAvg_eurpkWh]]></Name>
 				</Parameter>
 				<Parameter>
-					<Name><![CDATA[p_heatingKickinTreshold]]></Name>
+					<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
 				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
@@ -28417,7 +28527,7 @@ if (p_batteryAsset != null){
 					<Name><![CDATA[p_pricelevelHighDifFromAvg_eurpkWh]]></Name>
 				</Parameter>
 				<Parameter>
-					<Name><![CDATA[p_heatingKickinTreshold]]></Name>
+					<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
 				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
@@ -28680,7 +28790,7 @@ public void f_operateFlexAssets(){
 					<Name><![CDATA[p_pricelevelHighDifFromAvg_eurpkWh]]></Name>
 				</Parameter>
 				<Parameter>
-					<Name><![CDATA[p_heatingKickinTreshold]]></Name>
+					<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
 				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
@@ -29078,7 +29188,7 @@ public void f_batteryManagementPrice( double batterySOC ){
 					<Name><![CDATA[p_pricelevelHighDifFromAvg_eurpkWh]]></Name>
 				</Parameter>
 				<Parameter>
-					<Name><![CDATA[p_heatingKickinTreshold]]></Name>
+					<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
 				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
