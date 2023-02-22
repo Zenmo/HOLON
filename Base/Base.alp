@@ -3160,8 +3160,6 @@ for(EnergyHolon a : pop_energyHolons) {
 f_sumGridNodeLoads();
 traceln("Electricity imported: "+ v_totalElectricityImport_MWh + " MWh");
 traceln("Electricity exported: "+ v_totalElectricityExport_MWh + " MWh");
-traceln("kWh consumed of heating model " + Houses.get(0).p_ThermalStorageAsset.p_energyAssetInstance.getEnergyUsed_kWh());
-traceln("kWh consumed of heatpump " + Houses.get(0).p_primaryHeatingAsset.p_energyAssetInstance.getEnergyUsed_kWh());
 traceln("Electricity delta in batteries: "+ batteryStoredEnergyDeltaSinceStart_MWh + " MWh");
 
 //Total energy consumption and production
@@ -3197,19 +3195,12 @@ if ( energyProduced_MWh > 0 ){
 	totalSelfConsumption_fr = 1 - (v_totalElectricityExport_MWh + v_totalMethaneExport_MWh + v_totalHydrogenExport_MWh)/energyProduced_MWh;
 }
 traceln("Model-wide selfconsumption: " + totalSelfConsumption_fr + "%");
-traceln(" ");
 
 double totalSelfSufficiency_fr = 1 - (v_totalElectricityImport_MWh + v_totalMethaneImport_MWh + v_totalHydrogenImport_MWh + v_totalDieselImport_MWh - batteryStoredEnergyDeltaSinceStart_MWh ) / energyConsumed_MWh; // Doesn't account for changes in battery-SOC!
 traceln("Model-wide selfsufficiency (via export calc): " + totalSelfSufficiency_fr);
-traceln("v_totalElectricityImport_MWh " +v_totalElectricityImport_MWh + ", methaneimport " + v_totalMethaneImport_MWh + ", v_totalDieselImport_MWh "  + v_totalDieselImport_MWh + ", energyConsumed_MWh " + energyConsumed_MWh);
-//									roundToDecimal( totalSelfConsumption_fr, 3 ) + "",
-//									roundToDecimal( totalSelfSufficiency_fr, 3 ) + "")
-//double totalSelfSufficiency_fr = 1 - (v_electricityImported_kWh + v_methaneImported_kWh + v_hydrogenImported_kWh + v_heatImported_kWh)/energyConsumed_kWh;
 
 double totalSelfSufficiency_fr_check = (energyProduced_MWh - (v_totalElectricityExport_MWh + v_totalMethaneExport_MWh + v_totalHydrogenExport_MWh))/energyConsumed_MWh;
-traceln(" ");
 traceln("Model-wide selfsufficiency (via import calc): " + totalSelfSufficiency_fr_check);
-traceln("v_totalElectricityExport_MWh "+ v_totalElectricityExport_MWh + ", v_totalMethaneExport_MWh " + v_totalMethaneExport_MWh);
 
 
 traceln("MS node peak load: " + v_gridNodePeakLoadElectricityMSLS_kW + " kW at hour: " + c_timesOfNodePeakLoads_h);
@@ -6829,13 +6820,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 							<Name><![CDATA[p_elektrolyserOperationMode]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_electricHobAsset]]></Name>
-						</Parameter>
-						<Parameter>
 							<Name><![CDATA[p_hasElectricHob]]></Name>
-						</Parameter>
-						<Parameter>
-							<Name><![CDATA[p_electricCookingTracker]]></Name>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_hasSmartFlexAssets]]></Name>
@@ -6845,6 +6830,21 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_deliveryTemp_degC]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_cookingTracker]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_heatBuffer]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_pricelevelLowDifFromAvg_eurpkWh]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_pricelevelHighDifFromAvg_eurpkWh]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -10582,12 +10582,12 @@ import java.io.*;]]></Import>
 							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
 							<DelimeterType>NO_DELIMETER</DelimeterType>
 						</ParameterEditor>
-					</Properties>     					   
+					</Properties>                 
 				</Variable>
 				<Variable Class="Parameter">
 					<Id>1676449763319</Id>
 					<Name><![CDATA[p_heatBuffer]]></Name>
-					<X>480</X><Y>360</Y>	
+					<X>480</X><Y>360</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -29050,7 +29050,10 @@ v_heatingOff_time = 20.0;]]></StartupCode>
 					<Body><![CDATA[// ICE vehicle tanking
 f_manageTanking();
 // Determine house heating
-f_manageHeatingAssets();
+if (p_ThermalStorageAsset != null){
+	f_manageHeatingAssets();
+	v_currentPowerHeat_kW += p_ThermalStorageAsset.v_currentConsumptionHeat_kW - p_ThermalStorageAsset.v_currentProductionHeat_kW;
+}
 
 for( EnergyAsset EA : c_conversionAssets ){
 	v_currentPowerElectricity_kW += EA.v_currentConsumptionElectricity_kW - EA.v_currentProductionElectricity_kW;
@@ -29061,8 +29064,6 @@ for( EnergyAsset EA : c_conversionAssets ){
 	v_currentPowerDiesel_kW += EA.v_currentConsumptionDiesel_kW; // Because f_updateAllFlows is not called for dieseltrucks, this value always remains zero!
 }
 
-
-v_currentPowerHeat_kW += p_ThermalStorageAsset.v_currentConsumptionHeat_kW - p_ThermalStorageAsset.v_currentProductionHeat_kW;
 
 for ( EnergyAsset EA : c_storageAssets ) {
 	v_currentPowerHeat_kW += EA.v_currentConsumptionHeat_kW - EA.v_currentProductionHeat_kW;
@@ -32955,19 +32956,28 @@ public void f_operateFlexAssets(){
 					<Name><![CDATA[p_elektrolyserOperationMode]]></Name>
 				</Parameter>
 				<Parameter>
-					<Name><![CDATA[p_electricHobAsset]]></Name>
-				</Parameter>
-				<Parameter>
 					<Name><![CDATA[p_hasElectricHob]]></Name>
-				</Parameter>
-				<Parameter>
-					<Name><![CDATA[p_electricCookingTracker]]></Name>
 				</Parameter>
 				<Parameter>
 					<Name><![CDATA[p_hasSmartFlexAssets]]></Name>
 				</Parameter>
 				<Parameter>
 					<Name><![CDATA[p_curtailer]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_cookingTracker]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_heatBuffer]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_pricelevelLowDifFromAvg_eurpkWh]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_pricelevelHighDifFromAvg_eurpkWh]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
 				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
