@@ -1547,6 +1547,18 @@ traceln(" ");]]></StartupCode>
 						<Type><![CDATA[double]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1677070829387</Id>
+					<Name><![CDATA[v_cumulativeHouseholdDemand_fr]]></Name>
+					<X>830</X><Y>140</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1658496701675</Id>
 					<Name><![CDATA[p_timeStep_h]]></Name>
@@ -2368,7 +2380,7 @@ f_determinePricesForNextTimestep();
 if (b_addKpiVisuals) {
 	kpiVisuals(0).f_updateVisuals();
 }
-
+v_cumulativeHouseholdDemand_fr += v_currentHouseHoldHotWaterDemand_fr;
 v_timeStepsElapsed ++;
 ]]></Action>
 				</Event>
@@ -3013,7 +3025,6 @@ double batteryStoredEnergyDeltaSinceStart_MWh = v_totalBatteryChargeAmount_MWh -
 if (batteryStoredEnergyDeltaSinceStart_MWh == Double.NaN) {
 	batteryStoredEnergyDeltaSinceStart_MWh = 0;
 }
-
 // Collect actor data for all relevant actor groups en place in j_dataOut.actorData
 for(ConnectionOwner c : pop_connectionOwners) {
 	try {
@@ -3045,6 +3056,8 @@ for(EnergyHolon a : pop_energyHolons) {
 f_sumGridNodeLoads();
 traceln("Electricity imported: "+ v_totalElectricityImport_MWh + " MWh");
 traceln("Electricity exported: "+ v_totalElectricityExport_MWh + " MWh");
+traceln("kWh consumed of heating model " + Houses.get(0).p_ThermalStorageAsset.p_energyAssetInstance.getEnergyUsed_kWh());
+traceln("kWh consumed of heatpump " + Houses.get(0).p_primaryHeatingAsset.p_energyAssetInstance.getEnergyUsed_kWh());
 traceln("Electricity delta in batteries: "+ batteryStoredEnergyDeltaSinceStart_MWh + " MWh");
 
 //Total energy consumption and production
@@ -3069,16 +3082,26 @@ traceln("Energy produced: "+ energyProduced_MWh + " MWh");
 // TODO: Make sure this calculation is correct when all energy carriers are 'active'! Only checked for electricity
 traceln("");
 //Total selfconsumption, selfsufficiency
-double totalSelfConsumption_fr = 1 - (v_totalElectricityExport_MWh + v_totalMethaneExport_MWh + v_totalHydrogenExport_MWh)/energyProduced_MWh;
-double totalSelfSufficiency_fr = 1 - (v_totalElectricityImport_MWh + v_totalMethaneImport_MWh + v_totalHydrogenImport_MWh + v_totalDieselImport_MWh - batteryStoredEnergyDeltaSinceStart_MWh )/energyConsumed_MWh; // Doesn't account for changes in battery-SOC!
+double totalSelfConsumption_fr = 0;
+if ( energyProduced_MWh > 0 ){
+	totalSelfConsumption_fr = 1 - (v_totalElectricityExport_MWh + v_totalMethaneExport_MWh + v_totalHydrogenExport_MWh)/energyProduced_MWh;
+}
+traceln("Model-wide selfconsumption: " + totalSelfConsumption_fr + "%");
+traceln(" ");
 
+double totalSelfSufficiency_fr = 1 - (v_totalElectricityImport_MWh + v_totalMethaneImport_MWh + v_totalHydrogenImport_MWh + v_totalDieselImport_MWh - batteryStoredEnergyDeltaSinceStart_MWh ) / energyConsumed_MWh; // Doesn't account for changes in battery-SOC!
+traceln("Model-wide selfsufficiency (via export calc): " + totalSelfSufficiency_fr);
+traceln("v_totalElectricityImport_MWh " +v_totalElectricityImport_MWh + ", methaneimport " + v_totalMethaneImport_MWh + ", v_totalDieselImport_MWh "  + v_totalDieselImport_MWh + ", energyConsumed_MWh " + energyConsumed_MWh);
 //									roundToDecimal( totalSelfConsumption_fr, 3 ) + "",
 //									roundToDecimal( totalSelfSufficiency_fr, 3 ) + "")
 //double totalSelfSufficiency_fr = 1 - (v_electricityImported_kWh + v_methaneImported_kWh + v_hydrogenImported_kWh + v_heatImported_kWh)/energyConsumed_kWh;
 
 double totalSelfSufficiency_fr_check = (energyProduced_MWh - (v_totalElectricityExport_MWh + v_totalMethaneExport_MWh + v_totalHydrogenExport_MWh))/energyConsumed_MWh;
-traceln("Model-wide selfconsumption: " + totalSelfConsumption_fr + "%");
-traceln("Model-wide selfsufficiency: " + totalSelfSufficiency_fr + "%, doublecheck " + totalSelfSufficiency_fr_check);
+traceln(" ");
+traceln("Model-wide selfsufficiency (via import calc): " + totalSelfSufficiency_fr_check);
+traceln("v_totalElectricityExport_MWh "+ v_totalElectricityExport_MWh + ", v_totalMethaneExport_MWh " + v_totalMethaneExport_MWh);
+
+
 traceln("MS node peak load: " + v_gridNodePeakLoadElectricityMSLS_kW + " kW at hour: " + c_timesOfNodePeakLoads_h);
 
 double modelRunDuration_s = roundToDecimal( ( System.currentTimeMillis() - v_timeOfModelStart_ms ) / 1000 - v_modelStartUpDuration_s, 3);
@@ -4286,7 +4309,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Id>1661530848985</Id>
 					<Name><![CDATA[t_configActors]]></Name>
 					<X>-389.5</X><Y>169.5</Y>
-					<Label><X>10</X><Y>0</Y></Label>
+					<Label><X>14.5</X><Y>0.5</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
@@ -4294,7 +4317,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/Jorrits JSON - Buurtelektrificatie/example_actors.json]]></ClassName>
+						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/stap 1 actors.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -4312,7 +4335,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/Jorrits JSON - Buurtelektrificatie/example_gridnodes.json]]></ClassName>
+						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/stap 1 gridnodes.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -4330,7 +4353,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/Jorrits JSON - Buurtelektrificatie/example_gridconnections.json]]></ClassName>
+						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/stap 4 gridconnections elektrificatie.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -4367,7 +4390,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[../CaseDefinitions/industry_case/industry_case_policies.txt]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/Jorrits JSON - Buurtelektrificatie/example_policies.json]]></ClassName>
+						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/stap 4 policies.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -7408,7 +7431,7 @@ geupdate vanuit
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[double]]></Type>        
 						<InitialValue Class="CodeValue">
-							<Code><![CDATA[80]]></Code>
+							<Code><![CDATA[10]]></Code>
 						</InitialValue>
 					</Properties>
 				</Variable>
@@ -10752,7 +10775,7 @@ if( p_energyAssetList != null) {
 				}
 				else {
 					if( yearlyDemandElectricity_kWh != 0){
-						yearlyDemandElectricity_kWh = uniform_discr(2000, 7000); // TO DELETE TEMP FIX
+						yearlyDemandElectricity_kWh = uniform_discr(1500, 5000); // TO DELETE TEMP FIX
 					}
 					consumerAsset.f_instantiateConsumerAsset( consumerAsset.p_energyAssetType, yearlyDemandElectricity_kWh , yearlyDemandHeat_kWh , yearlyDemandHydrogen_kWh , yearlyDemandMethane_kWh);
 				}
@@ -26800,7 +26823,7 @@ p_secondaryHeatingAsset.f_updateAllFlows(p_secondaryHeatingAsset.v_powerFraction
     			</TimePlot>
     			<TimePlot>
 					<Id>1674040679812</Id>
-					<Name><![CDATA[pl_SOC2]]></Name>
+					<Name><![CDATA[pl_heatingAssets]]></Name>
 					<X>820</X><Y>770</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
@@ -32549,7 +32572,7 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
     	this.electricityConsumption_kW = ratioOfCapacity * capacityElectric_kW;
     	this.heatProduction_kW = electricityConsumption_kW * efficiency_r;
     	
-    	this.energyUsed_kWh += timestep_h * (electricityConsumption_kW );//- heatProduction_kW); // This represents 'losses'! For a heat-pump, this is actually energy production, due to the greater-than-one efficiency!
+    	this.energyUsed_kWh += timestep_h * (electricityConsumption_kW - heatProduction_kW); // This represents 'losses'! For a heat-pump, this is actually energy production, due to the greater-than-one efficiency!
     	//traceln("energyUsed_kWh " + energyUsed_kWh );
     	//double[] arr = {this.electricityProduction_kW, this.methaneProduction_kW, this.hydrogenProduction_kW, this.heatProduction_kW, this.electricityConsumption_kW, this.methaneConsumption_kW, this.hydrogenConsumption_kW, this.heatConsumption_kW };
     	//return arr;
@@ -33685,19 +33708,19 @@ public class J_EAElectricHob extends J_EA implements Serializable {
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/Jorrits JSON - Buurtelektrificatie/example_actors.json]]></Path>
+			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/stap 1 actors.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/Jorrits JSON - Buurtelektrificatie/example_gridconnections.json]]></Path>
+			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/stap 1 gridnodes.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/Jorrits JSON - Buurtelektrificatie/example_gridnodes.json]]></Path>
+			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/stap 4 gridconnections elektrificatie.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/Jorrits JSON - Buurtelektrificatie/example_policies.json]]></Path>
+			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/stap 4 policies.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
