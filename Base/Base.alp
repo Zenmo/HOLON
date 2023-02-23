@@ -2491,7 +2491,7 @@ v_timeStepsElapsed ++;
 						<OccurrenceAtTime>true</OccurrenceAtTime>
 						<OccurrenceDate>1674115200000</OccurrenceDate>
 						<OccurrenceTime Class="CodeUnitValue">
-							<Code><![CDATA[7086]]></Code>
+							<Code><![CDATA[1518]]></Code>
 							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
 						</OccurrenceTime>
 						<RecurrenceCode Class="CodeUnitValue">
@@ -3726,12 +3726,18 @@ for(EnergyAsset e : c_storageAssets ) {
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>false</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[for(GridConnection gc : c_gridConnections) {
-	//gc.f_operateFixedConsumptionAssets();
-	//gc.f_operateFlexAssets();
-	//gc.f_updateFlows();
-	gc.f_calculateEnergyBalance();
-}]]></Body>
+					<Body><![CDATA[if (p_parallelize) {
+	c_gridConnections.parallelStream().forEach(gc -> gc.f_calculateEnergyBalance());
+} else {
+	
+	for(GridConnection gc : c_gridConnections) {
+		//gc.f_operateFixedConsumptionAssets();
+		//gc.f_operateFlexAssets();
+		//gc.f_updateFlows();
+		gc.f_calculateEnergyBalance();
+	}
+}
+]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -30184,9 +30190,9 @@ if (p_curtailer != null){
 					<Body><![CDATA[if (CurtailerAsset.p_energyAssetInstance.getElectricCapacity_kW()>0) {
 	double curtailerSetpointElectric_kW = -min(0,v_currentPowerElectricity_kW + p_connectionCapacity_kW);
 	CurtailerAsset.f_updateAllFlows(curtailerSetpointElectric_kW/CurtailerAsset.p_energyAssetInstance.getElectricCapacity_kW());
-	if ( curtailerSetpointElectric_kW > 0 ) {
+	/*if ( curtailerSetpointElectric_kW > 0 ) {
 		traceln("Windfarm is curtailing " + curtailerSetpointElectric_kW + " kW!");
-	}
+	}*/
 }]]></Body>
 				</Function>
 			</Functions>
@@ -33635,9 +33641,6 @@ if (p_batteryAsset != null){
 				</Parameter>
 				<Parameter>
 					<ParameterName><![CDATA[b_addKpiVisuals]]></ParameterName>
-					<ParameterValue Class="CodeValue">
-						<Code><![CDATA[c_visuals.isSelected()]]></Code>
-					</ParameterValue>
 				</Parameter>
 				<Parameter>
 					<ParameterName><![CDATA[p_undergroundTemperature_degC]]></ParameterName>
