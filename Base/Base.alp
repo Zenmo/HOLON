@@ -4477,7 +4477,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/stap 4 gridconnections elektrificatie.json]]></ClassName>
+						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/stap 3 gridconnections elektrificatie.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -4514,7 +4514,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[../CaseDefinitions/industry_case/industry_case_policies.txt]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/stap 4 policies.json]]></ClassName>
+						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/stap 1 policies.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -11241,16 +11241,7 @@ if( p_energyAssetList != null) {
 				double yearlyDemandHeat_kWh = l.get( "yearlyDemandHeat_kWh") == null? 0.0: Double.valueOf( l.get( "yearlyDemandHeat_kWh").toString()).doubleValue();
 				double yearlyDemandHydrogen_kWh = l.get( "yearlyDemandHydrogen_kWh") == null? 0.0: Double.valueOf( l.get( "yearlyDemandHydrogen_kWh").toString()).doubleValue();
 				double yearlyDemandMethane_kWh = l.get( "yearlyDemandMethane_kWh") == null? 0.0: Double.valueOf( l.get( "yearlyDemandMethane_kWh").toString()).doubleValue();
-				double capacity_kW = l.get("capacity_kW") == null? 0.0:Double.valueOf(l.get("capacity_kW").toString()).doubleValue();	
-				if( consumerAsset.p_energyAssetType == OL_EnergyAssetType.ELECTRIC_HOB){
-					consumerAsset.f_instantiateConsumerAsset( consumerAsset.p_energyAssetType, capacity_kW , yearlyDemandHeat_kWh , yearlyDemandHydrogen_kWh , yearlyDemandMethane_kWh);
-				}
-				else {
-					if( yearlyDemandElectricity_kWh != 0){
-						yearlyDemandElectricity_kWh = uniform_discr(1500, 5000); // TO DELETE TEMP FIX
-					}
-					consumerAsset.f_instantiateConsumerAsset( consumerAsset.p_energyAssetType, yearlyDemandElectricity_kWh , yearlyDemandHeat_kWh , yearlyDemandHydrogen_kWh , yearlyDemandMethane_kWh);
-				}
+				consumerAsset.f_instantiateConsumerAsset( consumerAsset.p_energyAssetType, yearlyDemandElectricity_kWh , yearlyDemandHeat_kWh , yearlyDemandHydrogen_kWh , yearlyDemandMethane_kWh);
 				consumerAsset.f_connectToParentNode( this );
 			break;
 			
@@ -11515,10 +11506,6 @@ for(EnergyAsset e : c_consumptionAssets) {
 	else if( e.p_energyAssetType == OL_EnergyAssetType.HOT_WATER_CONSUMPTION ){	
 		e.f_updateAllFlows( main.v_currentHouseHoldHotWaterDemand_fr );
 		//v_currentPowerHeat_kW += e.v_currentConsumptionHeat_kW - e.v_currentProductionHeat_kW; // PowerFlows van consumption assets worden al in f_calculateEnergyBalance opgeteld, dus dit is dubbel!
-	}
-	else if( e.p_energyAssetType == OL_EnergyAssetType.ELECTRIC_HOB){
-		e.f_updateAllFlows( p_cookingTracker.v_ratio);
-		v_electricHobConsumption_kW += e.v_currentConsumptionElectricity_kW; // PowerFlows van consumption assets worden in f_calculateEnergyBalance opgeteld, dus ken dit niet toe aan totale consumptie!
 	}
 	else if( e.p_energyAssetType == OL_EnergyAssetType.HEAT_DEMAND ) {
 		switch(e.p_defaultEnergyAssetPresetName) {
@@ -13871,14 +13858,8 @@ if( ProvidedParentConnection instanceof GridConnection ) {
 						<Name><![CDATA[capacityMethane_kW]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
-					<Body><![CDATA[if(assetType == OL_EnergyAssetType.ELECTRIC_HOB){
-	p_energyAssetInstance = (J_EAElectricHob)p_energyAssetInstance;
-	p_energyAssetInstance = new J_EAElectricHob(this, capacityElectric_kW, main.p_timeStep_h);
-}
-else{
-	p_energyAssetInstance = (J_EAConsumption)p_energyAssetInstance;
-	p_energyAssetInstance = new J_EAConsumption( this, capacityElectric_kW, capacityHeat_kW, capacityHydrogen_kW, capacityMethane_kW, main.p_timeStep_h );
-}
+					<Body><![CDATA[p_energyAssetInstance = (J_EAConsumption)p_energyAssetInstance;
+p_energyAssetInstance = new J_EAConsumption( this, capacityElectric_kW, capacityHeat_kW, capacityHydrogen_kW, capacityMethane_kW, main.p_timeStep_h );
 p_energyAssetType = assetType;]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -14021,6 +14002,11 @@ switch(assetType) {
 	case METHANE_CHP:
 		p_energyAssetInstance = (J_EAConversionGasCHP)p_energyAssetInstance;
 		p_energyAssetInstance = new J_EAConversionGasCHP(this, capacityElectric_kW, eta_r, main.p_timeStep_h);
+	break;
+	
+	case ELECTRIC_HOB:
+		p_energyAssetInstance = (J_EAElectricHob)p_energyAssetInstance;
+		p_energyAssetInstance = new J_EAElectricHob(this, capacityElectric_kW, main.p_timeStep_h);
 	break;
 	default:
 		traceln("exception: not a valid conversion asset!");
@@ -27771,6 +27757,10 @@ for (EnergyAsset e: c_conversionAssets) {
 		e.v_currentProductionHeat_kW += heatIntoHouse;
 		e.v_currentConsumptionHeat_kW += e.v_currentConsumptionMethane_kW - heatIntoHouse;
 	}
+	else if( e.p_energyAssetType == OL_EnergyAssetType.ELECTRIC_HOB){
+		e.f_updateAllFlows( p_cookingTracker.v_ratio);
+		v_electricHobConsumption_kW += e.v_currentConsumptionElectricity_kW; // PowerFlows van consumption assets worden in f_calculateEnergyBalance opgeteld, dus ken dit niet toe aan totale consumptie!
+	}
 }
 
 
@@ -27854,16 +27844,6 @@ if (j_instance instanceof J_EAConsumption) {
 	 	p_DHWAsset = EA;
  	}
  } 
-else if (EA.p_energyAssetType == OL_EnergyAssetType.ELECTRIC_HOB) {
-	c_consumptionAssets.add(EA);
-	CookingTracker c = main.add_cookingTrackers();
-	p_cookingTracker = c;
-	p_hasElectricHob = true;
-	c.p_gridConnection = this;
-	c.p_energyInstance = EA.p_energyAssetInstance;
-	c.p_energyAsset = EA;
-	c.f_getData();
-} 
 else if (j_instance instanceof J_EAProduction ) {
 	c_productionAssets.add(EA);
 } 
@@ -27935,7 +27915,17 @@ else if (j_instance instanceof J_EAConversion) {
 		m.f_getData();
 		v_vehicleIndex ++;
 	}
-} 
+}
+else if (EA.p_energyAssetType == OL_EnergyAssetType.ELECTRIC_HOB) {
+	c_conversionAssets.add(EA);
+	CookingTracker c = main.add_cookingTrackers();
+	p_cookingTracker = c;
+	p_hasElectricHob = true;
+	c.p_gridConnection = this;
+	c.p_energyInstance = EA.p_energyAssetInstance;
+	c.p_energyAsset = EA;
+	c.f_getData();
+}  
 else {
 	traceln("f_connectToChild in EnergyAsset: Exception! EnergyAsset " + ConnectingParentNode.getId() + " is of unknown type or null! ");
 }]]></Body>
@@ -27946,7 +27936,7 @@ else {
 					<Id>1669203453155</Id>
 					<Name><![CDATA[f_createThermalStorageModel]]></Name>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>780</X><Y>150</Y>
+					<X>770</X><Y>-30</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -35852,11 +35842,11 @@ public class J_ConnectionContract implements Serializable {
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/stap 4 gridconnections elektrificatie.json]]></Path>
+			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/stap 1 policies.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/stap 4 policies.json]]></Path>
+			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/stap 3 gridconnections elektrificatie.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
