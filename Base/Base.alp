@@ -2491,7 +2491,7 @@ v_timeStepsElapsed ++;
 						<OccurrenceAtTime>true</OccurrenceAtTime>
 						<OccurrenceDate>1674115200000</OccurrenceDate>
 						<OccurrenceTime Class="CodeUnitValue">
-							<Code><![CDATA[1518]]></Code>
+							<Code><![CDATA[3926]]></Code>
 							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
 						</OccurrenceTime>
 						<RecurrenceCode Class="CodeUnitValue">
@@ -11289,7 +11289,7 @@ if( p_energyAssetList != null) {
 				converterAsset.set_p_energyAssetType( OL_EnergyAssetType.valueOf((String)l.get( "type" ) ));
 				converterAsset.set_p_defaultEnergyAssetPresetName( (String)l.get( "name" ));
 				
-				double capacityElectric_kW = l.get( "capacityElectricity_kW")== null? 0.0: Double.valueOf(l.get( "capacityElectricity_kW").toString()).doubleValue();
+				double capacityElectric_kW = l.get( "capacityElectric_kW")== null? 0.0: Double.valueOf(l.get( "capacityElectric_kW").toString()).doubleValue();
 				double capacityHeat_kW1 = l.get( "capacityHeat_kW")== null? 0: Double.valueOf(l.get( "capacityHeat_kW").toString()).doubleValue();
 				double eta_r = (Double)l.get( "eta_r" ) == null? 0.0 : Double.valueOf(l.get( "eta_r" ).toString()).doubleValue();
 				double deliveryTemp_degC = l.get( "deliveryTemp_degC" ) == null? 0.0: Double.valueOf( l.get( "deliveryTemp_degC" ).toString()).doubleValue();
@@ -11339,7 +11339,6 @@ if( p_energyAssetList != null) {
 					double vehicleScalingElectric = l.get("vehicleScaling") == null? 1.0: Double.valueOf( l.get( "vehicleScaling" ).toString()).doubleValue();
 					storageAsset.p_energyAssetInstance = new J_EAEV(storageAsset, capacityElectric_kW1, storageCapacity_kWh, initialStateOfCharge_r, main.p_timeStep_h, energyConsumption_kWhpkm2, vehicleScalingElectric );  
 					
-					energyConsumption_kWhpkm2 = 0.22; // TO DELETE TEMP FIX
 				}
 				else if (storageAsset.p_energyAssetType == OL_EnergyAssetType.STORAGE_ELECTRIC){
 					double capacityElectric_kW1 = l.get( "capacityElectricity_kW") == null? 0.0: Double.valueOf( l.get( "capacityElectricity_kW" ).toString()).doubleValue();
@@ -14020,6 +14019,7 @@ switch(assetType) {
 	case CURTAILER:
 		p_energyAssetInstance = (J_EAConversionCurtailer)p_energyAssetInstance;
 		p_energyAssetInstance = new J_EAConversionCurtailer( this, capacityElectric_kW, 0.0, main.p_timeStep_h );
+		//traceln("Instantiating curtailer asset with capacityElectric_kW: " + capacityElectric_kW + ", double check: " + p_energyAssetInstance.getElectricCapacity_kW() );
 	break;
 	case METHANE_CHP:
 		p_energyAssetInstance = (J_EAConversionGasCHP)p_energyAssetInstance;
@@ -30124,6 +30124,7 @@ if (p_batteryAsset != null){
 }
 
 // Operate curtailer. Must be the last asset to run!!
+
 if (p_curtailer != null){
 	f_manageCurtailer(p_curtailer);
 	v_currentPowerElectricity_kW += p_curtailer.v_currentConsumptionElectricity_kW;
@@ -30134,7 +30135,7 @@ if (p_curtailer != null){
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1671112355094</Id>
 					<Name><![CDATA[f_manageElektrolyser]]></Name>
-					<X>800</X><Y>460</Y>
+					<X>800</X><Y>480</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -30184,7 +30185,7 @@ if (p_curtailer != null){
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1676965986339</Id>
 					<Name><![CDATA[f_manageCurtailer]]></Name>
-					<X>798</X><Y>483</Y>
+					<X>800</X><Y>503</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -30193,9 +30194,11 @@ if (p_curtailer != null){
 						<Name><![CDATA[CurtailerAsset]]></Name>
 						<Type><![CDATA[EnergyAsset]]></Type>
 					</Parameter>
-					<Body><![CDATA[if (CurtailerAsset.p_energyAssetInstance.getElectricCapacity_kW()>0) {
+					<Body><![CDATA[//traceln("Hello! " + CurtailerAsset.p_energyAssetInstance.getElectricCapacity_kW());
+if (CurtailerAsset.p_energyAssetInstance.getElectricCapacity_kW()>0) {
 	double curtailerSetpointElectric_kW = -min(0,v_currentPowerElectricity_kW + p_connectionCapacity_kW);
 	CurtailerAsset.f_updateAllFlows(curtailerSetpointElectric_kW/CurtailerAsset.p_energyAssetInstance.getElectricCapacity_kW());
+	
 	/*if ( curtailerSetpointElectric_kW > 0 ) {
 		traceln("Windfarm is curtailing " + curtailerSetpointElectric_kW + " kW!");
 	}*/
@@ -35869,6 +35872,6 @@ public class J_ConnectionContract implements Serializable {
 		<VersionMinor>0</VersionMinor>
 		<VersionBuild>5</VersionBuild>
     </RequiredLibraryReference>
-	<CloudModelUuid><![CDATA[0bd28419-e4c3-4dc3-b8b3-f5a4489efb15]]></CloudModelUuid>
+	<CloudModelUuid><![CDATA[b019615a-b85e-468b-94b9-80d28e298c0d]]></CloudModelUuid>
 </Model>
 </AnyLogicWorkspace>
