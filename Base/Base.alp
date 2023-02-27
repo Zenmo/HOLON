@@ -3124,12 +3124,18 @@ for(ConnectionOwner c : pop_connectionOwners) {
 //		traceln("ConnectionOwner v_energySupplierDistrictHeat: " + c.v_energySupplierDistrictHeat.toString());
 		String holonString = c.p_holonParent == null ? null : c.p_holonParent.p_actorID;
 //		c.j_ActorData.updateData(c.p_actorID, c.p_actorType, c.p_parentActorID, c.p_energySupplier.toString(), c.v_ownedGridConnection.toString(), c.v_energySupplierDistrictHeat.toString(), roundToDecimal( c.v_electricityVolume_kWh, 2 ), roundToDecimal( c.v_heatVolume_kWh, 2), roundToDecimal( c.v_methaneVolume_kWh, 2), roundToDecimal( c.v_hydrogenVolume_kWh, 2 ), c.v_electricityContractType.toString(), c.v_heatContractType.toString(), c.v_methaneContractType.toString(), c.v_hydrogenContractType.toString(), roundToDecimal( c.v_balanceElectricity_eur, 2), roundToDecimal( c.v_balanceHeat_eur, 2), roundToDecimal( c.v_balanceMethane_eur, 2), roundToDecimal( c.v_balanceHydrogen_eur, 2));
-		c.j_ActorData.updateData(c.p_actorID, c.p_actorType, c.p_gridOperator.p_actorID, holonString, c.p_energySupplier.p_actorID, c.v_ownedGridConnection.p_agentID,
-		null, roundToDecimal( c.v_totalElectricityUsed_kWh, 2 ), roundToDecimal( c.v_totalHeatUsed_kWh, 2), roundToDecimal( c.v_totalMethaneUsed_kWh, 2), roundToDecimal( c.v_totalHydrogenUsed_kWh, 2 ), roundToDecimal( c.v_totalDieselUsed_kWh, 2 ),		
-		//c.v_electricityContractType.toString(), c.v_heatContractType.toString(), c.v_methaneContractType.toString(), c.v_hydrogenContractType.toString(), 
+		
+		c.j_ActorData.updateData(
+			c.p_actorID, c.p_actorType, c.p_gridOperator.p_actorID, holonString, c.p_energySupplier.p_actorID, c.v_ownedGridConnection.p_agentID, 
+			null, roundToDecimal( c.v_totalElectricityUsed_kWh, 2 ), roundToDecimal( c.v_totalHeatUsed_kWh, 2), roundToDecimal( c.v_totalMethaneUsed_kWh, 2), 
+			roundToDecimal( c.v_totalHydrogenUsed_kWh, 2 ), roundToDecimal( c.v_totalDieselUsed_kWh, 2 ),		
+			roundToDecimal( c.v_balanceElectricity_eur, 2), roundToDecimal( c.v_balanceElectricityDelivery_eur, 2), 
+			roundToDecimal( c.v_balanceElectricityTransport_eur, 2), roundToDecimal( c.v_balanceElectricityTax_eur, 2),
+			c.v_contractDelivery.contractScope, c.v_contractTransport.contractScope, c.v_contractTax.contractScope);
+			
+				//c.v_electricityContractType.toString(), c.v_heatContractType.toString(), c.v_methaneContractType.toString(), c.v_hydrogenContractType.toString(), 
 		//null, null, null, null,
-		roundToDecimal( c.v_balanceElectricity_eur, 2), roundToDecimal( c.v_balanceElectricityDelivery_eur, 2), roundToDecimal( c.v_balanceElectricityTransport_eur, 2), roundToDecimal( c.v_balanceElectricityTax_eur, 2),
-		c.v_contractDelivery.contractScope, c.v_contractTransport.contractScope, c.v_contractTax.contractScope);
+		
 		J_ActorData data = c.j_ActorData;
 		j_dataOut.actorData.add(data);
 	} catch (Exception e) {
@@ -3142,6 +3148,7 @@ for(EnergyHolon a : pop_energyHolons) {
 	try {
 		//traceln("ConnectionOwner v_ownedGridConnection: " + a.v_ownedGridConnection.p_agentID);
 		String holonString = a.p_holonParent == null ? null : a.p_holonParent.toString();
+		
 		a.j_ActorData.updateData(a.p_actorID, a.p_actorType,  a.p_gridOperator.p_actorID, holonString, a.p_energySupplier.p_actorID, a.p_gridNodeUnderResponsibility, 
 		null, roundToDecimal( a.v_electricityImported_kWh-a.v_electricityExported_kWh, 2 ), roundToDecimal( a.v_heatImported_kWh-a.v_heatExported_kWh, 2), roundToDecimal( a.v_methaneImported_kWh-a.v_methaneExported_kWh, 2), roundToDecimal( a.v_hydrogenImported_kWh-a.v_hydrogenExported_kWh, 2 ), roundToDecimal( a.v_dieselImported_kWh, 2 ),
 		//a.v_electricityContractType.toString(), a.v_heatContractType.toString(), a.v_methaneContractType.toString(), a.v_hydrogenContractType.toString(),
@@ -3166,6 +3173,7 @@ traceln("Electricity delta in batteries: "+ batteryStoredEnergyDeltaSinceStart_M
 //traceln("");
 //traceln("__--** CONSUMPTION PER ASSET **--__");
 double energyProduced_MWh = 0;
+double electricityProduced_MWh = 0;
 double energyConsumed_MWh = 0;
 for (EnergyAsset e : pop_energyAssets) {
 	double EnergyUsed_kWh = e.p_energyAssetInstance.getEnergyUsed_kWh();
@@ -3179,6 +3187,9 @@ for (EnergyAsset e : pop_energyAssets) {
 			energyConsumed_MWh += roundToDecimal(EnergyUsed_kWh/1000,2);
 		}
 	} else {
+		if( e.p_energyAssetType == OL_EnergyAssetType.PHOTOVOLTAIC ||  e.p_energyAssetType == OL_EnergyAssetType.WINDMILL ){
+			electricityProduced_MWh -= roundToDecimal(EnergyUsed_kWh/1000,2);
+		}
 		energyProduced_MWh -= roundToDecimal(EnergyUsed_kWh/1000,2);
 	}
 }
@@ -3187,6 +3198,7 @@ traceln("");
 traceln("__--** Totals **--__");
 traceln("Energy consumed: "+ energyConsumed_MWh + " MWh");
 traceln("Energy produced: "+ energyProduced_MWh + " MWh");
+traceln("Electricity produced: "+ electricityProduced_MWh + " MWh (only by solar and wind");
 // TODO: Make sure this calculation is correct when all energy carriers are 'active'! Only checked for electricity
 traceln("");
 //Total selfconsumption, selfsufficiency
@@ -3195,7 +3207,12 @@ if ( energyProduced_MWh > 0 ){
 	totalSelfConsumption_fr = 1 - (v_totalElectricityExport_MWh + v_totalMethaneExport_MWh + v_totalHydrogenExport_MWh)/energyProduced_MWh;
 }
 traceln("Model-wide selfconsumption: " + totalSelfConsumption_fr + "%");
+double totalElectricitySelfConsumption_fr = 0;
+if ( energyProduced_MWh > 0 ){
+	totalElectricitySelfConsumption_fr = 1 - v_totalElectricityExport_MWh/electricityProduced_MWh;
+}
 
+traceln("Model-wide electricity selfconsumption: " + totalElectricitySelfConsumption_fr + "%");
 double totalSelfSufficiency_fr = 1 - (v_totalElectricityImport_MWh + v_totalMethaneImport_MWh + v_totalHydrogenImport_MWh + v_totalDieselImport_MWh - batteryStoredEnergyDeltaSinceStart_MWh ) / energyConsumed_MWh; // Doesn't account for changes in battery-SOC!
 traceln("Model-wide selfsufficiency (via export calc): " + totalSelfSufficiency_fr);
 
@@ -3924,7 +3941,7 @@ for(HashMap data : parsedJSONGridConnections) {
 	switch(gridConnectionCategory) {
 		case HOUSE:
 			Double pricelevel_low_dif_from_avg_eurpkWh =  uniform_discr(1,20) / 100.0; //data.get("pricelevel_low_dif_from_avg_eurpkWh") == null ? null : (Double)data.get("pricelevel_low_dif_from_avg_eurpkWh");
-			Double pricelevel_high_dif_from_avg_eurpkWh = 0.20 - pricelevel_low_dif_from_avg_eurpkWh; //data.get("pricelevel_high_dif_from_avg_eurpkWh") == null ? null : (Double)data.get("pricelevel_high_dif_from_avg_eurpkWh");
+			Double pricelevel_high_dif_from_avg_eurpkWh = 0.2 - pricelevel_low_dif_from_avg_eurpkWh; //data.get("pricelevel_high_dif_from_avg_eurpkWh") == null ? null : (Double)data.get("pricelevel_high_dif_from_avg_eurpkWh");
 			GC = add_Houses();
 			((GCHouse)GC).set_p_isolationLabel( gridConnectionIsolationLabel );
 			((GCHouse)GC).set_p_pricelevelHighDifFromAvg_eurpkWh( pricelevel_high_dif_from_avg_eurpkWh );
@@ -4441,7 +4458,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/stap 1 actors.json]]></ClassName>
+						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/stap 4 actors salderen in contract.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -4477,7 +4494,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/stap 3 gridconnections elektrificatie.json]]></ClassName>
+						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/stap 4 gridconnections elektrificatie.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -4514,7 +4531,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[../CaseDefinitions/industry_case/industry_case_policies.txt]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/stap 1 policies.json]]></ClassName>
+						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/stap 4 policies.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -9988,6 +10005,19 @@ import java.io.*;]]></Import>
 						<Type><![CDATA[double]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1677495410857</Id>
+					<Name><![CDATA[v_electricityTotalsCheck]]></Name>
+					<Description><![CDATA[Should always be zero]]></Description>
+					<X>150</X><Y>1570</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1658499438204</Id>
 					<Name><![CDATA[p_gridConnectionCategory]]></Name>
@@ -11313,7 +11343,7 @@ if( p_energyAssetList != null) {
 					double initialTemperature_degC = l.get( "initial_temperature_degC" ) == null? 0.0 : Double.valueOf( l.get( "initial_temperature_degC" ).toString()).doubleValue();		
 					String ambientTempType2 = (String)l.get( "ambientTempType" ) == null? "": (String)l.get( "ambientTempType" );
 					
-					traceln("Heat Storage init: minTemperature = "+minTemperature_degC+", maxTemperature_degC = "+maxTemperature_degC+", setTemperature_degC = "+setTemperature_degC+", initialTemperature_degC = "+initialTemperature_degC);
+					//traceln("Heat Storage init: minTemperature = "+minTemperature_degC+", maxTemperature_degC = "+maxTemperature_degC+", setTemperature_degC = "+setTemperature_degC+", initialTemperature_degC = "+initialTemperature_degC);
 					//minTemperature_degC = 35; // TO DELETE TEMP FIX
 					//setTemperature_degC = uniform_discr(38, 45); // TO DELETE TEMP FIX
 					//initialTemperature_degC = uniform_discr(70,80) * 1.0; // TO DELETE TEMP FIX
@@ -11329,8 +11359,6 @@ if( p_energyAssetList != null) {
 					double energyConsumption_kWhpkm2 = l.get( "energyConsumption_kWhpkm" ) == null? 0.0: Double.valueOf( l.get( "energyConsumption_kWhpkm" ).toString()).doubleValue();
 					double vehicleScalingElectric = l.get("vehicleScaling") == null? 1.0: Double.valueOf( l.get( "vehicleScaling" ).toString()).doubleValue();
 					storageAsset.p_energyAssetInstance = new J_EAEV(storageAsset, capacityElectric_kW1, storageCapacity_kWh, initialStateOfCharge_r, main.p_timeStep_h, energyConsumption_kWhpkm2, vehicleScalingElectric );  
-					
-					energyConsumption_kWhpkm2 = 0.22; // TO DELETE TEMP FIX
 				}
 				else if (storageAsset.p_energyAssetType == OL_EnergyAssetType.STORAGE_ELECTRIC){
 					double capacityElectric_kW1 = l.get( "capacityElectricity_kW") == null? 0.0: Double.valueOf( l.get( "capacityElectricity_kW" ).toString()).doubleValue();
@@ -11443,7 +11471,10 @@ v_maxConnectionLoad_fr = max(v_maxConnectionLoad_fr, abs(v_currentPowerElectrici
 if (main.b_addKpiVisuals) {
 	pl_SOC.updateData();
 	pl_powerFlows.updateData();
-}]]></Body>
+}
+
+v_electricityTotalsCheck = v_electricityConsumedFixedProfile_kWh + v_electricityConvertedToX_kWh + v_electricityChargedByEVs_kWh  + v_electricityDeliveredToGrid_kWh 
+- v_electricityProducedPV_kWh - v_electricityProducedWind_kWh - v_electricityDrawnFromGrid_kWh ;]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -27915,17 +27946,18 @@ else if (j_instance instanceof J_EAConversion) {
 		m.f_getData();
 		v_vehicleIndex ++;
 	}
+	else if (EA.p_energyAssetType == OL_EnergyAssetType.ELECTRIC_HOB) {
+		c_conversionAssets.add(EA);
+		CookingTracker c = main.add_cookingTrackers();
+		p_cookingTracker = c;
+		p_hasElectricHob = true;
+		c.p_gridConnection = this;
+		c.p_energyInstance = EA.p_energyAssetInstance;
+		c.p_energyAsset = EA;
+		c.f_getData();
+	}	  
 }
-else if (EA.p_energyAssetType == OL_EnergyAssetType.ELECTRIC_HOB) {
-	c_conversionAssets.add(EA);
-	CookingTracker c = main.add_cookingTrackers();
-	p_cookingTracker = c;
-	p_hasElectricHob = true;
-	c.p_gridConnection = this;
-	c.p_energyInstance = EA.p_energyAssetInstance;
-	c.p_energyAsset = EA;
-	c.f_getData();
-}  
+
 else {
 	traceln("f_connectToChild in EnergyAsset: Exception! EnergyAsset " + ConnectingParentNode.getId() + " is of unknown type or null! ");
 }]]></Body>
@@ -35636,7 +35668,7 @@ public class J_EAConversionGasCHP extends base.J_EAConversion implements Seriali
 			<Text><![CDATA[/**
  * J_EAElectricHob
  */	
-public class J_EAElectricHob extends J_EA implements Serializable {
+public class J_EAElectricHob extends J_EAConversion implements Serializable {
 
     /**
      * Default constructor
@@ -35842,11 +35874,15 @@ public class J_ConnectionContract implements Serializable {
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/stap 1 policies.json]]></Path>
+			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/stap 4 gridconnections elektrificatie.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/stap 3 gridconnections elektrificatie.json]]></Path>
+			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/stap 4 policies.json]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/stap 4 actors salderen in contract.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
