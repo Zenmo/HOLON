@@ -1696,7 +1696,7 @@ traceln(" ");]]></StartupCode>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[false]]></Code>
+							<Code><![CDATA[true]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1658752734131</Id>
@@ -2031,6 +2031,34 @@ traceln(" ");]]></StartupCode>
 						<ParameterEditor>
 							<Id>1672910307058</Id>
 							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1677659229529</Id>
+					<Name><![CDATA[p_forceBrownFieldNetload]]></Name>
+					<Description><![CDATA[Switch om HS en MS netload op 0 als output te geven wanneer er geen overbelasting plaats heeft gevonden. (workaround om geen greenfield kosten te hebben wanneer er geen overbelasting is!)
+
+@author: GillisHommen
+@since: 01/03/2023]]></Description>
+					<X>-750</X><Y>570</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[boolean]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[true]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1677659229527</Id>
+							<EditorContolType>CHECK_BOX</EditorContolType>
 							<MinSliderValue><![CDATA[0]]></MinSliderValue>
 							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
 							<DelimeterType>NO_DELIMETER</DelimeterType>
@@ -2491,7 +2519,7 @@ v_timeStepsElapsed ++;
 						<OccurrenceAtTime>true</OccurrenceAtTime>
 						<OccurrenceDate>1674115200000</OccurrenceDate>
 						<OccurrenceTime Class="CodeUnitValue">
-							<Code><![CDATA[3926]]></Code>
+							<Code><![CDATA[8041.0]]></Code>
 							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
 						</OccurrenceTime>
 						<RecurrenceCode Class="CodeUnitValue">
@@ -3624,14 +3652,22 @@ for ( ConnectionOwner c : pop_connectionOwners){
 					<Body><![CDATA[// Bereken belasting per netvlak in het model (elektriciteit, absolute waarde) voor kosten-berekeningen gebied.
 for(GridNode h : c_gridNodesHSMS ) {
 //	v_gridNodePeakLoadElectricityHSMS_kW = max(v_gridNodePeakLoadElectricityHSMS_kW,abs(h.v_peakLoadFilteredElectricity_kW));
-	v_gridNodePeakLoadElectricityHSMS_kW += h.v_peakLoadFilteredElectricity_kW;
+	if ( p_forceBrownFieldNetload ) {
+		v_gridNodePeakLoadElectricityHSMS_kW += max(0,abs(h.v_peakLoadFilteredElectricity_kW)-h.p_capacity_kW);
+	} else {
+		v_gridNodePeakLoadElectricityHSMS_kW += h.v_peakLoadFilteredElectricity_kW;
+	}
 	v_totalElectricityImport_MWh += h.v_electricityDrawn_kWh / 1000;
 	v_totalElectricityExport_MWh += h.v_electricityDelivered_kWh / 1000;
 	c_timesOfNodePeakLoads_h.put(h.p_agentID, h.v_timeOfPeakLoadFiltered_h);
 }
 
 for(GridNode m : c_gridNodesMSLS ) {
-	v_gridNodePeakLoadElectricityMSLS_kW += m.v_peakLoadFilteredElectricity_kW;
+	if ( p_forceBrownFieldNetload ) {
+		v_gridNodePeakLoadElectricityMSLS_kW += max(0,abs(m.v_peakLoadFilteredElectricity_kW)-m.p_capacity_kW);
+	} else {
+		v_gridNodePeakLoadElectricityMSLS_kW += m.v_peakLoadFilteredElectricity_kW;
+	}
 	v_MSLSnodePeakPositiveLoadElectricity_kW = max(v_MSLSnodePeakPositiveLoadElectricity_kW, m.v_peakPosLoadElectricity_kW);
 	v_MSLSnodePeakNegativeLoadElectricity_kW = max(v_MSLSnodePeakNegativeLoadElectricity_kW, -m.v_peakNegLoadElectricity_kW);
 	c_timesOfNodePeakLoads_h.put(m.p_agentID, m.v_timeOfPeakLoadFiltered_h);
@@ -3912,7 +3948,7 @@ for(HashMap data : parsedJSONGridConnections) {
 	//Double gridConnectionNonFirmATOEndtime = data.get( "nfATO_endtime" ) == null? 0 : (Double)data.get( "nfATO_endtime" );
     OL_ChargingAttitude gridConnectionChargingAttitude = data.get( "charging_mode" ) == null ? OL_ChargingAttitude.SIMPLE : OL_ChargingAttitude.valueOf((String)data.get("charging_mode"));
     OL_BatteryOperationMode gridConnectionBatteryMode = data.get( "battery_mode" ) == null? OL_BatteryOperationMode.BALANCE : OL_BatteryOperationMode.valueOf((String)data.get("battery_mode"));
-    OL_ElektrolyserOperationMode gridConnectionElektrolyserMode = data.get( "elektrolyser_mode" ) == null? OL_ElektrolyserOperationMode.BALANCE : OL_ElektrolyserOperationMode.valueOf((String)data.get("elektrolyser_mode"));    
+    OL_ElektrolyserOperationMode gridConnectionElektrolyserMode = data.get( "electrolyser_mode" ) == null? OL_ElektrolyserOperationMode.BALANCE : OL_ElektrolyserOperationMode.valueOf((String)data.get("electrolyser_mode"));    
 	OL_GridConnectionIsolationLabel gridConnectionIsolationLabel = data.get( "insulation_label" ) == null? null : OL_GridConnectionIsolationLabel.valueOf((String)data.get( "insulation_label" ));
 	OL_GridConnectionHeatingType gridConnectionHeatingType = data.get( "heating_type" ) == null? null : OL_GridConnectionHeatingType.valueOf((String)data.get( "heating_type" ));
 	boolean smartAssets = data.get("smart_assets") == null ? false:true;
@@ -4441,7 +4477,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/actors_newContracts.txt]]></ClassName>
+						<ClassName><![CDATA[cases/industry_case/example_actors.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -4459,7 +4495,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/gridnodes.txt]]></ClassName>
+						<ClassName><![CDATA[cases/industry_case/example_gridnodes.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -4477,7 +4513,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/gridconnections_Optie1_MoarWind.txt]]></ClassName>
+						<ClassName><![CDATA[cases/industry_case/example_gridconnections.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -4514,7 +4550,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[../CaseDefinitions/industry_case/industry_case_policies.txt]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/policies.txt]]></ClassName>
+						<ClassName><![CDATA[cases/industry_case/example_policies.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -30131,7 +30167,7 @@ if (p_curtailer != null){
 	double excessElectricPower_kW = -(v_currentPowerElectricity_kW + v_allowedCapacity_kW); // Should at least draw this much power to stay within connection limits. Doesn't account for a battery!
 	double eta_r = ((J_EAConversionElektrolyser)ElektrolyserAsset.p_energyAssetInstance).getEta_r();
 	double connectionCapacity_kW = v_allowedCapacity_kW; // Use only 90% of capacity for robustness against delay
-	double ProductionSetpoint_kW = ElektrolyserAsset.p_energyAssetInstance.getElectricCapacity_kW() * 0.33 * eta_r; // Aim for average production power of xx% of elektrolyser peak power
+	double ProductionSetpoint_kW = ElektrolyserAsset.p_energyAssetInstance.getElectricCapacity_kW() * 0.4 * eta_r; // Aim for average production power of xx% of elektrolyser peak power
 	double elektrolyserSetpointElectric_kW = 0;
 	
 	if (p_elektrolyserOperationMode==OL_ElektrolyserOperationMode.BALANCE) {
@@ -30145,8 +30181,8 @@ if (p_curtailer != null){
 		ConnectionOwner ownerActor = (ConnectionOwner)l_ownerActor.getConnectedAgent();
 		double currentElectricityPriceCharge_eurpkWh = ownerActor.v_priceBandsDelivery.ceilingEntry(100.0).getValue(); // query price at 1kW
 		v_electricityPriceLowPassed_eurpkWh += v_lowPassFactor_fr * ( currentElectricityPriceCharge_eurpkWh - v_electricityPriceLowPassed_eurpkWh );
-		double deficitGain_eurpkWh = 1.0/1000000; // When SOC-error is 100%, adjust WTP price by 1 eurpkWh
-		double priceGain_peur = 3; // How strongly to ramp up power with price-delta's	
+		double deficitGain_eurpkWh = 0*1.0/1000000; // When SOC-error is 100%, adjust WTP price by 1 eurpkWh
+		double priceGain_peur = 5; // How strongly to ramp up power with price-delta's	
 		double WTP_eurpkWh = v_electricityPriceLowPassed_eurpkWh + deficitGain_eurpkWh * v_hydrogenProductionDeficit_kWh;
 		elektrolyserSetpointElectric_kW = max(0,ElektrolyserAsset.p_energyAssetInstance.getElectricCapacity_kW()*(WTP_eurpkWh - currentElectricityPriceCharge_eurpkWh)*priceGain_peur)  ;
 		//traceln("WTP hydrogen production is " + roundToDecimal(WTP_eurpkWh,3) + " eurpkWh is higher than electricity price " + roundToDecimal(currentElectricityPriceCharge_eurpkWh,3) + " eurpkWh, so produce! Setpoint power: " + round(elektrolyserSetpointElectric_kW) + " kW");
@@ -33676,6 +33712,9 @@ if (p_batteryAsset != null){
 				<Parameter>
 					<ParameterName><![CDATA[j_hourlyCurvesData]]></ParameterName>
 				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_forceBrownFieldNetload]]></ParameterName>
+				</Parameter>
 			</Parameters>			
 			<PresentationProperties>
 				<EnableZoomAndPanning>true</EnableZoomAndPanning>
@@ -35824,19 +35863,27 @@ public class J_ConnectionContract implements Serializable {
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/actors_newContracts.txt]]></Path>
+			<Path><![CDATA[cases/industry_case/example_actors.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/gridnodes.txt]]></Path>
+			<Path><![CDATA[cases/industry_case/example_gridconnections.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/policies.txt]]></Path>
+			<Path><![CDATA[cases/industry_case/example_policies.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/gridconnections_Optie1_MoarWind.txt]]></Path>
+			<Path><![CDATA[C:/Users/gilli/Documents/Project HOLON/Git_Local_Clone/HOLON-cloudclient/doc/assets/example_gridconnections.json]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[C:/Users/gilli/Documents/Project HOLON/Git_Local_Clone/HOLON-cloudclient/doc/assets/example_actors.json]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[cases/industry_case/example_gridnodes.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
