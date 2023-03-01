@@ -10384,7 +10384,7 @@ import java.io.*;]]></Import>
 				<Variable Class="Parameter">
 					<Id>1668695364192</Id>
 					<Name><![CDATA[p_batteryAsset]]></Name>
-					<X>510</X><Y>310</Y>
+					<X>510</X><Y>360</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -10587,7 +10587,7 @@ import java.io.*;]]></Import>
 				<Variable Class="Parameter">
 					<Id>1676449763319</Id>
 					<Name><![CDATA[p_heatBuffer]]></Name>
-					<X>480</X><Y>360</Y>
+					<X>510</X><Y>340</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -10872,25 +10872,9 @@ import java.io.*;]]></Import>
 
 				</Variable>
 				<Variable Class="CollectionVariable">
-					<Id>1669008764710</Id>
-					<Name><![CDATA[c_vehiclesAvailableForTanking]]></Name>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>530</X><Y>320</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
-						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
-						<ElementClass><![CDATA[EnergyAsset]]></ElementClass>
-						<ValueElementClass><![CDATA[String]]></ValueElementClass>
-					</Properties>
-
-				</Variable>
-				<Variable Class="CollectionVariable">
 					<Id>1669115948280</Id>
 					<Name><![CDATA[c_dieselVehicles]]></Name>
-					<X>530</X><Y>340</Y>
+					<X>530</X><Y>320</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -11837,27 +11821,23 @@ switch (p_chargingAttitudeVehicles) {
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[for ( EnergyAsset EA : c_vehicleAssets ){
-	J_EAEV vehicle = (J_EAEV)EA.p_energyAssetInstance;
-	double chargingRatio = 0;
-	if( vehicle.getCurrentStateOfCharge() < 1 ) {
-		//if (! p_hasSmartFlexAssets){
-			chargingRatio = 1;
-		//}
-		/*else {
-			ConnectionOwner owner = ((ConnectionOwner)l_ownerActor.getConnectedAgent());
-			if (! owner.v_currentCongestionType.equals("Overconsumption")){
-				if ( owner.p_capacityTariffApplicable ){
-					chargingRatio = min (1, owner.p_capacityLevel_kW /vehicle.getElectricCapacity_kW()); // dont charge faster than the congestion level (although with household demand power drawn will be slightly higher)
-				}
-				else{
-					chargingRatio = 1;
-				}
-			}
-		}*/
+					<Body><![CDATA[ArrayList<EnergyAsset> copiedVehicleList = new ArrayList<EnergyAsset>(c_vehiclesAvailableForCharging);
+int countDeletedItems = 0;
+for ( int i = 0; i < copiedVehicleList.size(); i++ ){
+	EnergyAsset EA = copiedVehicleList.get(i);
+	J_EAEV ev = (J_EAEV)EA.p_energyAssetInstance;
+	if( !ev.getAvailability() || ev.getCurrentStateOfCharge() == 1 ){
+		EA.f_updateElectricityFlows( 0 );
+		c_vehiclesAvailableForCharging.remove( i - countDeletedItems );
+		countDeletedItems ++;
 	}
-	v_evChargingPowerElectric_kW += EA.f_updateElectricityFlows( chargingRatio );
+	else {
+		if (ev.vehicleScaling != 0) {
+			v_evChargingPowerElectric_kW += EA.f_updateElectricityFlows( 1 );
+		}
+	}
 }
+
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -12716,7 +12696,7 @@ return level;]]></Body>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<AutoUpdate>false</AutoUpdate>
+					<AutoUpdate>true</AutoUpdate>
 					<OccurrenceAtTime>true</OccurrenceAtTime>
 					<OccurrenceDate>1668499200000</OccurrenceDate>
 					<OccurrenceTime Class="CodeUnitValue">
@@ -12853,7 +12833,7 @@ return level;]]></Body>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<AutoUpdate>false</AutoUpdate>
+					<AutoUpdate>true</AutoUpdate>
 					<OccurrenceAtTime>true</OccurrenceAtTime>
 					<OccurrenceDate>1668499200000</OccurrenceDate>
 					<OccurrenceTime Class="CodeUnitValue">
