@@ -779,6 +779,10 @@
 				<Id>1677498067952</Id>
 				<Name><![CDATA[LT_RESIDUAL_HEATPUMP_GASPEAK]]></Name>
 			</Option>
+			<Option>
+				<Id>1678098224204</Id>
+				<Name><![CDATA[DISTRICTHEATDECENTRAL]]></Name>
+			</Option>
 		</OptionList>
 		<OptionList>
 			<Id>1665487983362</Id>
@@ -4451,7 +4455,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[casusTVW_LTDH_actors.txt]]></ClassName>
+						<ClassName><![CDATA[D:/Users/HOUJ/Documents/GitHub/HOLON/HOLON-cloudclient/doc/assets/example_actors.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -4469,7 +4473,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[casusTVW_LTDH_gridnodes.txt]]></ClassName>
+						<ClassName><![CDATA[D:/Users/HOUJ/Documents/GitHub/HOLON/HOLON-cloudclient/doc/assets/example_gridnodes.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -4487,7 +4491,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[casusTVW_LTDH_gridconnections.txt]]></ClassName>
+						<ClassName><![CDATA[D:/Users/HOUJ/Documents/GitHub/HOLON/HOLON-cloudclient/doc/assets/example_gridconnections.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -4524,7 +4528,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[../CaseDefinitions/industry_case/industry_case_policies.txt]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[casusTVW_LTDH_policies.txt]]></ClassName>
+						<ClassName><![CDATA[D:/Users/HOUJ/Documents/GitHub/HOLON/HOLON-cloudclient/doc/assets/example_policies.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -28026,11 +28030,18 @@ else if (j_instance instanceof J_EAStorage ) {
 } 
 else if (j_instance instanceof J_EAConversion) {
 	c_conversionAssets.add(EA);
-	if (EA.p_energyAssetType == OL_EnergyAssetType.GAS_BURNER || EA.p_energyAssetInstance instanceof J_EAConversionHeatPump || EA.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet ) {
+	if (EA.p_energyAssetType == OL_EnergyAssetType.GAS_BURNER || EA.p_energyAssetInstance instanceof J_EAConversionHeatPump || EA.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet || EA.p_energyAssetInstance instanceof J_EAConversionBoiler ) {
 		if (p_primaryHeatingAsset == null) {
 			p_primaryHeatingAsset = EA;
 		} else if (p_secondaryHeatingAsset == null) {
 			p_secondaryHeatingAsset = EA;
+	
+			// set water/water heatpump source energy-asset
+			if( EA.p_energyAssetInstance instanceof J_EAConversionHeatPump && ((J_EAConversionHeatPump)EA.p_energyAssetInstance).getAmbientTempType().equals("WATER") && p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet ) {
+				EA.p_linkedSourceEnergyAsset = p_primaryHeatingAsset;
+			}
+				
+				
 		} else {
 			traceln("House " + p_agentID + " already has two heating systems!");
 		}
@@ -28461,6 +28472,17 @@ p_primaryHeatingAsset.v_powerFraction_fr = powerFraction_heatPump_fr;
 		p_primaryHeatingAsset.v_powerFraction_fr = 0;
 		p_ThermalStorageAsset.v_powerFraction_fr = 0;
 	}
+} else if( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet & p_secondaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionBoiler) { // Heat Delivery Set and boiler for peak, )
+	double secondaryDemand_kW = v_hotwaterDemand_kW;
+	p_primaryHeatingAsset.v_powerFraction_fr = p_ThermalStorageAsset.p_energyAssetInstance.getCurrentTemperature() < v_tempSetpoint_degC ? 1 : 0;
+	p_secondaryHeatingAsset.v_powerFraction_fr = secondaryDemand_kW / p_secondaryHeatingAsset.p_energyAssetInstance.capacityHeat_kW; 
+	
+	p_ThermalStorageAsset.v_powerFraction_fr = p_primaryHeatingAsset.p_energyAssetInstance.capacityHeat_kW * p_primaryHeatingAsset.v_powerFraction_fr;			
+
+	//p_secondaryHeatingAsset.f_updateAllFlows(p_secondaryHeatingAsset.v_powerFraction_fr);
+	p_primaryHeatingAsset.f_updateAllFlows(p_primaryHeatingAsset.v_powerFraction_fr);
+	//p_ThermalStorageAsset.f_updateAllFlows(p_ThermalStorageAsset.v_powerFraction_fr);		
+	
 } else {
 	traceln("**** EXCEPTION ****: Unsupported combination of heatings systems in house " + p_agentID);
 	p_primaryHeatingAsset.v_powerFraction_fr = 0;
@@ -34895,7 +34917,8 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
 	 * It needs to be changed when this class gets changed
 	 */
 	private static final long serialVersionUID = 1L;
-}]]></Text>
+}
+]]></Text>
 		</JavaClass>
 		<!--   =========   Java Class   ========  -->
 		<JavaClass>
@@ -36220,19 +36243,19 @@ public class J_ConnectionContract implements Serializable {
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[casusTVW_LTDH_policies.txt]]></Path>
+			<Path><![CDATA[D:/Users/HOUJ/Documents/GitHub/HOLON/HOLON-cloudclient/doc/assets/example_gridnodes.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[casusTVW_LTDH_gridnodes.txt]]></Path>
+			<Path><![CDATA[D:/Users/HOUJ/Documents/GitHub/HOLON/HOLON-cloudclient/doc/assets/example_gridconnections.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[casusTVW_LTDH_gridconnections.txt]]></Path>
+			<Path><![CDATA[D:/Users/HOUJ/Documents/GitHub/HOLON/HOLON-cloudclient/doc/assets/example_actors.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[casusTVW_LTDH_actors.txt]]></Path>
+			<Path><![CDATA[D:/Users/HOUJ/Documents/GitHub/HOLON/HOLON-cloudclient/doc/assets/example_policies.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
