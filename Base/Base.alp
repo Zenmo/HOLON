@@ -3894,6 +3894,7 @@ for(HashMap data : parsedJSONActors)
     //double NonFirmATOStarttime = data.get( "nfATO_starttime" ) == null? 0.0 : (Double)data.get( "nfATO_starttime" );
 	//double NonFirmATOEndtime = data.get( "nfATO_endtime" ) == null? 0.0 : (Double)data.get( "nfATO_endtime" );
 	double ConnectionCapacity_kW = data.get( "connectionCapacity_kW") == null? 0.0 : (Double)data.get( "connectionCapacity_kW" );
+	String node =  data.get( "node" ) == null? null : String.valueOf(data.get( "node" )); //traceln(actortype.toString());
 	
 	if (actorcategory.equals(OL_ActorType.CONNECTIONOWNER) ) {
 	    ConnectionOwner Actor = add_pop_connectionOwners();
@@ -3919,6 +3920,7 @@ for(HashMap data : parsedJSONActors)
 	    Actor.set_p_actorContractList( actorContracts );
    		Actor.f_setContractValues();
   		Actor.j_ActorData = new J_ActorData(actorID, type);
+  		Actor.set_p_gridNodeUnderResponsibility( node );
     } else if (actorcategory.equals(OL_ActorType.OPERATORGRID) ) {
 	    GridOperator Actor = add_pop_gridOperators();
 	    Actor.set_p_actorID( actorID );
@@ -8694,6 +8696,7 @@ v_loadFactor_fr = v_averageAbsoluteLoadElectricity_kW / abs(v_peakLoadAbsoluteEl
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
 					<Body><![CDATA[for (GridConnection gc: c_electricityGridConnections){
+	traceln("Gc "+ gc.toString() + ", price "+ price_eurpkWh + ", allowance "+ allowance_kW +".");
 	ConnectionOwner owner = ((ConnectionOwner)gc.l_ownerActor.getConnectedAgent());
 	owner.v_currentNodalPrice_eurpkWh = price_eurpkWh;
 }
@@ -11439,7 +11442,7 @@ if( p_energyAssetList != null) {
 				double yearlyDemandMethane_kWh = l.get( "yearlyDemandMethane_kWh") == null? 0.0: Double.valueOf( l.get( "yearlyDemandMethane_kWh").toString()).doubleValue();
 				double energyConsumption_kWhpkm = l.get( "energyConsumption_kWhpkm" ) == null? 0.0: Double.valueOf( l.get( "energyConsumption_kWhpkm" ).toString()).doubleValue();
 				double vehicleScaling = l.get("vehicleScaling") == null? 1.0: Double.valueOf( l.get( "vehicleScaling" ).toString()).doubleValue();
-				
+	
 				consumerAsset.f_instantiateConsumerAsset( consumerAsset.p_energyAssetType, yearlyDemandElectricity_kWh , yearlyDemandHeat_kWh , yearlyDemandHydrogen_kWh , yearlyDemandMethane_kWh, energyConsumption_kWhpkm, vehicleScaling);
 				consumerAsset.f_connectToParentNode( this );
 			break;
@@ -24806,9 +24809,6 @@ Supplier]]></Text>
 						<Type><![CDATA[String]]></Type>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
-						<DefaultValue Class="CodeValue">
-							<Code><![CDATA["E2"]]></Code>
-						</DefaultValue>
 						<ParameterEditor>
 							<Id>1671707831166</Id>
 							<EditorContolType>TEXT_BOX</EditorContolType>
@@ -24981,6 +24981,21 @@ Supplier]]></Text>
 					</Properties>
 
 				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1678292542481</Id>
+					<Name><![CDATA[c_holonMembers]]></Name>
+					<X>60</X><Y>250</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[LinkedHashMap]]></CollectionClass>
+						<ElementClass><![CDATA[Agent]]></ElementClass>
+						<ValueElementClass><![CDATA[Object]]></ValueElementClass>
+					</Properties>
+
+				</Variable>
 			</Variables>
 			<Events>
 				<Event>
@@ -25062,6 +25077,7 @@ Supplier]]></Text>
 						<Type><![CDATA[Agent]]></Type>
 					</Parameter>
 					<Body><![CDATA[subConnections.connectTo(ConnectingChildNode);
+c_holonMembers.put( ConnectingChildNode, ConnectingChildNode.getIndex() );
 /*
 if ( v_contractGridOperator.equals("NODALPRICING")) {
 //	traceln("Enabling nodal pricing for HOLON memmber!");
@@ -25251,6 +25267,10 @@ v_dieselImported_kWh += v_dieselVolume_kWh;]]></Body>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1667983361357</Id>
 					<Name><![CDATA[f_getVariableEnergyPrice]]></Name>
+					<Description><![CDATA[v_currentNodalPrice_eurpkWh = node van deze holon -> p_gridNodeUnderResponsibility. Mogelijk niet robuust! TODO: checken of dit goed gaat!
+
+
+]]></Description>
 					<X>661</X><Y>259</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
