@@ -4472,7 +4472,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/stap 5 actors nodal pricing.json]]></ClassName>
+						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/stap 4 actors salderen in contract.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -4490,7 +4490,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[D:/Users/HOUJ/Documents/GitHub/HOLON/HOLON-cloudclient/doc/assets/example_gridnodes.json]]></ClassName>
+						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/stap 1 gridnodes.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -4545,7 +4545,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[../CaseDefinitions/industry_case/industry_case_policies.txt]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/stap 5 policies.json]]></ClassName>
+						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/stap 4 policies.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -11352,6 +11352,7 @@ if( p_energyAssetList != null) {
 				double eta_r = (Double)l.get( "eta_r" ) == null? 0.0 : Double.valueOf(l.get( "eta_r" ).toString()).doubleValue();
 				double deliveryTemp_degC1 = l.get( "deliveryTemp_degC" ) == null? 0.0: Double.valueOf( l.get( "deliveryTemp_degC" ).toString()).doubleValue();
 				String ambientTempType = (String)l.get( "ambientTempType" ) == null? "": (String)l.get( "ambientTempType" );
+				double belowZeroHeatpumpEtaReductionFactor = (Double)l.get( "etaReduction_r" ) == null? 1 : Double.valueOf(l.get( "etaReduction_r" ).toString()).doubleValue();
 				double energyConsumption_kWhpkm = l.get( "energyConsumption_kWhpkm" ) == null? 0.0: Double.valueOf( l.get( "energyConsumption_kWhpkm" ).toString()).doubleValue();
 				double vehicleScalingDiesel = l.get("vehicleScaling") == null? 1.0: Double.valueOf( l.get( "vehicleScaling" ).toString()).doubleValue();
 				
@@ -11362,7 +11363,8 @@ if( p_energyAssetList != null) {
 														deliveryTemp_degC1,
 														ambientTempType,
 														energyConsumption_kWhpkm,
-														vehicleScalingDiesel);
+														vehicleScalingDiesel,
+														belowZeroHeatpumpEtaReductionFactor);
 				converterAsset.f_connectToParentNode( this );
 				//traceln("ambientTempType = "+ambientTempType);
 				//converterAsset.f_setLinkedVariable( ambientTempType, null );
@@ -12787,7 +12789,7 @@ return level;]]></Body>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<AutoUpdate>false</AutoUpdate>
+					<AutoUpdate>true</AutoUpdate>
 					<OccurrenceAtTime>true</OccurrenceAtTime>
 					<OccurrenceDate>1668499200000</OccurrenceDate>
 					<OccurrenceTime Class="CodeUnitValue">
@@ -12924,7 +12926,7 @@ return level;]]></Body>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<AutoUpdate>false</AutoUpdate>
+					<AutoUpdate>true</AutoUpdate>
 					<OccurrenceAtTime>true</OccurrenceAtTime>
 					<OccurrenceDate>1668499200000</OccurrenceDate>
 					<OccurrenceTime Class="CodeUnitValue">
@@ -14093,6 +14095,10 @@ temperaturePlot.updateData();
 						<Name><![CDATA[vehicleScaling]]></Name>
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
+					<Parameter>
+						<Name><![CDATA[belowZeroHeatpumpEtaReductionFactor]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
 					<Body><![CDATA[//traceln("instantiating converter-asset: "+assetType+", capacityElectric ="+ capacityElectric_kW+ ", capacityHeat_kW: "+capacityHeat_kW+", eta_r: "+eta_r+", deliveryTemp_degC: "+deliveryTemp_degC+", ambientTempType");
 
 switch(assetType) {
@@ -14106,16 +14112,16 @@ switch(assetType) {
 	break;
 	case HEAT_PUMP_AIR: //EnergyAsset ownerAssetAgent, double capacityElectricity_kW, double eta_r, double baseTemperature_degC, double outputTemperature_degC
 		p_energyAssetInstance = (J_EAConversionHeatPump)p_energyAssetInstance;
-		p_energyAssetInstance = new J_EAConversionHeatPump( this, main.p_timeStep_h, capacityElectric_kW, eta_r, main.v_currentAmbientTemperature_degC, deliveryTemp_degC, ambientTempType, 0 );
+		p_energyAssetInstance = new J_EAConversionHeatPump( this, main.p_timeStep_h, capacityElectric_kW, eta_r, main.v_currentAmbientTemperature_degC, deliveryTemp_degC, ambientTempType, 0, belowZeroHeatpumpEtaReductionFactor );
 		main.c_ambientAirDependentAssets.add(this);
 	break;
 	case HEAT_PUMP_GROUND:
 		p_energyAssetInstance = (J_EAConversionHeatPump)p_energyAssetInstance;
-		p_energyAssetInstance = new J_EAConversionHeatPump( this, main.p_timeStep_h, capacityElectric_kW, eta_r, main.p_undergroundTemperature_degC, deliveryTemp_degC, ambientTempType, 0 );
+		p_energyAssetInstance = new J_EAConversionHeatPump( this, main.p_timeStep_h, capacityElectric_kW, eta_r, main.p_undergroundTemperature_degC, deliveryTemp_degC, ambientTempType, 0, belowZeroHeatpumpEtaReductionFactor );
 	break;
 	case HEAT_PUMP_WATER:
 		p_energyAssetInstance = (J_EAConversionHeatPump)p_energyAssetInstance;
-		p_energyAssetInstance = new J_EAConversionHeatPump( this, main.p_timeStep_h, capacityElectric_kW, eta_r, main.p_undergroundTemperature_degC, deliveryTemp_degC, ambientTempType, 0 );
+		p_energyAssetInstance = new J_EAConversionHeatPump( this, main.p_timeStep_h, capacityElectric_kW, eta_r, main.p_undergroundTemperature_degC, deliveryTemp_degC, ambientTempType, 0, belowZeroHeatpumpEtaReductionFactor );
 	break;
 	case BOILER:
 		p_energyAssetInstance = (J_EAConversionBoiler)p_energyAssetInstance;
@@ -34880,6 +34886,7 @@ public class J_EAStorageHeat extends base.J_EAStorage implements Serializable {
 public class J_EAConversionHeatPump extends base.J_EAConversion implements Serializable {
 	private double capacityHeat_kW = 0;
 	private double efficiency_r;
+	private double belowZeroHeatpumpEtaReductionFactor;
 	private OL_EnergyCarrierType energyCarrierProduced = OL_EnergyCarrierType.HEAT;
 	private OL_EnergyCarrierType energyCarrierConsumed = OL_EnergyCarrierType.ELECTRICITY;
 	protected double outputTemperature_degC;
@@ -34896,7 +34903,7 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
     /**
      * Constructor initializing the fields
      */
-    public J_EAConversionHeatPump(EnergyAsset ownerAssetAgent, double timestep_hr, double capacityElectric_kW, double eta_r, double baseTemperature_degC, double outputTemperature_degC, String ambientTempType, double sourceAssetHeatPower_kW ) {
+    public J_EAConversionHeatPump(EnergyAsset ownerAssetAgent, double timestep_hr, double capacityElectric_kW, double eta_r, double baseTemperature_degC, double outputTemperature_degC, String ambientTempType, double sourceAssetHeatPower_kW, double belowZeroHeatpumpEtaReductionFactor ) {
 	    this.ownerAsset = ownerAssetAgent;
 	    this.capacityElectric_kW = capacityElectric_kW;
 	    this.timestep_h = timestep_hr;
@@ -34907,6 +34914,7 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
 	    this.capacityHeat_kW = capacityElectric_kW * this.efficiency_r;
 	    this.ambientTempType = ambientTempType;
 	    this.sourceAssetHeatPower_kW = sourceAssetHeatPower_kW;
+	    this.belowZeroHeatpumpEtaReductionFactor = belowZeroHeatpumpEtaReductionFactor;
 	}
 
 	public void updateParameters(double baseTemperature_degC, double outputTemperature_degC) {
@@ -34924,7 +34932,7 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
 		else {
 				this.capacityHeat_kW = this.capacityElectric_kW * this.efficiency_r; 
 				if( baseTemperature_degC < 0 ) {
-					efficiency_r = efficiency_r / 1.7;
+					efficiency_r = efficiency_r / belowZeroHeatpumpEtaReductionFactor;
 				}
 		}
     	traceln("J_EAConversionHeatpump capacityHeat_kW = "+ this.capacityHeat_kW);
@@ -34932,13 +34940,6 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
 	}
 
 	public void updateAmbientTemperature(double baseTemperature_degC) {
-		this.baseTemperature_degC = baseTemperature_degC;
-		if ( this.baseTemperature_degC > this.outputTemperature_degC) {
-			traceln("**** EXCEPTION **** Heatpump baseTemperature ( " + baseTemperature_degC + ") > outputTemperature ( " + this.outputTemperature_degC + ") ");
-		}
-   	
-		//traceln("J_EAHeatpump capacityHeat_kW = ", this.capacityHeat_kW);
-		efficiency_r = eta_r * ( 273.15 + outputTemperature_degC ) / ( outputTemperature_degC - this.baseTemperature_degC );
 		// water heatpump should take sourceAsset power transfer limitations into account (e.g. residual heat). Ugly but effectively limiting heat power output.
 		updateParameters(this.baseTemperature_degC, outputTemperature_degC);
 	    this.capacityHeat_kW = capacityElectric_kW * efficiency_r;
@@ -36352,11 +36353,11 @@ public class J_ConnectionContract implements Serializable {
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/stap 5 actors nodal pricing.json]]></Path>
+			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/stap 4 actors salderen in contract.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/stap 5 policies.json]]></Path>
+			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/stap 4 policies.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
