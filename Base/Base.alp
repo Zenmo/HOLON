@@ -2005,7 +2005,7 @@ traceln(" ");]]></StartupCode>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[24]]></Code>
+							<Code><![CDATA[18]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1671636582216</Id>
@@ -2054,7 +2054,7 @@ traceln(" ");]]></StartupCode>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[true]]></Code>
+							<Code><![CDATA[false]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1677659229527</Id>
@@ -2519,7 +2519,7 @@ v_timeStepsElapsed ++;
 						<OccurrenceAtTime>true</OccurrenceAtTime>
 						<OccurrenceDate>1674115200000</OccurrenceDate>
 						<OccurrenceTime Class="CodeUnitValue">
-							<Code><![CDATA[8041.0]]></Code>
+							<Code><![CDATA[3936]]></Code>
 							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
 						</OccurrenceTime>
 						<RecurrenceCode Class="CodeUnitValue">
@@ -3415,9 +3415,9 @@ for( EnergyAsset e : c_ambientAirDependentAssets ) {
 }
 
 // Update weather forecast
-v_SolarYieldForecast_fr += (tf_p_solar_e_normalized(t_h+24)-v_currentSolarPowerNormalized_r)/(p_forecastTime_h/p_timeStep_h);
-v_WindYieldForecast_fr += (tf_p_wind_e_normalized(t_h+24)-v_currentWindPowerNormalized_r)/(p_forecastTime_h/p_timeStep_h);
-v_epexForecast_eurpkWh += (nationalEnergyMarket.tf_dayAheadElectricityPricing_eurpMWh(t_h+24)-nationalEnergyMarket.tf_dayAheadElectricityPricing_eurpMWh(t_h))/(p_forecastTime_h/p_timeStep_h)/1000;]]></Body>
+v_SolarYieldForecast_fr += (tf_p_solar_e_normalized(t_h+p_forecastTime_h)-v_currentSolarPowerNormalized_r)/(p_forecastTime_h/p_timeStep_h);
+v_WindYieldForecast_fr += (tf_p_wind_e_normalized(t_h+p_forecastTime_h)-v_currentWindPowerNormalized_r)/(p_forecastTime_h/p_timeStep_h);
+v_epexForecast_eurpkWh += (nationalEnergyMarket.tf_dayAheadElectricityPricing_eurpMWh(t_h+p_forecastTime_h)-nationalEnergyMarket.tf_dayAheadElectricityPricing_eurpMWh(t_h))/(p_forecastTime_h/p_timeStep_h)/1000;]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -30129,7 +30129,7 @@ v_currentPowerElectricity_kW += v_evChargingPowerElectric_kW;
 if (p_batteryAsset != null){
 	v_batterySOC_fr = p_batteryAsset.p_energyAssetInstance.getCurrentStateOfCharge();
 	if( p_batteryOperationMode == OL_BatteryOperationMode.BALANCE) {
-		f_batteryManagementBalance( v_batterySOC_fr );
+		f_batteryManagementBalanceHolon( v_batterySOC_fr );
 	}
 	else {
 		f_batteryManagementPrice( v_batterySOC_fr );
@@ -30167,7 +30167,7 @@ if (p_curtailer != null){
 	double excessElectricPower_kW = -(v_currentPowerElectricity_kW + v_allowedCapacity_kW); // Should at least draw this much power to stay within connection limits. Doesn't account for a battery!
 	double eta_r = ((J_EAConversionElektrolyser)ElektrolyserAsset.p_energyAssetInstance).getEta_r();
 	double connectionCapacity_kW = v_allowedCapacity_kW; // Use only 90% of capacity for robustness against delay
-	double ProductionSetpoint_kW = ElektrolyserAsset.p_energyAssetInstance.getElectricCapacity_kW() * 0.4 * eta_r; // Aim for average production power of xx% of elektrolyser peak power
+	double ProductionSetpoint_kW = ElektrolyserAsset.p_energyAssetInstance.getElectricCapacity_kW() * 0.30 * eta_r; // Aim for average production power of xx% of elektrolyser peak power
 	double elektrolyserSetpointElectric_kW = 0;
 	
 	if (p_elektrolyserOperationMode==OL_ElektrolyserOperationMode.BALANCE) {
@@ -30181,7 +30181,7 @@ if (p_curtailer != null){
 		ConnectionOwner ownerActor = (ConnectionOwner)l_ownerActor.getConnectedAgent();
 		double currentElectricityPriceCharge_eurpkWh = ownerActor.v_priceBandsDelivery.ceilingEntry(100.0).getValue(); // query price at 1kW
 		v_electricityPriceLowPassed_eurpkWh += v_lowPassFactor_fr * ( currentElectricityPriceCharge_eurpkWh - v_electricityPriceLowPassed_eurpkWh );
-		double deficitGain_eurpkWh = 0*1.0/1000000; // When SOC-error is 100%, adjust WTP price by 1 eurpkWh
+		double deficitGain_eurpkWh = 1.0/1000000; // When SOC-error is 100%, adjust WTP price by 1 eurpkWh
 		double priceGain_peur = 5; // How strongly to ramp up power with price-delta's	
 		double WTP_eurpkWh = v_electricityPriceLowPassed_eurpkWh + deficitGain_eurpkWh * v_hydrogenProductionDeficit_kWh;
 		elektrolyserSetpointElectric_kW = max(0,ElektrolyserAsset.p_energyAssetInstance.getElectricCapacity_kW()*(WTP_eurpkWh - currentElectricityPriceCharge_eurpkWh)*priceGain_peur)  ;
@@ -30218,6 +30218,55 @@ if (CurtailerAsset.p_energyAssetInstance.getElectricCapacity_kW()>0) {
 	/*if ( curtailerSetpointElectric_kW > 0 ) {
 		traceln("Windfarm is curtailing " + curtailerSetpointElectric_kW + " kW!");
 	}*/
+}]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1677836046815</Id>
+					<Name><![CDATA[f_batteryManagementBalanceHolon]]></Name>
+					<Description><![CDATA[Regeling voor balancering van holon-load.
+
+@author: Gillis Hommen
+@since: 28-12-2022]]></Description>
+					<X>800</X><Y>280</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[batterySOC]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
+					<Body><![CDATA[if (((J_EAStorageElectric)p_batteryAsset.p_energyAssetInstance).getStorageCapacity_kWh() != 0){
+	if(l_ownerActor.getConnectedAgent() instanceof ConnectionOwner) {
+		if(((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_holonParent instanceof EnergyHolon ) {
+//			v_previousPowerElectricity_kW = p_batteryAsset.v_powerFraction_fr * p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW();
+			v_previousPowerElectricity_kW = p_batteryAsset.v_currentConsumptionElectricity_kW-p_batteryAsset.v_currentProductionElectricity_kW;
+			//traceln("Previous battery power: " + v_previousPowerElectricity_kW);
+			double currentHolonElectricitySurplus_kW = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_holonParent.v_electricitySurplus_kW + v_previousPowerElectricity_kW;
+			//v_electricityPriceLowPassed_eurpkWh += v_lowPassFactor_fr * ( currentHolonElectricitySurplus_kW - v_electricityPriceLowPassed_eurpkWh );
+			
+			double HolonConnectionCapacity_kW = 0.9*((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_holonParent.v_allowedCapacity_kW; // Use only 90% of capacity for robustness against delay
+			double availableChargePower_kW = HolonConnectionCapacity_kW + currentHolonElectricitySurplus_kW; // Max battery charging power within grid capacity
+			double availableDischargePower_kW = currentHolonElectricitySurplus_kW - HolonConnectionCapacity_kW; // Max discharging power within grid capacity
+			double SOC_setp_fr = 0.5;			
+			if (main.v_totalInstalledWindPower_kW > 10000) {
+				SOC_setp_fr = 0.95 - 0.95 * main.v_WindYieldForecast_fr - 0.9*main.v_SolarYieldForecast_fr;
+				//traceln("Forecast-based SOC setpoint: " + SOC_setp_fr + " %");
+			} else {
+				SOC_setp_fr = (0.5 + 0.35 * Math.sin(2*Math.PI*(time(HOUR)-10)/24))*(1-0.8*main.v_WindYieldForecast_fr); // Sinusoidal setpoint: aim for low SOC at 6:00h, high SOC at 18:00h. 
+			}
+			double FeedbackGain_kWpSOC = 1.5 * p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW(); // How strongly to aim for SOC setpoint
+			double FeedforwardGain_kWpKw = 0.1; // Feedforward based on current surpluss in holon
+			double chargeOffset_kW = 0; // Charging 'bias', basically increases SOC setpoint slightly during the whole day.
+			double chargeSetpoint_kW = 0;
+			chargeSetpoint_kW = FeedforwardGain_kWpKw * (currentHolonElectricitySurplus_kW - chargeOffset_kW) + (SOC_setp_fr - batterySOC) * FeedbackGain_kWpSOC;
+			chargeSetpoint_kW = min(max(chargeSetpoint_kW, availableDischargePower_kW),availableChargePower_kW); // Don't allow too much (dis)charging!
+			p_batteryAsset.v_powerFraction_fr = max(-1,min(1, chargeSetpoint_kW / p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW())); // Convert to powerFraction and limit power
+			//traceln("HOLON surpluss " + currentHolonElectricitySurplus_kW + "kW, Battery charging power " + p_batteryAsset.v_powerFraction_fr*p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW() + " kW at " + currentBatteryStateOfCharge*100 + " % SOC");
+		}
+	}
 }]]></Body>
 				</Function>
 			</Functions>
@@ -31439,53 +31488,6 @@ if(p_ownerActor instanceof ConnectionOwner) {
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
-					<Id>1669022533961</Id>
-					<Name><![CDATA[f_batteryManagementBalanceHolon]]></Name>
-					<Description><![CDATA[Regeling voor balancering van holon-load.
-
-@author: Gillis Hommen
-@since: 28-12-2022]]></Description>
-					<X>800</X><Y>280</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Parameter>
-						<Name><![CDATA[batterySOC]]></Name>
-						<Type><![CDATA[double]]></Type>
-					</Parameter>
-					<Body><![CDATA[if (((J_EAStorageElectric)p_batteryAsset.p_energyAssetInstance).getStorageCapacity_kWh() != 0){
-	if(l_ownerActor.getConnectedAgent() instanceof ConnectionOwner) {
-		if(((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_holonParent instanceof EnergyHolon ) {
-	
-			double currentHolonElectricitySurplus_kW = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_holonParent.v_electricitySurplus_kW + v_previousPowerElectricity_kW;
-			//v_electricityPriceLowPassed_eurpkWh += v_lowPassFactor_fr * ( currentHolonElectricitySurplus_kW - v_electricityPriceLowPassed_eurpkWh );
-			
-			double HolonConnectionCapacity_kW = 0.9*((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_holonParent.v_allowedCapacity_kW; // Use only 90% of capacity for robustness against delay
-			double availableChargePower_kW = HolonConnectionCapacity_kW + currentHolonElectricitySurplus_kW; // Max battery charging power within grid capacity
-			double availableDischargePower_kW = currentHolonElectricitySurplus_kW - HolonConnectionCapacity_kW; // Max discharging power within grid capacity
-			double SOC_setp_fr = 0.5;			
-			if (main.v_totalInstalledWindPower_kW > 5000) {
-				SOC_setp_fr = 0.9 - 0.8 * main.v_WindYieldForecast_fr;
-				//traceln("Forecast-based SOC setpoint: " + SOC_setp_fr + " %");
-			} else {
-				SOC_setp_fr = 0.6 + 0.25 * Math.sin(2*Math.PI*(time(HOUR)-12)/24); // Sinusoidal setpoint: aim for low SOC at 6:00h, high SOC at 18:00h. 
-			}
-			double FeedbackGain_kWpSOC = 1.5 * p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW(); // How strongly to aim for SOC setpoint
-			double FeedforwardGain_kWpKw = 0.5; // Feedforward based on current surpluss in holon
-			double chargeOffset_kW = 0; // Charging 'bias', basically increases SOC setpoint slightly during the whole day.
-			double chargeSetpoint_kW = 0;
-			chargeSetpoint_kW = FeedforwardGain_kWpKw * (currentHolonElectricitySurplus_kW - chargeOffset_kW) + (SOC_setp_fr - batterySOC) * FeedbackGain_kWpSOC;
-			chargeSetpoint_kW = min(max(chargeSetpoint_kW, availableDischargePower_kW),availableChargePower_kW); // Don't allow too much (dis)charging!
-			p_batteryAsset.v_powerFraction_fr = max(-1,min(1, chargeSetpoint_kW / p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW())); // Convert to powerFraction and limit power
-			//traceln("HOLON surpluss " + currentHolonElectricitySurplus_kW + "kW, Battery charging power " + p_batteryAsset.v_powerFraction_fr*p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW() + " kW at " + currentBatteryStateOfCharge*100 + " % SOC");
-		}
-	}
-}]]></Body>
-				</Function>
-				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>VOID</ReturnModificator>
-					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1669022533963</Id>
 					<Name><![CDATA[f_batteryManagementPriceHolon]]></Name>
 					<Description><![CDATA[Regeling voor prijsgestuurd balancering van holon-load.
@@ -31559,6 +31561,55 @@ if(p_ownerActor instanceof ConnectionOwner) {
 		}			
 	
 		p_batteryAsset.v_powerFraction_fr = max(-1,min(1, chargeSetpoint_kW / p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW())); // Convert to powerFraction and limit power
+	}
+}]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1678114662587</Id>
+					<Name><![CDATA[f_batteryManagementBalanceHolon]]></Name>
+					<Description><![CDATA[Regeling voor balancering van holon-load.
+
+@author: Gillis Hommen
+@since: 28-12-2022]]></Description>
+					<X>800</X><Y>280</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[batterySOC]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
+					<Body><![CDATA[if (((J_EAStorageElectric)p_batteryAsset.p_energyAssetInstance).getStorageCapacity_kWh() != 0){
+	if(l_ownerActor.getConnectedAgent() instanceof ConnectionOwner) {
+		if(((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_holonParent instanceof EnergyHolon ) {
+//			v_previousPowerElectricity_kW = p_batteryAsset.v_powerFraction_fr * p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW();
+			v_previousPowerElectricity_kW = p_batteryAsset.v_currentConsumptionElectricity_kW-p_batteryAsset.v_currentProductionElectricity_kW;
+			//traceln("Previous battery power: " + v_previousPowerElectricity_kW);
+			double currentHolonElectricitySurplus_kW = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_holonParent.v_electricitySurplus_kW + v_previousPowerElectricity_kW;
+			//v_electricityPriceLowPassed_eurpkWh += v_lowPassFactor_fr * ( currentHolonElectricitySurplus_kW - v_electricityPriceLowPassed_eurpkWh );
+			
+			double HolonConnectionCapacity_kW = 0.9*((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_holonParent.v_allowedCapacity_kW; // Use only 90% of capacity for robustness against delay
+			double availableChargePower_kW = HolonConnectionCapacity_kW + currentHolonElectricitySurplus_kW; // Max battery charging power within grid capacity
+			double availableDischargePower_kW = currentHolonElectricitySurplus_kW - HolonConnectionCapacity_kW; // Max discharging power within grid capacity
+			double SOC_setp_fr = 0.5;			
+			if (main.v_totalInstalledWindPower_kW > 10000) {
+				SOC_setp_fr = 0.95 - 0.95 * main.v_WindYieldForecast_fr - 0.9*main.v_SolarYieldForecast_fr;
+				//traceln("Forecast-based SOC setpoint: " + SOC_setp_fr + " %");
+			} else {
+				SOC_setp_fr = (0.5 + 0.35 * Math.sin(2*Math.PI*(time(HOUR)-10)/24))*(1-0.8*main.v_WindYieldForecast_fr); // Sinusoidal setpoint: aim for low SOC at 6:00h, high SOC at 18:00h. 
+			}
+			double FeedbackGain_kWpSOC = 1.5 * p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW(); // How strongly to aim for SOC setpoint
+			double FeedforwardGain_kWpKw = 0.1; // Feedforward based on current surpluss in holon
+			double chargeOffset_kW = 0; // Charging 'bias', basically increases SOC setpoint slightly during the whole day.
+			double chargeSetpoint_kW = 0;
+			chargeSetpoint_kW = FeedforwardGain_kWpKw * (currentHolonElectricitySurplus_kW - chargeOffset_kW) + (SOC_setp_fr - batterySOC) * FeedbackGain_kWpSOC;
+			chargeSetpoint_kW = min(max(chargeSetpoint_kW, availableDischargePower_kW),availableChargePower_kW); // Don't allow too much (dis)charging!
+			p_batteryAsset.v_powerFraction_fr = max(-1,min(1, chargeSetpoint_kW / p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW())); // Convert to powerFraction and limit power
+			//traceln("HOLON surpluss " + currentHolonElectricitySurplus_kW + "kW, Battery charging power " + p_batteryAsset.v_powerFraction_fr*p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW() + " kW at " + currentBatteryStateOfCharge*100 + " % SOC");
+		}
 	}
 }]]></Body>
 				</Function>
@@ -35453,7 +35504,7 @@ public class J_EADieselVehicle extends base.J_EAConsumption implements Serializa
 	private MobilityTracker mobilityTracker = null;
 	private boolean availability = false;
 	private double vehicleScaling;
-	private double mileage = 0;
+	private double mileage_km = 0;
 
     /**
      * Default constructor
@@ -35489,7 +35540,8 @@ public class J_EADieselVehicle extends base.J_EAConsumption implements Serializa
     	double energyUsedForTrip_kWh = tripDist_km * vehicleScaling * energyConsumption_kWhpkm;
     	energyUsed_kWh += energyUsedForTrip_kWh;
     	dieselConsumption_kW = energyUsedForTrip_kWh / timestep_h;
-    	mileage += tripDist_km;
+    	mileage_km += tripDist_km;
+    	//traceln("Current milage: " + mileage + ", energy consumption per km: " + energyConsumption_kWhpkm);
     }
 
     public double[] operate(double ratioOfChargeCapacity_r) {
@@ -35875,14 +35927,6 @@ public class J_ConnectionContract implements Serializable {
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[C:/Users/gilli/Documents/Project HOLON/Git_Local_Clone/HOLON-cloudclient/doc/assets/example_gridconnections.json]]></Path>
-			<ReferencedFromUserCode>false</ReferencedFromUserCode>
-		</Resource>
-		<Resource>
-			<Path><![CDATA[C:/Users/gilli/Documents/Project HOLON/Git_Local_Clone/HOLON-cloudclient/doc/assets/example_actors.json]]></Path>
-			<ReferencedFromUserCode>false</ReferencedFromUserCode>
-		</Resource>
-		<Resource>
 			<Path><![CDATA[cases/industry_case/example_gridnodes.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
@@ -35899,6 +35943,6 @@ public class J_ConnectionContract implements Serializable {
 		<VersionMinor>0</VersionMinor>
 		<VersionBuild>5</VersionBuild>
     </RequiredLibraryReference>
-	<CloudModelUuid><![CDATA[b019615a-b85e-468b-94b9-80d28e298c0d]]></CloudModelUuid>
+	<CloudModelUuid><![CDATA[10aef5cf-b062-4c0c-9044-a6bc903416d6]]></CloudModelUuid>
 </Model>
 </AnyLogicWorkspace>
