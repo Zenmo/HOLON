@@ -8506,8 +8506,9 @@ if( v_currentLoadElectricityLowPassed_kW > v_peakPosLoadElectricity_kW ) { // st
 }
 
 if (p_energyType.equals(OL_EnergyCarrierType.HEAT)) { // Thermal load unbalance goes into transportBuffer
-	double v_powerFraction_fr = -v_currentLoadHeat_kW / p_transportBuffer.getHeatCapacity_kW();
+	double v_powerFraction_fr = Double.isNaN( -v_currentLoadHeat_kW / p_transportBuffer.getHeatCapacity_kW() )? 0 : -v_currentLoadHeat_kW / p_transportBuffer.getHeatCapacity_kW();
 	//p_transportBuffer.operate(v_powerFraction_fr);
+	traceln("DistrictHeating network heatcapacity = "+ p_transportBuffer.getHeatCapacity_kW()+" kW, water temperature " + p_transportBuffer.getCurrentTemperature() + " deg C, buffer power fraction " + v_powerFraction_fr * 100 + " %, transportbuffer HeatCapacity_kW " + p_transportBuffer.getHeatCapacity_kW());
 	p_transportBuffer.ownerAsset.f_updateAllFlows(v_powerFraction_fr);
 	traceln("DistrictHeating network water temperature " + p_transportBuffer.getCurrentTemperature() + " deg C, buffer power fraction " + v_powerFraction_fr * 100 + " %, transportbuffer HeatCapacity_kW " + p_transportBuffer.getHeatCapacity_kW());
 }
@@ -11376,11 +11377,11 @@ if( p_energyAssetList != null) {
 				else if (storageAsset.p_energyAssetType == OL_EnergyAssetType.HEATMODEL ){
 				
 					double capacityHeat_kW3 = l.get( "capacityHeat_kW") == null? 0.0: Double.valueOf( l.get( "capacityHeat_kW").toString()).doubleValue();
-					double lossFactor_WpK2 = l.get( "lossfactor_WpK" ) == null? 0.0: Double.valueOf( l.get( "lossfactor_WpK" ).toString()).doubleValue();
+					double lossFactor_WpK2 = l.get( "lossFactor_WpK" ) == null? 0.0: Double.valueOf( l.get( "lossFactor_WpK" ).toString()).doubleValue();
 					double heatCapacity_JpK2 = l.get( "heatCapacity_JpK" ) == null? 0.0: Double.valueOf( l.get( "heatCapacity_JpK" ).toString()).doubleValue();
-					double minTemperature_degC2 = l.get( "Tmin" ) == null? 40.0: Double.valueOf( l.get( "Tmin" ).toString()).doubleValue(); 
-					double maxTemperature_degC2 = l.get( "Tmax" ) == null? 90.0: Double.valueOf( l.get( "Tmax" ).toString()).doubleValue();
-					double initialTemperature_degC2 = l.get( "Tinit" ) == null? 0.0 : Double.valueOf( l.get( "Tinit" ).toString()).doubleValue();		
+					double minTemperature_degC2 = l.get( "minTemp_degC" ) == null? 40.0: Double.valueOf( l.get( "minTemp_degC" ).toString()).doubleValue(); 
+					double maxTemperature_degC2 = l.get( "maxTemp_degC" ) == null? 90.0: Double.valueOf( l.get( "maxTemp_degC" ).toString()).doubleValue();
+					double initialTemperature_degC2 = l.get( "initial_temperature_degC" ) == null? 0.0 : Double.valueOf( l.get( "initial_temperature_degC" ).toString()).doubleValue();		
 					String ambientTempType3 = (String)l.get( "ambientTempType" ) == null? "AIR": (String)l.get( "ambientTempType" ); //ALWAYS AIR!
 					double setTemperature_degC2 = 50.0; // this value does nothing for a heatmodel. But it is required to initialize the J_instance
 
@@ -14086,7 +14087,7 @@ switch(assetType) {
 	break;
 	case HEAT_DELIVERY_SET:
 		p_energyAssetInstance = (J_EAConversionHeatDeliverySet)p_energyAssetInstance;
-		p_energyAssetInstance = new J_EAConversionHeatDeliverySet( this, capacityHeat_kW, eta_r );
+		p_energyAssetInstance = new J_EAConversionHeatDeliverySet( this, capacityHeat_kW, eta_r, deliveryTemp_degC );
 	break;
 	case METHANE_FURNACE:
 		p_energyAssetInstance = (J_EAConversionGasBurner)p_energyAssetInstance;
@@ -28039,6 +28040,7 @@ else if (j_instance instanceof J_EAConversion) {
 			// set water/water heatpump source energy-asset
 			if( EA.p_energyAssetInstance instanceof J_EAConversionHeatPump && ((J_EAConversionHeatPump)EA.p_energyAssetInstance).getAmbientTempType().equals("WATER") && p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet ) {
 				EA.p_linkedSourceEnergyAsset = p_primaryHeatingAsset;
+				EA.p_energyAssetInstance.updateAmbientTemperature( EA.p_linkedSourceEnergyAsset.p_energyAssetInstance.getCurrentTemperature() );
 			}
 				
 				
@@ -28472,15 +28474,52 @@ p_primaryHeatingAsset.v_powerFraction_fr = powerFraction_heatPump_fr;
 		p_primaryHeatingAsset.v_powerFraction_fr = 0;
 		p_ThermalStorageAsset.v_powerFraction_fr = 0;
 	}
-} else if( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet & p_secondaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionBoiler) { // Heat Delivery Set and boiler for peak, )
-	double secondaryDemand_kW = v_hotwaterDemand_kW;
-	p_primaryHeatingAsset.v_powerFraction_fr = p_ThermalStorageAsset.p_energyAssetInstance.getCurrentTemperature() < v_tempSetpoint_degC ? 1 : 0;
-	p_secondaryHeatingAsset.v_powerFraction_fr = secondaryDemand_kW / p_secondaryHeatingAsset.p_energyAssetInstance.capacityHeat_kW; 
+} else if( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet & ( p_secondaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionBoiler || p_secondaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatPump ) && p_heatBuffer.p_energyAssetInstance instanceof J_EAStorageHeat ) { // Heat Delivery Set and booster water/water heatpump with buffer for hotwater, )
+	p_primaryHeatingAsset.v_powerFraction_fr = 0;
+	p_secondaryHeatingAsset.v_powerFraction_fr = 0;
+	p_heatBuffer.v_powerFraction_fr = 0;
 	
-	p_ThermalStorageAsset.v_powerFraction_fr = p_primaryHeatingAsset.p_energyAssetInstance.capacityHeat_kW * p_primaryHeatingAsset.v_powerFraction_fr;			
+	traceln("bivalent DH system with buffer operating mode");
+	double v_bufferTemp_degC = p_heatBuffer.p_energyAssetInstance.getCurrentTemperature();
+	double houseTemperature_degC = p_ThermalStorageAsset.p_energyAssetInstance.getCurrentTemperature();
+	
+	// buffer instead of heatpump! TODO: change to refill buffer! double secondaryDemand_kW = v_hotwaterDemand_kW;
+	//traceln(" thermalstoragetemp "+ p_ThermalStorageAsset.p_energyAssetInstance.getCurrentTemperature() + ",  v_setpoint_degC " + v_tempSetpoint_degC);
+	
+	// 1) w/w heatpump feeds (only) the local heat buffer for tapwater when temperature is beneath buffer setpoint:
+	boolean b_bufferTempBelowSetpoint = v_bufferTemp_degC < p_heatBuffer.p_energyAssetInstance.getSetTemperature_degC();
+	
+	p_secondaryHeatingAsset.v_powerFraction_fr = b_bufferTempBelowSetpoint ? 1 : 0;
+	p_secondaryHeatingAsset.f_updateAllFlows( p_secondaryHeatingAsset.v_powerFraction_fr );
+	
+	double heatSupplyToBuffer_kW = p_secondaryHeatingAsset.v_currentProductionHeat_kW;
+		
+	// 2) supply tapwater from local heatbuffer on demand, AND take in heat from the heatpump
+	p_heatBuffer.v_powerFraction_fr = ( - v_hotwaterDemand_kW + heatSupplyToBuffer_kW ) / p_heatBuffer.p_energyAssetInstance.capacityHeat_kW;
+	p_heatBuffer.f_updateAllFlows( p_heatBuffer.v_powerFraction_fr );
+	
+	// 3) heat the house from heat delivery set directly, and take care to add this heat load to the existing heat flow from w/w heatpump consumption!
+	boolean b_houseTempBelowSetpoint = houseTemperature_degC < v_tempSetpoint_degC? true : false;
+	
+	p_primaryHeatingAsset.v_powerFraction_fr += b_houseTempBelowSetpoint? 1 : 0;  // maybe cap for maximum 1?
+	p_primaryHeatingAsset.f_updateAllFlows(	p_primaryHeatingAsset.v_powerFraction_fr );
+	
+	double heatFlowToHouse_kW = p_primaryHeatingAsset.v_currentProductionHeat_kW - p_secondaryHeatingAsset.v_currentConsumptionHeat_kW;
+	p_ThermalStorageAsset.v_powerFraction_fr = (heatFlowToHouse_kW / p_ThermalStorageAsset.p_energyAssetInstance.capacityHeat_kW );
+	//p_primaryHeatingAsset.v_powerFraction_fr = p_ThermalStorageAsset.p_energyAssetInstance.getCurrentTemperature() < v_tempSetpoint_degC ? 1 : 0;
+	//traceln("b_primaryOperate = "+ b_primaryOperate + ", GCHouse f_heatWithHybridHeatpump: p_secondaryHeatingAsset.p_energyAssetInstance.capacityHeat_kW = " + p_secondaryHeatingAsset.p_energyAssetInstance.capacityHeat_kW + ". p_secondaryHeatingAsset.p_energyAssetInstance =  "+p_secondaryHeatingAsset.p_energyAssetInstance.toString());
+	
+	//boolean b_primaryOperate = houseTemperature_degC < v_tempSetpoint_degC ? true : false;
+	
+	
+	//p_secondaryHeatingAsset.v_powerFraction_fr = secondaryDemand_kW / p_secondaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW(); 
+	
+	
+	//p_ThermalStorageAsset.v_powerFraction_fr = p_primaryHeatingAsset.p_energyAssetInstance.capacityHeat_kW * p_primaryHeatingAsset.v_powerFraction_fr;			
 
+	//traceln("GCHouse f_heatwithhybrid... -> p_primaryHeatingAsset.v_powerFraction_fr = " + p_primaryHeatingAsset.v_powerFraction_fr + ", p_secondaryHeatingAsset.v_powerFraction_fr = " + p_secondaryHeatingAsset.v_powerFraction_fr + ", p_ThermalStorageAsset.v_powerFraction_fr" + p_ThermalStorageAsset.v_powerFraction_fr);
 	//p_secondaryHeatingAsset.f_updateAllFlows(p_secondaryHeatingAsset.v_powerFraction_fr);
-	p_primaryHeatingAsset.f_updateAllFlows(p_primaryHeatingAsset.v_powerFraction_fr);
+	//p_primaryHeatingAsset.f_updateAllFlows(p_primaryHeatingAsset.v_powerFraction_fr);
 	//p_ThermalStorageAsset.f_updateAllFlows(p_ThermalStorageAsset.v_powerFraction_fr);		
 	
 } else {
@@ -28489,7 +28528,8 @@ p_primaryHeatingAsset.v_powerFraction_fr = powerFraction_heatPump_fr;
 	p_secondaryHeatingAsset.v_powerFraction_fr = 0;
 	p_ThermalStorageAsset.v_powerFraction_fr = 0;
 }
-p_secondaryHeatingAsset.f_updateAllFlows(p_secondaryHeatingAsset.v_powerFraction_fr);]]></Body>
+//p_secondaryHeatingAsset.f_updateAllFlows( p_secondaryHeatingAsset.v_powerFraction_fr );
+p_ThermalStorageAsset.f_updateAllFlows( p_ThermalStorageAsset.v_powerFraction_fr );]]></Body>
 				</Function>
 			</Functions>
 			<AnalysisData>
@@ -33956,6 +33996,9 @@ if (p_batteryAsset != null){
 				</Parameter>
 				<Parameter>
 					<ParameterName><![CDATA[b_addKpiVisuals]]></ParameterName>
+					<ParameterValue Class="CodeValue">
+						<Code><![CDATA[true]]></Code>
+					</ParameterValue>
 				</Parameter>
 				<Parameter>
 					<ParameterName><![CDATA[p_undergroundTemperature_degC]]></ParameterName>
@@ -34009,7 +34052,7 @@ if (p_batteryAsset != null){
 				<Title><![CDATA[MainModel : Simulation]]></Title>	
 				<EnableDeveloperPanel>true</EnableDeveloperPanel>
 				<ShowDeveloperPanelOnStart>false</ShowDeveloperPanelOnStart>
-				<RealTimeScale>10.0</RealTimeScale>
+				<RealTimeScale>0.002</RealTimeScale>
 			</PresentationProperties>
 			<ModelTimeProperties>
 				<StopOption><![CDATA[Stop at specified time]]></StopOption>
@@ -34652,13 +34695,14 @@ public class J_EAStorageHeat extends base.J_EAStorage implements Serializable {
 		//traceln("Ambient temperature " + ambientTemperature_degC);
 		//traceln("heatCapacity JpK " + heatCapacity_JpK );
 		//traceln("tempdelta loss"+tempDelta);
-		//traceln("lossfacter: " + lossFactor_WpK);
+		traceln("lossfacter: " + lossFactor_WpK);
 		updateStateOfCharge( tempDelta );
 	}
 
 	@Override
 	public double[] operate(double ratioOfChargeCapacity_r) {
 		//traceln("StorageAsset Heat Operatefunctie: ambienttemperature = "+ambientTemperature_degC);
+		traceln("StorageAsset Heat Operatefunctie: ambienttemperature = "+ambientTemperature_degC+" | powerFraction_fr = " + ratioOfChargeCapacity_r + ".");
 		calculateLoss(); // Updates
 
 		double discharge_kW = 0;
@@ -34839,7 +34883,7 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
 
 		// water heatpump should take sourceAsset power transfer limitations into account (e.g. residual heat). Ugly but effectively limiting heat power output.
     	
-		traceln("J_EAHeatpump capacityHeat_kW = ", this.capacityHeat_kW);
+		traceln("J_EAHeatpump capacityHeat_kW = ", this.capacityHeat_kW+", baseTemperature = "+ baseTemperature_degC + ", outputtemperature = "+ outputTemperature_degC);
 		updateParameters(this.baseTemperature_degC, outputTemperature_degC);
 	}
 
@@ -34849,7 +34893,7 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
 
 	@Override
 	public double[] operate(double ratioOfCapacity) {
-		traceln(ratioOfCapacity * this.capacityElectric_kW + " **** " + ratioOfCapacity * this.capacityHeat_kW / this.efficiency_r);
+		traceln("this "+ this.toString() + ", " + ratioOfCapacity * this.capacityElectric_kW + " **** " + ratioOfCapacity * this.capacityHeat_kW / this.efficiency_r);
 		this.electricityConsumption_kW = min(ratioOfCapacity * this.capacityElectric_kW, ratioOfCapacity * this.capacityHeat_kW / this.efficiency_r);
 		//this.electricityConsumption_kW = ratioOfCapacity * this.capacityElectric_kW;
     	this.heatProduction_kW = this.electricityConsumption_kW * this.efficiency_r;
@@ -34881,7 +34925,7 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
 
 	@Override
     public double getHeatCapacity_kW() {
-    	return this.efficiency_r * this.capacityElectric_kW;
+    	return this.capacityHeat_kW;
     }
 
 	@Override
@@ -34894,7 +34938,8 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
 			"baseTemperature_degC = " + baseTemperature_degC + " "+
 			"ambientTempType = " + ambientTempType + " "+
 			"sourceAssetHeatPower_kW = " + sourceAssetHeatPower_kW + " " +
-			"outputTemperature_degC = " + outputTemperature_degC +" ";
+			"outputTemperature_degC = " + outputTemperature_degC +" "+
+			"energyUsed_kWh = " + energyUsed_kWh + " ";
 	}
 	
 	public String getAmbientTempType() {
@@ -34917,8 +34962,7 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
 	 * It needs to be changed when this class gets changed
 	 */
 	private static final long serialVersionUID = 1L;
-}
-]]></Text>
+}]]></Text>
 		</JavaClass>
 		<!--   =========   Java Class   ========  -->
 		<JavaClass>
@@ -35119,6 +35163,7 @@ public class J_EAConversionHeatDeliverySet extends base.J_EAConversion implement
 
 	private OL_EnergyCarrierType energyCarrierProduced = OL_EnergyCarrierType.HEAT;
 	private OL_EnergyCarrierType energyCarrierConsumed = OL_EnergyCarrierType.HEAT;
+	protected double outputTemperature_degC;
     /**
      * Default constructor
      */
@@ -35128,10 +35173,11 @@ public class J_EAConversionHeatDeliverySet extends base.J_EAConversion implement
     /**
      * Constructor initializing the fields
      */
-    public J_EAConversionHeatDeliverySet(EnergyAsset ownerAssetAgent, double capacityThermal_kW, double efficiency) {
+    public J_EAConversionHeatDeliverySet(EnergyAsset ownerAssetAgent, double capacityThermal_kW, double efficiency, double outputTemperature_degC) {
 	    this.ownerAsset = ownerAssetAgent;
 	    this.capacityHeat_kW = capacityThermal_kW;
 	    this.eta_r = efficiency;
+	    this.outputTemperature_degC = outputTemperature_degC;
 	}
 
     @Override
@@ -35152,7 +35198,10 @@ public class J_EAConversionHeatDeliverySet extends base.J_EAConversion implement
 			"ownerAsset = " + ownerAsset +" " +
 			"capacityElectric_kW = " + this.capacityElectric_kW +" "+
 			"capacityHeat_kW = " + this.capacityHeat_kW +" "+
-			"eta_r = " + this.eta_r+" ";
+			"eta_r = " + this.eta_r+" "+
+			"outputTemperature_degC = "+ this.outputTemperature_degC+" "+
+			"energyUsed_kWh = " + this.energyUsed_kWh + " ";
+		
 	}
 
 	/**
