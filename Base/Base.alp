@@ -871,6 +871,10 @@
 				<Id>1668693554312</Id>
 				<Name><![CDATA[PRICE]]></Name>
 			</Option>
+			<Option>
+				<Id>1678708484242</Id>
+				<Name><![CDATA[HOUSEHOLD_LOAD]]></Name>
+			</Option>
 		</OptionList>
 		<OptionList>
 			<Id>1668693527447</Id>
@@ -3444,10 +3448,8 @@ for( EnergyAsset e : c_ambientAirDependentAssets ) {
 		e.f_setLinkedVariable("AIR", null);
 		//((J_EAStorageHeat)e.p_energyAssetInstance).updateAmbientTemperature( v_currentAmbientTemperature_degC );		
 	}
-	e.p_energyAssetInstance.updateAmbientTemperature( e.p_baseTemperatureReference);
+	e.p_energyAssetInstance.updateAmbientTemperature( e.p_baseTemperatureReference );
 }
-
-
 
 // Update weather forecast
 v_SolarYieldForecast_fr += (tf_p_solar_e_normalized(t_h+p_forecastTime_h)-v_currentSolarPowerNormalized_r)/(p_forecastTime_h/p_timeStep_h);
@@ -4000,6 +4002,7 @@ for(HashMap data : parsedJSONGridConnections) {
 			pricelevel_low_dif_from_avg_eurpkWh =  uniform_discr(1,13) / 100.0; //data.get("pricelevel_low_dif_from_avg_eurpkWh") == null ? null : (Double)data.get("pricelevel_low_dif_from_avg_eurpkWh");
 			pricelevel_high_dif_from_avg_eurpkWh = 0.13 - pricelevel_low_dif_from_avg_eurpkWh; //data.get("pricelevel_high_dif_from_avg_eurpkWh") == null ? null : (Double)data.get("pricelevel_high_dif_from_avg_eurpkWh");
 			GC = add_Houses();
+			GC.v_lowPassFactor_fr = 0.03; //HARDCODED TEMPORARY!!!!!!
 			((GCHouse)GC).set_p_isolationLabel( gridConnectionIsolationLabel );
 	 	break;
  		case BUILDING:
@@ -4514,7 +4517,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/case 3 tvw/example_actors.json]]></ClassName>
+						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/stap 5 actors nodal pricing.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -4532,7 +4535,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/case 3 tvw/example_gridnodes.json]]></ClassName>
+						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/stap 1 gridnodes.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -4550,7 +4553,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/case 3 tvw/example_gridconnections.json]]></ClassName>
+						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/challenge gridconnections elektrificatie + batterij.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -4587,7 +4590,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[../CaseDefinitions/industry_case/industry_case_policies.txt]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/case 3 tvw/example_policies.json]]></ClassName>
+						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/stap 5 policies.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -4940,10 +4943,10 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 							<Name><![CDATA[p_defaultEnergyAssetPresetName]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_baseTemperatureReference]]></Name>
+							<Name><![CDATA[p_linkedSourceEnergyAsset]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_linkedSourceEnergyAsset]]></Name>
+							<Name><![CDATA[p_baseTemperatureReference]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -5695,6 +5698,9 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_smartChargingPowerAttenuation_fr]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -10096,6 +10102,33 @@ import java.io.*;]]></Import>
 						<Type><![CDATA[double]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1678710234324</Id>
+					<Name><![CDATA[v_lowPassFactorLoad_fr]]></Name>
+					<X>1120</X><Y>430</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0.1]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1678710234329</Id>
+					<Name><![CDATA[v_currentLoadLowPassed_kW]]></Name>
+					<X>1120</X><Y>450</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1658499438204</Id>
 					<Name><![CDATA[p_gridConnectionCategory]]></Name>
@@ -11088,7 +11121,8 @@ import java.io.*;]]></Import>
 						</RecurrenceCode>
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
-					<Action><![CDATA[v_electricityPriceLowPassed_eurpkWh = v_currentElectricityPriceConsumption_eurpkWh;]]></Action>
+					<Action><![CDATA[v_electricityPriceLowPassed_eurpkWh = v_currentElectricityPriceConsumption_eurpkWh;
+v_currentLoadLowPassed_kW = v_currentPowerElectricity_kW;]]></Action>
 				</Event>
 			</Events>
 			<Functions>
@@ -11288,9 +11322,6 @@ v_electricityConsumedFixedProfile_kWh += v_fixedConsumptionElectric_kW * main.p_
 v_electricityConvertedToX_kWh += max(v_conversionPowerElectric_kW, 0) * main.p_timeStep_h;
 v_xConvertedToElectricity_kWh += max(-v_conversionPowerElectric_kW, 0) * main.p_timeStep_h;
 
-v_electricityChargedByEVs_kWh += max(v_evChargingPowerElectric_kW, 0) * main.p_timeStep_h;
-v_electricityDischargedByEVs_kWh += max(-v_evChargingPowerElectric_kW,0) * main.p_timeStep_h;
-
 v_electricityChargedByBattery_kWh += max(v_batteryPowerElectric_kW, 0) * main.p_timeStep_h;
 v_electricityDischargedByBattery_kWh += max(-v_batteryPowerElectric_kW,0) * main.p_timeStep_h;
 
@@ -11436,6 +11467,8 @@ if( p_energyAssetList != null) {
 					double capacityElectric_kW1 = l.get( "capacityElectricity_kW") == null? 0.0: Double.valueOf( l.get( "capacityElectricity_kW" ).toString()).doubleValue();
 					double storageCapacity_kWh = l.get( "storageCapacity_kWh" ) == null? 0.0: Double.valueOf( l.get( "storageCapacity_kWh").toString()).doubleValue();
 					double initialStateOfCharge_r = l.get( "stateOfCharge_r" ) == null? 0.0: Double.valueOf( l.get( "stateOfCharge_r" ).toString()).doubleValue();
+					storageCapacity_kWh = 10;
+					capacityElectric_kW1 = 3;
 					storageAsset.p_energyAssetInstance = new J_EAStorageElectric(storageAsset, capacityElectric_kW1, storageCapacity_kWh, initialStateOfCharge_r, main.p_timeStep_h);
 				}
 				else if (storageAsset.p_energyAssetType == OL_EnergyAssetType.HEATMODEL ){
@@ -12813,7 +12846,7 @@ return level;]]></Body>
     			<TimePlot>
 					<Id>1668439095469</Id>
 					<Name><![CDATA[pl_powerFlows]]></Name>
-					<X>0</X><Y>480</Y>
+					<X>0</X><Y>520</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -12942,6 +12975,16 @@ return level;]]></Body>
 						<PointStyle>NONE</PointStyle>
 						<LineWidth>1.0</LineWidth>
 					</DatasetExpression>
+					<DatasetExpression>  
+						<Title><![CDATA[Current load low passed]]></Title>
+					<Id>0</Id>
+					<Expression><![CDATA[my_dataset8]]></Expression>
+					<Color>-16728065</Color>
+					<Expression2><![CDATA[v_currentLoadLowPassed_kW]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>
+						<PointStyle>NONE</PointStyle>
+						<LineWidth>1.0</LineWidth>
+					</DatasetExpression>
 					<SamplesToKeep>1000</SamplesToKeep>
 					<TimeWindowExpression><![CDATA[48]]></TimeWindowExpression>
 					<FillAreaUnderLine>false</FillAreaUnderLine>
@@ -12950,7 +12993,7 @@ return level;]]></Body>
     			<TimePlot>
 					<Id>1668968408696</Id>
 					<Name><![CDATA[pl_SOC]]></Name>
-					<X>530</X><Y>500</Y>
+					<X>530</X><Y>520</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -13000,16 +13043,6 @@ return level;]]></Body>
 					<DrawLine>true</DrawLine>
 					<Interpolation>LINEAR</Interpolation>
 					<DatasetExpression>  
-						<Title><![CDATA[SOC battery]]></Title>
-					<Id>1668968408693</Id>
-					<Expression><![CDATA[my_dataset7]]></Expression>
-					<Color>-5952982</Color>
-					<Expression2><![CDATA[v_batterySOC_fr]]></Expression2>
-					<Expression2Flag>true</Expression2Flag>
-						<PointStyle>NONE</PointStyle>
-						<LineWidth>1.0</LineWidth>
-					</DatasetExpression>
-					<DatasetExpression>  
 						<Title><![CDATA[current electricity price]]></Title>
 					<Id>0</Id>
 					<Expression><![CDATA[my_dataset]]></Expression>
@@ -13057,7 +13090,7 @@ return level;]]></Body>
 				<Text>
 					<Id>1670512816306</Id>
 					<Name><![CDATA[text10]]></Name>
-					<X>100</X><Y>460</Y>
+					<X>100</X><Y>510</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -27715,7 +27748,7 @@ v_heatingOff_time = roundToDecimal(uniform(21.5, 23.9), 1); ]]></StartupCode>
 				<Variable Class="PlainVariable">
 					<Id>1674397034293</Id>
 					<Name><![CDATA[v_vehicleSOC_fr]]></Name>
-					<X>1120</X><Y>430</Y>
+					<X>1120</X><Y>470</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -27727,7 +27760,7 @@ v_heatingOff_time = roundToDecimal(uniform(21.5, 23.9), 1); ]]></StartupCode>
 				<Variable Class="PlainVariable">
 					<Id>1674414939371</Id>
 					<Name><![CDATA[v_vehicleChargingNeed]]></Name>
-					<X>1120</X><Y>450</Y>
+					<X>1120</X><Y>490</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -27766,7 +27799,7 @@ v_heatingOff_time = roundToDecimal(uniform(21.5, 23.9), 1); ]]></StartupCode>
 				<Variable Class="PlainVariable">
 					<Id>1675025488988</Id>
 					<Name><![CDATA[v_currentPriceLevel]]></Name>
-					<X>1120</X><Y>470</Y>
+					<X>1120</X><Y>510</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -27901,6 +27934,30 @@ v_heatingOff_time = roundToDecimal(uniform(21.5, 23.9), 1); ]]></StartupCode>
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1678703448389</Id>
+					<Name><![CDATA[p_smartChargingPowerAttenuation_fr]]></Name>
+					<X>250</X><Y>440</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[2.0]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1678703448387</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 			</Variables>
 			<Events>
 				<Event>
@@ -27951,7 +28008,7 @@ v_heatingOff_time = roundToDecimal(uniform(21.5, 23.9), 1); ]]></StartupCode>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[v_hotwaterDemand_kW = p_DHWAsset.v_currentConsumptionHeat_kW;
 setThermostaat();
-p_ThermalStorageAsset.p_energyAssetInstance.updateAmbientTemperature(main.v_currentAmbientTemperature_degC);
+//p_ThermalStorageAsset.p_energyAssetInstance.updateAmbientTemperature(main.v_currentAmbientTemperature_degC);
 
 // CASE: ONE HEATING ASSET --------------------------------------------------------------------------------------------------------------------------------------------
 if ( p_secondaryHeatingAsset == null ) {
@@ -28038,11 +28095,10 @@ for( EnergyAsset EA : c_conversionAssets ){
 
 v_currentPowerHeat_kW += p_ThermalStorageAsset.v_currentConsumptionHeat_kW - p_ThermalStorageAsset.v_currentProductionHeat_kW;
 for ( EnergyAsset EA : c_storageAssets ) {
-	v_currentPowerHeat_kW += EA.v_currentConsumptionHeat_kW - EA.v_currentProductionHeat_kW;
+	v_currentPowerHeat_kW += EA.v_currentConsumptionHeat_kW - EA.v_currentProductionHeat_kW; //peter 13-3-23: ik snap niet waarom dit hier staat. dit komt in de knoop met andere storage assets (zoals batterij)
 }
 
 if( p_householdEV != null){
-	// Determine EV charging
 	double availableCapacityFromBatteries = p_batteryAsset == null ? 0 : ((J_EAStorageElectric)p_batteryAsset.p_energyAssetInstance).getCapacityAvailable_kW(); 
 	double availableChargingCapacity = v_allowedCapacity_kW + availableCapacityFromBatteries - v_currentPowerElectricity_kW;
 	//f_maxPowerCharging( max(0, availableChargingCapacity));
@@ -28050,6 +28106,20 @@ if( p_householdEV != null){
 	v_currentPowerElectricity_kW += v_evChargingPowerElectric_kW;
 }
 
+v_currentLoadLowPassed_kW += v_lowPassFactorLoad_fr * ( v_currentPowerElectricity_kW - v_currentLoadLowPassed_kW );
+
+if( p_batteryAsset != null){
+	switch (p_batteryOperationMode){
+		case HOUSEHOLD_LOAD:
+			f_batteryManagementLoad();
+		break;
+		case PRICE:
+			f_batteryManagementPrice_overwrite(v_batterySOC_fr);
+		break;
+		default:
+		break;
+	}
+}
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -28127,6 +28197,11 @@ else if (j_instance instanceof J_EAStorage ) {
 		m.f_getData();
 		p_householdEV = (J_EAEV)j_instance;
 		//v_vehicleIndex ++;
+	}
+	else if(j_instance instanceof J_EAStorageElectric && ((J_EAStorageElectric)j_instance).getStorageCapacity_kWh() !=0) {
+		p_batteryAsset = EA;
+		c_storageAssets.add(EA);
+		v_batterySOC_fr = ((J_EAStorageElectric)p_batteryAsset.p_energyAssetInstance).getCurrentStateOfCharge();
 	}
 	else{
 		traceln(getName() + "storage asset create that cannot be identified (i.e. its not an EV and not an heatstorage");
@@ -28298,8 +28373,8 @@ if( p_householdEV.getAvailability() && p_householdEV.chargingNeed != OL_EVChargi
 			// SCENARIO LOW CHARGING NEED -> Only when price is low
 			if ( p_householdEV.chargingNeed == OL_EVChargingNeed.LOW) { 
 				if( priceLevel == OL_priceLevels.LOW ) {
-					if (powerAvailableAtPrice_kW >= p_householdEV.getElectricCapacity_kW() ){
-						chargingRatio = 1.0;
+					if (powerAvailableAtPrice_kW >= p_householdEV.getElectricCapacity_kW() / p_smartChargingPowerAttenuation_fr ){
+						chargingRatio = 1 / p_smartChargingPowerAttenuation_fr;
 						continueLoop = false;
 					}
 					else{
@@ -28666,6 +28741,106 @@ if( p_householdEV.chargingNeed != OL_EVChargingNeed.HIGH){ //unless the charging
 v_evChargingPowerElectric_kW += p_householdEV.ownerAsset.f_updateElectricityFlows( chargingRatio );
 ]]></Body>
 				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1678708804201</Id>
+					<Name><![CDATA[f_batteryManagementLoad]]></Name>
+					<X>800</X><Y>500</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[double powerfraction_fr = 0;
+if ( v_currentPowerElectricity_kW < 0 && p_batteryAsset.p_energyAssetInstance.getCurrentStateOfCharge() < 1 && v_currentPriceLevel !=  OL_priceLevels.HIGH ){
+	powerfraction_fr = 1;
+}
+else if( v_currentPowerElectricity_kW > v_currentLoadLowPassed_kW && p_batteryAsset.p_energyAssetInstance.getCurrentStateOfCharge() > 0){
+	powerfraction_fr = -1;
+}
+else if ( v_batterySOC_fr < 0.6 && v_currentPowerElectricity_kW < 1 && v_currentPriceLevel !=  OL_priceLevels.HIGH){
+	powerfraction_fr = min( 1, p_batteryAsset.p_energyAssetInstance.capacityElectric_kW / 2.5);
+}
+p_batteryAsset.v_powerFraction_fr = powerfraction_fr;
+p_batteryAsset.f_updateAllFlows( p_batteryAsset.v_powerFraction_fr );
+v_batteryPowerElectric_kW =  p_batteryAsset.p_energyAssetInstance.capacityElectric_kW * p_batteryAsset.v_powerFraction_fr;
+v_currentPowerElectricity_kW +=v_batteryPowerElectric_kW;
+v_batterySOC_fr = p_batteryAsset.p_energyAssetInstance.getCurrentStateOfCharge();]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1678709047802</Id>
+					<Name><![CDATA[f_batteryManagementPrice_overwrite]]></Name>
+					<X>800</X><Y>300</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[currentBatteryStateOfCharge]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
+					<Body><![CDATA[if (((J_EAStorageElectric)p_batteryAsset.p_energyAssetInstance).getStorageCapacity_kWh() != 0){
+	//double willingnessToPayDefault_eurpkWh = 0.3;
+	double chargeDischarge_offset_eurpkWh = 0.0;
+	double WTPfeedbackGain_eurpSOC = 0.25; // When SOC-error is 100%, adjust WTP price by 1 eurpkWh
+	double priceGain = 2; // How strongly to ramp up power with price-delta's
+	//double congestionTariffHolon_eurpkWh = -(((ConnectionOwner)p_ownerActor).p_holonParent.v_electricitySurplus_kW + v_previousPowerElectricity_kW)/1200*0.1;
+	
+	double chargeSetpoint_kW = 0;
+	
+	if(l_ownerActor.getConnectedAgent() instanceof ConnectionOwner) {
+		ConnectionOwner ownerActor = (ConnectionOwner)l_ownerActor.getConnectedAgent();
+		//traceln("Initial Mappings are: " + ((ConnectionOwner)p_ownerActor).v_currentPriceBands);
+		double currentElectricityPriceCharge_eurpkWh = ownerActor.f_getElectricityPrice(v_currentPowerElectricity_kW + 10.0); // query price at 100kW charging
+		double currentElectricityPriceDischarge_eurpkWh = ownerActor.f_getElectricityPrice(v_currentPowerElectricity_kW - 10.0); // query price at -100kW charging
+		//double lowPassFraction = min(1,1*1.2*main.p_timeStep_h); // smaller value results in more filtering
+		//v_electricityPriceLowPassed_eurpkWh += v_lowPassFactor_fr * ( currentElectricityPriceCharge_eurpkWh - v_electricityPriceLowPassed_eurpkWh );
+		
+		double currentPricePowerBandPos_kW = ownerActor.v_priceBandsDelivery.ceilingKey(10.0); // Up to what power does this price hold?
+		double currentPricePowerBandNeg_kW = ownerActor.v_priceBandsDelivery.floorKey(10.0); // Down to what power does this price hold?
+		
+		double SOC_setp_fr = 0.5;
+		//traceln("Current price is " + currentElectricityPriceCharge_eurpkWh + " eurpkWh, between " + currentPricePowerBandNeg_kW + " kW and " + currentPricePowerBandPos_kW + " kW");
+		if (!c_vehicleAssets.isEmpty()) {
+			SOC_setp_fr = 0.5 + 0.25 * Math.sin(2*Math.PI*(time(HOUR)-12)/24); // Sinusoidal setpoint: aim for low SOC at 6:00h, high SOC at 18:00h. 
+		} else if (p_gridConnectionCategory == OL_GridConnectionCategory.WINDFARM) {
+			SOC_setp_fr = 0.9 - 0.8 * main.v_WindYieldForecast_fr;
+			//traceln("Forecast-based SOC setpoint: " + SOC_setp_fr + " %");
+		}
+		double SOC_deficit_fr = SOC_setp_fr - currentBatteryStateOfCharge; // How far away from desired SOC? SOC too LOW is a POSITIVE deficit
+		
+		// Define WTP price for charging and discharging!
+		double WTP_charge_eurpkWh = v_electricityPriceLowPassed_eurpkWh - chargeDischarge_offset_eurpkWh + SOC_deficit_fr * WTPfeedbackGain_eurpSOC;
+		double WTP_discharge_eurpkWh = v_electricityPriceLowPassed_eurpkWh + chargeDischarge_offset_eurpkWh + SOC_deficit_fr * WTPfeedbackGain_eurpSOC;
+		
+		//traceln("WTP charge is " + WTP_charge_eurpkWh + " eurpkWh, discharge is " + WTP_discharge_eurpkWh + " eurpkWh");
+		// Choose charging power based on prices and desired SOC level
+		if ( WTP_charge_eurpkWh > currentElectricityPriceCharge_eurpkWh ) { // if willingness to pay higher than current electricity price
+			chargeSetpoint_kW = min(p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW()*(WTP_charge_eurpkWh - currentElectricityPriceCharge_eurpkWh)*priceGain, currentPricePowerBandPos_kW)  ;
+			//traceln("WTP charge " + WTP_charge_eurpkWh + " eurpkWh is high than electricity price " + currentElectricityPriceCharge_eurpkWh + " eurpkWh, so charge!") ;
+		} else if (WTP_discharge_eurpkWh < currentElectricityPriceDischarge_eurpkWh) {
+			chargeSetpoint_kW = -min(p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW()*(currentElectricityPriceDischarge_eurpkWh - WTP_discharge_eurpkWh)*priceGain, currentPricePowerBandPos_kW);
+			//traceln("WTP discharge " + WTP_discharge_eurpkWh + " eurpkWh is lower than electricity price " + currentElectricityPriceCharge_eurpkWh + " eurpkWh, so discharge!") ;
+		}
+		
+		// limit charging power to available connection capacity
+		boolean b_stayWithinConnectionLimits = true;
+		if( b_stayWithinConnectionLimits ) {	
+	
+			double electricitySurplus_kW = - v_currentPowerElectricity_kW; 
+			
+			double availableChargePower_kW = electricitySurplus_kW + v_allowedCapacity_kW; // Max battery charging power within grid capacity
+			double availableDischargePower_kW = electricitySurplus_kW - v_allowedCapacity_kW; // Max discharging power within grid capacity
+			chargeSetpoint_kW = min(max(chargeSetpoint_kW, availableDischargePower_kW),availableChargePower_kW); // Don't allow too much (dis)charging!
+		}			
+	
+		p_batteryAsset.v_powerFraction_fr = max(-1,min(1, chargeSetpoint_kW / p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW())); // Convert to powerFraction and limit power
+	}
+	p_batteryAsset.f_updateAllFlows( p_batteryAsset.v_powerFraction_fr );
+}]]></Body>
+				</Function>
 			</Functions>
 			<AnalysisData>
     			<DataSet>
@@ -28987,6 +29162,16 @@ v_evChargingPowerElectric_kW += p_householdEV.ownerAsset.f_updateElectricityFlow
 					<Expression><![CDATA[my_dataset7]]></Expression>
 					<Color>-8355840</Color>
 					<Expression2><![CDATA[v_vehicleSOC_fr]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>
+						<PointStyle>NONE</PointStyle>
+						<LineWidth>1.0</LineWidth>
+					</DatasetExpression>
+					<DatasetExpression>  
+						<Title><![CDATA[SOC battery]]></Title>
+					<Id>0</Id>
+					<Expression><![CDATA[my_dataset]]></Expression>
+					<Color>-14774017</Color>
+					<Expression2><![CDATA[v_batterySOC_fr]]></Expression2>
 					<Expression2Flag>true</Expression2Flag>
 						<PointStyle>NONE</PointStyle>
 						<LineWidth>1.0</LineWidth>
@@ -35279,23 +35464,24 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
 				
 		if( this.sourceAssetHeatPower_kW > 0) {
 	    	this.capacityHeat_kW = min( this.capacityHeat_kW, this.sourceAssetHeatPower_kW / (1 - (1 / efficiency_r )));
-	    	traceln("Water water heatpump heat capacity limited from source! =" + this.capacityHeat_kW);
+	    	//traceln("Water water heatpump heat capacity limited from source! =" + this.capacityHeat_kW);
 		} 
 		else {
 				this.capacityHeat_kW = this.capacityElectric_kW * this.efficiency_r; 
+				//traceln("heatpump updating temp: " + baseTemperature_degC);
 				if( baseTemperature_degC < 0 ) {
 					efficiency_r = efficiency_r / belowZeroHeatpumpEtaReductionFactor;
 				}
 		}
-    	traceln("J_EAConversionHeatpump capacityHeat_kW = "+ this.capacityHeat_kW + ", sourceAssetHeatPower_kW " + this.sourceAssetHeatPower_kW );
+    	//traceln("J_EAConversionHeatpump capacityHeat_kW = "+ this.capacityHeat_kW + ", sourceAssetHeatPower_kW " + this.sourceAssetHeatPower_kW );
     
 	}
 
 	public void updateAmbientTemperature(double baseTemperature_degC) {
 		// water heatpump should take sourceAsset power transfer limitations into account (e.g. residual heat). Ugly but effectively limiting heat power output.
     	
-		traceln("J_EAHeatpump capacityHeat_kW = ", this.capacityHeat_kW+", baseTemperature = "+ baseTemperature_degC + ", outputtemperature = "+ outputTemperature_degC);
-		updateParameters(this.baseTemperature_degC, outputTemperature_degC);
+		//traceln("J_EAHeatpump capacityHeat_kW = " + this.capacityHeat_kW + ", baseTemperature = "+ baseTemperature_degC + ", outputtemperature = "+ outputTemperature_degC);
+		updateParameters(baseTemperature_degC, outputTemperature_degC);
 	    this.capacityHeat_kW = capacityElectric_kW * efficiency_r;
 	}
 
@@ -35305,15 +35491,15 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
 
 	@Override
 	public double[] operate(double ratioOfCapacity) {
-		traceln("this "+ this.toString() + ", " + ratioOfCapacity * this.capacityElectric_kW + " **** " + ratioOfCapacity * this.capacityHeat_kW / this.efficiency_r);
+		//traceln("this "+ this.toString() + ", " + ratioOfCapacity * this.capacityElectric_kW + " **** " + ratioOfCapacity * this.capacityHeat_kW / this.efficiency_r);
 		this.electricityConsumption_kW = min(ratioOfCapacity * this.capacityElectric_kW, ratioOfCapacity * this.capacityHeat_kW / this.efficiency_r);
 		//this.electricityConsumption_kW = ratioOfCapacity * this.capacityElectric_kW;
     	this.heatProduction_kW = this.electricityConsumption_kW * this.efficiency_r;
     	// account energy extracted by water/water heatpumps:
-    	traceln("test water heatpump EA code for heat consumption. ambientTempType = " + this.ambientTempType);
+    	//traceln("test water heatpump EA code for heat consumption. ambientTempType = " + this.ambientTempType);
     	
     	if(this.ambientTempType.equals("WATER")) {
-    		traceln("test water heatpump EA code for heat consumption. WATER ambient temp type detected ");
+    		//traceln("test water heatpump EA code for heat consumption. WATER ambient temp type detected ");
     		double maxAvailableSourcePower_kW = this.sourceAssetHeatPower_kW;
     		
     		this.heatConsumption_kW = this.heatProduction_kW - this.electricityConsumption_kW;
@@ -35325,7 +35511,7 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
     	else {
     		this.energyUsed_kWh += timestep_h * (this.electricityConsumption_kW - ( this.heatProduction_kW ) ); // This represents 'losses'! For a heat-pump, this is actually energy production, due to the greater-than-one efficiency!    	
     	}
-    	traceln("test water heatpump EA code for heat consumption. sourceAssetHeatPower_kW = "+this.sourceAssetHeatPower_kW+ ", heatProduction_kW = "+ this.heatProduction_kW + ", heatConsumption = " + this.heatConsumption_kW);
+    	//traceln("test water heatpump EA code for heat consumption. sourceAssetHeatPower_kW = "+this.sourceAssetHeatPower_kW+ ", heatProduction_kW = "+ this.heatProduction_kW + ", heatConsumption = " + this.heatConsumption_kW);
     	
    	
     	//traceln("energyUsed_kWh " + energyUsed_kWh );
@@ -35361,7 +35547,7 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
 	
 	public void setSourceAssetHeatPower(double sourceAssetHeatPower_kW) {
 		this.sourceAssetHeatPower_kW = sourceAssetHeatPower_kW;
-		traceln("sourceAssetHeatPower_kW is set to: "+sourceAssetHeatPower_kW);
+		//traceln("sourceAssetHeatPower_kW is set to: "+sourceAssetHeatPower_kW);
 	}
 	
 	@Override
@@ -36703,27 +36889,19 @@ public class J_ConnectionContract implements Serializable {
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/stap 4 gridconnections elektrificatie.json]]></Path>
-			<ReferencedFromUserCode>false</ReferencedFromUserCode>
-		</Resource>
-		<Resource>
 			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/stap 5 policies.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/case 3 tvw/example_actors.json]]></Path>
+			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/stap 1 gridnodes.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/case 3 tvw/example_gridconnections.json]]></Path>
+			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/stap 5 actors nodal pricing.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/case 3 tvw/example_gridnodes.json]]></Path>
-			<ReferencedFromUserCode>false</ReferencedFromUserCode>
-		</Resource>
-		<Resource>
-			<Path><![CDATA[cases/case 3 tvw/example_policies.json]]></Path>
+			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/challenge gridconnections elektrificatie + batterij.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
