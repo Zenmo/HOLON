@@ -256,6 +256,10 @@
 				<Name><![CDATA[CURTAILER]]></Name>
 			</Option>
 			<Option>
+				<Id>1678469475524</Id>
+				<Name><![CDATA[CURTAILER_HEAT]]></Name>
+			</Option>
+			<Option>
 				<Id>1676383232204</Id>
 				<Name><![CDATA[RESIDUALHEATHT]]></Name>
 			</Option>
@@ -6907,9 +6911,6 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 							<Name><![CDATA[p_hasSmartFlexAssets]]></Name>
 						</Parameter>
 						<Parameter>
-							<Name><![CDATA[p_curtailer]]></Name>
-						</Parameter>
-						<Parameter>
 							<Name><![CDATA[p_deliveryTemp_degC]]></Name>
 						</Parameter>
 						<Parameter>
@@ -8566,9 +8567,9 @@ if( v_currentLoadElectricityLowPassed_kW > v_peakPosLoadElectricity_kW ) { // st
 if (p_energyType.equals(OL_EnergyCarrierType.HEAT)) { // Thermal load unbalance goes into transportBuffer
 	double v_powerFraction_fr = Double.isNaN( -v_currentLoadHeat_kW / p_transportBuffer.getHeatCapacity_kW() )? 0 : -v_currentLoadHeat_kW / p_transportBuffer.getHeatCapacity_kW();
 	//p_transportBuffer.operate(v_powerFraction_fr);
-	traceln("DistrictHeating network heatcapacity = "+ p_transportBuffer.getHeatCapacity_kW()+" kW, water temperature " + p_transportBuffer.getCurrentTemperature() + " deg C, buffer power fraction " + v_powerFraction_fr * 100 + " %, transportbuffer HeatCapacity_kW " + p_transportBuffer.getHeatCapacity_kW());
+	//traceln("DistrictHeating network heatcapacity = "+ p_transportBuffer.getHeatCapacity_kW()+" kW, water temperature " + p_transportBuffer.getCurrentTemperature() + " deg C, buffer power fraction " + v_powerFraction_fr * 100 + " %, transportbuffer HeatCapacity_kW " + p_transportBuffer.getHeatCapacity_kW());
 	p_transportBuffer.ownerAsset.f_updateAllFlows(v_powerFraction_fr);
-	traceln("DistrictHeating network water temperature " + p_transportBuffer.getCurrentTemperature() + " deg C, buffer power fraction " + v_powerFraction_fr * 100 + " %, transportbuffer HeatCapacity_kW " + p_transportBuffer.getHeatCapacity_kW());
+	//traceln("DistrictHeating network water temperature " + p_transportBuffer.getCurrentTemperature() + " deg C, buffer power fraction " + v_powerFraction_fr * 100 + " %, transportbuffer HeatCapacity_kW " + p_transportBuffer.getHeatCapacity_kW());
 }
 
 //traceln("GridNode " + p_agentID + " update at time " + time(HOUR));
@@ -8618,7 +8619,7 @@ v_loadFactor_fr = v_averageAbsoluteLoadElectricity_kW / abs(v_peakLoadAbsoluteEl
 						<Type><![CDATA[double]]></Type>
 					</Parameter>
 					<Body><![CDATA[for (GridConnection gc: c_electricityGridConnections){
-	traceln("Gc "+ gc.toString() + ", price "+ price_eurpkWh + ", allowance "+ allowance_kW +".");
+	//traceln("Gc "+ gc.toString() + ", price "+ price_eurpkWh + ", allowance "+ allowance_kW +".");
 	ConnectionOwner owner = ((ConnectionOwner)gc.l_ownerActor.getConnectedAgent());
 	owner.v_currentNodalPrice_eurpkWh = price_eurpkWh;
 }
@@ -11200,7 +11201,7 @@ else if (EA.p_energyAssetInstance instanceof J_EAConversion) {
 		}
 		//traceln("heatingAsset class " + p_spaceHeatingAsset.getClass().toString());
 	}
-	else if (EA.p_energyAssetInstance instanceof J_EAConversionCurtailer) {
+	else if (EA.p_energyAssetInstance instanceof J_EAConversionCurtailer || EA.p_energyAssetInstance instanceof J_EAConversionCurtailerHeat) {
 		p_curtailer = EA;
 	} 
 }
@@ -11541,7 +11542,11 @@ if (main.b_addKpiVisuals) {
 		e.f_updateElectricityFlows( main.v_currentWindPowerNormalized_r );
 		v_windProductionElectric_kW += e.v_currentProductionElectricity_kW;
 	}
-	else if(e.p_energyAssetType == OL_EnergyAssetType.RESIDUALHEATHT || e.p_energyAssetType == OL_EnergyAssetType.RESIDUALHEATLT ) {
+	else if( e.p_energyAssetType == OL_EnergyAssetType.RESIDUALHEATHT ) {
+		e.v_powerFraction_fr = 1;
+		e.f_updateAllFlows( e.v_powerFraction_fr );
+	}
+	else if( e.p_energyAssetType == OL_EnergyAssetType.RESIDUALHEATLT ) {
 		e.v_powerFraction_fr = 0;
 		e.f_updateAllFlows( 0 );
 	}
@@ -12089,7 +12094,14 @@ if(l_ownerActor.getConnectedAgent() instanceof ConnectionOwner) {
 		isGasCheaper = v_gasHeatingCost_eurpkWh_TEMPORARY < v_eHeatingCost_eurpkWh_TEMPORARY ? true:false;
 	}
 	else { // in case supplier is a holon
-		EnergySupplier es = (EnergySupplier)((EnergyHolon)((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_energySupplier).p_energySupplier;
+		EnergySupplier es = new EnergySupplier();
+		if( ((EnergyHolon)((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_energySupplier).p_energySupplier instanceof EnergySupplier ) {
+			es = (EnergySupplier)((EnergyHolon)((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_energySupplier).p_energySupplier;
+		}
+		// in case of nested holons!
+		else if( ((EnergyHolon)((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_energySupplier).p_energySupplier instanceof EnergyHolon ) {
+			es = (EnergySupplier)((EnergyHolon)((EnergyHolon)((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_energySupplier).p_energySupplier).p_energySupplier;
+		}	
 		v_gasHeatingCost_eurpkWh_TEMPORARY = es.p_fixedMethanePrice_eurpkWh;
 		v_eHeatingCost_eurpkWh_TEMPORARY = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).f_getAveragedElectricityPrice( v_currentPowerElectricity_kW, p_primaryHeatingAsset.p_energyAssetInstance.getElectricCapacity_kW() ) / HP_COP;
 		isGasCheaper = v_gasHeatingCost_eurpkWh_TEMPORARY < v_eHeatingCost_eurpkWh_TEMPORARY ? true:false;
@@ -14149,7 +14161,12 @@ switch(assetType) {
 	break;
 	case CURTAILER:
 		p_energyAssetInstance = (J_EAConversionCurtailer)p_energyAssetInstance;
-		p_energyAssetInstance = new J_EAConversionCurtailer( this, capacityElectric_kW, 0.0, main.p_timeStep_h );
+		p_energyAssetInstance = new J_EAConversionCurtailer( this, capacityElectric_kW, eta_r, main.p_timeStep_h );
+		//traceln("Instantiating curtailer asset with capacityElectric_kW: " + capacityElectric_kW + ", double check: " + p_energyAssetInstance.getElectricCapacity_kW() );
+	break;
+	case CURTAILER_HEAT:
+		p_energyAssetInstance = (J_EAConversionCurtailerHeat)p_energyAssetInstance;
+		p_energyAssetInstance = new J_EAConversionCurtailerHeat( this, capacityHeat_kW, eta_r, main.p_timeStep_h );
 		//traceln("Instantiating curtailer asset with capacityElectric_kW: " + capacityElectric_kW + ", double check: " + p_energyAssetInstance.getElectricCapacity_kW() );
 	break;
 	case METHANE_CHP:
@@ -14341,7 +14358,7 @@ return v_currentConsumptionElectricity_kW;
 						this.set_p_baseTemperatureReference( main.p_undergroundTemperature_degC );
 					break;
 					case "WATER":
-						traceln("f_setLinkedVariable: water type parameter update!");
+						//traceln("f_setLinkedVariable: water type parameter update!");
 						this.set_p_baseTemperatureReference( reference_energyAsset.p_energyAssetInstance.getCurrentTemperature() );
 						((J_EAConversionHeatPump)this.p_energyAssetInstance).updateAmbientTemperature( p_baseTemperatureReference );
 					break;
@@ -30224,7 +30241,7 @@ DHnetworkTemp_degC = l_parentNodeHeat.getConnectedAgent().p_transportBuffer.getC
 for(EnergyAsset e : c_energyAssets) {
 	if(e.p_energyAssetInstance instanceof J_EAConversionHeatPump) {
 		if ( ((J_EAConversionHeatPump)e.p_energyAssetInstance).getAmbientTempType().equals("WATER") && b_residualHeatLTSource ) {
-			traceln("water ambientTempType for LTresidual heat with heatpump check!");
+			//traceln("water ambientTempType for LTresidual heat with heatpump check!");
 			e.f_setLinkedVariable("WATER", e.p_linkedSourceEnergyAsset );
 			e.p_energyAssetInstance.updateAmbientTemperature( e.p_baseTemperatureReference );
 		}
@@ -30374,7 +30391,7 @@ v_currentPowerHeat_kW += p_ThermalStorageAsset.v_currentConsumptionHeat_kW - p_T
 //	v_currentPowerHeat_kW += EA.v_currentConsumptionHeat_kW - EA.v_currentProductionHeat_kW;
 //}
 
-traceln("GCDistrictHeating f_operateAssetsDistrictHeating debug: v_currentpowerHeat_kW: "+ v_currentPowerHeat_kW + " heatTransferToNetwork_kW =  " + heatTransferToNetwork_kW + ", difference = " + (v_currentPowerHeat_kW + heatTransferToNetwork_kW) );]]></Body>
+//traceln("GCDistrictHeating f_operateAssetsDistrictHeating debug: v_currentpowerHeat_kW: "+ v_currentPowerHeat_kW + " heatTransferToNetwork_kW =  " + heatTransferToNetwork_kW + ", difference = " + (v_currentPowerHeat_kW + heatTransferToNetwork_kW) );]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -33864,8 +33881,17 @@ public void f_operateFlexAssets(){
 
 // For residual heat, check heat transfer condition = source temperature > network temperature!
 double networkTemp_degC = l_parentNodeHeat.getConnectedAgent().p_transportBuffer.getCurrentTemperature();
-boolean b_heatFlowToNetwork = p_deliveryTemp_degC > ( networkTemp_degC + 2 ); // delta T of 2 degrees for heat exchanger.
+boolean b_heatFlowToNetwork = p_deliveryTemp_degC > ( networkTemp_degC + 1 ); // delta T of 2 degrees for heat exchanger.
 
+// double heatTransferToNetworkCoefficient_kWpK = 100;
+// double heatTransferToNetwork_kW = max( p_deliveryTemp_degC - networkTemp_degC, 0 ) * heatTransferToNetworkCoefficient_kWpK;
+p_curtailer.v_powerFraction_fr = 0;
+
+if( !b_heatFlowToNetwork ) {
+	//traceln("curtail residual heat!");
+	p_curtailer.v_powerFraction_fr = 1;
+}
+p_curtailer.f_updateAllFlows( p_curtailer.v_powerFraction_fr );
 
 for( EnergyAsset EA : c_conversionAssets ){
 	v_currentPowerElectricity_kW += EA.v_currentConsumptionElectricity_kW - EA.v_currentProductionElectricity_kW;
@@ -33878,8 +33904,8 @@ for( EnergyAsset EA : c_conversionAssets ){
 
 // if source temperature is below network temperature, no (passive) heat transfer takes place
 v_currentPowerHeat_kW = b_heatFlowToNetwork? v_currentPowerHeat_kW : 0;
-traceln("networkTemp_degC = "+networkTemp_degC+", b_heatFlowToNetwork = "+b_heatFlowToNetwork+", v_currentPowerHeat_kW = "+v_currentPowerHeat_kW);
-
+//traceln("networkTemp_degC = "+networkTemp_degC+", b_heatFlowToNetwork = "+b_heatFlowToNetwork+", v_currentPowerHeat_kW = "+v_currentPowerHeat_kW);
+/*
 // Determine EV charging
 f_manageCharging();
 v_currentPowerElectricity_kW += v_evChargingPowerElectric_kW;
@@ -33897,7 +33923,7 @@ if (p_batteryAsset != null){
 	v_batteryPowerElectric_kW = p_batteryAsset.v_currentConsumptionElectricity_kW - p_batteryAsset.v_currentProductionElectricity_kW;
 	v_currentPowerElectricity_kW += v_batteryPowerElectric_kW;
 }
-]]></Body>
+*/]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -36660,6 +36686,60 @@ public class J_ConnectionContract implements Serializable {
 	    this.nfATOend_h = nfATOend_h;
 	    this.nfATOpower_kW = nfATOpower_kW;
 	}
+}]]></Text>
+		</JavaClass>
+		<!--   =========   Java Class   ========  -->
+		<JavaClass>
+			<Id>1678469210821</Id>
+			<Name><![CDATA[J_EAConversionCurtailerHeat]]></Name>
+			<Text><![CDATA[/**
+ * J_EAConversionCurtailerHeat
+ */
+public class J_EAConversionCurtailerHeat extends J_EAConversion implements Serializable {
+
+	private OL_EnergyCarrierType energyCarrierProduced = OL_EnergyCarrierType.HEAT;
+	private OL_EnergyCarrierType energyCarrierConsumed = OL_EnergyCarrierType.HEAT;
+    /**
+     * Default constructor
+     */
+    public J_EAConversionCurtailerHeat(EnergyAsset ownerAssetAgent, double capacityHeat_kW, double efficiency, double timestep_h) {
+	    this.ownerAsset = ownerAssetAgent;
+	    this.capacityHeat_kW = capacityHeat_kW;
+	    this.eta_r = efficiency;
+	    this.capacityHeat_kW = this.capacityHeat_kW * this.eta_r;
+	    this.timestep_h = timestep_h;
+    }
+
+    @Override
+    public double[] operate(double ratioOfCapacity) {
+		//traceln("I convert now! GasBurner @ " + (ratioOfCapacity * 100) + " %");
+		this.heatProduction_kW = capacityHeat_kW * ratioOfCapacity * eta_r;
+		this.heatConsumption_kW = capacityHeat_kW * ratioOfCapacity;
+
+		this.energyUsed_kWh += timestep_h * (heatConsumption_kW - heatProduction_kW); // This represents losses!
+		//double[] arr = {this.electricityProduction_kW, this.methaneProduction_kW, this.hydrogenProduction_kW, this.heatProduction_kW, this.electricityConsumption_kW, this.methaneConsumption_kW, this.hydrogenConsumption_kW, this.heatConsumption_kW };
+    	//return arr;
+		this.heatConsumed_kWh += heatConsumption_kW * timestep_h;
+		this.heatProduced_kWh += heatProduction_kW * timestep_h;
+		
+		return returnEnergyFlows();
+    }
+
+	public double getEnergyUsed_kWh() {
+		return energyUsed_kWh;
+	}
+
+	@Override
+	public String toString() {
+		return super.toString();
+	}
+
+	/**
+	 * This number is here for model snapshot storing purpose<br>
+	 * It needs to be changed when this class gets changed
+	 */
+	private static final long serialVersionUID = 1L;
+
 }]]></Text>
 		</JavaClass>
 	</JavaClasses>
