@@ -3879,7 +3879,7 @@ for(HashMap data : parsedJSONActors)
    		Actor.f_setContractValues();
   		Actor.j_ActorData = new J_ActorData(actorID, type);
   		Actor.set_p_gridNodeUnderResponsibility( node );
-    } else if (actorcategory.equals(OL_ActorType.GRIDOPERATOR) ) {
+    } else if (actorcategory.equals(OL_ActorType.OPERATORGRID) ) {
 	    GridOperator Actor = add_pop_gridOperators();
 	    Actor.set_p_actorID( actorID );
 	    Actor.set_p_actorType( type );
@@ -4535,7 +4535,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/django_actors.txt]]></ClassName>
+						<ClassName><![CDATA[D:/Users/HOUJ/Documents/GitHub/HOLON/HOLON-cloudclient/doc/assets/example_actors.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -4553,7 +4553,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/django_gridnodes.txt]]></ClassName>
+						<ClassName><![CDATA[D:/Users/HOUJ/Documents/GitHub/HOLON/HOLON-cloudclient/doc/assets/example_gridnodes.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -4571,7 +4571,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/django_gridconnections.txt]]></ClassName>
+						<ClassName><![CDATA[D:/Users/HOUJ/Documents/GitHub/HOLON/HOLON-cloudclient/doc/assets/example_gridconnections.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -4608,7 +4608,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[../CaseDefinitions/industry_case/industry_case_policies.txt]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/django_policies.txt]]></ClassName>
+						<ClassName><![CDATA[D:/Users/HOUJ/Documents/GitHub/HOLON/HOLON-cloudclient/doc/assets/example_policies.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -6951,6 +6951,9 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_curtailer]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -35632,15 +35635,17 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
 			traceln("**** EXCEPTION **** Heatpump baseTemperature ( " + baseTemperature_degC + ") > outputTemperature ( " + outputTemperature_degC + ") ");
 		}
 		this.efficiency_r = this.eta_r * ( 273.15 + outputTemperature_degC ) / ( outputTemperature_degC - baseTemperature_degC );
-				
+		
+		// water heatpump should take sourceAsset power transfer limitations into account (e.g. residual heat). Ugly but effectively limiting heat power output.
+    	
 		if( this.sourceAssetHeatPower_kW > 0) {
 	    	this.capacityHeat_kW = min( this.capacityHeat_kW, this.sourceAssetHeatPower_kW / (1 - (1 / efficiency_r )));
-	    	traceln("Water water heatpump heat capacity limited from source! =" + this.capacityHeat_kW);
+	    	//traceln("Water water heatpump heat capacity limited from source! =" + this.capacityHeat_kW);
 		} 
 		else {
 				this.capacityHeat_kW = this.capacityElectric_kW * this.efficiency_r; 
 		}
-    	traceln("J_EAConversionHeatpump capacityHeat_kW = "+ this.capacityHeat_kW + ", sourceAssetHeatPower_kW " + this.sourceAssetHeatPower_kW );
+    	//traceln("J_EAConversionHeatpump capacityHeat_kW = "+ this.capacityHeat_kW + ", sourceAssetHeatPower_kW " + this.sourceAssetHeatPower_kW );
     
 	}
 
@@ -35650,10 +35655,7 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
 			traceln("**** EXCEPTION **** Heatpump baseTemperature ( " + baseTemperature_degC + ") > outputTemperature ( " + this.outputTemperature_degC + ") ");
 		}
 		this.efficiency_r = this.eta_r * ( 273.15 + this.outputTemperature_degC ) / ( this.outputTemperature_degC - this.baseTemperature_degC );
-
-	public void updateAmbientTemperature(double baseTemperature_degC) {
-		// water heatpump should take sourceAsset power transfer limitations into account (e.g. residual heat). Ugly but effectively limiting heat power output.
-    	
+		
 		//traceln("J_EAHeatpump capacityHeat_kW = ", this.capacityHeat_kW+", baseTemperature = "+ baseTemperature_degC + ", outputtemperature = "+ outputTemperature_degC);
 		updateParameters(this.baseTemperature_degC, outputTemperature_degC);
 	    this.capacityHeat_kW = capacityElectric_kW * efficiency_r;
@@ -37128,19 +37130,19 @@ public class J_EAConversionCurtailerHeat extends J_EAConversion implements Seria
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/django_actors.txt]]></Path>
+			<Path><![CDATA[D:/Users/HOUJ/Documents/GitHub/HOLON/HOLON-cloudclient/doc/assets/example_actors.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/django_gridconnections.txt]]></Path>
+			<Path><![CDATA[D:/Users/HOUJ/Documents/GitHub/HOLON/HOLON-cloudclient/doc/assets/example_gridconnections.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/django_gridnodes.txt]]></Path>
+			<Path><![CDATA[D:/Users/HOUJ/Documents/GitHub/HOLON/HOLON-cloudclient/doc/assets/example_gridnodes.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/django_policies.txt]]></Path>
+			<Path><![CDATA[D:/Users/HOUJ/Documents/GitHub/HOLON/HOLON-cloudclient/doc/assets/example_policies.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
