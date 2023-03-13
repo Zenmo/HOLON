@@ -7026,6 +7026,9 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 						<Parameter>
 							<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
 						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_curtailer]]></Name>
+						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
 					<Replication Class="CodeValue">
@@ -35919,7 +35922,9 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
 			traceln("**** EXCEPTION **** Heatpump baseTemperature ( " + baseTemperature_degC + ") > outputTemperature ( " + outputTemperature_degC + ") ");
 		}
 		this.efficiency_r = this.eta_r * ( 273.15 + outputTemperature_degC ) / ( outputTemperature_degC - baseTemperature_degC );
-				
+		
+		// water heatpump should take sourceAsset power transfer limitations into account (e.g. residual heat). Ugly but effectively limiting heat power output.
+    	
 		if( this.sourceAssetHeatPower_kW > 0) {
 	    	this.capacityHeat_kW = min( this.capacityHeat_kW, this.sourceAssetHeatPower_kW / (1 - (1 / efficiency_r )));
 	    	//traceln("Water water heatpump heat capacity limited from source! =" + this.capacityHeat_kW);
@@ -35936,10 +35941,14 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
 	}
 
 	public void updateAmbientTemperature(double baseTemperature_degC) {
-		// water heatpump should take sourceAsset power transfer limitations into account (e.g. residual heat). Ugly but effectively limiting heat power output.
-    	
-		//traceln("J_EAHeatpump capacityHeat_kW = " + this.capacityHeat_kW + ", baseTemperature = "+ baseTemperature_degC + ", outputtemperature = "+ outputTemperature_degC);
-		updateParameters(baseTemperature_degC, outputTemperature_degC);
+		this.baseTemperature_degC = baseTemperature_degC;
+		if ( this.baseTemperature_degC > this.outputTemperature_degC) {
+			traceln("**** EXCEPTION **** Heatpump baseTemperature ( " + baseTemperature_degC + ") > outputTemperature ( " + this.outputTemperature_degC + ") ");
+		}
+		this.efficiency_r = this.eta_r * ( 273.15 + this.outputTemperature_degC ) / ( this.outputTemperature_degC - this.baseTemperature_degC );
+		
+		//traceln("J_EAHeatpump capacityHeat_kW = ", this.capacityHeat_kW+", baseTemperature = "+ baseTemperature_degC + ", outputtemperature = "+ outputTemperature_degC);
+		updateParameters(this.baseTemperature_degC, outputTemperature_degC);
 	    this.capacityHeat_kW = capacityElectric_kW * efficiency_r;
 	}
 
