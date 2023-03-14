@@ -3598,11 +3598,12 @@ for (HashMap policy : parsedJSONPolicies) {
 traceln("policy map: " + policyMap);
 
 //OL_ChargingAttitude DefaultEVChargingAttitude = OL_ChargingAttitude.valueOf((String)policyMap.get("EV_charging_attitude_standard"));
-double v_congestionAllowanceLevel_kW = Double.parseDouble( policyMap.get("Grid_MS_congestion_allowance_level_kW") );
-double v_congestionPrice_eurpkWh = Double.parseDouble( policyMap.get("Grid_MS_congestion_price_eurpkWh") );
-double v_congestionThreshold_fr = Double.parseDouble( policyMap.get("Grid_MS_congestion_threshold_fr") );
-boolean b_congestionPricingConsumption = Boolean.parseBoolean( policyMap.get("Grid_MS_congestion_pricing_consumption_eurpkWh") );
-//boolean b_congestionPricingProduction = Boolean.parseBoolean( policyMap.get("Grid_MS_congestion_pricing_production_eurpkWh") );
+double v_congestionAllowanceLevel_kW = policyMap.get( "Grid_MS_congestion_allowance_level_kW" ) == null ? 0.0 : Double.parseDouble( policyMap.get("Grid_MS_congestion_allowance_level_kW") );
+double v_congestionPrice_eurpkWh = policyMap.get( "Grid_MS_congestion_price_eurpkWh" ) == null ? 0.0 :Double.parseDouble( policyMap.get("Grid_MS_congestion_price_eurpkWh") );
+double v_congestionThreshold_fr = policyMap.get( "Grid_MS_congestion_threshold_fr" ) == null ? 0.0 : Double.parseDouble( policyMap.get("Grid_MS_congestion_threshold_fr") );
+boolean b_congestionPricingConsumption = policyMap.get( "Grid_MS_congestion_pricing_consumption_eurpkWh" ) == null ? false : Boolean.parseBoolean( policyMap.get("Grid_MS_congestion_pricing_consumption_eurpkWh") );
+//boolean b_congestionPricingProduction = policyMap.get( "Grid_MS_congestion_pricing_production_eurpkWh" ) == null ? false : Boolean.parseBoolean( policyMap.get("Grid_MS_congestion_pricing_production_eurpkWh") );
+
 
 // get global energy pricing values
 /*double v_fixedElectricityPrice_eurpkWh = Double.parseDouble( policyMap.get("Fixed_electricity_price_eurpkWh") );
@@ -3614,8 +3615,7 @@ double v_fixedHydrogenPrice_eurpkWh = Double.parseDouble( policyMap.get( "Fixed_
 double v_fixedDieselPrice_eurpkWh = Double.parseDouble( policyMap.get( "Fixed_diesel_price_eurpkWh" ) );
 boolean v_salderenActive = Boolean.parseBoolean(policyMap.get("Salderen"));*/
 traceln("Capacitypricing_households_kW:" + policyMap.get( "Capacitypricing_households_kW" ));
-double v_capacitypricing_households_kW = policyMap.get( "Capacitypricing_households_kW" ) == null? 0.0 : Double.parseDouble(policyMap.get( "Capacitypricing_households_kW" )) ;
-double v_capacitypricing_households_eur = policyMap.get( "Capacitypricing_households_eur" ) == null? 0 : Double.parseDouble(policyMap.get( "Capacitypricing_households_eur" ));
+
 //data.get( "connectionCapacity_kW") == null? 0.0 : (Double)data.get( "connectionCapacity_kW" );
 
 // get global battery charging parameter(s)
@@ -11408,7 +11408,7 @@ if( p_energyAssetList != null) {
 				converterAsset.set_p_parentAgentID( this.p_agentID );
 				converterAsset.set_p_energyAssetType( OL_EnergyAssetType.valueOf((String)l.get( "type" ) ));
 				converterAsset.set_p_defaultEnergyAssetPresetName( (String)l.get( "name" ));
-				traceln( "l contents"+l.toString() );
+				//traceln( "l contents"+l.toString() );
 				
 				double capacityElectric_kW = l.get( "capacityElectricity_kW")== null? 0.0: Double.valueOf(l.get( "capacityElectricity_kW").toString()).doubleValue();
 				double capacityHeat_kW1 = l.get( "capacityHeat_kW")== null? 0: Double.valueOf(l.get( "capacityHeat_kW").toString()).doubleValue();
@@ -28629,6 +28629,7 @@ p_primaryHeatingAsset.v_powerFraction_fr = powerFraction_heatPump_fr;
 		//HP.updateAmbientTemp(main.v_currentAmbientTemperature_degC); // update heatpump temp levels! <-- waarom dit gebeurt al in de main (peter 21-02-23)
 		boolean gasCheaper = f_calcCheapestHeatingPrice();
 		if ( gasCheaper ) { // heat with gas
+			traceln("gas is cheaper");
 			double powerDemand_kW = v_hotwaterDemand_kW + (v_tempSetpoint_degC - v_currentIndoorTemp_degC) * ((J_EAStorageHeat)p_ThermalStorageAsset.p_energyAssetInstance).getHeatCapacity_JpK() / 3.6e6;
 			p_primaryHeatingAsset.v_powerFraction_fr = 0;
 			p_secondaryHeatingAsset.v_powerFraction_fr = min(1, powerDemand_kW / p_secondaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
@@ -28638,11 +28639,13 @@ p_primaryHeatingAsset.v_powerFraction_fr = powerFraction_heatPump_fr;
 			p_primaryHeatingAsset.v_powerFraction_fr = 1;//min(1,powerDemand_kW / p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
 			p_secondaryHeatingAsset.v_powerFraction_fr = min(1,v_hotwaterDemand_kW / p_secondaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
 			p_ThermalStorageAsset.v_powerFraction_fr = HP.getHeatCapacity_kW() / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW();
+			traceln("HP is cheaper");
 		}
 	} else { // Just supply DHW demand with gas burner
 		p_secondaryHeatingAsset.v_powerFraction_fr = v_hotwaterDemand_kW / p_secondaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW();
 		p_primaryHeatingAsset.v_powerFraction_fr = 0;
 		p_ThermalStorageAsset.v_powerFraction_fr = 0;
+		traceln("just DHW");
 	}
 	p_secondaryHeatingAsset.f_updateAllFlows( p_secondaryHeatingAsset.v_powerFraction_fr );
 } else if( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet && ( p_secondaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionBoiler || p_secondaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatPump ) && p_heatBuffer.p_energyAssetInstance instanceof J_EAStorageHeat ) { // Heat Delivery Set and booster water/water heatpump with buffer for hotwater, )
