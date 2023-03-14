@@ -27991,8 +27991,8 @@ v_heatingOff_time = roundToDecimal(uniform(21.5, 23.9), 1); ]]></StartupCode>
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
 					<Action><![CDATA[if( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatPump ){
-	v_dailyHPConsumption_kWh = p_primaryHeatingAsset.p_energyAssetInstance.getEnergyUsed_kWh() - v_hpPreviousConsumptionLevel;
-	v_hpPreviousConsumptionLevel = p_primaryHeatingAsset.p_energyAssetInstance.getEnergyUsed_kWh();
+	v_dailyHPConsumption_kWh = ((J_EAConversionHeatPump)p_primaryHeatingAsset.p_energyAssetInstance).totalElectricityConsumed_kWh - v_hpPreviousConsumptionLevel;
+	v_hpPreviousConsumptionLevel = ((J_EAConversionHeatPump)p_primaryHeatingAsset.p_energyAssetInstance).totalElectricityConsumed_kWh;
 }]]></Action>
 				</Event>
 			</Events>
@@ -28644,6 +28644,7 @@ p_primaryHeatingAsset.v_powerFraction_fr = powerFraction_heatPump_fr;
 		p_primaryHeatingAsset.v_powerFraction_fr = 0;
 		p_ThermalStorageAsset.v_powerFraction_fr = 0;
 	}
+	p_secondaryHeatingAsset.f_updateAllFlows( p_secondaryHeatingAsset.v_powerFraction_fr );
 } else if( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet && ( p_secondaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionBoiler || p_secondaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatPump ) && p_heatBuffer.p_energyAssetInstance instanceof J_EAStorageHeat ) { // Heat Delivery Set and booster water/water heatpump with buffer for hotwater, )
 	p_primaryHeatingAsset.v_powerFraction_fr = 0;
 	p_secondaryHeatingAsset.v_powerFraction_fr = 0;
@@ -28672,9 +28673,9 @@ p_primaryHeatingAsset.v_powerFraction_fr = powerFraction_heatPump_fr;
 	boolean b_houseTempBelowSetpoint = houseTemperature_degC < v_tempSetpoint_degC? true : false;
 	
 	p_primaryHeatingAsset.v_powerFraction_fr += b_houseTempBelowSetpoint? 1 : 0;  // maybe cap for maximum 1?
-	p_primaryHeatingAsset.f_updateAllFlows(	p_primaryHeatingAsset.v_powerFraction_fr );
+	//p_primaryHeatingAsset.f_updateAllFlows(	p_primaryHeatingAsset.v_powerFraction_fr );
 	
-	double heatFlowToHouse_kW = p_primaryHeatingAsset.v_currentProductionHeat_kW - p_secondaryHeatingAsset.v_currentConsumptionHeat_kW;
+	double heatFlowToHouse_kW = p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW() * p_primaryHeatingAsset.v_powerFraction_fr - p_secondaryHeatingAsset.v_currentConsumptionHeat_kW;
 	p_ThermalStorageAsset.v_powerFraction_fr = (heatFlowToHouse_kW / p_ThermalStorageAsset.p_energyAssetInstance.capacityHeat_kW );
 	//p_primaryHeatingAsset.v_powerFraction_fr = p_ThermalStorageAsset.p_energyAssetInstance.getCurrentTemperature() < v_tempSetpoint_degC ? 1 : 0;
 	//traceln("b_primaryOperate = "+ b_primaryOperate + ", GCHouse f_heatWithHybridHeatpump: p_secondaryHeatingAsset.p_energyAssetInstance.capacityHeat_kW = " + p_secondaryHeatingAsset.p_energyAssetInstance.capacityHeat_kW + ". p_secondaryHeatingAsset.p_energyAssetInstance =  "+p_secondaryHeatingAsset.p_energyAssetInstance.toString());
@@ -28698,8 +28699,8 @@ p_primaryHeatingAsset.v_powerFraction_fr = powerFraction_heatPump_fr;
 	p_secondaryHeatingAsset.v_powerFraction_fr = 0;
 	p_ThermalStorageAsset.v_powerFraction_fr = 0;
 }
-//p_secondaryHeatingAsset.f_updateAllFlows( p_secondaryHeatingAsset.v_powerFraction_fr );
-p_ThermalStorageAsset.f_updateAllFlows( p_ThermalStorageAsset.v_powerFraction_fr );]]></Body>
+
+]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -35431,6 +35432,7 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
 	private double baseTemperature_degC;
 	private double sourceAssetHeatPower_kW; // for water-water heatpump functionality
 	protected String ambientTempType;
+	public double totalElectricityConsumed_kWh =0;
 
     /**
      * Default constructor
@@ -35494,6 +35496,7 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
 	public double[] operate(double ratioOfCapacity) {
 		//traceln("this "+ this.toString() + ", " + ratioOfCapacity * this.capacityElectric_kW + " **** " + ratioOfCapacity * this.capacityHeat_kW / this.efficiency_r);
 		this.electricityConsumption_kW = min(ratioOfCapacity * this.capacityElectric_kW, ratioOfCapacity * this.capacityHeat_kW / this.efficiency_r);
+		this.totalElectricityConsumed_kWh += electricityConsumption_kW * timestep_h ;
 		//this.electricityConsumption_kW = ratioOfCapacity * this.capacityElectric_kW;
     	this.heatProduction_kW = this.electricityConsumption_kW * this.efficiency_r;
     	// account energy extracted by water/water heatpumps:
@@ -35513,8 +35516,6 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
     		this.energyUsed_kWh += timestep_h * (this.electricityConsumption_kW - ( this.heatProduction_kW ) ); // This represents 'losses'! For a heat-pump, this is actually energy production, due to the greater-than-one efficiency!    	
     	}
     	//traceln("test water heatpump EA code for heat consumption. sourceAssetHeatPower_kW = "+this.sourceAssetHeatPower_kW+ ", heatProduction_kW = "+ this.heatProduction_kW + ", heatConsumption = " + this.heatConsumption_kW);
-    	
-   	
     	//traceln("energyUsed_kWh " + energyUsed_kWh );
     	//double[] arr = {this.electricityProduction_kW, this.methaneProduction_kW, this.hydrogenProduction_kW, this.heatProduction_kW, this.electricityConsumption_kW, this.methaneConsumption_kW, this.hydrogenConsumption_kW, this.heatConsumption_kW };
     	//return arr;
