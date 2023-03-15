@@ -30580,20 +30580,56 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 	}
 } else if (EA.p_energyAssetInstance instanceof J_EAConversion) {
 	c_conversionAssets.add(EA);
-	if (EA.p_energyAssetInstance instanceof J_EAConversionGasBurner || EA.p_energyAssetInstance instanceof J_EAConversionHeatPump || EA.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet || EA.p_energyAssetInstance instanceof J_EAConversionBoiler || EA.p_energyAssetInstance instanceof J_EAConversionGasCHP ) {
-		if (p_primaryHeatingAsset == null) {
-			p_primaryHeatingAsset = EA;
-		} else if (p_secondaryHeatingAsset == null) {
-			p_secondaryHeatingAsset = EA;
-		} else {
-			traceln("District Heating gridconnection already has two heating systems!");
-		}
-		//traceln("heatingAsset class " + p_spaceHeatingAsset.getClass().toString());
-		if( ((J_EAConversion)EA.p_energyAssetInstance) instanceof J_EAConversionHeatPump && ((J_EAConversionHeatPump)EA.p_energyAssetInstance).getAmbientTempType().equals("WATER") ) {
-			EA.p_linkedSourceEnergyAsset = p_residualHeatLTSource;
-			((J_EAConversionHeatPump)EA.p_energyAssetInstance).setSourceAssetHeatPower( EA.p_linkedSourceEnergyAsset.p_energyAssetInstance.capacityHeat_kW );
-		}
+	
+	switch (p_heatingType) {
+		case HEATPUMP_GASPEAK:
+			p_primaryHeatingAsset = p_primaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionHeatPump? EA : p_primaryHeatingAsset;
+			p_secondaryHeatingAsset = p_secondaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionGasBurner? EA : p_secondaryHeatingAsset;
+		break;
+		case GASFIRED:
+			p_primaryHeatingAsset = p_primaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionGasBurner? EA : p_primaryHeatingAsset;
+			p_secondaryHeatingAsset = p_secondaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionGasBurner? EA : p_secondaryHeatingAsset;
+		break;
+		case HYDROGENFIRED:
+			p_primaryHeatingAsset = p_primaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionHydrogenBurner? EA : p_primaryHeatingAsset;
+			p_secondaryHeatingAsset = p_secondaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionHydrogenBurner? EA : p_secondaryHeatingAsset;
+		break;
+		case HEATPUMP_BOILERPEAK:    // ambigue wat we met boiler bedoelen; eboiler of grootschalige DH_boiler = gasburner!
+			p_primaryHeatingAsset = p_primaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionHeatPump? EA : p_primaryHeatingAsset;
+			p_secondaryHeatingAsset = p_secondaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionGasBurner? EA : p_secondaryHeatingAsset;
+			p_secondaryHeatingAsset = p_secondaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionBoiler? EA : p_secondaryHeatingAsset;			
+		break;
+		case GASFIRED_CHPPEAK:
+			p_primaryHeatingAsset = p_primaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionGasBurner? EA : p_primaryHeatingAsset;
+			p_secondaryHeatingAsset = p_secondaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionGasCHP? EA : p_secondaryHeatingAsset;
+		break;
+		case LT_RESIDUAL_HEATPUMP_GASPEAK:
+			p_primaryHeatingAsset = p_primaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionHeatPump? EA : p_primaryHeatingAsset;
+			p_secondaryHeatingAsset = p_secondaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionGasBurner? EA : p_secondaryHeatingAsset;
+		break;
+		case DISTRICT_EBOILER_CHP:
+			p_primaryHeatingAsset = p_primaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionBoiler? EA : p_primaryHeatingAsset;
+			p_secondaryHeatingAsset = p_secondaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionGasCHP? EA : p_secondaryHeatingAsset;
+		break;
+		default:
+			throw new IllegalStateException("Invalid DistrictHeating HeatingType: " + p_heatingType);
 	}
+	
+		
+	//if (EA.p_energyAssetInstance instanceof J_EAConversionGasBurner || EA.p_energyAssetInstance instanceof J_EAConversionHeatPump || EA.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet || EA.p_energyAssetInstance instanceof J_EAConversionBoiler || EA.p_energyAssetInstance instanceof J_EAConversionGasCHP ) {
+	//	if (p_primaryHeatingAsset == null) {
+	//		p_primaryHeatingAsset = EA;
+	//	} else if (p_secondaryHeatingAsset == null) {
+	//		p_secondaryHeatingAsset = EA;
+	//	} else {
+	//		traceln("District Heating gridconnection already has two heating systems!");
+	//	}
+	//	//traceln("heatingAsset class " + p_spaceHeatingAsset.getClass().toString());
+	if( ((J_EAConversion)EA.p_energyAssetInstance) instanceof J_EAConversionHeatPump && ((J_EAConversionHeatPump)EA.p_energyAssetInstance).getAmbientTempType().equals("WATER") ) {
+		EA.p_linkedSourceEnergyAsset = p_residualHeatLTSource;
+		((J_EAConversionHeatPump)EA.p_energyAssetInstance).setSourceAssetHeatPower( EA.p_linkedSourceEnergyAsset.p_energyAssetInstance.capacityHeat_kW );
+	}
+//}
 } else {
 	traceln("f_connectToChild in EnergyAsset: Exception! EnergyAsset " + ConnectingChildNode.getId() + " is of unknown type or null! ");
 }
