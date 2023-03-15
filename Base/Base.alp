@@ -28211,22 +28211,36 @@ else if (j_instance instanceof J_EAStorage ) {
 else if (j_instance instanceof J_EAConversion) {
 	c_conversionAssets.add(EA);
 	if (EA.p_energyAssetType == OL_EnergyAssetType.GAS_BURNER || EA.p_energyAssetInstance instanceof J_EAConversionHeatPump || EA.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet || EA.p_energyAssetInstance instanceof J_EAConversionBoiler ) {
-		if (p_primaryHeatingAsset == null) {
-			p_primaryHeatingAsset = EA;
-		} else if (p_secondaryHeatingAsset == null) {
-			p_secondaryHeatingAsset = EA;
-	
-			// set water/water heatpump source energy-asset
-			if( EA.p_energyAssetInstance instanceof J_EAConversionHeatPump && ((J_EAConversionHeatPump)EA.p_energyAssetInstance).getAmbientTempType().equals("WATER") && p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet ) {
-				EA.p_linkedSourceEnergyAsset = p_primaryHeatingAsset;
-				EA.p_energyAssetInstance.updateAmbientTemperature( EA.p_linkedSourceEnergyAsset.p_energyAssetInstance.getCurrentTemperature() );
+		if( p_heatingType == OL_GridConnectionHeatingType.HEATPUMP_GASPEAK || p_heatingType == OL_GridConnectionHeatingType.HEATPUMP_BOILERPEAK ) {
+			if( EA.p_energyAssetInstance instanceof J_EAConversionHeatPump ){
+				p_primaryHeatingAsset = EA;
 			}
-				
-				
-		} else {
-			traceln("House " + p_agentID + " already has two heating systems!");
+			else {
+				p_secondaryHeatingAsset = EA;
+			}
 		}
-		//traceln("heatingAsset class " + p_spaceHeatingAsset.getClass().toString());
+		else if (p_heatingType == OL_GridConnectionHeatingType.DISTRICTHEAT){
+			if( EA.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet ){
+				p_primaryHeatingAsset = EA;
+			}
+			else {
+				p_secondaryHeatingAsset = EA;
+				// set water/water heatpump source energy-asset
+				//if( EA.p_energyAssetInstance instanceof J_EAConversionHeatPump && ((J_EAConversionHeatPump)EA.p_energyAssetInstance).getAmbientTempType().equals("WATER") && p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet ) {
+				if( EA.p_energyAssetInstance instanceof J_EAConversionHeatPump ){	
+					EA.p_linkedSourceEnergyAsset = p_primaryHeatingAsset;
+					EA.p_energyAssetInstance.updateAmbientTemperature( EA.p_linkedSourceEnergyAsset.p_energyAssetInstance.getCurrentTemperature() );
+				}
+			}	
+		}
+		else {
+			if ( p_primaryHeatingAsset == null) {
+				p_primaryHeatingAsset = EA;
+			} 
+			else {
+				traceln( "Multiple heating assets tryign to add, but bivalent heating system is not reckognized or implemented correctly in f_connectToChild, in hh: " + getName() );
+			}
+		}
 	}
 	else if ( EA.p_energyAssetType == OL_EnergyAssetType.GAS_PIT){
 		CookingTracker c = main.add_cookingTrackers();
