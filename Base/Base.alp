@@ -1671,6 +1671,42 @@ traceln(" ");]]></StartupCode>
 						<Type><![CDATA[double]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1678980412868</Id>
+					<Name><![CDATA[v_cumulativeGridCapacityLS]]></Name>
+					<X>-570</X><Y>1020</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1678980423977</Id>
+					<Name><![CDATA[v_cumulativeGridCapacityHS]]></Name>
+					<X>-570</X><Y>1040</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1678980746805</Id>
+					<Name><![CDATA[v_netOverloadKPI_pct]]></Name>
+					<X>-570</X><Y>1060</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1658496701675</Id>
 					<Name><![CDATA[p_timeStep_h]]></Name>
@@ -3206,7 +3242,7 @@ for(EnergyHolon a : pop_energyHolons) {
 }
 
 // Bereken netvlak-data:
-double netOverload_pct = f_sumGridNodeLoads();
+f_sumGridNodeLoads();
 traceln("Electricity imported: "+ v_totalElectricityImport_MWh + " MWh");
 traceln("Electricity exported: "+ v_totalElectricityExport_MWh + " MWh");
 traceln("Electricity delta in batteries: "+ batteryStoredEnergyDeltaSinceStart_MWh + " MWh");
@@ -3269,7 +3305,9 @@ double modelRunDuration_s = roundToDecimal( ( System.currentTimeMillis() - v_tim
 // add Total Cost KPI data:
 j_simulationResults.updateData( roundToDecimal( v_gridNodePeakLoadElectricityHSMS_kW, 2 ),
 							roundToDecimal( v_gridNodePeakLoadElectricityMSLS_kW, 2 ),
-							netOverload_pct,
+							v_cumulativeGridCapacityHS,
+							v_cumulativeGridCapacityLS,
+							v_netOverloadKPI_pct,
 							c_timesOfNodePeakLoads_h,
 							c_gridConnectionOverload_fr,
 							v_MSLSnodePeakPositiveLoadElectricity_kW,
@@ -3676,7 +3714,7 @@ for ( ConnectionOwner c : pop_connectionOwners){
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
-					<ReturnModificator>RETURNS_VALUE</ReturnModificator>
+					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1666879523873</Id>
 					<Name><![CDATA[f_sumGridNodeLoads]]></Name>
@@ -3700,9 +3738,10 @@ for(GridNode h : c_gridNodesHSMS ) {
 	v_totalElectricityImport_MWh += h.v_electricityDrawn_kWh / 1000;
 	v_totalElectricityExport_MWh += h.v_electricityDelivered_kWh / 1000;
 	c_timesOfNodePeakLoads_h.put(h.p_agentID, h.v_timeOfPeakLoadFiltered_h);
+	v_cumulativeGridCapacityHS += h.p_capacity_kW;
 }
 
-double sumOfLSCapacities = 0;
+
 
 
 for(GridNode m : c_gridNodesMSLS ) {
@@ -3715,7 +3754,7 @@ for(GridNode m : c_gridNodesMSLS ) {
 	v_MSLSnodePeakNegativeLoadElectricity_kW = max(v_MSLSnodePeakNegativeLoadElectricity_kW, -m.v_peakNegLoadElectricity_kW);
 	c_timesOfNodePeakLoads_h.put(m.p_agentID, m.v_timeOfPeakLoadFiltered_h);
 	
-	sumOfLSCapacities = m.p_capacity_kW;
+	v_cumulativeGridCapacityLS += m.p_capacity_kW;
 	
 	//traceln("MSLS node peak load unfiltered: " + m.v_peakLoadAbsoluteElectricity_kW + " kW");
 	traceln("");
@@ -3727,7 +3766,7 @@ for(GridConnection g: c_gridConnections){
     c_gridConnectionOverload_fr.put(g.p_agentID, g.v_maxConnectionLoad_fr);
 }
 
-return (max (0, v_gridNodePeakLoadElectricityMSLS_kW ) / sumOfLSCapacities);
+v_netOverloadKPI_pct = (max (0, v_gridNodePeakLoadElectricityMSLS_kW ) / v_cumulativeGridCapacityLS);
 
 ]]></Body>
 				</Function>
@@ -36274,6 +36313,8 @@ public class J_SimulationResults implements Serializable {
 
 	public double HSMSPeakLoadElectricity_kW;
 	public double MSLSPeakLoadElectricity_kW;
+	public double cumulativeCapacityHS;
+	public double cumulativeCapacityLS;
 	public double netOverload_pct;
 	public Map<String,Double> timesOfNodePeakLoads_h = new LinkedHashMap<String,Double>();
 	public Map<String,Double> gridConnectionMaxLoad_fr = new LinkedHashMap<String,Double>();
@@ -36312,9 +36353,11 @@ public class J_SimulationResults implements Serializable {
     /**
      * Constructor initializing the fields
      */
-    public J_SimulationResults( double v_gridNodeLoadElectricityHSMS_kW, double v_gridNodeLoadElectricityMSLS_kW, double netOverload_pct, LinkedHashMap<String,Double> c_timesOfNodePeakLoads_h, LinkedHashMap<String,Double> gridConnectionMaxLoad_fr, double MSLSnodePeakPositiveLoadElectricity_kW, double MSLSnodePeakNegativeLoadElectricity_kW, double totalElectricityImport_MWh, double totalElectricityExport_MWh, double totalMethaneImport_MWh, double totalMethaneExport_MWh, double totalHydrogenImport_MWh, double totalHydrogenExport_MWh, double totalDieselImport_MWh, LinkedHashMap<String,Double> totalBatteryUnitsInstalled, LinkedHashMap<String,Double> totalBatteryChargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryDischargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryInstalledCapacity_MWh, LinkedHashMap<Integer,Double> c_globalElectricityImportProfile_MWhph, LinkedHashMap<Integer,Double> c_globalElectricityExportProfile_MWhph, LinkedHashMap<Integer,Double> totalEVHourlyChargingProfile_kWh, LinkedHashMap<Integer,Double> totalEHGVHourlyChargingProfile_kWh, LinkedHashMap<Integer,Double> totalBatteryHourlyChargingProfile_kWh, double totalSelfConsumption_fr, double totalSelfSufficiency_fr, double TotalEnergyUsed_MWh, double TotalEnergyProduced_MWh, double TotalEnergyCurtailed_MWh) {
+    public J_SimulationResults( double v_gridNodeLoadElectricityHSMS_kW, double v_gridNodeLoadElectricityMSLS_kW, double cumulativeCapacityHS, double cumulativeCapacityLS, double netOverload_pct, LinkedHashMap<String,Double> c_timesOfNodePeakLoads_h, LinkedHashMap<String,Double> gridConnectionMaxLoad_fr, double MSLSnodePeakPositiveLoadElectricity_kW, double MSLSnodePeakNegativeLoadElectricity_kW, double totalElectricityImport_MWh, double totalElectricityExport_MWh, double totalMethaneImport_MWh, double totalMethaneExport_MWh, double totalHydrogenImport_MWh, double totalHydrogenExport_MWh, double totalDieselImport_MWh, LinkedHashMap<String,Double> totalBatteryUnitsInstalled, LinkedHashMap<String,Double> totalBatteryChargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryDischargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryInstalledCapacity_MWh, LinkedHashMap<Integer,Double> c_globalElectricityImportProfile_MWhph, LinkedHashMap<Integer,Double> c_globalElectricityExportProfile_MWhph, LinkedHashMap<Integer,Double> totalEVHourlyChargingProfile_kWh, LinkedHashMap<Integer,Double> totalEHGVHourlyChargingProfile_kWh, LinkedHashMap<Integer,Double> totalBatteryHourlyChargingProfile_kWh, double totalSelfConsumption_fr, double totalSelfSufficiency_fr, double TotalEnergyUsed_MWh, double TotalEnergyProduced_MWh, double TotalEnergyCurtailed_MWh) {
 		this.HSMSPeakLoadElectricity_kW = v_gridNodeLoadElectricityHSMS_kW;
 		this.MSLSPeakLoadElectricity_kW = v_gridNodeLoadElectricityMSLS_kW;
+		this.cumulativeCapacityHS = cumulativeCapacityHS;
+		this.cumulativeCapacityLS = cumulativeCapacityLS;
 		this.netOverload_pct = netOverload_pct;
 		this.timesOfNodePeakLoads_h = c_timesOfNodePeakLoads_h;
 		this.gridConnectionMaxLoad_fr = gridConnectionMaxLoad_fr;
@@ -36375,9 +36418,11 @@ public class J_SimulationResults implements Serializable {
 			"TotalEnergyCurtailed_MWh = " + TotalEnergyCurtailed_MWh + " MWh";
 	}
 
-	public void updateData( double v_gridNodePeakLoadElectricityHSMS_kW, double v_gridNodePeakLoadElectricityMSLS_kW, double netOverload_pct, LinkedHashMap<String,Double> c_timesOfNodePeakLoads_h, LinkedHashMap<String,Double> gridConnectionMaxLoad_fr, double MSLSnodePeakPositiveLoadElectricity_kW, double MSLSnodePeakNegativeLoadElectricity_kW, double totalElectricityImport_MWh, double totalElectricityExport_MWh, double totalMethaneImport_MWh, double totalMethaneExport_MWh, double totalHydrogenImport_MWh, double totalHydrogenExport_MWh, double totalDieselImport_MWh, LinkedHashMap<String,Double> totalBatteryUnitsInstalled, LinkedHashMap<String,Double> totalBatteryChargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryDischargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryInstalledCapacity_MWh, double totalSelfConsumption_fr, double totalSelfSufficiency_fr, double TotalEnergyUsed_MWh, double TotalEnergyProduced_MWh, double TotalEnergyCurtailed_MWh ) {
+	public void updateData( double v_gridNodePeakLoadElectricityHSMS_kW, double v_gridNodePeakLoadElectricityMSLS_kW, double cumulativeCapacityHS, double cumulativeCapacityLS, double netOverload_pct, LinkedHashMap<String,Double> c_timesOfNodePeakLoads_h, LinkedHashMap<String,Double> gridConnectionMaxLoad_fr, double MSLSnodePeakPositiveLoadElectricity_kW, double MSLSnodePeakNegativeLoadElectricity_kW, double totalElectricityImport_MWh, double totalElectricityExport_MWh, double totalMethaneImport_MWh, double totalMethaneExport_MWh, double totalHydrogenImport_MWh, double totalHydrogenExport_MWh, double totalDieselImport_MWh, LinkedHashMap<String,Double> totalBatteryUnitsInstalled, LinkedHashMap<String,Double> totalBatteryChargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryDischargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryInstalledCapacity_MWh, double totalSelfConsumption_fr, double totalSelfSufficiency_fr, double TotalEnergyUsed_MWh, double TotalEnergyProduced_MWh, double TotalEnergyCurtailed_MWh ) {
 		this.HSMSPeakLoadElectricity_kW = v_gridNodePeakLoadElectricityHSMS_kW;
 		this.MSLSPeakLoadElectricity_kW = v_gridNodePeakLoadElectricityMSLS_kW;
+		this.cumulativeCapacityHS =cumulativeCapacityHS;
+		this.cumulativeCapacityLS = cumulativeCapacityLS;
 		this.netOverload_pct = netOverload_pct;
 		this.timesOfNodePeakLoads_h = c_timesOfNodePeakLoads_h;
 		this.gridConnectionMaxLoad_fr = gridConnectionMaxLoad_fr;
