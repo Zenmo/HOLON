@@ -10061,6 +10061,9 @@ import java.io.*;]]></Import>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[20]]></Code>
+						</InitialValue>
 					</Properties>
 				</Variable>
 				<Variable Class="PlainVariable">
@@ -11496,19 +11499,13 @@ if( p_energyAssetList != null) {
 				storageAsset.set_p_defaultEnergyAssetPresetName( (String)l.get( "name" ));
 				if( storageAsset.p_energyAssetType == OL_EnergyAssetType.STORAGE_HEAT){
 				    double capacityHeat_kW2 = l.get( "capacityHeat_kW") == null? 0.0: Double.valueOf( l.get( "capacityHeat_kW").toString()).doubleValue();
-					double lossFactor_WpK = l.get( "lossFactor_WpK" ) == null? 0.0: Double.valueOf( l.get( "lossFactor_WpK" ).toString()).doubleValue();
+					double lossFactor_WpK = l.get( "lossFactor_WpK" ) == null? 0.0: Double.valueOf( l.get( "lossFactor_WpK" ).toString()).doubleValue() * uniform(0.7, 1.3);
 					double heatCapacity_JpK = l.get( "heatCapacity_JpK" ) == null? 0.0: Double.valueOf( l.get( "heatCapacity_JpK" ).toString()).doubleValue();
 					double minTemperature_degC = l.get( "minTemp_degC" ) == null? 44.0: Double.valueOf( l.get( "minTemp_degC" ).toString()).doubleValue(); // provide default values
 					double maxTemperature_degC = l.get( "maxTemp_degC" ) == null? 99.0: Double.valueOf( l.get( "maxTemp_degC" ).toString()).doubleValue();
 					double setTemperature_degC = l.get( "setTemp_degC" ) == null? 66.0: Double.valueOf( l.get( "setTemp_degC" ).toString()).doubleValue();
-					double initialTemperature_degC = l.get( "initial_temperature_degC" ) == null? 0.0 : Double.valueOf( l.get( "initial_temperature_degC" ).toString()).doubleValue();		
-					String ambientTempType2 = (String)l.get( "ambientTempType" ) == null? "": (String)l.get( "ambientTempType" );
-					
-					//traceln("Heat Storage init: minTemperature = "+minTemperature_degC+", maxTemperature_degC = "+maxTemperature_degC+", setTemperature_degC = "+setTemperature_degC+", initialTemperature_degC = "+initialTemperature_degC);
-					//minTemperature_degC = 35; // TO DELETE TEMP FIX
-					//setTemperature_degC = uniform_discr(38, 45); // TO DELETE TEMP FIX
-					//initialTemperature_degC = uniform_discr(70,80) * 1.0; // TO DELETE TEMP FIX
-					//heatCapacity_JpK = heatCapacity_JpK * uniform(0.7, 1.3); // TO DELETE TEMP FIX
+					double initialTemperature_degC = l.get( "initialTemperature_degC" ) == null? 0.0 : Double.valueOf( l.get( "initialTemperature_degC" ).toString()).doubleValue();		
+					String ambientTempType2 = (String)l.get( "ambientTempType" ) == null ? "": (String)l.get( "ambientTempType" );					
 					
 					storageAsset.p_energyAssetInstance = new J_EAStorageHeat(storageAsset, OL_EAStorageTypes.HEATBUFFER, capacityHeat_kW2, lossFactor_WpK, main.p_timeStep_h, initialTemperature_degC, minTemperature_degC, maxTemperature_degC, setTemperature_degC, heatCapacity_JpK, ambientTempType2);	
 					
@@ -11532,11 +11529,11 @@ if( p_energyAssetList != null) {
 				else if (storageAsset.p_energyAssetType == OL_EnergyAssetType.HEATMODEL ){
 				
 					double capacityHeat_kW3 = l.get( "capacityHeat_kW") == null? 0.0: Double.valueOf( l.get( "capacityHeat_kW").toString()).doubleValue();
-					double lossFactor_WpK2 = l.get( "lossFactor_WpK" ) == null? 0.0: Double.valueOf( l.get( "lossFactor_WpK" ).toString()).doubleValue();
-					double heatCapacity_JpK2 = l.get( "heatCapacity_JpK" ) == null? 0.0: Double.valueOf( l.get( "heatCapacity_JpK" ).toString()).doubleValue();
+					double lossFactor_WpK2 = l.get( "lossFactor_WpK" ) == null? 0.0: Double.valueOf( l.get( "lossFactor_WpK" ).toString()).doubleValue() * uniform(0.8, 1.2);
+					double heatCapacity_JpK2 = l.get( "heatCapacity_JpK" ) == null? 0.0: Double.valueOf( l.get( "heatCapacity_JpK" ).toString()).doubleValue() * uniform(0.7, 1.3);
 					double minTemperature_degC2 = l.get( "minTemp_degC" ) == null? 1.0: Double.valueOf( l.get( "minTemp_degC" ).toString()).doubleValue(); 
 					double maxTemperature_degC2 = l.get( "maxTemp_degC" ) == null? 90.0: Double.valueOf( l.get( "maxTemp_degC" ).toString()).doubleValue();
-					double initialTemperature_degC2 = l.get( "initial_temperature_degC" ) == null? 0.0 : Double.valueOf( l.get( "initial_temperature_degC" ).toString()).doubleValue();		
+					double initialTemperature_degC2 = l.get( "initialTemperature_degC" ) == null? 0.0 : Double.valueOf( l.get( "initialTemperature_degC" ).toString()).doubleValue();		
 					String ambientTempType3 = (String)l.get( "ambientTempType" ) == null? "AIR": (String)l.get( "ambientTempType" ); //ALWAYS AIR!
 					double setTemperature_degC2 = 10.0; // this value does nothing for a heatmodel. But it is required to initialize the J_instance
 
@@ -28288,6 +28285,9 @@ else if (j_instance instanceof J_EAConversion) {
 	c_conversionAssets.add(EA);
 	if (EA.p_energyAssetType == OL_EnergyAssetType.GAS_BURNER || EA.p_energyAssetInstance instanceof J_EAConversionHeatPump || EA.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet || EA.p_energyAssetInstance instanceof J_EAConversionBoiler ) {
 		switch (p_heatingType) {
+        	case HEATPUMP_AIR:
+        		p_primaryHeatingAsset = EA;
+        	break;
         	case HEATPUMP_GASPEAK:
 				p_primaryHeatingAsset = p_primaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionHeatPump? EA : p_primaryHeatingAsset;
 	            p_secondaryHeatingAsset = p_secondaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionGasBurner? EA : p_secondaryHeatingAsset;
