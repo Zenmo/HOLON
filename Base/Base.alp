@@ -3735,8 +3735,8 @@ for(GridNode h : c_gridNodesHSMS ) {
 	} else {
 		v_gridNodePeakLoadElectricityHSMS_kW += h.v_peakLoadFilteredElectricity_kW;
 	}
-	v_totalElectricityImport_MWh += h.v_electricityDrawn_kWh / 1000;
-	v_totalElectricityExport_MWh += h.v_electricityDelivered_kWh / 1000;
+	v_totalElectricityImport_MWh += h.v_electricityDrawn_kWh / 1000.0;
+	v_totalElectricityExport_MWh += h.v_electricityDelivered_kWh / 1000.0;
 	c_timesOfNodePeakLoads_h.put(h.p_agentID, h.v_timeOfPeakLoadFiltered_h);
 	v_cumulativeGridCapacityHS += h.p_capacity_kW;
 }
@@ -4565,7 +4565,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/Casus V2/Django testfiles/actors.txt]]></ClassName>
+						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/Testhuis/actors.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -4583,7 +4583,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/Casus V2/Django testfiles/gridnodes.txt]]></ClassName>
+						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/Testhuis/gridnodes.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -4601,7 +4601,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/Casus V2/Django testfiles/gridconnections.txt]]></ClassName>
+						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/Testhuis/gridconnections.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -4638,7 +4638,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[../CaseDefinitions/industry_case/industry_case_policies.txt]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/Casus V2/Django testfiles/policies.txt]]></ClassName>
+						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/Testhuis/policies.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -11662,29 +11662,35 @@ v_electricityTotalsCheck = v_electricityConsumedFixedProfile_kWh + v_electricity
 
 for(EnergyAsset e : c_consumptionAssets) {
 	if( e.p_energyAssetType == OL_EnergyAssetType.ELECTRICITY_DEMAND ) { // TODO: Replace with more descriptive EnergyAssetType, don't switch based on GridConnectionCategory!
-		switch(e.p_defaultEnergyAssetPresetName) {
-			case "INDUSTRY_OTHER_ELECTRICITY_DEMAND":
-				e.f_updateElectricityFlows( main.v_currentIndustryOtherElectricityDemand_fr );
-			break;
-			case "LOGISTICS_FLEET_HGV_E" :
-				e.f_updateElectricityFlows( main.v_currentLogisticsFleetEDemand_fr );
-			break;
-			case "INDUSTRY_STEEL_ELECTRICITY_DEMAND" :
-				e.f_updateElectricityFlows( main.v_currentIndustrySteelElectricityDemand_fr );
-			break;
-			case "House_other_electricity":
-				double randomizer = 0.7 + uniform(0.0, 0.6);
-				e.f_updateElectricityFlows( main.v_currentHouseHoldOtherElectricityDemand_fr * randomizer );
-			break;
-			case "Office_other_electricity":
-				e.f_updateElectricityFlows( main.v_currentBuildingOtherElectricityDemand_fr );
-			break;
-			case "Store_other_electricity":
-				e.f_updateElectricityFlows( main.v_currentBuildingOtherElectricityDemand_fr );
-			break;
-			default:
-				traceln("ConsumptionAsset with unknown type, cannot operate!! Type: " + e.p_energyAssetType);
-				throw new IllegalStateException("ELECTRICITY_DEMAND with unknown name, cannot operate!! Name: " + e.p_defaultEnergyAssetPresetName);
+		if (this instanceof GCHouse){
+			double randomizer = 0.7 + uniform(0.0, 0.6);
+			e.f_updateElectricityFlows( main.v_currentHouseHoldOtherElectricityDemand_fr * randomizer );
+		}
+		else {
+			switch(e.p_defaultEnergyAssetPresetName) {
+				case "INDUSTRY_OTHER_ELECTRICITY_DEMAND":
+					e.f_updateElectricityFlows( main.v_currentIndustryOtherElectricityDemand_fr );
+				break;
+				case "LOGISTICS_FLEET_HGV_E" :
+					e.f_updateElectricityFlows( main.v_currentLogisticsFleetEDemand_fr );
+				break;
+				case "INDUSTRY_STEEL_ELECTRICITY_DEMAND" :
+					e.f_updateElectricityFlows( main.v_currentIndustrySteelElectricityDemand_fr );
+				break;
+				case "House_other_electricity":
+					double randomizer = 0.7 + uniform(0.0, 0.6);
+					e.f_updateElectricityFlows( main.v_currentHouseHoldOtherElectricityDemand_fr * randomizer );
+				break;
+				case "Office_other_electricity":
+					e.f_updateElectricityFlows( main.v_currentBuildingOtherElectricityDemand_fr );
+				break;
+				case "Store_other_electricity":
+					e.f_updateElectricityFlows( main.v_currentBuildingOtherElectricityDemand_fr );
+				break;
+				default:
+					traceln("ConsumptionAsset with unknown type, cannot operate!! Type: " + e.p_energyAssetType);
+					throw new IllegalStateException("ELECTRICITY_DEMAND with unknown name, cannot operate!! Name: " + e.p_defaultEnergyAssetPresetName);
+			}
 		}
 		v_fixedConsumptionElectric_kW += e.v_currentConsumptionElectricity_kW;
 			
@@ -25143,13 +25149,18 @@ return transactionCostClient_eur;]]></Body>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[Actor mySupplier = null;
-mySupplier = findFirst(main.pop_energySuppliers, p->p.p_actorID.equals(v_contractDelivery.contractScope)) ;
-if (mySupplier != null) {
-	((EnergySupplier)mySupplier).f_connectToChild(this);	
-} else {
-	mySupplier = findFirst(main.pop_energyHolons, p->p.p_actorID.equals(v_contractDelivery.contractScope)) ;
+if (v_contractDelivery == null){ // this is a harcoded fix to make the buurtmodel run for 21-3-2023
+	mySupplier = findFirst(main.pop_energySuppliers, p->p.p_actorID.equals("sup2")) ;
+}
+else{
+	mySupplier = findFirst(main.pop_energySuppliers, p->p.p_actorID.equals(v_contractDelivery.contractScope)) ;
 	if (mySupplier != null) {
-		((EnergyHolon)mySupplier).f_connectToChild(this);	
+		((EnergySupplier)mySupplier).f_connectToChild(this);	
+	} else {
+		mySupplier = findFirst(main.pop_energyHolons, p->p.p_actorID.equals(v_contractDelivery.contractScope)) ;
+		if (mySupplier != null) {
+			((EnergyHolon)mySupplier).f_connectToChild(this);	
+		}
 	}
 }
 
@@ -25159,11 +25170,16 @@ if (mySupplier != null) {
 	traceln("Connection owner --> f_connectToParentActor --> no parent actor found, this should not be happening");
 }
 
-// Connect to grid operator (can be a holon!)
 Actor myGridoperator = null;
-myGridoperator = findFirst(main.pop_gridOperators, p->p.p_actorID.equals(v_contractTransport.contractScope)) ;
-if (myGridoperator == null) {
-	myGridoperator = findFirst(main.pop_energyHolons, p->p.p_actorID.equals(v_contractTransport.contractScope)) ;
+if (v_contractTransport == null){ // this is a harcoded fix to make the buurtmodel run for 21-3-2023
+	mySupplier = findFirst(main.pop_energySuppliers, p->p.p_actorID.equals("ope1")) ;
+}
+else{
+	// Connect to grid operator (can be a holon!)
+	myGridoperator = findFirst(main.pop_gridOperators, p->p.p_actorID.equals(v_contractTransport.contractScope)) ;
+	if (myGridoperator == null) {
+		myGridoperator = findFirst(main.pop_energyHolons, p->p.p_actorID.equals(v_contractTransport.contractScope)) ;
+	}
 }
 if (myGridoperator != null) {
 	p_gridOperator = myGridoperator;	
@@ -25375,6 +25391,13 @@ for( HashMap l : c_actorContractList) {
 		}
 }
 
+//TEMP FIX
+if (v_contractTax == null){
+ v_contractTax = new J_TaxContract("gove4", OL_EnergyCarrierType.ELECTRICITY, 0.15, 0.15, 0.21);
+ v_contractDelivery = new J_DeliveryContract("sup2", OL_DeliveryContractType.ELECTRICITY_FIXED, OL_EnergyCarrierType.ELECTRICITY, 0.08, 0.08);
+ v_contractConnection = new J_ConnectionContract("ope1", OL_ConnectionContractType.DEFAULT, 0.0, 0.0, 0.0 );
+ v_contractTransport = new J_TransportContract("ope1", OL_TransportContractType.DEFAULT, 0.0, 0.0);	
+}
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -36960,19 +36983,19 @@ public class J_ConnectionContract implements Serializable {
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/Casus V2/Django testfiles/actors.txt]]></Path>
+			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/Testhuis/gridconnections.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/Casus V2/Django testfiles/gridnodes.txt]]></Path>
+			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/Testhuis/gridnodes.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/Casus V2/Django testfiles/gridconnections.txt]]></Path>
+			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/Testhuis/policies.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/Casus V2/Django testfiles/policies.txt]]></Path>
+			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/Testhuis/actors.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
