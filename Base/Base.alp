@@ -3292,7 +3292,11 @@ if ( energyProduced_MWh > 0 ){
 
 traceln("Model-wide electricity selfconsumption: " + totalElectricitySelfConsumption_fr + "%");
 double totalSelfSufficiency_fr = 1 - (v_totalElectricityImport_MWh + v_totalMethaneImport_MWh + v_totalHydrogenImport_MWh + v_totalDieselImport_MWh - batteryStoredEnergyDeltaSinceStart_MWh ) / energyConsumed_MWh; // Doesn't account for changes in battery-SOC!
-traceln("Model-wide selfsufficiency (via export calc): " + totalSelfSufficiency_fr);
+//traceln("Model-wide selfsufficiency (via export calc): " + totalSelfSufficiency_fr);
+//traceln( "import electricity " + v_totalElectricityImport_MWh);
+//traceln( "import methane " + v_totalMethaneImport_MWh);
+//traceln( "importdiesel " + v_totalDieselImport_MWh);
+//traceln( "consumed  " + energyConsumed_MWh);
 
 double totalSelfSufficiency_fr_check = (energyProduced_MWh - (v_totalElectricityExport_MWh + v_totalMethaneExport_MWh + v_totalHydrogenExport_MWh))/energyConsumed_MWh;
 traceln("Model-wide selfsufficiency (via import calc): " + totalSelfSufficiency_fr_check);
@@ -3735,14 +3739,11 @@ for(GridNode h : c_gridNodesHSMS ) {
 	} else {
 		v_gridNodePeakLoadElectricityHSMS_kW += h.v_peakLoadFilteredElectricity_kW;
 	}
-	v_totalElectricityImport_MWh += h.v_electricityDrawn_kWh / 1000;
-	v_totalElectricityExport_MWh += h.v_electricityDelivered_kWh / 1000;
+	v_totalElectricityImport_MWh += h.v_electricityDrawn_kWh / 1000.0;
+	v_totalElectricityExport_MWh += h.v_electricityDelivered_kWh / 1000.0;
 	c_timesOfNodePeakLoads_h.put(h.p_agentID, h.v_timeOfPeakLoadFiltered_h);
 	v_cumulativeGridCapacityHS += h.p_capacity_kW;
 }
-
-
-
 
 for(GridNode m : c_gridNodesMSLS ) {
 	if ( p_forceBrownFieldNetload ) {
@@ -3753,8 +3754,12 @@ for(GridNode m : c_gridNodesMSLS ) {
 	v_MSLSnodePeakPositiveLoadElectricity_kW = max(v_MSLSnodePeakPositiveLoadElectricity_kW, m.v_peakPosLoadElectricity_kW);
 	v_MSLSnodePeakNegativeLoadElectricity_kW = max(v_MSLSnodePeakNegativeLoadElectricity_kW, -m.v_peakNegLoadElectricity_kW);
 	c_timesOfNodePeakLoads_h.put(m.p_agentID, m.v_timeOfPeakLoadFiltered_h);
-	
 	v_cumulativeGridCapacityLS += m.p_capacity_kW;
+	
+	if( c_gridNodesHSMS.size() == 0){
+		v_totalElectricityImport_MWh += m.v_electricityDrawn_kWh / 1000.0;
+		v_totalElectricityExport_MWh += m.v_electricityDelivered_kWh / 1000.0;
+	}
 	
 	//traceln("MSLS node peak load unfiltered: " + m.v_peakLoadAbsoluteElectricity_kW + " kW");
 	traceln("");
@@ -3766,8 +3771,14 @@ for(GridConnection g: c_gridConnections){
     c_gridConnectionOverload_fr.put(g.p_agentID, g.v_maxConnectionLoad_fr);
 }
 
-v_netOverloadKPI_pct = (max (0, v_gridNodePeakLoadElectricityMSLS_kW ) / v_cumulativeGridCapacityLS);
-
+// If the energy system only has LS nodes, determine KPI on LS level, otherwise on HS
+if (c_gridNodesHSMS.size() == 0){
+	v_netOverloadKPI_pct = (max (0, v_gridNodePeakLoadElectricityMSLS_kW ) / v_cumulativeGridCapacityLS);
+}
+else {
+	v_netOverloadKPI_pct = (max (0, v_gridNodePeakLoadElectricityHSMS_kW ) / v_cumulativeGridCapacityHS);
+	
+}
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -4575,7 +4586,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/Casus V2/Django testfiles/actors.txt]]></ClassName>
+						<ClassName><![CDATA[cases/industry_case/Casus V2/testfiles2/actors.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -4593,7 +4604,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/Casus V2/Django testfiles/gridnodes.txt]]></ClassName>
+						<ClassName><![CDATA[cases/industry_case/Casus V2/testfiles2/gridnodes.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -4611,7 +4622,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/Casus V2/Django testfiles/gridconnections.txt]]></ClassName>
+						<ClassName><![CDATA[cases/industry_case/Casus V2/testfiles2/gridconnections.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -4648,7 +4659,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[../CaseDefinitions/industry_case/industry_case_policies.txt]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/Casus V2/Django testfiles/policies.txt]]></ClassName>
+						<ClassName><![CDATA[cases/industry_case/Casus V2/testfiles2/policies.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -10061,6 +10072,9 @@ import java.io.*;]]></Import>
 					<ShowLabel>true</ShowLabel>
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[20]]></Code>
+						</InitialValue>
 					</Properties>
 				</Variable>
 				<Variable Class="PlainVariable">
@@ -11496,19 +11510,13 @@ if( p_energyAssetList != null) {
 				storageAsset.set_p_defaultEnergyAssetPresetName( (String)l.get( "name" ));
 				if( storageAsset.p_energyAssetType == OL_EnergyAssetType.STORAGE_HEAT){
 				    double capacityHeat_kW2 = l.get( "capacityHeat_kW") == null? 0.0: Double.valueOf( l.get( "capacityHeat_kW").toString()).doubleValue();
-					double lossFactor_WpK = l.get( "lossFactor_WpK" ) == null? 0.0: Double.valueOf( l.get( "lossFactor_WpK" ).toString()).doubleValue();
+					double lossFactor_WpK = l.get( "lossFactor_WpK" ) == null? 0.0: Double.valueOf( l.get( "lossFactor_WpK" ).toString()).doubleValue() * uniform(0.7, 1.3);
 					double heatCapacity_JpK = l.get( "heatCapacity_JpK" ) == null? 0.0: Double.valueOf( l.get( "heatCapacity_JpK" ).toString()).doubleValue();
 					double minTemperature_degC = l.get( "minTemp_degC" ) == null? 44.0: Double.valueOf( l.get( "minTemp_degC" ).toString()).doubleValue(); // provide default values
 					double maxTemperature_degC = l.get( "maxTemp_degC" ) == null? 99.0: Double.valueOf( l.get( "maxTemp_degC" ).toString()).doubleValue();
 					double setTemperature_degC = l.get( "setTemp_degC" ) == null? 66.0: Double.valueOf( l.get( "setTemp_degC" ).toString()).doubleValue();
-					double initialTemperature_degC = l.get( "initial_temperature_degC" ) == null? 0.0 : Double.valueOf( l.get( "initial_temperature_degC" ).toString()).doubleValue();		
-					String ambientTempType2 = (String)l.get( "ambientTempType" ) == null? "": (String)l.get( "ambientTempType" );
-					
-					//traceln("Heat Storage init: minTemperature = "+minTemperature_degC+", maxTemperature_degC = "+maxTemperature_degC+", setTemperature_degC = "+setTemperature_degC+", initialTemperature_degC = "+initialTemperature_degC);
-					//minTemperature_degC = 35; // TO DELETE TEMP FIX
-					//setTemperature_degC = uniform_discr(38, 45); // TO DELETE TEMP FIX
-					//initialTemperature_degC = uniform_discr(70,80) * 1.0; // TO DELETE TEMP FIX
-					//heatCapacity_JpK = heatCapacity_JpK * uniform(0.7, 1.3); // TO DELETE TEMP FIX
+					double initialTemperature_degC = l.get( "initialTemperature_degC" ) == null? 0.0 : Double.valueOf( l.get( "initialTemperature_degC" ).toString()).doubleValue();		
+					String ambientTempType2 = (String)l.get( "ambientTempType" ) == null ? "": (String)l.get( "ambientTempType" );					
 					
 					storageAsset.p_energyAssetInstance = new J_EAStorageHeat(storageAsset, OL_EAStorageTypes.HEATBUFFER, capacityHeat_kW2, lossFactor_WpK, main.p_timeStep_h, initialTemperature_degC, minTemperature_degC, maxTemperature_degC, setTemperature_degC, heatCapacity_JpK, ambientTempType2);	
 					
@@ -11532,11 +11540,11 @@ if( p_energyAssetList != null) {
 				else if (storageAsset.p_energyAssetType == OL_EnergyAssetType.HEATMODEL ){
 				
 					double capacityHeat_kW3 = l.get( "capacityHeat_kW") == null? 0.0: Double.valueOf( l.get( "capacityHeat_kW").toString()).doubleValue();
-					double lossFactor_WpK2 = l.get( "lossFactor_WpK" ) == null? 0.0: Double.valueOf( l.get( "lossFactor_WpK" ).toString()).doubleValue();
-					double heatCapacity_JpK2 = l.get( "heatCapacity_JpK" ) == null? 0.0: Double.valueOf( l.get( "heatCapacity_JpK" ).toString()).doubleValue();
+					double lossFactor_WpK2 = l.get( "lossFactor_WpK" ) == null? 0.0: Double.valueOf( l.get( "lossFactor_WpK" ).toString()).doubleValue() * uniform(0.8, 1.2);
+					double heatCapacity_JpK2 = l.get( "heatCapacity_JpK" ) == null? 0.0: Double.valueOf( l.get( "heatCapacity_JpK" ).toString()).doubleValue() * uniform(0.7, 1.3);
 					double minTemperature_degC2 = l.get( "minTemp_degC" ) == null? 1.0: Double.valueOf( l.get( "minTemp_degC" ).toString()).doubleValue(); 
 					double maxTemperature_degC2 = l.get( "maxTemp_degC" ) == null? 90.0: Double.valueOf( l.get( "maxTemp_degC" ).toString()).doubleValue();
-					double initialTemperature_degC2 = l.get( "initial_temperature_degC" ) == null? 0.0 : Double.valueOf( l.get( "initial_temperature_degC" ).toString()).doubleValue();		
+					double initialTemperature_degC2 = l.get( "initialTemperature_degC" ) == null? 0.0 : Double.valueOf( l.get( "initialTemperature_degC" ).toString()).doubleValue();		
 					String ambientTempType3 = (String)l.get( "ambientTempType" ) == null? "AIR": (String)l.get( "ambientTempType" ); //ALWAYS AIR!
 					double setTemperature_degC2 = 10.0; // this value does nothing for a heatmodel. But it is required to initialize the J_instance
 
@@ -11672,29 +11680,35 @@ v_electricityTotalsCheck = v_electricityConsumedFixedProfile_kWh + v_electricity
 
 for(EnergyAsset e : c_consumptionAssets) {
 	if( e.p_energyAssetType == OL_EnergyAssetType.ELECTRICITY_DEMAND ) { // TODO: Replace with more descriptive EnergyAssetType, don't switch based on GridConnectionCategory!
-		switch(e.p_defaultEnergyAssetPresetName) {
-			case "INDUSTRY_OTHER_ELECTRICITY_DEMAND":
-				e.f_updateElectricityFlows( main.v_currentIndustryOtherElectricityDemand_fr );
-			break;
-			case "LOGISTICS_FLEET_HGV_E" :
-				e.f_updateElectricityFlows( main.v_currentLogisticsFleetEDemand_fr );
-			break;
-			case "INDUSTRY_STEEL_ELECTRICITY_DEMAND" :
-				e.f_updateElectricityFlows( main.v_currentIndustrySteelElectricityDemand_fr );
-			break;
-			case "House_other_electricity":
-				double randomizer = 0.7 + uniform(0.0, 0.6);
-				e.f_updateElectricityFlows( main.v_currentHouseHoldOtherElectricityDemand_fr * randomizer );
-			break;
-			case "Office_other_electricity":
-				e.f_updateElectricityFlows( main.v_currentBuildingOtherElectricityDemand_fr );
-			break;
-			case "Store_other_electricity":
-				e.f_updateElectricityFlows( main.v_currentBuildingOtherElectricityDemand_fr );
-			break;
-			default:
-				traceln("ConsumptionAsset with unknown type, cannot operate!! Type: " + e.p_energyAssetType);
-				throw new IllegalStateException("ELECTRICITY_DEMAND with unknown name, cannot operate!! Name: " + e.p_defaultEnergyAssetPresetName);
+		if (this instanceof GCHouse){
+			double randomizer = 0.7 + uniform(0.0, 0.6);
+			e.f_updateElectricityFlows( main.v_currentHouseHoldOtherElectricityDemand_fr * randomizer );
+		}
+		else {
+			switch(e.p_defaultEnergyAssetPresetName) {
+				case "INDUSTRY_OTHER_ELECTRICITY_DEMAND":
+					e.f_updateElectricityFlows( main.v_currentIndustryOtherElectricityDemand_fr );
+				break;
+				case "LOGISTICS_FLEET_HGV_E" :
+					e.f_updateElectricityFlows( main.v_currentLogisticsFleetEDemand_fr );
+				break;
+				case "INDUSTRY_STEEL_ELECTRICITY_DEMAND" :
+					e.f_updateElectricityFlows( main.v_currentIndustrySteelElectricityDemand_fr );
+				break;
+				case "House_other_electricity":
+					double randomizer = 0.7 + uniform(0.0, 0.6);
+					e.f_updateElectricityFlows( main.v_currentHouseHoldOtherElectricityDemand_fr * randomizer );
+				break;
+				case "Office_other_electricity":
+					e.f_updateElectricityFlows( main.v_currentBuildingOtherElectricityDemand_fr );
+				break;
+				case "Store_other_electricity":
+					e.f_updateElectricityFlows( main.v_currentBuildingOtherElectricityDemand_fr );
+				break;
+				default:
+					traceln("ConsumptionAsset with unknown type, cannot operate!! Type: " + e.p_energyAssetType);
+					throw new IllegalStateException("ELECTRICITY_DEMAND with unknown name, cannot operate!! Name: " + e.p_defaultEnergyAssetPresetName);
+			}
 		}
 		v_fixedConsumptionElectric_kW += e.v_currentConsumptionElectricity_kW;
 			
@@ -25165,19 +25179,23 @@ if (mySupplier != null) {
 
 if (mySupplier != null) {
 	p_energySupplier = mySupplier;
-} else { 
+} 
+else { 
+	p_energySupplier = main.pop_energySuppliers.get(0);  // this is a harcoded fix to make the buurtmodel run for 21-3-2023
 	traceln("Connection owner --> f_connectToParentActor --> no parent actor found, this should not be happening");
 }
 
-// Connect to grid operator (can be a holon!)
 Actor myGridoperator = null;
+// Connect to grid operator (can be a holon!)
 myGridoperator = findFirst(main.pop_gridOperators, p->p.p_actorID.equals(v_contractTransport.contractScope)) ;
 if (myGridoperator == null) {
 	myGridoperator = findFirst(main.pop_energyHolons, p->p.p_actorID.equals(v_contractTransport.contractScope)) ;
 }
+
 if (myGridoperator != null) {
 	p_gridOperator = myGridoperator;	
 } else { 
+	p_gridOperator = main.pop_gridOperators.get( 0 ) ; // this is a harcoded fix to make the buurtmodel run for 21-3-2023
 	traceln("Connection owner --> f_connectToParentActor --> no parent actor found, this should not be happening");
 }
 ]]></Body>
@@ -25385,6 +25403,13 @@ for( HashMap l : c_actorContractList) {
 		}
 }
 
+//TEMP FIX
+if (v_contractTax == null){
+ v_contractTax = new J_TaxContract("gove4", OL_EnergyCarrierType.ELECTRICITY, 0.15, 0.15, 0.21);
+ v_contractDelivery = new J_DeliveryContract("sup2", OL_DeliveryContractType.ELECTRICITY_FIXED, OL_EnergyCarrierType.ELECTRICITY, 0.08, 0.08);
+ v_contractConnection = new J_ConnectionContract("ope1", OL_ConnectionContractType.DEFAULT, 0.0, 0.0, 0.0 );
+ v_contractTransport = new J_TransportContract("ope1", OL_TransportContractType.DEFAULT, 0.0, 0.0);	
+}
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -28265,6 +28290,9 @@ else if (j_instance instanceof J_EAConversion) {
 	c_conversionAssets.add(EA);
 	if (EA.p_energyAssetType == OL_EnergyAssetType.GAS_BURNER || EA.p_energyAssetInstance instanceof J_EAConversionHeatPump || EA.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet || EA.p_energyAssetInstance instanceof J_EAConversionBoiler ) {
 		switch (p_heatingType) {
+        	case HEATPUMP_AIR:
+        		p_primaryHeatingAsset = EA;
+        	break;
         	case HEATPUMP_GASPEAK:
 				p_primaryHeatingAsset = p_primaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionHeatPump? EA : p_primaryHeatingAsset;
 	            p_secondaryHeatingAsset = p_secondaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionGasBurner? EA : p_secondaryHeatingAsset;
@@ -36970,19 +36998,19 @@ public class J_ConnectionContract implements Serializable {
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/Casus V2/Django testfiles/actors.txt]]></Path>
+			<Path><![CDATA[cases/industry_case/Casus V2/testfiles2/actors.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/Casus V2/Django testfiles/gridnodes.txt]]></Path>
+			<Path><![CDATA[cases/industry_case/Casus V2/testfiles2/gridconnections.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/Casus V2/Django testfiles/gridconnections.txt]]></Path>
+			<Path><![CDATA[cases/industry_case/Casus V2/testfiles2/gridnodes.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/Casus V2/Django testfiles/policies.txt]]></Path>
+			<Path><![CDATA[cases/industry_case/Casus V2/testfiles2/policies.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
