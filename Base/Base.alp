@@ -3200,6 +3200,11 @@ for(ConnectionOwner c : pop_connectionOwners) {
 	try {
 		//traceln("ConnectionOwner v_ownedGridConnection: " + c.v_ownedGridConnection.p_agentID);
 //		traceln("ConnectionOwner v_energySupplierDistrictHeat: " + c.v_energySupplierDistrictHeat.toString());
+		boolean b_methaneUsedWithoutContracts = c.v_methanePrice_eurpkWh == 0.0 & c.v_totalMethaneUsed_kWh > 0;
+		boolean b_hydrogenUsedWithoutContracts = c.v_hydrogenPrice_eurpkWh == 0.0 & c.v_totalHydrogenUsed_kWh > 0;
+		if (b_methaneUsedWithoutContracts) {
+			traceln("Connection Owner " + c.p_actorID + " used methane without the required contracts!") ;
+		}
 		String holonString = c.p_holonParent == null ? null : c.p_holonParent.p_actorID;
 //		c.j_ActorData.updateData(c.p_actorID, c.p_actorType, c.p_parentActorID, c.p_energySupplier.toString(), c.v_ownedGridConnection.toString(), c.v_energySupplierDistrictHeat.toString(), roundToDecimal( c.v_electricityVolume_kWh, 2 ), roundToDecimal( c.v_heatVolume_kWh, 2), roundToDecimal( c.v_methaneVolume_kWh, 2), roundToDecimal( c.v_hydrogenVolume_kWh, 2 ), c.v_electricityContractType.toString(), c.v_heatContractType.toString(), c.v_methaneContractType.toString(), c.v_hydrogenContractType.toString(), roundToDecimal( c.v_balanceElectricity_eur, 2), roundToDecimal( c.v_balanceHeat_eur, 2), roundToDecimal( c.v_balanceMethane_eur, 2), roundToDecimal( c.v_balanceHydrogen_eur, 2));
 		
@@ -3209,7 +3214,8 @@ for(ConnectionOwner c : pop_connectionOwners) {
 			roundToDecimal( c.v_totalHydrogenUsed_kWh, 2 ), roundToDecimal( c.v_totalDieselUsed_kWh, 2 ),		
 			roundToDecimal( c.v_balanceElectricity_eur, 2), roundToDecimal( c.v_balanceElectricityDelivery_eur, 2), 
 			roundToDecimal( c.v_balanceElectricityTransport_eur, 2), roundToDecimal( c.v_balanceElectricityTax_eur, 2),
-			c.v_contractDelivery.contractScope, c.v_contractTransport.contractScope, c.v_contractTax.contractScope);
+			c.v_contractDelivery.contractScope, c.v_contractTransport.contractScope, c.v_contractTax.contractScope,
+			b_methaneUsedWithoutContracts, b_hydrogenUsedWithoutContracts);
 			
 				//c.v_electricityContractType.toString(), c.v_heatContractType.toString(), c.v_methaneContractType.toString(), c.v_hydrogenContractType.toString(), 
 		//null, null, null, null,
@@ -3232,7 +3238,8 @@ for(EnergyHolon a : pop_energyHolons) {
 		//a.v_electricityContractType.toString(), a.v_heatContractType.toString(), a.v_methaneContractType.toString(), a.v_hydrogenContractType.toString(),
 		//null, null, null, null,
 		roundToDecimal( a.v_balanceElectricity_eur, 2), roundToDecimal( a.v_balanceElectricityDelivery_eur, 2), roundToDecimal( a.v_balanceElectricityTransport_eur, 2), roundToDecimal( a.v_balanceElectricityTax_eur, 2),
-		a.v_contractDelivery.contractScope, a.v_contractTransport.contractScope, a.v_contractTax.contractScope);
+		a.v_contractDelivery.contractScope, a.v_contractTransport.contractScope, a.v_contractTax.contractScope,
+		false, false);
 		J_ActorData data = a.j_ActorData;
 		j_dataOut.actorData.add(data);
 	} catch (Exception e) {
@@ -36044,6 +36051,8 @@ public class J_ActorData implements Serializable {
 	public String deliveryContractScope;
 	public String transportContractScope;
 	public String taxContractScope;
+	public boolean b_methaneUsedWithoutContracts;
+	public boolean b_hydrogenUsedWithoutContracts;
 	 /**
      * Default constructor
      */
@@ -36077,6 +36086,8 @@ public class J_ActorData implements Serializable {
 		this.deliveryContractScope = "";
 		this.transportContractScope = "";
 		this.taxContractScope = "";
+		this.b_methaneUsedWithoutContracts = false;
+		this.b_hydrogenUsedWithoutContracts = false;
 		
     }
 
@@ -36108,7 +36119,7 @@ public class J_ActorData implements Serializable {
 			"taxContractScope = " + taxContractScope + " ";
 	}
 
-	public void updateData(String actorID, String group, String gridOperator, String parentHolon, String energySupplier, String ownedGridConnection, String energySupplierDistrictHeat,double electricityVolume_kWh, double heatVolume_kWh, double methaneVolume_kWh, double hydrogenVolume_kWh, double dieselVolume_kWh, /*String electricityContractType, String heatContractType, String methaneContractType, String hydrogenContractType,*/ double balanceElectricity_eur, double balanceElectricityDelivery_eur, double balanceElectricityTransport_eur, double balanceElectricityTax_eur, String deliveryContractScope, String transportContractScope, String taxContractScope) {
+	public void updateData(String actorID, String group, String gridOperator, String parentHolon, String energySupplier, String ownedGridConnection, String energySupplierDistrictHeat,double electricityVolume_kWh, double heatVolume_kWh, double methaneVolume_kWh, double hydrogenVolume_kWh, double dieselVolume_kWh, /*String electricityContractType, String heatContractType, String methaneContractType, String hydrogenContractType,*/ double balanceElectricity_eur, double balanceElectricityDelivery_eur, double balanceElectricityTransport_eur, double balanceElectricityTax_eur, String deliveryContractScope, String transportContractScope, String taxContractScope, boolean b_methaneUsedWithoutContracts, boolean b_hydrogenUsedWithoutContracts) {
 		this.actorID = actorID;
 		this.group = group;
 		this.gridOperator = gridOperator;
@@ -36131,7 +36142,9 @@ public class J_ActorData implements Serializable {
 		this.balanceElectricityTax_eur = balanceElectricityTax_eur + "";
 		this.deliveryContractScope = deliveryContractScope + "";
 		this.transportContractScope = transportContractScope + "";
-		this.taxContractScope = taxContractScope + "";		
+		this.taxContractScope = taxContractScope + "";	
+		this.b_methaneUsedWithoutContracts = b_methaneUsedWithoutContracts;
+		this.b_hydrogenUsedWithoutContracts = b_hydrogenUsedWithoutContracts;
 	}
 	/*
 	public ArrayList returnData() {
