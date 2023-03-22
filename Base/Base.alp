@@ -3292,7 +3292,11 @@ if ( energyProduced_MWh > 0 ){
 
 traceln("Model-wide electricity selfconsumption: " + totalElectricitySelfConsumption_fr + "%");
 double totalSelfSufficiency_fr = 1 - (v_totalElectricityImport_MWh + v_totalMethaneImport_MWh + v_totalHydrogenImport_MWh + v_totalDieselImport_MWh - batteryStoredEnergyDeltaSinceStart_MWh ) / energyConsumed_MWh; // Doesn't account for changes in battery-SOC!
-traceln("Model-wide selfsufficiency (via export calc): " + totalSelfSufficiency_fr);
+//traceln("Model-wide selfsufficiency (via export calc): " + totalSelfSufficiency_fr);
+//traceln( "import electricity " + v_totalElectricityImport_MWh);
+//traceln( "import methane " + v_totalMethaneImport_MWh);
+//traceln( "importdiesel " + v_totalDieselImport_MWh);
+//traceln( "consumed  " + energyConsumed_MWh);
 
 double totalSelfSufficiency_fr_check = (energyProduced_MWh - (v_totalElectricityExport_MWh + v_totalMethaneExport_MWh + v_totalHydrogenExport_MWh))/energyConsumed_MWh;
 traceln("Model-wide selfsufficiency (via import calc): " + totalSelfSufficiency_fr_check);
@@ -3741,9 +3745,6 @@ for(GridNode h : c_gridNodesHSMS ) {
 	v_cumulativeGridCapacityHS += h.p_capacity_kW;
 }
 
-
-
-
 for(GridNode m : c_gridNodesMSLS ) {
 	if ( p_forceBrownFieldNetload ) {
 		v_gridNodePeakLoadElectricityMSLS_kW += max(0,abs(m.v_peakLoadFilteredElectricity_kW)-m.p_capacity_kW);
@@ -3753,8 +3754,12 @@ for(GridNode m : c_gridNodesMSLS ) {
 	v_MSLSnodePeakPositiveLoadElectricity_kW = max(v_MSLSnodePeakPositiveLoadElectricity_kW, m.v_peakPosLoadElectricity_kW);
 	v_MSLSnodePeakNegativeLoadElectricity_kW = max(v_MSLSnodePeakNegativeLoadElectricity_kW, -m.v_peakNegLoadElectricity_kW);
 	c_timesOfNodePeakLoads_h.put(m.p_agentID, m.v_timeOfPeakLoadFiltered_h);
-	
 	v_cumulativeGridCapacityLS += m.p_capacity_kW;
+	
+	if( c_gridNodesHSMS.size() == 0){
+		v_totalElectricityImport_MWh += m.v_electricityDrawn_kWh / 1000.0;
+		v_totalElectricityExport_MWh += m.v_electricityDelivered_kWh / 1000.0;
+	}
 	
 	//traceln("MSLS node peak load unfiltered: " + m.v_peakLoadAbsoluteElectricity_kW + " kW");
 	traceln("");
@@ -3766,8 +3771,14 @@ for(GridConnection g: c_gridConnections){
     c_gridConnectionOverload_fr.put(g.p_agentID, g.v_maxConnectionLoad_fr);
 }
 
-v_netOverloadKPI_pct = (max (0, v_gridNodePeakLoadElectricityMSLS_kW ) / v_cumulativeGridCapacityLS);
-
+// If the energy system only has LS nodes, determine KPI on LS level, otherwise on HS
+if (c_gridNodesHSMS.size() == 0){
+	v_netOverloadKPI_pct = (max (0, v_gridNodePeakLoadElectricityMSLS_kW ) / v_cumulativeGridCapacityLS);
+}
+else {
+	v_netOverloadKPI_pct = (max (0, v_gridNodePeakLoadElectricityHSMS_kW ) / v_cumulativeGridCapacityHS);
+	
+}
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -25156,41 +25167,35 @@ return transactionCostClient_eur;]]></Body>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[Actor mySupplier = null;
-if (v_contractDelivery == null){ // this is a harcoded fix to make the buurtmodel run for 21-3-2023
-	mySupplier = main.pop_energySuppliers.get(0);
-}
-else{
-	mySupplier = findFirst(main.pop_energySuppliers, p->p.p_actorID.equals(v_contractDelivery.contractScope)) ;
+mySupplier = findFirst(main.pop_energySuppliers, p->p.p_actorID.equals(v_contractDelivery.contractScope)) ;
+if (mySupplier != null) {
+	((EnergySupplier)mySupplier).f_connectToChild(this);	
+} else {
+	mySupplier = findFirst(main.pop_energyHolons, p->p.p_actorID.equals(v_contractDelivery.contractScope)) ;
 	if (mySupplier != null) {
-		((EnergySupplier)mySupplier).f_connectToChild(this);	
-	} else {
-		mySupplier = findFirst(main.pop_energyHolons, p->p.p_actorID.equals(v_contractDelivery.contractScope)) ;
-		if (mySupplier != null) {
-			((EnergyHolon)mySupplier).f_connectToChild(this);	
-		}
+		((EnergyHolon)mySupplier).f_connectToChild(this);	
 	}
 }
 
 if (mySupplier != null) {
 	p_energySupplier = mySupplier;
-} else { 
+} 
+else { 
+	p_energySupplier = main.pop_energySuppliers.get(0);  // this is a harcoded fix to make the buurtmodel run for 21-3-2023
 	traceln("Connection owner --> f_connectToParentActor --> no parent actor found, this should not be happening");
 }
 
 Actor myGridoperator = null;
-if (v_contractTransport == null){ // this is a harcoded fix to make the buurtmodel run for 21-3-2023
-	myGridoperator = main.pop_gridOperators.get( 0 ) ;
+// Connect to grid operator (can be a holon!)
+myGridoperator = findFirst(main.pop_gridOperators, p->p.p_actorID.equals(v_contractTransport.contractScope)) ;
+if (myGridoperator == null) {
+	myGridoperator = findFirst(main.pop_energyHolons, p->p.p_actorID.equals(v_contractTransport.contractScope)) ;
 }
-else{
-	// Connect to grid operator (can be a holon!)
-	myGridoperator = findFirst(main.pop_gridOperators, p->p.p_actorID.equals(v_contractTransport.contractScope)) ;
-	if (myGridoperator == null) {
-		myGridoperator = findFirst(main.pop_energyHolons, p->p.p_actorID.equals(v_contractTransport.contractScope)) ;
-	}
-}
+
 if (myGridoperator != null) {
 	p_gridOperator = myGridoperator;	
 } else { 
+	p_gridOperator = main.pop_gridOperators.get( 0 ) ; // this is a harcoded fix to make the buurtmodel run for 21-3-2023
 	traceln("Connection owner --> f_connectToParentActor --> no parent actor found, this should not be happening");
 }
 ]]></Body>
