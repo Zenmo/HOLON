@@ -981,7 +981,8 @@ v_modelStartUpDuration_s = roundToDecimal(duration / 1000, 3);
 traceln(" ");
 traceln("*** Start up finished *** ");
 traceln("*** Start up duration: "+ v_modelStartUpDuration_s + " s ***");
-traceln(" ");]]></StartupCode>
+traceln(" ");
+]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1658477103138</Id>
@@ -28185,7 +28186,7 @@ if( p_householdEV != null){
 	v_currentPowerElectricity_kW += v_evChargingPowerElectric_kW;
 }
 
-v_currentLoadLowPassed_kW += v_lowPassFactorLoad_fr * ( v_currentPowerElectricity_kW - v_currentLoadLowPassed_kW );
+v_currentLoadLowPassed_kW += v_lowPassFactorLoad_fr * ( v_currentPowerElectricity_kW - v_currentLoadLowPassed_kW ); //you want to do deterine the lowpassLoad BEFORE the using the battery. As this behavior of the battery should nog be dependent on the load of the battery in the previous timesteps
 
 if( p_batteryAsset != null){
 	switch (p_batteryOperationMode){
@@ -28193,9 +28194,11 @@ if( p_batteryAsset != null){
 			f_batteryManagementLoad();
 		break;
 		case PRICE:
+			throw new IllegalStateException("Attempting PRICE balancing of household battery, but households only have HOUSEHOLD_LOAD as validated behavior");
 			f_batteryManagementPrice_overwrite(v_batterySOC_fr);
 		break;
 		default:
+			throw new IllegalStateException("Household has battery asset but not the correct batteryOperation mode (households only have HOUSEHOLD_LOAD as validated behavior)");
 		break;
 	}
 }
