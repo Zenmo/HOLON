@@ -4040,34 +4040,33 @@ for(HashMap data : parsedJSONGridConnections) {
     String gridConnectionParentElectric = data.get( "parent_electric" ) == null ? null : data.get( "parent_electric" ).toString(); //
     String gridConnectionParentHeat = data.get( "parent_heat" ) == null ? null : (String)data.get( "parent_heat" ); //
     Double gridConnectionCapacity = data.get( "capacity_kw" ) == null ? null : (Double)data.get( "capacity_kw" ); //
-    //Double gridConnectionNonFirmATOCapacity = data.get( "nfATO_capacity_kw" ) == null? 0 : (Double)data.get( "nfATO_capacity_kw" );
-    //Double gridConnectionNonFirmATOStarttime = data.get( "nfATO_starttime" ) == null? 0 : (Double)data.get( "nfATO_starttime" );
-	//Double gridConnectionNonFirmATOEndtime = data.get( "nfATO_endtime" ) == null? 0 : (Double)data.get( "nfATO_endtime" );
     OL_ChargingAttitude gridConnectionChargingAttitude = data.get( "charging_mode" ) == null ? OL_ChargingAttitude.SIMPLE : OL_ChargingAttitude.valueOf((String)data.get("charging_mode"));
     OL_BatteryOperationMode gridConnectionBatteryMode = data.get( "battery_mode" ) == null? OL_BatteryOperationMode.BALANCE : OL_BatteryOperationMode.valueOf((String)data.get("battery_mode"));
     OL_ElektrolyserOperationMode gridConnectionElektrolyserMode = data.get( "electrolyser_mode" ) == null? OL_ElektrolyserOperationMode.BALANCE : OL_ElektrolyserOperationMode.valueOf((String)data.get("electrolyser_mode"));    
 	OL_GridConnectionIsolationLabel gridConnectionIsolationLabel = data.get( "insulation_label" ) == null? null : OL_GridConnectionIsolationLabel.valueOf((String)data.get( "insulation_label" ));
 	OL_GridConnectionHeatingType gridConnectionHeatingType = data.get( "heating_type" ) == null? null : OL_GridConnectionHeatingType.valueOf((String)data.get( "heating_type" ));
 	boolean smartAssets = data.get("smart_assets") == null ? false : Boolean.parseBoolean( data.get( "smart_assets" ).toString() ) ;
-//	double deliveryTemp_degC = data.get( "deliveryTemp_degC" ) == null? null : (Double)data.get( "deliveryTemp_degC" );
-	
 	double tempSetpointNight_degC = data.get( "tempSetpointNight_degC") == null ? 0.0 : (Double)data.get( "tempSetpointNight_degC");
 	double tempSetpointNight_start_hr = data.get( "tempSetpointNight_start_hr") == null ? 0.0 : (Double)data.get( "tempSetpointNight_start_hr");
 	double tempSetpointDay_degC = data.get( "tempSetpointDay_degC") == null ? 0.0 : (Double)data.get( "tempSetpointDay_degC");
 	double tempSetpointDay_start_hr = data.get( "tempSetpointDay_start_hr") == null ? 0.0 : (Double)data.get( "tempSetpointDay_start_hr");
-	
 	Double pricelevel_low_dif_from_avg_eurpkWh = data.get("pricelevel_low_dif_from_avg_eurpkWh") == null ? 0.0 : (Double)data.get("pricelevel_low_dif_from_avg_eurpkWh");
 	Double pricelevel_high_dif_from_avg_eurpkWh = data.get("pricelevel_high_dif_from_avg_eurpkWh") == null ? 0.0 : (Double)data.get("pricelevel_high_dif_from_avg_eurpkWh");
-	
-	//gridConnectionChargingAttitude = OL_ChargingAttitude.SIMPLE;
+
 	
 	//traceln("data: " + "id = " + gridConnectionID + ", category = " + gridConnectionCategory + ", connectionType = " + gridConnectionType + ", parentElectric" + gridConnectionParentElectric + ", parentHeat = " + gridConnectionParentHeat + ", capacity = " + gridConnectionCapacity + "owner_actor = "+ ownerActorID);
 	switch(gridConnectionCategory) {
 		case HOUSE:
-			pricelevel_low_dif_from_avg_eurpkWh =  uniform_discr(1,13) / 100.0; //data.get("pricelevel_low_dif_from_avg_eurpkWh") == null ? null : (Double)data.get("pricelevel_low_dif_from_avg_eurpkWh");
-			pricelevel_high_dif_from_avg_eurpkWh = 0.13 - pricelevel_low_dif_from_avg_eurpkWh; //data.get("pricelevel_high_dif_from_avg_eurpkWh") == null ? null : (Double)data.get("pricelevel_high_dif_from_avg_eurpkWh");
+			
+			//THESE VALUES ARE HARDCODED TO CREATE HETEROGENEOUS BEHAVIOR AND BECAUSE THE DATAMODEL DOES NOT ALLOW THIS YET
+			pricelevel_low_dif_from_avg_eurpkWh =  uniform_discr(1,13) / 100.0; 
+			pricelevel_high_dif_from_avg_eurpkWh = 0.13 - pricelevel_low_dif_from_avg_eurpkWh;			
+			gridConnectionBatteryMode = OL_BatteryOperationMode.HOUSEHOLD_LOAD;
+			double lowPassFilterHousehold = 0.03;
+			//THESE VALUES ARE HARDCODED TO CREATE HETEROGENEOUS BEHAVIOR AND BECAUSE THE DATAMODEL DOES NOT ALLOW THIS YET
+			
 			GC = add_Houses();
-			GC.v_lowPassFactor_fr = 0.03; //HARDCODED TEMPORARY!!!!!!
+			GC.v_lowPassFactor_fr = lowPassFilterHousehold;
 			((GCHouse)GC).set_p_isolationLabel( gridConnectionIsolationLabel );
 	 	break;
  		case BUILDING:
@@ -4113,10 +4112,6 @@ for(HashMap data : parsedJSONGridConnections) {
 	GC.set_p_hasSmartFlexAssets( smartAssets );
 	GC.set_p_pricelevelHighDifFromAvg_eurpkWh( pricelevel_high_dif_from_avg_eurpkWh );
 	GC.set_p_pricelevelLowDifFromAvg_eurpkWh( pricelevel_low_dif_from_avg_eurpkWh );
-	//GC.set_p_nfatoEnd_h( gridConnectionNonFirmATOEndtime );
-	//GC.set_p_nfatoStart_h( gridConnectionNonFirmATOStarttime);
-	//GC.set_p_nfatoLvl_kW( gridConnectionNonFirmATOCapacity );
-
 	GC.v_nightTempSetpoint_degC = tempSetpointNight_degC;
 	GC.v_heatingOff_time = tempSetpointNight_start_hr;
 	GC.v_dayTempSetpoint_degC = tempSetpointDay_degC;
@@ -28194,11 +28189,9 @@ if( p_batteryAsset != null){
 			f_batteryManagementLoad();
 		break;
 		case PRICE:
-			throw new IllegalStateException("Attempting PRICE balancing of household battery, but households only have HOUSEHOLD_LOAD as validated behavior");
 			f_batteryManagementPrice_overwrite(v_batterySOC_fr);
 		break;
 		default:
-			throw new IllegalStateException("Household has battery asset but not the correct batteryOperation mode (households only have HOUSEHOLD_LOAD as validated behavior)");
 		break;
 	}
 }
