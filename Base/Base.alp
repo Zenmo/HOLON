@@ -2155,6 +2155,30 @@ traceln(" ");
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1680705282311</Id>
+					<Name><![CDATA[p_solarAbsorptionCoefficient]]></Name>
+					<X>-770</X><Y>460</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[0.2]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1680705282309</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1661504944109</Id>
 					<Name><![CDATA[parsedJSONGridNodes]]></Name>
@@ -4125,9 +4149,9 @@ for(HashMap data : parsedJSONGridConnections) {
 	double tempSetpointNight_start_hr = data.get( "tempSetpointNight_start_hr") == null ? 0.0 : (Double)data.get( "tempSetpointNight_start_hr");
 	double tempSetpointDay_degC = data.get( "tempSetpointDay_degC") == null ? 0.0 : (Double)data.get( "tempSetpointDay_degC");
 	double tempSetpointDay_start_hr = data.get( "tempSetpointDay_start_hr") == null ? 0.0 : (Double)data.get( "tempSetpointDay_start_hr");
-	Double pricelevel_low_dif_from_avg_eurpkWh = data.get("pricelevel_low_dif_from_avg_eurpkWh") == null ? 0.0 : (Double)data.get("pricelevel_low_dif_from_avg_eurpkWh");
-	Double pricelevel_high_dif_from_avg_eurpkWh = data.get("pricelevel_high_dif_from_avg_eurpkWh") == null ? 0.0 : (Double)data.get("pricelevel_high_dif_from_avg_eurpkWh");
-
+	double pricelevel_low_dif_from_avg_eurpkWh = data.get("pricelevel_low_dif_from_avg_eurpkWh") == null ? 0.0 : (Double)data.get("pricelevel_low_dif_from_avg_eurpkWh");
+	double pricelevel_high_dif_from_avg_eurpkWh = data.get("pricelevel_high_dif_from_avg_eurpkWh") == null ? 0.0 : (Double)data.get("pricelevel_high_dif_from_avg_eurpkWh");
+	double irradianceRecievingSurface_m2 = data.get("irradiance_recieving_surface") == null ? 0.0 : (Double)data.get("irradiance_recieving_surface");
 	
 	//traceln("data: " + "id = " + gridConnectionID + ", category = " + gridConnectionCategory + ", connectionType = " + gridConnectionType + ", parentElectric" + gridConnectionParentElectric + ", parentHeat = " + gridConnectionParentHeat + ", capacity = " + gridConnectionCapacity + "owner_actor = "+ ownerActorID);
 	switch(gridConnectionCategory) {
@@ -4137,11 +4161,13 @@ for(HashMap data : parsedJSONGridConnections) {
 			pricelevel_low_dif_from_avg_eurpkWh =  uniform_discr(1,13) / 100.0; 
 			pricelevel_high_dif_from_avg_eurpkWh = 0.13 - pricelevel_low_dif_from_avg_eurpkWh;			
 			gridConnectionBatteryMode = OL_BatteryOperationMode.HOUSEHOLD_LOAD;
-			double lowPassFilterHousehold = 0.03;
+			double lowPassFilterHousehold = 0.03; // -->> deze moet uiteindelijk naar datamodel. Moet configureerbaar zijn.
+			irradianceRecievingSurface_m2 = 10.0;
 			//THESE VALUES ARE HARDCODED TO CREATE HETEROGENEOUS BEHAVIOR AND BECAUSE THE DATAMODEL DOES NOT ALLOW THIS YET
 			
 			GC = add_Houses();
 			GC.v_lowPassFactor_fr = lowPassFilterHousehold;
+			GC.p_irradianceRecievingSurface_m2 = irradianceRecievingSurface_m2;
 			((GCHouse)GC).set_p_isolationLabel( gridConnectionIsolationLabel );
 	 	break;
  		case BUILDING:
@@ -4657,7 +4683,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/Casus V2/testfiles2/actors.txt]]></ClassName>
+						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/Stappen van casus na contractupdate/Stap 1 actors.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -4675,7 +4701,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/Casus V2/testfiles2/gridnodes.txt]]></ClassName>
+						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/Stappen van casus na contractupdate/Stap 1 gridnodes.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -4693,7 +4719,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/Casus V2/testfiles2/gridconnections.txt]]></ClassName>
+						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/Stappen van casus na contractupdate/Stap 2 gridconnections.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -4730,7 +4756,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[../CaseDefinitions/industry_case/industry_case_policies.txt]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/Casus V2/testfiles2/policies.txt]]></ClassName>
+						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/Stappen van casus na contractupdate/Stap 1 policies.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -5008,6 +5034,9 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -7610,6 +7639,73 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Latitude>0.0</Latitude>
 					<Longitude>0.0</Longitude>
 				</EmbeddedObjectPresentation>
+    			<TimePlot>
+					<Id>1680703412759</Id>
+					<Name><![CDATA[plot]]></Name>
+					<X>520</X><Y>370</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<AutoUpdate>true</AutoUpdate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1680768000000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[4]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</RecurrenceCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Width>770</Width>
+					<Height>330</Height>
+					<BackgroundColor/>
+					<BorderColor/>
+					<ChartArea>
+						<XOffset>50</XOffset>
+						<YOffset>30</YOffset>
+						<Width>690</Width>
+						<Height>240</Height>
+						<BackgroundColor>-1</BackgroundColor>
+						<BorderColor>-16777216</BorderColor>
+						<GridColor>-12566464</GridColor>
+					</ChartArea>
+					<Legend>
+						<Place>SOUTH</Place>
+						<TextColor>-16777216</TextColor>
+						<Size>30</Size>
+					</Legend>
+					<Labels>
+						<HorLabelsPosition>DEFAULT</HorLabelsPosition>
+						<VerLabelsPosition>DEFAULT</VerLabelsPosition>
+						<TextColor>-12566464</TextColor>
+					</Labels>
+					<ShowLegend>true</ShowLegend>
+					<TimeWindowsMovementType>MOVEMENT_WITH_TIME</TimeWindowsMovementType>		
+					<TimeWindowUnits>DAY</TimeWindowUnits>
+					<VerScaleFromExpression><![CDATA[0]]></VerScaleFromExpression>
+					<VerScaleToExpression><![CDATA[1]]></VerScaleToExpression>
+					<VerScaleType>AUTO</VerScaleType>
+					<DrawLine>true</DrawLine>
+					<Interpolation>LINEAR</Interpolation>
+					<DatasetExpression>  
+						<Title><![CDATA[Dataset Title]]></Title>
+					<Id>0</Id>
+					<Expression><![CDATA[my_dataset]]></Expression>
+					<Color>-14774017</Color>
+					<Expression2><![CDATA[v_currentSolarPowerNormalized_r]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>
+						<PointStyle>NONE</PointStyle>
+						<LineWidth>1.0</LineWidth>
+					</DatasetExpression>
+					<SamplesToKeep>100000</SamplesToKeep>
+					<TimeWindowExpression><![CDATA[100]]></TimeWindowExpression>
+					<FillAreaUnderLine>false</FillAreaUnderLine>
+					<LabelFormat>MODEL_TIME_UNITS</LabelFormat>
+    			</TimePlot>
 			</Presentation>
 
 				</Level>
@@ -10287,6 +10383,30 @@ import java.io.*;]]></Import>
 						<Type><![CDATA[double]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1680704269509</Id>
+					<Name><![CDATA[v_heatRecievingFromSun_kW]]></Name>
+					<X>450</X><Y>1090</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1680707298612</Id>
+					<Name><![CDATA[v_totalHeatRecievedSun_kWh]]></Name>
+					<X>450</X><Y>1110</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1658499438204</Id>
 					<Name><![CDATA[p_gridConnectionCategory]]></Name>
@@ -10964,6 +11084,27 @@ import java.io.*;]]></Import>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1676476049179</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1680703865828</Id>
+					<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
+					<X>250</X><Y>380</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1680703865826</Id>
 							<EditorContolType>TEXT_BOX</EditorContolType>
 							<MinSliderValue><![CDATA[0]]></MinSliderValue>
 							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
@@ -11743,7 +11884,10 @@ v_electricityTotalsCheck = v_electricityConsumedFixedProfile_kWh + v_electricity
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[for(EnergyAsset e : c_productionAssets) {
+					<Body><![CDATA[v_heatRecievingFromSun_kW = p_irradianceRecievingSurface_m2 * main.v_currentSolarPowerNormalized_r * main.p_solarAbsorptionCoefficient;
+v_totalHeatRecievedSun_kWh += v_heatRecievingFromSun_kW;
+
+for(EnergyAsset e : c_productionAssets) {
 	if( e.p_energyAssetType == OL_EnergyAssetType.PHOTOVOLTAIC) {
 		e.f_updateElectricityFlows( main.v_currentSolarPowerNormalized_r );
 		v_pvProductionElectric_kW += e.v_currentProductionElectricity_kW;
@@ -22186,9 +22330,9 @@ if (v_congestionTariffAllowance_kW != 0){
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[if( p_actorContractList != null) {
-	traceln("Contract list connectionOwner "+p_actorID+": " + p_actorContractList.toString());
+	//traceln("Contract list connectionOwner " + p_actorID + ": " + p_actorContractList.toString());
 } else {
-	traceln( "No contract data for connectionOwner "+p_actorID );
+	traceln( "No contract data for connectionOwner " + p_actorID );
 }
 
 double methaneDeliveryPrice_eurpkWh = 0.0;
@@ -22203,7 +22347,7 @@ double heatVAT_pct = 0.0;
 
 c_actorContractList = p_actorContractList;
 for( HashMap l : c_actorContractList) {
-	traceln("Contract hashmap l: " + l);
+	//traceln("Contract hashmap l: " + l);
 	OL_ContractType contractService = OL_ContractType.valueOf((String)l.get( "contractType" ));
 	String contractScope = (String)l.get( "contractScope" );
 	OL_EnergyCarrierType energyCarrier = OL_EnergyCarrierType.valueOf((String)l.get("energyCarrier"));
@@ -22303,10 +22447,7 @@ for( HashMap l : c_actorContractList) {
 			break;
 			case CONNECTION:
 				OL_ConnectionContractType connectionContractType = OL_ConnectionContractType.valueOf((String)l.get("connectionContractType"));
-				double nfATOstart_h = l.get("nfATO_starttime_h") == null ? 0.0 : (double)l.get("nfATO_starttime_h");
-				double nfATOend_h = l.get("nfATO_endtime_h") == null ? 0.0 : (double)l.get("nfATO_endtime_h");
-				double nfATOcapacity_kW = l.get("nfATO_capacity_kW") ==  null ? 0.0 : (double)l.get("nfATO_capacity_kW");
-				v_contractConnection = new J_ConnectionContract(contractScope, connectionContractType, energyCarrier, nfATOstart_h, nfATOend_h, nfATOcapacity_kW );
+				v_contractConnection = new J_ConnectionContract(contractScope, connectionContractType, energyCarrier, 0.0, 0.0, 0.0 );
 				c_actorContracts.add(v_contractConnection);
 			break;
 			case TRANSPORT:
@@ -25845,9 +25986,9 @@ traceln("Holon selfsufficiency: " + totalSelfSufficiency_fr + "%, doublecheck " 
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[if( p_actorContractList != null) {
-	traceln("Contract list connectionOwner "+p_actorID+": " + p_actorContractList.toString());
+	traceln("Contract list: " + this.getName() + " with ID: " + p_actorID + ": " + p_actorContractList.toString());
 } else {
-	traceln( "No contract data for connectionOwner "+p_actorID );
+	traceln( "No contract data for energy holon "+p_actorID );
 }
 
 double methaneDeliveryPrice_eurpkWh = 0.0;
@@ -25862,7 +26003,7 @@ double heatVAT_pct = 0.0;
 
 c_actorContractList = p_actorContractList;
 for( HashMap l : c_actorContractList) {
-	traceln("Contract hashmap l: " + l);
+	//traceln("Contract hashmap l: " + l);
 	OL_ContractType contractService = OL_ContractType.valueOf((String)l.get( "contractType" ));
 	String contractScope = (String)l.get( "contractScope" );
 	OL_EnergyCarrierType energyCarrier = OL_EnergyCarrierType.valueOf((String)l.get("energyCarrier"));
@@ -25962,10 +26103,7 @@ for( HashMap l : c_actorContractList) {
 			break;
 			case CONNECTION:
 				OL_ConnectionContractType connectionContractType = OL_ConnectionContractType.valueOf((String)l.get("connectionContractType"));
-				double nfATOstart_h = l.get("nfATO_starttime_h") == null ? 0.0 : (double)l.get("nfATO_starttime_h");
-				double nfATOend_h = l.get("nfATO_endtime_h") == null ? 0.0 : (double)l.get("nfATO_endtime_h");
-				double nfATOcapacity_kW = l.get("nfATO_capacity_kW") ==  null ? 0.0 : (double)l.get("nfATO_capacity_kW");
-				v_contractConnection = new J_ConnectionContract(contractScope, connectionContractType, energyCarrier, nfATOstart_h, nfATOend_h, nfATOcapacity_kW );
+				v_contractConnection = new J_ConnectionContract(contractScope, connectionContractType, energyCarrier, 0.0, 0.0, 0.0 );
 				c_actorContracts.add(v_contractConnection);
 			break;
 			case TRANSPORT:
@@ -26039,8 +26177,8 @@ for( HashMap l : c_actorContractList) {
 		}
 }*/
 
-//TEMP FIX
-if (v_contractTax == null){
+//If the energy holon exists but does not have contracts: add random contracts (THIS WAS A TEMP FIX, can be deleted)
+if ( v_contractTax == null){
 	 v_contractTax = new J_TaxContract("gove4", OL_EnergyCarrierType.ELECTRICITY, 0.15, 0.15, 0.21);
 	 v_contractDelivery = new J_DeliveryContract("sup2", OL_DeliveryContractType.ELECTRICITY_FIXED, OL_EnergyCarrierType.ELECTRICITY, 0.08, 0.08);
 	 v_contractConnection = new J_ConnectionContract("ope1", OL_ConnectionContractType.DEFAULT, OL_EnergyCarrierType.ELECTRICITY, 0.0, 0.0, 0.0 );
@@ -28442,6 +28580,9 @@ void f_heatWithHybridHeatpump() {
 				<Parameter>
 					<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
 				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
+				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -28846,6 +28987,8 @@ for (EnergyAsset e: c_conversionAssets) {
 	}
 }
 
+//add heating from sunrays to heatmodel power
+p_ThermalStorageAsset.v_powerFraction_fr += v_heatRecievingFromSun_kW / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW();
 
 p_primaryHeatingAsset.f_updateAllFlows(p_primaryHeatingAsset.v_powerFraction_fr);
 p_ThermalStorageAsset.f_updateAllFlows(p_ThermalStorageAsset.v_powerFraction_fr);
@@ -29911,6 +30054,16 @@ v_batterySOC_fr = p_batteryAsset.p_energyAssetInstance.getCurrentStateOfCharge()
 						<PointStyle>NONE</PointStyle>
 						<LineWidth>1.0</LineWidth>
 					</DatasetExpression>
+					<DatasetExpression>  
+						<Title><![CDATA[Heat recieving from sun]]></Title>
+					<Id>0</Id>
+					<Expression><![CDATA[my_dataset10]]></Expression>
+					<Color>-10496</Color>
+					<Expression2><![CDATA[v_heatRecievingFromSun_kW]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>
+						<PointStyle>NONE</PointStyle>
+						<LineWidth>1.0</LineWidth>
+					</DatasetExpression>
 					<SamplesToKeep>1000</SamplesToKeep>
 					<TimeWindowExpression><![CDATA[1]]></TimeWindowExpression>
 					<FillAreaUnderLine>false</FillAreaUnderLine>
@@ -30259,6 +30412,9 @@ public void f_batteryManagementPrice( double batterySOC ){
 				</Parameter>
 				<Parameter>
 					<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
 				</Parameter>
 			</Parameters>
 			<StartupCode><![CDATA[v_dayTempSetpoint_degC = 23;
@@ -30728,6 +30884,9 @@ public void f_connectToChild(Agent ConnectingChildNode){
 				</Parameter>
 				<Parameter>
 					<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
 				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
@@ -31663,6 +31822,9 @@ public void f_operateFlexAssets(){
 				<Parameter>
 					<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
 				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
+				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -32114,6 +32276,9 @@ if (CurtailerAsset.p_energyAssetInstance.getElectricCapacity_kW()>0) {
 				<Parameter>
 					<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
 				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
+				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -32379,6 +32544,9 @@ public void f_operateFlexAssets(){
 				</Parameter>
 				<Parameter>
 					<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
 				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
@@ -32780,6 +32948,9 @@ public void f_batteryManagementPrice( double batterySOC ){
 				</Parameter>
 				<Parameter>
 					<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
 				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
@@ -34738,6 +34909,9 @@ public void f_operateFlexAssets(){
 				<Parameter>
 					<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
 				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
+				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -35461,6 +35635,9 @@ if (p_batteryAsset != null){
 				</Parameter>
 				<Parameter>
 					<ParameterName><![CDATA[p_forceBrownFieldNetload]]></ParameterName>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_solarAbsorptionCoefficient]]></ParameterName>
 				</Parameter>
 			</Parameters>			
 			<PresentationProperties>
@@ -37779,19 +37956,19 @@ public class J_ConnectionContract extends base.J_Contract implements Serializabl
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/Casus V2/testfiles2/actors.txt]]></Path>
+			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/Stappen van casus na contractupdate/Stap 1 actors.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/Casus V2/testfiles2/gridconnections.txt]]></Path>
+			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/Stappen van casus na contractupdate/Stap 1 policies.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/Casus V2/testfiles2/gridnodes.txt]]></Path>
+			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/Stappen van casus na contractupdate/Stap 1 gridnodes.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/Casus V2/testfiles2/policies.txt]]></Path>
+			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/Stappen van casus na contractupdate/Stap 2 gridconnections.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
