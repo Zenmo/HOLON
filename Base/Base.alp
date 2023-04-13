@@ -997,7 +997,8 @@ v_modelStartUpDuration_s = roundToDecimal(duration / 1000, 3);
 traceln(" ");
 traceln("*** Start up finished *** ");
 traceln("*** Start up duration: "+ v_modelStartUpDuration_s + " s ***");
-traceln(" ");]]></StartupCode>
+traceln(" ");
+]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1658477103138</Id>
@@ -2154,6 +2155,78 @@ traceln(" ");]]></StartupCode>
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1680705282311</Id>
+					<Name><![CDATA[p_solarAbsorptionCoefficient]]></Name>
+					<X>-770</X><Y>460</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[0.2]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1680705282309</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1681376013855</Id>
+					<Name><![CDATA[p_testHolontoolResponse]]></Name>
+					<X>-390</X><Y>340</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[boolean]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[true]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1681376013853</Id>
+							<EditorContolType>CHECK_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1681379106589</Id>
+					<Name><![CDATA[p_printHolontoolInputJsons]]></Name>
+					<X>-390</X><Y>360</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[boolean]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[false]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1681379106587</Id>
+							<EditorContolType>CHECK_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1661504944109</Id>
 					<Name><![CDATA[parsedJSONGridNodes]]></Name>
@@ -2608,7 +2681,7 @@ v_timeStepsElapsed ++;
 						<OccurrenceAtTime>true</OccurrenceAtTime>
 						<OccurrenceDate>1674115200000</OccurrenceDate>
 						<OccurrenceTime Class="CodeUnitValue">
-							<Code><![CDATA[3936]]></Code>
+							<Code><![CDATA[30]]></Code>
 							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
 						</OccurrenceTime>
 						<RecurrenceCode Class="CodeUnitValue">
@@ -3380,7 +3453,7 @@ if ( energyProduced_MWh > 0 ){
 
 traceln("Model-wide electricity selfconsumption: " + totalElectricitySelfConsumption_fr + "%");
 double totalSelfSufficiency_fr = 1 - (v_totalElectricityImport_MWh + v_totalMethaneImport_MWh + v_totalHydrogenImport_MWh + v_totalDieselImport_MWh - batteryStoredEnergyDeltaSinceStart_MWh ) / energyConsumed_MWh; // Doesn't account for changes in battery-SOC!
-//traceln("Model-wide selfsufficiency (via export calc): " + totalSelfSufficiency_fr);
+traceln("Model-wide selfsufficiency (via export calc): " + totalSelfSufficiency_fr);
 //traceln( "import electricity " + v_totalElectricityImport_MWh);
 //traceln( "import methane " + v_totalMethaneImport_MWh);
 //traceln( "importdiesel " + v_totalDieselImport_MWh);
@@ -3516,11 +3589,80 @@ return 1;
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[p_gridNodeConfigJSON = t_configGridNodes.readString().replaceAll("^\"|\"$", "");
-p_gridConnectionConfigJSON = t_configGridConnections.readString().replaceAll("^\"|\"$", "");
-//p_energyAssetsConfigJSON = t_configEnergyAssets.readString().replaceAll("^\"|\"$", "");
-p_actorsConfigJSON = t_configActors.readString().replaceAll("^\"|\"$", "");
-p_policiesConfigJSON = t_configPolicies.readString().replaceAll("^\"|\"$", "");]]></Body>
+					<Body><![CDATA[if( p_testHolontoolResponse ){
+	String jsonString = t_holontoolResponse.readString();
+    String[] fields = {"actors", "gridconnections", "gridnodes", "policies"};
+    String actorsString = "", gridconnectionsString = "", gridnodesString = "", policiesString = "";
+
+    for (String field : fields) {
+    	int fieldIndex = jsonString.indexOf("\"" + field + "\"");
+        if (fieldIndex != -1) {
+        	int startArray = jsonString.indexOf('[', fieldIndex);
+            if (startArray != -1) {
+                int endArray = f_findClosingBracket(jsonString, startArray);
+                if (endArray != -1) {
+                    String extractedData = jsonString.substring(startArray, endArray + 1);
+                    switch (field) {
+                        case "actors":
+                            actorsString = extractedData;
+                            break;
+                        case "gridconnections":
+                            gridconnectionsString = extractedData;
+                            break;
+                        case "gridnodes":
+                            gridnodesString = extractedData;
+                            break;
+                        case "policies":
+                            policiesString = extractedData;
+                            break;
+                    }
+                } else {
+                    System.err.println("Could not find the content for the field: " + field);
+                }
+            } else {
+                System.err.println("Could not find the field: " + field);
+            }
+        } else {
+            System.err.println("Could not find the field: " + field);
+        }
+    }
+    
+    //PRINTING HERE LEADS TO AN OUTOFBOUND EXCEPTION WHEN USING REPLACE ALL BELOW. BUT IT DOESNT IMPACT TEH MODEL
+    //Seems like a very weird issue that its trying to read the string to the end, and then read it again but starting at the end, causing the error.
+	if( p_printHolontoolInputJsons) {
+		traceln("---------------------------------------------------------------------------------------------------");
+		traceln("------------------- GRIDNODES ---------------------------------------------------------------------");
+		traceln("---------------------------------------------------------------------------------------------------");
+		traceln(gridnodesString);
+		traceln("--------------------------------------------------------------------------------------------------");
+		traceln("------------------- POLICIES ---------------------------------------------------------------------");
+		traceln("--------------------------------------------------------------------------------------------------");
+		traceln(policiesString);
+		traceln("----------------------------------------------------------------------------------------------------");
+		traceln("------------------- GRIDCONNECTIONS ----------------------------------------------------------------");
+		traceln("----------------------------------------------------------------------------------------------------");
+		traceln(gridconnectionsString);
+		traceln("--------------------------------------------------------------------------------------------------");
+		traceln("------------------- ACTORS -----------------------------------------------------------------------");
+		traceln("--------------------------------------------------------------------------------------------------");
+		traceln(actorsString);
+	}
+
+   	p_gridNodeConfigJSON = gridnodesString.replaceAll("^\"|\"$", "");
+	p_gridConnectionConfigJSON = gridconnectionsString.replaceAll("^\"|\"$", "");
+	p_actorsConfigJSON = actorsString.replaceAll("^\"|\"$", "");
+	p_policiesConfigJSON = policiesString.replaceAll("^\"|\"$", "");
+	
+
+}
+else{ 
+	//traceln("gridnode string: " + t_configGridNodes.readString());
+	p_gridNodeConfigJSON = t_configGridNodes.readString().replaceAll("^\"|\"$", "");
+	p_gridConnectionConfigJSON = t_configGridConnections.readString().replaceAll("^\"|\"$", "");
+	//p_energyAssetsConfigJSON = t_configEnergyAssets.readString().replaceAll("^\"|\"$", "");
+	p_actorsConfigJSON = t_configActors.readString().replaceAll("^\"|\"$", "");
+	p_policiesConfigJSON = t_configPolicies.readString().replaceAll("^\"|\"$", "");
+}]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -4114,34 +4256,34 @@ for(HashMap data : parsedJSONGridConnections) {
     String gridConnectionParentElectric = data.get( "parent_electric" ) == null ? null : data.get( "parent_electric" ).toString(); //
     String gridConnectionParentHeat = data.get( "parent_heat" ) == null ? null : (String)data.get( "parent_heat" ); //
     Double gridConnectionCapacity = data.get( "capacity_kw" ) == null ? null : (Double)data.get( "capacity_kw" ); //
-    //Double gridConnectionNonFirmATOCapacity = data.get( "nfATO_capacity_kw" ) == null? 0 : (Double)data.get( "nfATO_capacity_kw" );
-    //Double gridConnectionNonFirmATOStarttime = data.get( "nfATO_starttime" ) == null? 0 : (Double)data.get( "nfATO_starttime" );
-	//Double gridConnectionNonFirmATOEndtime = data.get( "nfATO_endtime" ) == null? 0 : (Double)data.get( "nfATO_endtime" );
     OL_ChargingAttitude gridConnectionChargingAttitude = data.get( "charging_mode" ) == null ? OL_ChargingAttitude.SIMPLE : OL_ChargingAttitude.valueOf((String)data.get("charging_mode"));
     OL_BatteryOperationMode gridConnectionBatteryMode = data.get( "battery_mode" ) == null? OL_BatteryOperationMode.BALANCE : OL_BatteryOperationMode.valueOf((String)data.get("battery_mode"));
     OL_ElektrolyserOperationMode gridConnectionElektrolyserMode = data.get( "electrolyser_mode" ) == null? OL_ElektrolyserOperationMode.BALANCE : OL_ElektrolyserOperationMode.valueOf((String)data.get("electrolyser_mode"));    
 	OL_GridConnectionIsolationLabel gridConnectionIsolationLabel = data.get( "insulation_label" ) == null? null : OL_GridConnectionIsolationLabel.valueOf((String)data.get( "insulation_label" ));
 	OL_GridConnectionHeatingType gridConnectionHeatingType = data.get( "heating_type" ) == null? null : OL_GridConnectionHeatingType.valueOf((String)data.get( "heating_type" ));
 	boolean smartAssets = data.get("smart_assets") == null ? false : Boolean.parseBoolean( data.get( "smart_assets" ).toString() ) ;
-//	double deliveryTemp_degC = data.get( "deliveryTemp_degC" ) == null? null : (Double)data.get( "deliveryTemp_degC" );
-	
 	double tempSetpointNight_degC = data.get( "tempSetpointNight_degC") == null ? 0.0 : (Double)data.get( "tempSetpointNight_degC");
 	double tempSetpointNight_start_hr = data.get( "tempSetpointNight_start_hr") == null ? 0.0 : (Double)data.get( "tempSetpointNight_start_hr");
 	double tempSetpointDay_degC = data.get( "tempSetpointDay_degC") == null ? 0.0 : (Double)data.get( "tempSetpointDay_degC");
 	double tempSetpointDay_start_hr = data.get( "tempSetpointDay_start_hr") == null ? 0.0 : (Double)data.get( "tempSetpointDay_start_hr");
-	
-	Double pricelevel_low_dif_from_avg_eurpkWh = data.get("pricelevel_low_dif_from_avg_eurpkWh") == null ? 0.0 : (Double)data.get("pricelevel_low_dif_from_avg_eurpkWh");
-	Double pricelevel_high_dif_from_avg_eurpkWh = data.get("pricelevel_high_dif_from_avg_eurpkWh") == null ? 0.0 : (Double)data.get("pricelevel_high_dif_from_avg_eurpkWh");
-	
-	//gridConnectionChargingAttitude = OL_ChargingAttitude.SIMPLE;
+	double pricelevel_low_dif_from_avg_eurpkWh = data.get("pricelevel_low_dif_from_avg_eurpkWh") == null ? 0.0 : (Double)data.get("pricelevel_low_dif_from_avg_eurpkWh");
+	double pricelevel_high_dif_from_avg_eurpkWh = data.get("pricelevel_high_dif_from_avg_eurpkWh") == null ? 0.0 : (Double)data.get("pricelevel_high_dif_from_avg_eurpkWh");
+	double irradianceRecievingSurface_m2 = data.get("irradiance_recieving_surface") == null ? 0.0 : (Double)data.get("irradiance_recieving_surface");
 	
 	//traceln("data: " + "id = " + gridConnectionID + ", category = " + gridConnectionCategory + ", connectionType = " + gridConnectionType + ", parentElectric" + gridConnectionParentElectric + ", parentHeat = " + gridConnectionParentHeat + ", capacity = " + gridConnectionCapacity + "owner_actor = "+ ownerActorID);
 	switch(gridConnectionCategory) {
 		case HOUSE:
-			pricelevel_low_dif_from_avg_eurpkWh =  uniform_discr(1,13) / 100.0; //data.get("pricelevel_low_dif_from_avg_eurpkWh") == null ? null : (Double)data.get("pricelevel_low_dif_from_avg_eurpkWh");
-			pricelevel_high_dif_from_avg_eurpkWh = 0.13 - pricelevel_low_dif_from_avg_eurpkWh; //data.get("pricelevel_high_dif_from_avg_eurpkWh") == null ? null : (Double)data.get("pricelevel_high_dif_from_avg_eurpkWh");
+			
+			//THESE VALUES ARE HARDCODED TO CREATE HETEROGENEOUS BEHAVIOR AND BECAUSE THE DATAMODEL DOES NOT ALLOW THIS YET
+			pricelevel_low_dif_from_avg_eurpkWh =  uniform_discr(1,13) / 100.0; 
+			pricelevel_high_dif_from_avg_eurpkWh = 0.13 - pricelevel_low_dif_from_avg_eurpkWh;			
+			gridConnectionBatteryMode = OL_BatteryOperationMode.HOUSEHOLD_LOAD;
+			double lowPassFilterHousehold = 0.03; // -->> deze moet uiteindelijk naar datamodel. Moet configureerbaar zijn.
+			irradianceRecievingSurface_m2 = 10.0;
+			//THESE VALUES ARE HARDCODED TO CREATE HETEROGENEOUS BEHAVIOR AND BECAUSE THE DATAMODEL DOES NOT ALLOW THIS YET
+			
 			GC = add_Houses();
-			GC.v_lowPassFactor_fr = 0.03; //HARDCODED TEMPORARY!!!!!!
+			GC.v_lowPassFactor_fr = lowPassFilterHousehold;
 			((GCHouse)GC).set_p_isolationLabel( gridConnectionIsolationLabel );
 	 	break;
  		case BUILDING:
@@ -4187,10 +4329,7 @@ for(HashMap data : parsedJSONGridConnections) {
 	GC.set_p_hasSmartFlexAssets( smartAssets );
 	GC.set_p_pricelevelHighDifFromAvg_eurpkWh( pricelevel_high_dif_from_avg_eurpkWh );
 	GC.set_p_pricelevelLowDifFromAvg_eurpkWh( pricelevel_low_dif_from_avg_eurpkWh );
-	//GC.set_p_nfatoEnd_h( gridConnectionNonFirmATOEndtime );
-	//GC.set_p_nfatoStart_h( gridConnectionNonFirmATOStarttime);
-	//GC.set_p_nfatoLvl_kW( gridConnectionNonFirmATOCapacity );
-
+	GC.set_p_irradianceRecievingSurface_m2( irradianceRecievingSurface_m2 );
 	GC.v_nightTempSetpoint_degC = tempSetpointNight_degC;
 	GC.v_heatingOff_time = tempSetpointNight_start_hr;
 	GC.v_dayTempSetpoint_degC = tempSetpointDay_degC;
@@ -4230,6 +4369,39 @@ for (double ts_h = 0; ts_h<p_forecastTime_h; ts_h += p_timeStep_h) {
 	v_epexForecast_eurpkWh += nationalEnergyMarket.tf_dayAheadElectricityPricing_eurpMWh(ts_h)/(p_forecastTime_h/p_timeStep_h)/1000;
 }
 v_epexForecast_eurpkWh += 0.17;]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>RETURNS_VALUE</ReturnModificator>
+					<ReturnType><![CDATA[int]]></ReturnType>
+					<Id>1681376280006</Id>
+					<Name><![CDATA[f_findClosingBracket]]></Name>
+					<X>-580</X><Y>70</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[jsonString]]></Name>
+						<Type><![CDATA[String]]></Type>
+					</Parameter>
+					<Parameter>
+						<Name><![CDATA[startArray]]></Name>
+						<Type><![CDATA[int]]></Type>
+					</Parameter>
+					<Body><![CDATA[int openBrackets = 0;
+for (int i = startArray; i < jsonString.length(); i++) {
+	char currentChar = jsonString.charAt(i);
+    if (currentChar == '[') {
+		openBrackets++;
+	} 
+	else if (currentChar == ']') {
+       	openBrackets--;
+    }
+    if (openBrackets == 0) {
+        return i;
+    }
+}
+return -1;]]></Body>
 				</Function>
 			</Functions>
 			<TableFunctions>
@@ -4661,7 +4833,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/Casus V2/testfiles2/actors.txt]]></ClassName>
+						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/Stappen van casus na contractupdate/Stap 1 actors.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -4679,7 +4851,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/Casus V2/testfiles2/gridnodes.txt]]></ClassName>
+						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/Stappen van casus na contractupdate/Stap 1 gridnodes.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -4697,7 +4869,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/Casus V2/testfiles2/gridconnections.txt]]></ClassName>
+						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/Stappen van casus na contractupdate/Stap 1 gridconnections.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -4734,10 +4906,28 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[../CaseDefinitions/industry_case/industry_case_policies.txt]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/Casus V2/testfiles2/policies.txt]]></ClassName>
+						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/Stappen van casus na contractupdate/Stap 1 policies.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
+					<Separators></Separators>
+				</TextFile>
+				<TextFile>
+					<Id>1681375993119</Id>
+					<Name><![CDATA[t_holontoolResponse]]></Name>
+					<X>-390</X><Y>310</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<FileType>FILE</FileType>
+					<Url><![CDATA[]]></Url>
+					<ResourceReference>
+						<PackageName><![CDATA[base]]></PackageName>
+						<ClassName><![CDATA[cases/industry_case/holontool_scenario.txt]]></ClassName>
+					</ResourceReference>
+					<FileMode>READ</FileMode>
+					<CharsetName>null</CharsetName>
 					<Separators></Separators>
 				</TextFile>
 				<ExcelFile>
@@ -5012,6 +5202,9 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -5861,6 +6054,9 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 						<Parameter>
 							<Name><![CDATA[p_smartChargingPowerAttenuation_fr]]></Name>
 						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
+						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
 					<Replication Class="CodeValue">
@@ -6014,6 +6210,9 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -6172,6 +6371,9 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 						<Parameter>
 							<Name><![CDATA[p_residualHeatLTSource]]></Name>
 						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
+						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
 					<Replication Class="CodeValue">
@@ -6325,6 +6527,9 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -6480,6 +6685,9 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 						<Parameter>
 							<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
 						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
+						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
 					<Replication Class="CodeValue">
@@ -6634,6 +6842,9 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 						<Parameter>
 							<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
 						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
+						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
 					<Replication Class="CodeValue">
@@ -6787,6 +6998,9 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -7092,6 +7306,9 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -10291,6 +10508,30 @@ import java.io.*;]]></Import>
 						<Type><![CDATA[double]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1680704269509</Id>
+					<Name><![CDATA[v_heatRecievingFromSun_kW]]></Name>
+					<X>450</X><Y>1090</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1680707298612</Id>
+					<Name><![CDATA[v_totalHeatRecievedSun_kWh]]></Name>
+					<X>450</X><Y>1110</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1658499438204</Id>
 					<Name><![CDATA[p_gridConnectionCategory]]></Name>
@@ -10968,6 +11209,27 @@ import java.io.*;]]></Import>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1676476049179</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1680703865828</Id>
+					<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
+					<X>250</X><Y>380</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1680703865826</Id>
 							<EditorContolType>TEXT_BOX</EditorContolType>
 							<MinSliderValue><![CDATA[0]]></MinSliderValue>
 							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
@@ -11747,7 +12009,10 @@ v_electricityTotalsCheck = v_electricityConsumedFixedProfile_kWh + v_electricity
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[for(EnergyAsset e : c_productionAssets) {
+					<Body><![CDATA[v_heatRecievingFromSun_kW = p_irradianceRecievingSurface_m2 * main.v_currentSolarPowerNormalized_r * main.p_solarAbsorptionCoefficient;
+v_totalHeatRecievedSun_kWh += v_heatRecievingFromSun_kW;
+
+for(EnergyAsset e : c_productionAssets) {
 	if( e.p_energyAssetType == OL_EnergyAssetType.PHOTOVOLTAIC) {
 		e.f_updateElectricityFlows( main.v_currentSolarPowerNormalized_r );
 		v_pvProductionElectric_kW += e.v_currentProductionElectricity_kW;
@@ -21916,7 +22181,8 @@ ea 2
 					</Parameter>
 					<Body><![CDATA[gridConnections.connectTo(ConnectingChildNode);
 v_ownedGridConnection = ConnectingChildNode;
-if (v_contractConnection.contractType.equals(OL_ConnectionContractType.NFATO)) {
+//traceln("f_connectToChild in connectionOwner agent, connection contract type: " + v_contractConnection.connectionContractType);
+if (v_contractConnection.connectionContractType.equals(OL_ConnectionContractType.NFATO)) {
 	ConnectingChildNode.v_enable_nfATO_b = true;
 	ConnectingChildNode.p_nfatoStart_h = v_contractConnection.nfATOstart_h;
 	ConnectingChildNode.p_nfatoEnd_h = v_contractConnection.nfATOend_h;
@@ -22190,9 +22456,9 @@ if (v_congestionTariffAllowance_kW != 0){
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[if( p_actorContractList != null) {
-	traceln("Contract list connectionOwner "+p_actorID+": " + p_actorContractList.toString());
+	//traceln("Contract list connectionOwner " + p_actorID + ": " + p_actorContractList.toString());
 } else {
-	traceln( "No contract data for connectionOwner "+p_actorID );
+	traceln( "No contract data for connectionOwner " + p_actorID );
 }
 
 double methaneDeliveryPrice_eurpkWh = 0.0;
@@ -22207,7 +22473,7 @@ double heatVAT_pct = 0.0;
 
 c_actorContractList = p_actorContractList;
 for( HashMap l : c_actorContractList) {
-	traceln("Contract hashmap l: " + l);
+	//traceln("Contract hashmap l: " + l);
 	OL_ContractType contractService = OL_ContractType.valueOf((String)l.get( "contractType" ));
 	String contractScope = (String)l.get( "contractScope" );
 	OL_EnergyCarrierType energyCarrier = OL_EnergyCarrierType.valueOf((String)l.get("energyCarrier"));
@@ -22232,6 +22498,7 @@ for( HashMap l : c_actorContractList) {
 			break;
 			case CONNECTION:
 				OL_ConnectionContractType connectionContractType = OL_ConnectionContractType.valueOf((String)l.get("connectionContractType"));
+				//traceln("Initializing connection contract with ConnectionContractType: " + connectionContractType);
 				double nfATOstart_h = l.get("nfATO_starttime_h") == null ? 0.0 : (double)l.get("nfATO_starttime_h");
 				double nfATOend_h = l.get("nfATO_endtime_h") == null ? 0.0 : (double)l.get("nfATO_endtime_h");
 				double nfATOcapacity_kW = l.get("nfATO_capacity_kW") ==  null ? 0.0 : (double)l.get("nfATO_capacity_kW");
@@ -22307,10 +22574,7 @@ for( HashMap l : c_actorContractList) {
 			break;
 			case CONNECTION:
 				OL_ConnectionContractType connectionContractType = OL_ConnectionContractType.valueOf((String)l.get("connectionContractType"));
-				double nfATOstart_h = l.get("nfATO_starttime_h") == null ? 0.0 : (double)l.get("nfATO_starttime_h");
-				double nfATOend_h = l.get("nfATO_endtime_h") == null ? 0.0 : (double)l.get("nfATO_endtime_h");
-				double nfATOcapacity_kW = l.get("nfATO_capacity_kW") ==  null ? 0.0 : (double)l.get("nfATO_capacity_kW");
-				v_contractConnection = new J_ConnectionContract(contractScope, connectionContractType, energyCarrier, nfATOstart_h, nfATOend_h, nfATOcapacity_kW );
+				v_contractConnection = new J_ConnectionContract(contractScope, connectionContractType, energyCarrier, 0.0, 0.0, 0.0 );
 				c_actorContracts.add(v_contractConnection);
 			break;
 			case TRANSPORT:
@@ -25849,9 +26113,9 @@ traceln("Holon selfsufficiency: " + totalSelfSufficiency_fr + "%, doublecheck " 
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[if( p_actorContractList != null) {
-	traceln("Contract list connectionOwner "+p_actorID+": " + p_actorContractList.toString());
+	traceln("Contract list: " + this.getName() + " with ID: " + p_actorID + ": " + p_actorContractList.toString());
 } else {
-	traceln( "No contract data for connectionOwner "+p_actorID );
+	traceln( "No contract data for energy holon "+p_actorID );
 }
 
 double methaneDeliveryPrice_eurpkWh = 0.0;
@@ -25866,7 +26130,7 @@ double heatVAT_pct = 0.0;
 
 c_actorContractList = p_actorContractList;
 for( HashMap l : c_actorContractList) {
-	traceln("Contract hashmap l: " + l);
+	//traceln("Contract hashmap l: " + l);
 	OL_ContractType contractService = OL_ContractType.valueOf((String)l.get( "contractType" ));
 	String contractScope = (String)l.get( "contractScope" );
 	OL_EnergyCarrierType energyCarrier = OL_EnergyCarrierType.valueOf((String)l.get("energyCarrier"));
@@ -25966,10 +26230,7 @@ for( HashMap l : c_actorContractList) {
 			break;
 			case CONNECTION:
 				OL_ConnectionContractType connectionContractType = OL_ConnectionContractType.valueOf((String)l.get("connectionContractType"));
-				double nfATOstart_h = l.get("nfATO_starttime_h") == null ? 0.0 : (double)l.get("nfATO_starttime_h");
-				double nfATOend_h = l.get("nfATO_endtime_h") == null ? 0.0 : (double)l.get("nfATO_endtime_h");
-				double nfATOcapacity_kW = l.get("nfATO_capacity_kW") ==  null ? 0.0 : (double)l.get("nfATO_capacity_kW");
-				v_contractConnection = new J_ConnectionContract(contractScope, connectionContractType, energyCarrier, nfATOstart_h, nfATOend_h, nfATOcapacity_kW );
+				v_contractConnection = new J_ConnectionContract(contractScope, connectionContractType, energyCarrier, 0.0, 0.0, 0.0 );
 				c_actorContracts.add(v_contractConnection);
 			break;
 			case TRANSPORT:
@@ -26043,8 +26304,8 @@ for( HashMap l : c_actorContractList) {
 		}
 }*/
 
-//TEMP FIX
-if (v_contractTax == null){
+//If the energy holon exists but does not have contracts: add random contracts (THIS WAS A TEMP FIX, can be deleted)
+if ( v_contractTax == null){
 	 v_contractTax = new J_TaxContract("gove4", OL_EnergyCarrierType.ELECTRICITY, 0.15, 0.15, 0.21);
 	 v_contractDelivery = new J_DeliveryContract("sup2", OL_DeliveryContractType.ELECTRICITY_FIXED, OL_EnergyCarrierType.ELECTRICITY, 0.08, 0.08);
 	 v_contractConnection = new J_ConnectionContract("ope1", OL_ConnectionContractType.DEFAULT, OL_EnergyCarrierType.ELECTRICITY, 0.0, 0.0, 0.0 );
@@ -28446,6 +28707,9 @@ void f_heatWithHybridHeatpump() {
 				<Parameter>
 					<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
 				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
+				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -28850,6 +29114,8 @@ for (EnergyAsset e: c_conversionAssets) {
 	}
 }
 
+//add heating from sunrays to heatmodel power
+p_ThermalStorageAsset.v_powerFraction_fr += v_heatRecievingFromSun_kW / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW();
 
 p_primaryHeatingAsset.f_updateAllFlows(p_primaryHeatingAsset.v_powerFraction_fr);
 p_ThermalStorageAsset.f_updateAllFlows(p_ThermalStorageAsset.v_powerFraction_fr);
@@ -28901,7 +29167,7 @@ if( p_householdEV != null){
 	v_currentPowerElectricity_kW += v_evChargingPowerElectric_kW;
 }
 
-v_currentLoadLowPassed_kW += v_lowPassFactorLoad_fr * ( v_currentPowerElectricity_kW - v_currentLoadLowPassed_kW );
+v_currentLoadLowPassed_kW += v_lowPassFactorLoad_fr * ( v_currentPowerElectricity_kW - v_currentLoadLowPassed_kW ); //you want to do deterine the lowpassLoad BEFORE the using the battery. As this behavior of the battery should nog be dependent on the load of the battery in the previous timesteps
 
 if( p_batteryAsset != null){
 	switch (p_batteryOperationMode){
@@ -29915,6 +30181,16 @@ v_batterySOC_fr = p_batteryAsset.p_energyAssetInstance.getCurrentStateOfCharge()
 						<PointStyle>NONE</PointStyle>
 						<LineWidth>1.0</LineWidth>
 					</DatasetExpression>
+					<DatasetExpression>  
+						<Title><![CDATA[Heat recieving from sun]]></Title>
+					<Id>0</Id>
+					<Expression><![CDATA[my_dataset10]]></Expression>
+					<Color>-10496</Color>
+					<Expression2><![CDATA[v_heatRecievingFromSun_kW]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>
+						<PointStyle>NONE</PointStyle>
+						<LineWidth>1.0</LineWidth>
+					</DatasetExpression>
 					<SamplesToKeep>1000</SamplesToKeep>
 					<TimeWindowExpression><![CDATA[1]]></TimeWindowExpression>
 					<FillAreaUnderLine>false</FillAreaUnderLine>
@@ -30263,6 +30539,9 @@ public void f_batteryManagementPrice( double batterySOC ){
 				</Parameter>
 				<Parameter>
 					<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
 				</Parameter>
 			</Parameters>
 			<StartupCode><![CDATA[v_dayTempSetpoint_degC = 23;
@@ -30732,6 +31011,9 @@ public void f_connectToChild(Agent ConnectingChildNode){
 				</Parameter>
 				<Parameter>
 					<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
 				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
@@ -31667,6 +31949,9 @@ public void f_operateFlexAssets(){
 				<Parameter>
 					<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
 				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
+				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -32118,6 +32403,9 @@ if (CurtailerAsset.p_energyAssetInstance.getElectricCapacity_kW()>0) {
 				<Parameter>
 					<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
 				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
+				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -32383,6 +32671,9 @@ public void f_operateFlexAssets(){
 				</Parameter>
 				<Parameter>
 					<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
 				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
@@ -32784,6 +33075,9 @@ public void f_batteryManagementPrice( double batterySOC ){
 				</Parameter>
 				<Parameter>
 					<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
 				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
@@ -34742,6 +35036,9 @@ public void f_operateFlexAssets(){
 				<Parameter>
 					<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
 				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
+				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -35465,6 +35762,15 @@ if (p_batteryAsset != null){
 				</Parameter>
 				<Parameter>
 					<ParameterName><![CDATA[p_forceBrownFieldNetload]]></ParameterName>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_solarAbsorptionCoefficient]]></ParameterName>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_testHolontoolResponse]]></ParameterName>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_printHolontoolInputJsons]]></ParameterName>
 				</Parameter>
 			</Parameters>			
 			<PresentationProperties>
@@ -36474,6 +36780,7 @@ public class J_EAEV extends base.J_EAStorageElectric implements Serializable {
 	public boolean startTrip() {
 		if (availability) {
 			availability = false;
+			//traceln("storage capacity start of trip: " + storageCapacity_kWh + ", state of charge: " + stateOfCharge_r);
 			return true;
 		} else {
 			traceln("Trip not started because EV not available!");
@@ -37783,19 +38090,23 @@ public class J_ConnectionContract extends base.J_Contract implements Serializabl
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/Casus V2/testfiles2/actors.txt]]></Path>
+			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/Stappen van casus na contractupdate/Stap 1 actors.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/Casus V2/testfiles2/gridconnections.txt]]></Path>
+			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/Stappen van casus na contractupdate/Stap 1 policies.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/Casus V2/testfiles2/gridnodes.txt]]></Path>
+			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/Stappen van casus na contractupdate/Stap 1 gridnodes.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/Casus V2/testfiles2/policies.txt]]></Path>
+			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/Stappen van casus na contractupdate/Stap 1 gridconnections.txt]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[cases/industry_case/holontool_scenario.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
@@ -37811,6 +38122,6 @@ public class J_ConnectionContract extends base.J_Contract implements Serializabl
 		<VersionMinor>0</VersionMinor>
 		<VersionBuild>5</VersionBuild>
     </RequiredLibraryReference>
-	<CloudModelUuid><![CDATA[b003332d-0cb9-4fd7-ba17-905998ce1730]]></CloudModelUuid>
+	<CloudModelUuid><![CDATA[f0006c84-cd34-461a-954b-de8a3d2b7198]]></CloudModelUuid>
 </Model>
 </AnyLogicWorkspace>
