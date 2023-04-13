@@ -2179,6 +2179,54 @@ traceln(" ");
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1681376013855</Id>
+					<Name><![CDATA[p_testHolontoolResponse]]></Name>
+					<X>-390</X><Y>340</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[boolean]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[true]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1681376013853</Id>
+							<EditorContolType>CHECK_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1681379106589</Id>
+					<Name><![CDATA[p_printHolontoolInputJsons]]></Name>
+					<X>-390</X><Y>360</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[boolean]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[false]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1681379106587</Id>
+							<EditorContolType>CHECK_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1661504944109</Id>
 					<Name><![CDATA[parsedJSONGridNodes]]></Name>
@@ -3541,11 +3589,80 @@ return 1;
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[p_gridNodeConfigJSON = t_configGridNodes.readString().replaceAll("^\"|\"$", "");
-p_gridConnectionConfigJSON = t_configGridConnections.readString().replaceAll("^\"|\"$", "");
-//p_energyAssetsConfigJSON = t_configEnergyAssets.readString().replaceAll("^\"|\"$", "");
-p_actorsConfigJSON = t_configActors.readString().replaceAll("^\"|\"$", "");
-p_policiesConfigJSON = t_configPolicies.readString().replaceAll("^\"|\"$", "");]]></Body>
+					<Body><![CDATA[if( p_testHolontoolResponse ){
+	String jsonString = t_holontoolResponse.readString();
+    String[] fields = {"actors", "gridconnections", "gridnodes", "policies"};
+    String actorsString = "", gridconnectionsString = "", gridnodesString = "", policiesString = "";
+
+    for (String field : fields) {
+    	int fieldIndex = jsonString.indexOf("\"" + field + "\"");
+        if (fieldIndex != -1) {
+        	int startArray = jsonString.indexOf('[', fieldIndex);
+            if (startArray != -1) {
+                int endArray = f_findClosingBracket(jsonString, startArray);
+                if (endArray != -1) {
+                    String extractedData = jsonString.substring(startArray, endArray + 1);
+                    switch (field) {
+                        case "actors":
+                            actorsString = extractedData;
+                            break;
+                        case "gridconnections":
+                            gridconnectionsString = extractedData;
+                            break;
+                        case "gridnodes":
+                            gridnodesString = extractedData;
+                            break;
+                        case "policies":
+                            policiesString = extractedData;
+                            break;
+                    }
+                } else {
+                    System.err.println("Could not find the content for the field: " + field);
+                }
+            } else {
+                System.err.println("Could not find the field: " + field);
+            }
+        } else {
+            System.err.println("Could not find the field: " + field);
+        }
+    }
+    
+    //PRINTING HERE LEADS TO AN OUTOFBOUND EXCEPTION WHEN USING REPLACE ALL BELOW. BUT IT DOESNT IMPACT TEH MODEL
+    //Seems like a very weird issue that its trying to read the string to the end, and then read it again but starting at the end, causing the error.
+	if( p_printHolontoolInputJsons) {
+		traceln("---------------------------------------------------------------------------------------------------");
+		traceln("------------------- GRIDNODES ---------------------------------------------------------------------");
+		traceln("---------------------------------------------------------------------------------------------------");
+		traceln(gridnodesString);
+		traceln("--------------------------------------------------------------------------------------------------");
+		traceln("------------------- POLICIES ---------------------------------------------------------------------");
+		traceln("--------------------------------------------------------------------------------------------------");
+		traceln(policiesString);
+		traceln("----------------------------------------------------------------------------------------------------");
+		traceln("------------------- GRIDCONNECTIONS ----------------------------------------------------------------");
+		traceln("----------------------------------------------------------------------------------------------------");
+		traceln(gridconnectionsString);
+		traceln("--------------------------------------------------------------------------------------------------");
+		traceln("------------------- ACTORS -----------------------------------------------------------------------");
+		traceln("--------------------------------------------------------------------------------------------------");
+		traceln(actorsString);
+	}
+
+   	p_gridNodeConfigJSON = gridnodesString.replaceAll("^\"|\"$", "");
+	p_gridConnectionConfigJSON = gridconnectionsString.replaceAll("^\"|\"$", "");
+	p_actorsConfigJSON = actorsString.replaceAll("^\"|\"$", "");
+	p_policiesConfigJSON = policiesString.replaceAll("^\"|\"$", "");
+	
+
+}
+else{ 
+	//traceln("gridnode string: " + t_configGridNodes.readString());
+	p_gridNodeConfigJSON = t_configGridNodes.readString().replaceAll("^\"|\"$", "");
+	p_gridConnectionConfigJSON = t_configGridConnections.readString().replaceAll("^\"|\"$", "");
+	//p_energyAssetsConfigJSON = t_configEnergyAssets.readString().replaceAll("^\"|\"$", "");
+	p_actorsConfigJSON = t_configActors.readString().replaceAll("^\"|\"$", "");
+	p_policiesConfigJSON = t_configPolicies.readString().replaceAll("^\"|\"$", "");
+}]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -4253,6 +4370,39 @@ for (double ts_h = 0; ts_h<p_forecastTime_h; ts_h += p_timeStep_h) {
 }
 v_epexForecast_eurpkWh += 0.17;]]></Body>
 				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>RETURNS_VALUE</ReturnModificator>
+					<ReturnType><![CDATA[int]]></ReturnType>
+					<Id>1681376280006</Id>
+					<Name><![CDATA[f_findClosingBracket]]></Name>
+					<X>-580</X><Y>70</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[jsonString]]></Name>
+						<Type><![CDATA[String]]></Type>
+					</Parameter>
+					<Parameter>
+						<Name><![CDATA[startArray]]></Name>
+						<Type><![CDATA[int]]></Type>
+					</Parameter>
+					<Body><![CDATA[int openBrackets = 0;
+for (int i = startArray; i < jsonString.length(); i++) {
+	char currentChar = jsonString.charAt(i);
+    if (currentChar == '[') {
+		openBrackets++;
+	} 
+	else if (currentChar == ']') {
+       	openBrackets--;
+    }
+    if (openBrackets == 0) {
+        return i;
+    }
+}
+return -1;]]></Body>
+				</Function>
 			</Functions>
 			<TableFunctions>
 				<TableFunction AccessType="public" StaticFunction="false">
@@ -4719,7 +4869,7 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/Stappen van casus na contractupdate/Stap 2 gridconnections.txt]]></ClassName>
+						<ClassName><![CDATA[cases/case 2 wijk met winkelcentrum/Stappen van casus na contractupdate/Stap 1 gridconnections.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -4760,6 +4910,24 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
+					<Separators></Separators>
+				</TextFile>
+				<TextFile>
+					<Id>1681375993119</Id>
+					<Name><![CDATA[t_holontoolResponse]]></Name>
+					<X>-390</X><Y>310</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<FileType>FILE</FileType>
+					<Url><![CDATA[]]></Url>
+					<ResourceReference>
+						<PackageName><![CDATA[base]]></PackageName>
+						<ClassName><![CDATA[C:/Users/gebruiker/Documents/GitHub/HOLON/Holontool web responses/casus1ExampleCorrectResponse.json]]></ClassName>
+					</ResourceReference>
+					<FileMode>READ</FileMode>
+					<CharsetName>null</CharsetName>
 					<Separators></Separators>
 				</TextFile>
 				<ExcelFile>
@@ -5886,6 +6054,9 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 						<Parameter>
 							<Name><![CDATA[p_smartChargingPowerAttenuation_fr]]></Name>
 						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
+						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
 					<Replication Class="CodeValue">
@@ -6039,6 +6210,9 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -6197,6 +6371,9 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 						<Parameter>
 							<Name><![CDATA[p_residualHeatLTSource]]></Name>
 						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
+						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
 					<Replication Class="CodeValue">
@@ -6350,6 +6527,9 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -6505,6 +6685,9 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 						<Parameter>
 							<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
 						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
+						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
 					<Replication Class="CodeValue">
@@ -6659,6 +6842,9 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 						<Parameter>
 							<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
 						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
+						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
 					<Replication Class="CodeValue">
@@ -6812,6 +6998,9 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -7117,6 +7306,9 @@ v_epexForecast_eurpkWh += 0.17;]]></Body>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_heatingKickinTreshold_degC]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -35639,6 +35831,12 @@ if (p_batteryAsset != null){
 				<Parameter>
 					<ParameterName><![CDATA[p_solarAbsorptionCoefficient]]></ParameterName>
 				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_testHolontoolResponse]]></ParameterName>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_printHolontoolInputJsons]]></ParameterName>
+				</Parameter>
 			</Parameters>			
 			<PresentationProperties>
 				<EnableZoomAndPanning>true</EnableZoomAndPanning>
@@ -37968,7 +38166,11 @@ public class J_ConnectionContract extends base.J_Contract implements Serializabl
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/Stappen van casus na contractupdate/Stap 2 gridconnections.txt]]></Path>
+			<Path><![CDATA[C:/Users/gebruiker/Documents/GitHub/HOLON/Holontool web responses/casus1ExampleCorrectResponse.json]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[cases/case 2 wijk met winkelcentrum/Stappen van casus na contractupdate/Stap 1 gridconnections.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
