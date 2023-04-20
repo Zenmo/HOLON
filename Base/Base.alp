@@ -225,7 +225,7 @@
 			</Option>
 			<Option>
 				<Id>1666267116036</Id>
-				<Name><![CDATA[BOILER]]></Name>
+				<Name><![CDATA[ELECTRIC_HEATER]]></Name>
 			</Option>
 			<Option>
 				<Id>1660202624229</Id>
@@ -282,6 +282,10 @@
 			<Option>
 				<Id>1677510098544</Id>
 				<Name><![CDATA[HEAT_PUMP_WATER]]></Name>
+			</Option>
+			<Option>
+				<Id>1681828835093</Id>
+				<Name><![CDATA[DISTRICT_EBOILER_CHPPEAK]]></Name>
 			</Option>
 		</OptionList>
 		<OptionList>
@@ -2185,7 +2189,7 @@ traceln(" ");
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[0.2]]></Code>
+							<Code><![CDATA[0.0]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1680705282309</Id>
@@ -2209,7 +2213,7 @@ traceln(" ");
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[true]]></Code>
+							<Code><![CDATA[false]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1681376013853</Id>
@@ -3484,6 +3488,9 @@ traceln("MS node peak load: " + v_gridNodePeakLoadElectricityMSLS_kW + " kW at h
 
 double modelRunDuration_s = roundToDecimal( ( System.currentTimeMillis() - v_timeOfModelStart_ms ) / 1000 - v_modelStartUpDuration_s, 3);
 
+// Placeholder value for share of EV's:
+double shareElectricvehiclesInHouseholds = 0.0;
+
 // Fix profile lengths to 8760 places for post-processing:
 c_globalElectricityImportProfile_MWhph.entrySet().removeIf(entry -> c_globalElectricityImportProfile_MWhph.size() - entry.getValue() > 8759);
 c_globalElectricityExportProfile_MWhph.entrySet().removeIf(entry -> c_globalElectricityExportProfile_MWhph.size() - entry.getValue() > 8759);
@@ -3522,7 +3529,8 @@ j_simulationResults.updateData( roundToDecimal( v_gridNodePeakLoadElectricityHSM
 							totalSelfSufficiency_fr,
 							energyConsumed_MWh,
 							energyProduced_MWh,
-							v_totalEnergyCurtailed_MWh );
+							v_totalEnergyCurtailed_MWh,
+							shareElectricvehiclesInHouseholds );
 
 j_dataOut.simulationResults.add(j_simulationResults);
 
@@ -4431,6 +4439,32 @@ for (int i = startArray; i < jsonString.length(); i++) {
 }
 return -1;]]></Body>
 				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1681918405543</Id>
+					<Name><![CDATA[f_createAgentLinks]]></Name>
+					<X>-700</X><Y>230</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[for( EnergyHolon EH : pop_energyHolons ) {
+	for( Agent member : EH.subConnectionsElectricity.getConnections() ) {
+		if( member instanceof EnergyHolon) {
+			EH.p_gridNodeUnderResponsibility = pop_gridNodes.findFirst(a -> a.p_nodeType.equals("HSMS")).p_agentID;
+		}
+		else if( member instanceof ConnectionOwner ) {
+			EH.p_gridNodeUnderResponsibility = ((ConnectionOwner)member).gridConnections.getConnectedAgent(0).p_parentNodeElectricID;
+		}
+		else {
+			traceln("Holon-member not an energyholon or connectionowner -> No gridnode under responsibility!");
+		}
+	}
+	
+}
+]]></Body>
+				</Function>
 			</Functions>
 			<TableFunctions>
 				<TableFunction AccessType="public" StaticFunction="false">
@@ -4859,10 +4893,6 @@ return -1;]]></Body>
 					<ShowLabel>true</ShowLabel>
 					<FileType>FILE</FileType>
 					<Url><![CDATA[]]></Url>
-					<ResourceReference>
-						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[Casus_TVW_CMS_ref_actors.json]]></ClassName>
-					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
 					<Separators></Separators>
@@ -4877,10 +4907,6 @@ return -1;]]></Body>
 					<ShowLabel>true</ShowLabel>
 					<FileType>FILE</FileType>
 					<Url><![CDATA[]]></Url>
-					<ResourceReference>
-						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[Casus_TVW_CMS_ref_gridnodes.json]]></ClassName>
-					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
 					<Separators></Separators>
@@ -4895,10 +4921,6 @@ return -1;]]></Body>
 					<ShowLabel>true</ShowLabel>
 					<FileType>FILE</FileType>
 					<Url><![CDATA[]]></Url>
-					<ResourceReference>
-						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[Casus_TVW_CMS_ref_gridconnections.json]]></ClassName>
-					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
 					<Separators></Separators>
@@ -4932,10 +4954,6 @@ return -1;]]></Body>
 					<ShowLabel>true</ShowLabel>
 					<FileType>FILE</FileType>
 					<Url><![CDATA[../CaseDefinitions/industry_case/industry_case_policies.txt]]></Url>
-					<ResourceReference>
-						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[Casus_TVW_CMS_ref_policies.json]]></ClassName>
-					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
 					<Separators></Separators>
@@ -4950,10 +4968,6 @@ return -1;]]></Body>
 					<ShowLabel>true</ShowLabel>
 					<FileType>FILE</FileType>
 					<Url><![CDATA[]]></Url>
-					<ResourceReference>
-						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[D:/Users/HOUJ/Downloads/HOLON/20230417 - Casus TVW Scenarioconfig latest.txt]]></ClassName>
-					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
 					<Separators></Separators>
@@ -14666,9 +14680,9 @@ switch(assetType) {
 		p_energyAssetInstance = (J_EAConversionHeatPump)p_energyAssetInstance;
 		p_energyAssetInstance = new J_EAConversionHeatPump( this, main.p_timeStep_h, capacityElectric_kW, eta_r, main.p_undergroundTemperature_degC, deliveryTemp_degC, ambientTempType, 0, belowZeroHeatpumpEtaReductionFactor );
 	break;
-	case BOILER:
-		p_energyAssetInstance = (J_EAConversionBoiler)p_energyAssetInstance;
-		p_energyAssetInstance = new J_EAConversionBoiler( this, capacityElectric_kW, eta_r, main.p_timeStep_h, deliveryTemp_degC);
+	case ELECTRIC_HEATER:
+		p_energyAssetInstance = (J_EAConversionElectricHeater)p_energyAssetInstance;
+		p_energyAssetInstance = new J_EAConversionElectricHeater( this, capacityElectric_kW, eta_r, main.p_timeStep_h, deliveryTemp_degC);
 	break;
 	case HEAT_DELIVERY_SET:
 		p_energyAssetInstance = (J_EAConversionHeatDeliverySet)p_energyAssetInstance;
@@ -25834,6 +25848,8 @@ Supplier]]></Text>
 		break;		
 }
 c_holonMembers.put( ConnectingChildNode, ConnectingChildNode.getIndex() );
+
+
 /*
 if ( v_contractGridOperator.equals("NODALPRICING")) {
 //	traceln("Enabling nodal pricing for HOLON memmber!");
@@ -26088,7 +26104,12 @@ v_dieselImported_kWh += v_dieselVolume_kWh;]]></Body>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[double energyPrice_eurpkWh = v_electricityVariablePrice_eurpkWh + v_currentNodalPrice_eurpkWh + v_contractDelivery.deliveryPrice_eurpkWh;
+					<Body><![CDATA[double energyPrice_eurpkWh = v_electricityVariablePrice_eurpkWh + v_contractDelivery.deliveryPrice_eurpkWh;
+
+if ( v_contractTransport.transportContractType==OL_TransportContractType.NODALPRICING) {
+	energyPrice_eurpkWh += v_currentNodalPrice_eurpkWh;
+} 
+
 //traceln("Holon received energy price of: " + energyPrice_eurpkWh + " eur/kWh");
 return energyPrice_eurpkWh;]]></Body>
 				</Function>
@@ -26376,6 +26397,7 @@ for( HashMap l : c_actorContractList) {
 }*/
 
 //If the energy holon exists but does not have contracts: add random contracts (THIS WAS A TEMP FIX, can be deleted)
+/*
 if ( v_contractTax == null){
 	 v_contractTax = new J_TaxContract("gove4", OL_EnergyCarrierType.ELECTRICITY, 0.15, 0.15, 0.21);
 	 v_contractDelivery = new J_DeliveryContract("sup2", OL_DeliveryContractType.ELECTRICITY_FIXED, OL_EnergyCarrierType.ELECTRICITY, 0.08, 0.08);
@@ -26386,7 +26408,7 @@ if ( v_contractTax == null){
 	 c_actorContracts.add(v_contractConnection);
 	 c_actorContracts.add(v_contractTransport);
 }
-]]></Body>
+*/]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -29341,7 +29363,7 @@ else if (j_instance instanceof J_EAStorage ) {
 } 
 else if (j_instance instanceof J_EAConversion) {
 	c_conversionAssets.add(EA);
-	if (EA.p_energyAssetType == OL_EnergyAssetType.GAS_BURNER || EA.p_energyAssetInstance instanceof J_EAConversionHeatPump || EA.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet || EA.p_energyAssetInstance instanceof J_EAConversionBoiler ) {
+	if (EA.p_energyAssetType == OL_EnergyAssetType.GAS_BURNER || EA.p_energyAssetInstance instanceof J_EAConversionHeatPump || EA.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet || EA.p_energyAssetInstance instanceof J_EAConversionElectricHeater ) {
 		switch (p_heatingType) {
         	case HEATPUMP_AIR:
         		p_primaryHeatingAsset = EA;
@@ -29353,7 +29375,7 @@ else if (j_instance instanceof J_EAConversion) {
             case HEATPUMP_BOILERPEAK:    // ambigue wat we met boiler bedoelen; eboiler of grootschalige DH_boiler = gasburner!
                 p_primaryHeatingAsset = p_primaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionHeatPump? EA : p_primaryHeatingAsset;
                 p_secondaryHeatingAsset = p_secondaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionGasBurner? EA : p_secondaryHeatingAsset;
-                p_secondaryHeatingAsset = p_secondaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionBoiler? EA : p_secondaryHeatingAsset;                                          
+                p_secondaryHeatingAsset = p_secondaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionElectricHeater? EA : p_secondaryHeatingAsset;                                          
             break;
             case GASBURNER:
                 p_primaryHeatingAsset = p_primaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionGasBurner? EA : p_primaryHeatingAsset;
@@ -29796,7 +29818,7 @@ p_primaryHeatingAsset.v_powerFraction_fr = powerFraction_heatPump_fr;
 		traceln("just DHW");
 	}
 	p_secondaryHeatingAsset.f_updateAllFlows( p_secondaryHeatingAsset.v_powerFraction_fr );
-} else if( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet && ( p_secondaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionBoiler || p_secondaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatPump ) && p_heatBuffer.p_energyAssetInstance instanceof J_EAStorageHeat ) { // Heat Delivery Set and booster water/water heatpump with buffer for hotwater, )
+} else if( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet && ( p_secondaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionElectricHeater || p_secondaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatPump ) && p_heatBuffer.p_energyAssetInstance instanceof J_EAStorageHeat ) { // Heat Delivery Set and booster water/water heatpump with buffer for hotwater, )
 	p_primaryHeatingAsset.v_powerFraction_fr = 0;
 	p_secondaryHeatingAsset.v_powerFraction_fr = 0;
 	p_heatBuffer.v_powerFraction_fr = 0;
@@ -30873,7 +30895,7 @@ if (p_batteryAsset != null){
 		p_primaryHeatingAsset.v_powerFraction_fr = 0;
 		p_ThermalStorageAsset.v_powerFraction_fr = 0;
 	}
-} else if( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet && ( p_secondaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionBoiler || p_secondaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatPump ) && p_heatBuffer.p_energyAssetInstance instanceof J_EAStorageHeat ) { // Heat Delivery Set and booster water/water heatpump with buffer for hotwater, )
+} else if( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet && ( p_secondaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionElectricHeater || p_secondaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatPump ) && p_heatBuffer.p_energyAssetInstance instanceof J_EAStorageHeat ) { // Heat Delivery Set and booster water/water heatpump with buffer for hotwater, )
 	p_primaryHeatingAsset.v_powerFraction_fr = 0;
 	p_secondaryHeatingAsset.v_powerFraction_fr = 0;
 	p_heatBuffer.v_powerFraction_fr = 0;
@@ -31733,7 +31755,7 @@ if ( p_heatingType == OL_GridConnectionHeatingType.GASFIRED ) {
 	}
 	
 	
-} else if ( p_heatingType == OL_GridConnectionHeatingType.HEATPUMP_GASPEAK ) { //else if ( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatPump & p_secondaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionBoiler) { // Heatpump and eboiler, use energysurpluss
+} else if ( p_heatingType == OL_GridConnectionHeatingType.HEATPUMP_GASPEAK ) { //else if ( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatPump & p_secondaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionElectricHeater) { // Heatpump and eboiler, use energysurpluss
 	traceln("second conditional: true");
 	//v_bufferTemp_degC = storageTemp_degC;
 	double maxHeatPumpPower_kW = p_primaryHeatingAsset.p_energyAssetInstance.getElectricCapacity_kW();
@@ -31873,26 +31895,26 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 		case HEATPUMP_BOILERPEAK:    // ambigue wat we met boiler bedoelen; eboiler of grootschalige DH_boiler = gasburner!
 			p_primaryHeatingAsset = p_primaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionHeatPump? EA : p_primaryHeatingAsset;
 			p_secondaryHeatingAsset = p_secondaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionGasBurner? EA : p_secondaryHeatingAsset;
-			p_secondaryHeatingAsset = p_secondaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionBoiler? EA : p_secondaryHeatingAsset;			
 		break;
 		case GASFIRED_CHPPEAK:
 			p_primaryHeatingAsset = p_primaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionGasBurner? EA : p_primaryHeatingAsset;
 			p_secondaryHeatingAsset = p_secondaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionGasCHP? EA : p_secondaryHeatingAsset;
 		break;
+		case DISTRICT_EBOILER_CHP:
+			p_primaryHeatingAsset = p_primaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionElectricHeater? EA : p_primaryHeatingAsset;
+			p_secondaryHeatingAsset = p_secondaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionGasCHP? EA : p_secondaryHeatingAsset;
+		break;
+		
 		case LT_RESIDUAL_HEATPUMP_GASPEAK:
 			p_primaryHeatingAsset = p_primaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionHeatPump? EA : p_primaryHeatingAsset;
 			p_secondaryHeatingAsset = p_secondaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionGasBurner? EA : p_secondaryHeatingAsset;
-		break;
-		case DISTRICT_EBOILER_CHP:
-			p_primaryHeatingAsset = p_primaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionBoiler? EA : p_primaryHeatingAsset;
-			p_secondaryHeatingAsset = p_secondaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionGasCHP? EA : p_secondaryHeatingAsset;
 		break;
 		default:
 			throw new IllegalStateException("Invalid DistrictHeating HeatingType: " + p_heatingType);
 	}
 	
 		
-	//if (EA.p_energyAssetInstance instanceof J_EAConversionGasBurner || EA.p_energyAssetInstance instanceof J_EAConversionHeatPump || EA.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet || EA.p_energyAssetInstance instanceof J_EAConversionBoiler || EA.p_energyAssetInstance instanceof J_EAConversionGasCHP ) {
+	//if (EA.p_energyAssetInstance instanceof J_EAConversionGasBurner || EA.p_energyAssetInstance instanceof J_EAConversionHeatPump || EA.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet || EA.p_energyAssetInstance instanceof J_EAConversionElectricHeater || EA.p_energyAssetInstance instanceof J_EAConversionGasCHP ) {
 	//	if (p_primaryHeatingAsset == null) {
 	//		p_primaryHeatingAsset = EA;
 	//	} else if (p_secondaryHeatingAsset == null) {
@@ -33621,7 +33643,7 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 	}
 } else if (EA.p_energyAssetInstance instanceof J_EAConversion) {
 	c_conversionAssets.add(EA);
-	if (EA.p_energyAssetInstance instanceof J_EAConversionGasBurner || EA.p_energyAssetInstance instanceof J_EAConversionHeatPump || EA.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet || EA.p_energyAssetInstance instanceof J_EAConversionBoiler ) {
+	if (EA.p_energyAssetInstance instanceof J_EAConversionGasBurner || EA.p_energyAssetInstance instanceof J_EAConversionHeatPump || EA.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet || EA.p_energyAssetInstance instanceof J_EAConversionElectricHeater ) {
 		if (p_primaryHeatingAsset == null) {
 			p_primaryHeatingAsset = EA;
 		} else if (p_secondaryHeatingAsset == null) {
@@ -37682,11 +37704,11 @@ public class J_EAConversionHydrogenBurner extends base.J_EAConversion implements
 		<!--   =========   Java Class   ========  -->
 		<JavaClass>
 			<Id>1666189454452</Id>
-			<Name><![CDATA[J_EAConversionBoiler]]></Name>
+			<Name><![CDATA[J_EAConversionElectricHeater]]></Name>
 			<Text><![CDATA[/**
- * J_EAConversionBoiler
+ * J_EAConversionElectricHeater
  */
-public class J_EAConversionBoiler extends J_EAConversion implements Serializable {
+public class J_EAConversionElectricHeater extends J_EAConversion implements Serializable {
 
 	private OL_EnergyCarrierType energyCarrierProduced = OL_EnergyCarrierType.HEAT;
 	private OL_EnergyCarrierType energyCarrierConsumed = OL_EnergyCarrierType.ELECTRICITY;
@@ -37694,7 +37716,7 @@ public class J_EAConversionBoiler extends J_EAConversion implements Serializable
     /**
      * Default constructor
      */
-    public J_EAConversionBoiler(EnergyAsset ownerAssetAgent, double capacityElectric_kW, double efficiency, double timestep_h, double outputTemperature_degC) {
+    public J_EAConversionElectricHeater(EnergyAsset ownerAssetAgent, double capacityElectric_kW, double efficiency, double timestep_h, double outputTemperature_degC) {
 	    this.ownerAsset = ownerAssetAgent;
 	    this.capacityElectric_kW = capacityElectric_kW;
 	    this.eta_r = efficiency;
@@ -37829,6 +37851,7 @@ public class J_SimulationResults implements Serializable {
 	public double TotalEnergyUsed_MWh;
 	public double TotalEnergyProduced_MWh;
 	public double TotalEnergyCurtailed_MWh;
+	public double shareElectricvehiclesInHouseholds;
 
 	 /**
      * Default constructor
@@ -37839,7 +37862,7 @@ public class J_SimulationResults implements Serializable {
     /**
      * Constructor initializing the fields
      */
-    public J_SimulationResults( double v_gridNodeLoadElectricityHSMS_kW, double v_gridNodeLoadElectricityMSLS_kW, double cumulativeCapacityHS, double cumulativeCapacityLS, double netOverload_pct, LinkedHashMap<String,Double> c_timesOfNodePeakLoads_h, LinkedHashMap<String,Double> gridConnectionMaxLoad_fr, double MSLSnodePeakPositiveLoadElectricity_kW, double MSLSnodePeakNegativeLoadElectricity_kW, double totalElectricityImport_MWh, double totalElectricityExport_MWh, double totalMethaneImport_MWh, double totalMethaneExport_MWh, double totalHydrogenImport_MWh, double totalHydrogenExport_MWh, double totalDieselImport_MWh, LinkedHashMap<String,Double> totalBatteryUnitsInstalled, LinkedHashMap<String,Double> totalBatteryChargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryDischargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryInstalledCapacity_MWh, LinkedHashMap<Integer,Double> c_globalElectricityImportProfile_MWhph, LinkedHashMap<Integer,Double> c_globalElectricityExportProfile_MWhph, LinkedHashMap<Integer,Double> totalEVHourlyChargingProfile_kWh, LinkedHashMap<Integer,Double> totalEHGVHourlyChargingProfile_kWh, LinkedHashMap<Integer,Double> totalBatteryHourlyChargingProfile_kWh, double totalSelfConsumption_fr, double totalSelfSufficiency_fr, double TotalEnergyUsed_MWh, double TotalEnergyProduced_MWh, double TotalEnergyCurtailed_MWh) {
+    public J_SimulationResults( double v_gridNodeLoadElectricityHSMS_kW, double v_gridNodeLoadElectricityMSLS_kW, double cumulativeCapacityHS, double cumulativeCapacityLS, double netOverload_pct, LinkedHashMap<String,Double> c_timesOfNodePeakLoads_h, LinkedHashMap<String,Double> gridConnectionMaxLoad_fr, double MSLSnodePeakPositiveLoadElectricity_kW, double MSLSnodePeakNegativeLoadElectricity_kW, double totalElectricityImport_MWh, double totalElectricityExport_MWh, double totalMethaneImport_MWh, double totalMethaneExport_MWh, double totalHydrogenImport_MWh, double totalHydrogenExport_MWh, double totalDieselImport_MWh, LinkedHashMap<String,Double> totalBatteryUnitsInstalled, LinkedHashMap<String,Double> totalBatteryChargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryDischargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryInstalledCapacity_MWh, LinkedHashMap<Integer,Double> c_globalElectricityImportProfile_MWhph, LinkedHashMap<Integer,Double> c_globalElectricityExportProfile_MWhph, LinkedHashMap<Integer,Double> totalEVHourlyChargingProfile_kWh, LinkedHashMap<Integer,Double> totalEHGVHourlyChargingProfile_kWh, LinkedHashMap<Integer,Double> totalBatteryHourlyChargingProfile_kWh, double totalSelfConsumption_fr, double totalSelfSufficiency_fr, double TotalEnergyUsed_MWh, double TotalEnergyProduced_MWh, double TotalEnergyCurtailed_MWh, double shareElectricvehiclesInHouseholds) {
 		this.HSMSPeakLoadElectricity_kW = v_gridNodeLoadElectricityHSMS_kW;
 		this.MSLSPeakLoadElectricity_kW = v_gridNodeLoadElectricityMSLS_kW;
 		this.cumulativeCapacityHS = cumulativeCapacityHS;
@@ -37870,6 +37893,7 @@ public class J_SimulationResults implements Serializable {
 		this.TotalEnergyUsed_MWh = TotalEnergyUsed_MWh;
 		this.TotalEnergyProduced_MWh = TotalEnergyProduced_MWh;
 		this.TotalEnergyCurtailed_MWh = TotalEnergyCurtailed_MWh;
+		this.shareElectricvehiclesInHouseholds = shareElectricvehiclesInHouseholds;
     }
 
 	@Override
@@ -37901,10 +37925,11 @@ public class J_SimulationResults implements Serializable {
 			"totalSelfSufficiency_fr = " + totalSelfSufficiency_fr*100 + " %" +
 			"totalEnergyUsed_MWh = " + TotalEnergyUsed_MWh + " MWh" +
 			"TotalEnergyProduced_MWh = " + TotalEnergyProduced_MWh + " MWh" +
-			"TotalEnergyCurtailed_MWh = " + TotalEnergyCurtailed_MWh + " MWh";
+			"TotalEnergyCurtailed_MWh = " + TotalEnergyCurtailed_MWh + " MWh" +
+			"shareElectricvehiclesInHouseholds = " + shareElectricvehiclesInHouseholds + " fr";
 	}
 
-	public void updateData( double v_gridNodePeakLoadElectricityHSMS_kW, double v_gridNodePeakLoadElectricityMSLS_kW, double cumulativeCapacityHS, double cumulativeCapacityLS, double netOverload_pct, LinkedHashMap<String,Double> c_timesOfNodePeakLoads_h, LinkedHashMap<String,Double> gridConnectionMaxLoad_fr, double MSLSnodePeakPositiveLoadElectricity_kW, double MSLSnodePeakNegativeLoadElectricity_kW, double totalElectricityImport_MWh, double totalElectricityExport_MWh, double totalMethaneImport_MWh, double totalMethaneExport_MWh, double totalHydrogenImport_MWh, double totalHydrogenExport_MWh, double totalDieselImport_MWh, LinkedHashMap<String,Double> totalBatteryUnitsInstalled, LinkedHashMap<String,Double> totalBatteryChargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryDischargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryInstalledCapacity_MWh, double totalSelfConsumption_fr, double totalSelfSufficiency_fr, double TotalEnergyUsed_MWh, double TotalEnergyProduced_MWh, double TotalEnergyCurtailed_MWh ) {
+	public void updateData( double v_gridNodePeakLoadElectricityHSMS_kW, double v_gridNodePeakLoadElectricityMSLS_kW, double cumulativeCapacityHS, double cumulativeCapacityLS, double netOverload_pct, LinkedHashMap<String,Double> c_timesOfNodePeakLoads_h, LinkedHashMap<String,Double> gridConnectionMaxLoad_fr, double MSLSnodePeakPositiveLoadElectricity_kW, double MSLSnodePeakNegativeLoadElectricity_kW, double totalElectricityImport_MWh, double totalElectricityExport_MWh, double totalMethaneImport_MWh, double totalMethaneExport_MWh, double totalHydrogenImport_MWh, double totalHydrogenExport_MWh, double totalDieselImport_MWh, LinkedHashMap<String,Double> totalBatteryUnitsInstalled, LinkedHashMap<String,Double> totalBatteryChargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryDischargeAmount_MWh, LinkedHashMap<String,Double> totalBatteryInstalledCapacity_MWh, double totalSelfConsumption_fr, double totalSelfSufficiency_fr, double TotalEnergyUsed_MWh, double TotalEnergyProduced_MWh, double TotalEnergyCurtailed_MWh, double shareElectricvehiclesInHouseholds ) {
 		this.HSMSPeakLoadElectricity_kW = v_gridNodePeakLoadElectricityHSMS_kW;
 		this.MSLSPeakLoadElectricity_kW = v_gridNodePeakLoadElectricityMSLS_kW;
 		this.cumulativeCapacityHS =cumulativeCapacityHS;
@@ -37937,6 +37962,7 @@ public class J_SimulationResults implements Serializable {
 		this.TotalEnergyUsed_MWh = TotalEnergyUsed_MWh;
 		this.TotalEnergyProduced_MWh = TotalEnergyProduced_MWh;
 		this.TotalEnergyCurtailed_MWh = TotalEnergyCurtailed_MWh;
+		this.shareElectricvehiclesInHouseholds = shareElectricvehiclesInHouseholds;
 	}
 
 
@@ -38552,23 +38578,7 @@ public class J_EAConversionCurtailerHeat extends J_EAConversion implements Seria
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[Casus_TVW_CMS_ref_actors.json]]></Path>
-			<ReferencedFromUserCode>false</ReferencedFromUserCode>
-		</Resource>
-		<Resource>
-			<Path><![CDATA[Casus_TVW_CMS_ref_gridconnections.json]]></Path>
-			<ReferencedFromUserCode>false</ReferencedFromUserCode>
-		</Resource>
-		<Resource>
-			<Path><![CDATA[Casus_TVW_CMS_ref_gridnodes.json]]></Path>
-			<ReferencedFromUserCode>false</ReferencedFromUserCode>
-		</Resource>
-		<Resource>
-			<Path><![CDATA[Casus_TVW_CMS_ref_policies.json]]></Path>
-			<ReferencedFromUserCode>false</ReferencedFromUserCode>
-		</Resource>
-		<Resource>
-			<Path><![CDATA[D:/Users/HOUJ/Downloads/HOLON/20230417 - Casus TVW Scenarioconfig latest.txt]]></Path>
+			<Path><![CDATA[D:/Users/HOUJ/Downloads/HOLON/20230417 - Casus TVW Scenarioconfig latest latest.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
@@ -38584,6 +38594,6 @@ public class J_EAConversionCurtailerHeat extends J_EAConversion implements Seria
 		<VersionMinor>0</VersionMinor>
 		<VersionBuild>5</VersionBuild>
     </RequiredLibraryReference>
-	<CloudModelUuid><![CDATA[a0ad2c3f-da80-49f2-b26e-43f3b3b9d6a3]]></CloudModelUuid>
+	<CloudModelUuid><![CDATA[d399233d-e4c1-4552-bd6f-bf334207a6b9]]></CloudModelUuid>
 </Model>
 </AnyLogicWorkspace>
