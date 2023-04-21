@@ -2213,7 +2213,7 @@ traceln(" ");
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[false]]></Code>
+							<Code><![CDATA[true]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1681376013853</Id>
@@ -2702,7 +2702,7 @@ v_timeStepsElapsed ++;
 						<OccurrenceAtTime>true</OccurrenceAtTime>
 						<OccurrenceDate>1674115200000</OccurrenceDate>
 						<OccurrenceTime Class="CodeUnitValue">
-							<Code><![CDATA[30]]></Code>
+							<Code><![CDATA[8114]]></Code>
 							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
 						</OccurrenceTime>
 						<RecurrenceCode Class="CodeUnitValue">
@@ -3492,13 +3492,13 @@ double modelRunDuration_s = roundToDecimal( ( System.currentTimeMillis() - v_tim
 // Placeholder value for share of EV's:
 double shareElectricvehiclesInHouseholds = 0.0;
 
-// Fix profile lengths to 8760 places for post-processing:
+/*// Fix profile lengths to 8760 places for post-processing:
 c_globalElectricityImportProfile_MWhph.entrySet().removeIf(entry -> c_globalElectricityImportProfile_MWhph.size() - entry.getValue() > 8759);
 c_globalElectricityExportProfile_MWhph.entrySet().removeIf(entry -> c_globalElectricityExportProfile_MWhph.size() - entry.getValue() > 8759);
 c_globalEVChargingProfile_kWhph.entrySet().removeIf(entry -> c_globalEVChargingProfile_kWhph.size() - entry.getValue() > 8759);
 c_globalEHGVChargingProfile_kWhph.entrySet().removeIf(entry -> c_globalEHGVChargingProfile_kWhph.size() - entry.getValue() > 8759);
 c_globalBatteryChargingProfile_kWhph.entrySet().removeIf(entry -> c_globalBatteryChargingProfile_kWhph.size() - entry.getValue() > 8759);
-
+*/
 
 // add Total Cost KPI data:
 j_simulationResults.updateData( roundToDecimal( v_gridNodePeakLoadElectricityHSMS_kW, 2 ),
@@ -3987,7 +3987,7 @@ for(GridNode h : c_gridNodesHSMS ) {
 	if ( p_forceBrownFieldNetload ) {
 		v_gridNodePeakLoadElectricityHSMS_kW += max(0,abs(h.v_peakLoadFilteredElectricity_kW)-h.p_capacity_kW);
 	} else {
-		v_gridNodePeakLoadElectricityHSMS_kW += h.v_peakLoadFilteredElectricity_kW;
+		v_gridNodePeakLoadElectricityHSMS_kW += abs(h.v_peakLoadFilteredElectricity_kW);
 	}
 	v_totalElectricityImport_MWh += h.v_electricityDrawn_kWh / 1000.0;
 	v_totalElectricityExport_MWh += h.v_electricityDelivered_kWh / 1000.0;
@@ -3999,7 +3999,7 @@ for(GridNode m : c_gridNodesMSLS ) {
 	if ( p_forceBrownFieldNetload ) {
 		v_gridNodePeakLoadElectricityMSLS_kW += max(0,abs(m.v_peakLoadFilteredElectricity_kW)-m.p_capacity_kW);
 	} else {
-		v_gridNodePeakLoadElectricityMSLS_kW += m.v_peakLoadFilteredElectricity_kW;
+		v_gridNodePeakLoadElectricityMSLS_kW += abs(m.v_peakLoadFilteredElectricity_kW);
 	}
 	v_MSLSnodePeakPositiveLoadElectricity_kW = max(v_MSLSnodePeakPositiveLoadElectricity_kW, m.v_peakPosLoadElectricity_kW);
 	v_MSLSnodePeakNegativeLoadElectricity_kW = max(v_MSLSnodePeakNegativeLoadElectricity_kW, -m.v_peakNegLoadElectricity_kW);
@@ -4264,9 +4264,6 @@ for( GridNode g : pop_gridNodes ) {
 	g.f_connectToParentNode();
 }
 
-for( EnergyHolon e : pop_energyHolons ) {
-	e.f_initialize(); // This function is called here because gridNodes need to be created before holons can link to them.
-}
 
 ]]></Body>
 				</Function>
@@ -4455,6 +4452,7 @@ for( EnergyHolon EH : pop_energyHolons ) {
 	for( Agent member : EH.subConnectionsElectricity.getConnections() ) {
 		if( member instanceof EnergyHolon) {   // upper nested holon looks at the higher level gridNode
 			EH.p_gridNodeUnderResponsibility = pop_gridNodes.findFirst(a -> a.p_nodeType.equals(OL_GridNodeType.HSMS)) != null? pop_gridNodes.findFirst(a -> a.p_nodeType.equals(OL_GridNodeType.HSMS)).p_agentID : null;
+			
 		}
 		else if( member instanceof ConnectionOwner ) {
 			EH.p_gridNodeUnderResponsibility = ((ConnectionOwner)member).gridConnections.getConnectedAgent(0).p_parentNodeElectricID;
@@ -4464,6 +4462,10 @@ for( EnergyHolon EH : pop_energyHolons ) {
 		}
 	}
 	
+}
+
+for( EnergyHolon e : pop_energyHolons ) {
+	e.f_initialize(); // This function is called here because gridNodes need to be created before holons can link to them.
 }
 ]]></Body>
 				</Function>
@@ -4986,6 +4988,10 @@ for( EnergyHolon EH : pop_energyHolons ) {
 					<ShowLabel>true</ShowLabel>
 					<FileType>FILE</FileType>
 					<Url><![CDATA[]]></Url>
+					<ResourceReference>
+						<PackageName><![CDATA[base]]></PackageName>
+						<ClassName><![CDATA[cases/industry_case/holontool_scenario.txt]]></ClassName>
+					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
 					<Separators></Separators>
@@ -32559,6 +32565,7 @@ if (p_curtailer != null){
 		//if(l_ownerActor.getConnectedAgent() instanceof ConnectionOwner) {
 		ConnectionOwner ownerActor = (ConnectionOwner)l_ownerActor.getConnectedAgent();
 		double currentElectricityPriceCharge_eurpkWh = ownerActor.v_priceBandsDelivery.ceilingEntry(100.0).getValue(); // query price at 1kW
+		//traceln("Current electricity price for electrolyser: " + currentElectricityPriceCharge_eurpkWh);
 		v_electricityPriceLowPassed_eurpkWh += v_lowPassFactor_fr * ( currentElectricityPriceCharge_eurpkWh - v_electricityPriceLowPassed_eurpkWh );
 		double deficitGain_eurpkWh = 1.0/1000000; // When SOC-error is 100%, adjust WTP price by 1 eurpkWh
 		double priceGain_peur = 5; // How strongly to ramp up power with price-delta's	
@@ -33985,7 +33992,7 @@ if(p_ownerActor instanceof ConnectionOwner) {
 			double SOC_setp_fr = 0.5;			
 			if (main.v_totalInstalledWindPower_kW > 10000) {
 				SOC_setp_fr = 0.95 - 0.95 * main.v_WindYieldForecast_fr - 0.9*main.v_SolarYieldForecast_fr;
-				//traceln("Forecast-based SOC setpoint: " + SOC_setp_fr + " %");
+				traceln("Forecast-based SOC setpoint: " + SOC_setp_fr + " %");
 			} else {
 				SOC_setp_fr = (0.5 + 0.35 * Math.sin(2*Math.PI*(time(HOUR)-10)/24))*(1-0.8*main.v_WindYieldForecast_fr); // Sinusoidal setpoint: aim for low SOC at 6:00h, high SOC at 18:00h. 
 			}
@@ -34054,6 +34061,75 @@ if(p_ownerActor instanceof ConnectionOwner) {
 					<Z>0</Z>
 					<LevelVisibility>DIM_NON_CURRENT</LevelVisibility>
 
+			<Presentation>
+    			<TimePlot>
+					<Id>1682065741241</Id>
+					<Name><![CDATA[SOC_plot]]></Name>
+					<X>840</X><Y>790</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<AutoUpdate>true</AutoUpdate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1682150400000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
+					</RecurrenceCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Width>510</Width>
+					<Height>270</Height>
+					<BackgroundColor/>
+					<BorderColor/>
+					<ChartArea>
+						<XOffset>50</XOffset>
+						<YOffset>30</YOffset>
+						<Width>430</Width>
+						<Height>180</Height>
+						<BackgroundColor>-1</BackgroundColor>
+						<BorderColor>-16777216</BorderColor>
+						<GridColor>-12566464</GridColor>
+					</ChartArea>
+					<Legend>
+						<Place>SOUTH</Place>
+						<TextColor>-16777216</TextColor>
+						<Size>30</Size>
+					</Legend>
+					<Labels>
+						<HorLabelsPosition>DEFAULT</HorLabelsPosition>
+						<VerLabelsPosition>DEFAULT</VerLabelsPosition>
+						<TextColor>-12566464</TextColor>
+					</Labels>
+					<ShowLegend>true</ShowLegend>
+					<TimeWindowsMovementType>MOVEMENT_WITH_TIME</TimeWindowsMovementType>		
+					<TimeWindowUnits>MODEL_TIME_UNIT</TimeWindowUnits>
+					<VerScaleFromExpression><![CDATA[0]]></VerScaleFromExpression>
+					<VerScaleToExpression><![CDATA[1]]></VerScaleToExpression>
+					<VerScaleType>AUTO</VerScaleType>
+					<DrawLine>true</DrawLine>
+					<Interpolation>LINEAR</Interpolation>
+					<DatasetExpression>  
+						<Title><![CDATA[SOC]]></Title>
+					<Id>0</Id>
+					<Expression><![CDATA[my_dataset]]></Expression>
+					<Color>-10496</Color>
+					<Expression2><![CDATA[v_batterySOC_fr]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>
+						<PointStyle>NONE</PointStyle>
+						<LineWidth>1.0</LineWidth>
+					</DatasetExpression>
+					<SamplesToKeep>192</SamplesToKeep>
+					<TimeWindowExpression><![CDATA[100]]></TimeWindowExpression>
+					<FillAreaUnderLine>false</FillAreaUnderLine>
+					<LabelFormat>MODEL_TIME_UNITS</LabelFormat>
+    			</TimePlot>
+			</Presentation>
 
 				</Level>
 			</Presentation>
@@ -38611,6 +38687,10 @@ public class J_EAConversionCurtailerHeat extends J_EAConversion implements Seria
 			<Path><![CDATA[Casus_TVW_CMS_ref_BIG_policies.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
+		<Resource>
+			<Path><![CDATA[cases/industry_case/holontool_scenario.txt]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+		</Resource>
 	</ModelResources>
     <RequiredLibraryReference>
 		<LibraryName><![CDATA[com.anylogic.libraries.modules.markup_descriptors]]></LibraryName>
@@ -38624,6 +38704,6 @@ public class J_EAConversionCurtailerHeat extends J_EAConversion implements Seria
 		<VersionMinor>0</VersionMinor>
 		<VersionBuild>5</VersionBuild>
     </RequiredLibraryReference>
-	<CloudModelUuid><![CDATA[d399233d-e4c1-4552-bd6f-bf334207a6b9]]></CloudModelUuid>
+	<CloudModelUuid><![CDATA[e569d61e-c83c-4dd8-bd04-495d4b3ed5b1]]></CloudModelUuid>
 </Model>
 </AnyLogicWorkspace>
