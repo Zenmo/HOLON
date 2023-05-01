@@ -2213,7 +2213,7 @@ traceln(" ");
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[true]]></Code>
+							<Code><![CDATA[false]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1681376013853</Id>
@@ -4922,7 +4922,7 @@ for( EnergyHolon e : pop_energyHolons ) {
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[Casus_TVW_CMS_ref_actors_nesthol.json]]></ClassName>
+						<ClassName><![CDATA[Casus_TVW_CMS_ref_BIG_actors.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -4940,7 +4940,7 @@ for( EnergyHolon e : pop_energyHolons ) {
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[Casus_TVW_CMS_ref_gridnodes.json]]></ClassName>
+						<ClassName><![CDATA[Casus_TVW_CMS_ref_BIG_gridnodes.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -4958,7 +4958,7 @@ for( EnergyHolon e : pop_energyHolons ) {
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[Casus_TVW_CMS_ref_gridconnections.json]]></ClassName>
+						<ClassName><![CDATA[Casus_TVW_CMS_ref_BIG_DHHT_gridconnections.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -14748,15 +14748,15 @@ switch(assetType) {
 		p_energyAssetInstance = new J_EAConversionElektrolyser( this, capacityElectric_kW, eta_r, main.p_timeStep_h );
 		//traceln("Elektrolyser instantiated with ElectricCapacity_kW: " + capacityElectric_kW + " kW");
 	break;
-	case CURTAILER:
+		case CURTAILER:
 		p_energyAssetInstance = (J_EAConversionCurtailer)p_energyAssetInstance;
 		p_energyAssetInstance = new J_EAConversionCurtailer( this, capacityElectric_kW, eta_r, main.p_timeStep_h );
 		//traceln("Instantiating curtailer asset with capacityElectric_kW: " + capacityElectric_kW + ", double check: " + p_energyAssetInstance.getElectricCapacity_kW() );
-	break;
+	break;	
 	case CURTAILER_HEAT:
 		p_energyAssetInstance = (J_EAConversionCurtailerHeat)p_energyAssetInstance;
 		p_energyAssetInstance = new J_EAConversionCurtailerHeat( this, capacityHeat_kW, eta_r, main.p_timeStep_h );
-		//traceln("Instantiating curtailer asset with capacityElectric_kW: " + capacityElectric_kW + ", double check: " + p_energyAssetInstance.getElectricCapacity_kW() );
+		//traceln("####### Instantiating curtailerHeat asset with capacityHeat_kW: " + capacityHeat_kW + ", double check: " + p_energyAssetInstance.getHeatCapacity_kW() );
 	break;
 	case METHANE_CHP:
 		p_energyAssetInstance = (J_EAConversionGasCHP)p_energyAssetInstance;
@@ -32218,7 +32218,7 @@ switch (p_heatingType) {
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<AutoUpdate>true</AutoUpdate>
+					<AutoUpdate>false</AutoUpdate>
 					<OccurrenceAtTime>true</OccurrenceAtTime>
 					<OccurrenceDate>1668499200000</OccurrenceDate>
 					<OccurrenceTime Class="CodeUnitValue">
@@ -35702,7 +35702,8 @@ public void f_operateFlexAssets(){
 
 // For residual heat, check heat transfer condition = source temperature > network temperature!
 double networkTemp_degC = l_parentNodeHeat.getConnectedAgent().p_transportBuffer.getCurrentTemperature();
-boolean b_heatFlowToNetwork = p_deliveryTemp_degC > ( networkTemp_degC + 1 ); // delta T of 2 degrees for heat exchanger.
+double networkMaxTemp_degC = l_parentNodeHeat.getConnectedAgent().p_transportBuffer.getMaxTemperature_degC();
+boolean b_heatFlowToNetwork = p_deliveryTemp_degC > ( networkTemp_degC + 1 ) && networkTemp_degC < networkMaxTemp_degC; // delta T of 2 degrees for heat exchanger.
 
 // double heatTransferToNetworkCoefficient_kWpK = 100;
 // double heatTransferToNetwork_kW = max( p_deliveryTemp_degC - networkTemp_degC, 0 ) * heatTransferToNetworkCoefficient_kWpK;
@@ -38362,6 +38363,9 @@ public class J_EAConversionGasCHP extends base.J_EAConversion implements Seriali
 		this.energyUsed_kWh += timestep_h * (methaneConsumption_kW - heatProduction_kW - electricityProduction_kW)  ; // This represents losses!
 		//double[] arr = {this.electricityProduction_kW, this.methaneProduction_kW, this.hydrogenProduction_kW, this.heatProduction_kW, this.electricityConsumption_kW, this.methaneConsumption_kW, this.hydrogenConsumption_kW, this.heatConsumption_kW };
     	//return arr;
+		this.heatProduced_kWh += this.heatProduction_kW * timestep_h;
+		//this.electricityProduced_kWh = this.electricityProduction_kW * timestep_h;
+				
 		return returnEnergyFlows();
     }
 
@@ -38375,7 +38379,8 @@ public class J_EAConversionGasCHP extends base.J_EAConversion implements Seriali
 			"ownerAsset = " + ownerAsset +" " +
 			"capacityElectric_kW = " + this.capacityElectric_kW +" "+
 			"capacityHeat_kW = " + this.capacityHeat_kW +" "+
-			"eta_r = " + this.eta_r+" ";
+			"eta_r = " + this.eta_r+" "+
+			"heatProduced_kWh = " + this.heatProduced_kWh + " ";
 	}
 	
 	@Override
@@ -38622,32 +38627,44 @@ public class J_EAConversionCurtailerHeat extends J_EAConversion implements Seria
 	    this.ownerAsset = ownerAssetAgent;
 	    this.capacityHeat_kW = capacityHeat_kW;
 	    this.eta_r = efficiency;
-	    this.capacityHeat_kW = this.capacityHeat_kW * this.eta_r;
+//	    this.capacityHeat_kW = this.capacityHeat_kW * this.eta_r;
 	    this.timestep_h = timestep_h;
     }
 
     @Override
     public double[] operate(double ratioOfCapacity) {
 		//traceln("I convert now! GasBurner @ " + (ratioOfCapacity * 100) + " %");
-		this.heatProduction_kW = capacityHeat_kW * ratioOfCapacity * eta_r;
-		this.heatConsumption_kW = capacityHeat_kW * ratioOfCapacity;
+		heatProduction_kW = capacityHeat_kW * ratioOfCapacity * eta_r;
+		heatConsumption_kW = capacityHeat_kW * ratioOfCapacity;
 
-		this.energyUsed_kWh += timestep_h * (heatConsumption_kW - heatProduction_kW); // This represents losses!
+		energyUsed_kWh += timestep_h * (heatConsumption_kW - heatProduction_kW); // This represents losses!
 		//double[] arr = {this.electricityProduction_kW, this.methaneProduction_kW, this.hydrogenProduction_kW, this.heatProduction_kW, this.electricityConsumption_kW, this.methaneConsumption_kW, this.hydrogenConsumption_kW, this.heatConsumption_kW };
     	//return arr;
-		this.heatConsumed_kWh += heatConsumption_kW * timestep_h;
-		this.heatProduced_kWh += heatProduction_kW * timestep_h;
+		heatConsumed_kWh += heatConsumption_kW * timestep_h;
+		heatProduced_kWh += heatProduction_kW * timestep_h;
 		
 		return returnEnergyFlows();
     }
-
+    
+    @Override
 	public double getEnergyUsed_kWh() {
 		return energyUsed_kWh;
+	}
+	
+	@Override
+	public double getHeatCapacity_kW() {
+		return capacityHeat_kW;
 	}
 
 	@Override
 	public String toString() {
-		return super.toString();
+		return
+			"ownerAsset = " + ownerAsset +", Energy consumed = " + energyUsed_kWh + " " +
+			"capacityHeat_kW = " + capacityHeat_kW +" "+
+			"eta_r = " + eta_r+" " +
+			"energyUsed_kWh (losses) = " + energyUsed_kWh + " "+
+			"heatConsumed_kWh = " + heatConsumed_kWh + " "+
+			"heatProduced_kWh = " + heatProduced_kWh + " ";
 	}
 
 	/**
@@ -38701,23 +38718,23 @@ public class J_EAConversionCurtailerHeat extends J_EAConversion implements Seria
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[Casus_TVW_CMS_ref_actors_nesthol.json]]></Path>
-			<ReferencedFromUserCode>false</ReferencedFromUserCode>
-		</Resource>
-		<Resource>
-			<Path><![CDATA[Casus_TVW_CMS_ref_gridconnections.json]]></Path>
-			<ReferencedFromUserCode>false</ReferencedFromUserCode>
-		</Resource>
-		<Resource>
-			<Path><![CDATA[Casus_TVW_CMS_ref_gridnodes.json]]></Path>
-			<ReferencedFromUserCode>false</ReferencedFromUserCode>
-		</Resource>
-		<Resource>
 			<Path><![CDATA[Casus_TVW_CMS_ref_BIG_policies.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
 			<Path><![CDATA[cases/industry_case/example_total.txt]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[Casus_TVW_CMS_ref_BIG_actors.json]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[Casus_TVW_CMS_ref_BIG_DHHT_gridconnections.json]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[Casus_TVW_CMS_ref_BIG_gridnodes.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
