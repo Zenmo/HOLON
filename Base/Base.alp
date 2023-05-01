@@ -2248,6 +2248,34 @@ traceln(" ");
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1682945119357</Id>
+					<Name><![CDATA[b_anylogicCostsForAllContracts]]></Name>
+					<Description><![CDATA[Switch om HS en MS netload op 0 als output te geven wanneer er geen overbelasting plaats heeft gevonden. (workaround om geen greenfield kosten te hebben wanneer er geen overbelasting is!)
+
+@author: GillisHommen
+@since: 01/03/2023]]></Description>
+					<X>-750</X><Y>690</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[boolean]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[true]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1682945119355</Id>
+							<EditorContolType>CHECK_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1661504944109</Id>
 					<Name><![CDATA[parsedJSONGridNodes]]></Name>
@@ -3355,28 +3383,31 @@ for(ConnectionOwner c : pop_connectionOwners) {
 	}
 	
 	// Collect contracts with correnspondings energy/euro totals
-	
-	for(J_Contract co: c.c_actorContracts) {
-		co.contractHolder = c.p_actorID;
-		if(co.energyCarrier == OL_EnergyCarrierType.ELECTRICITY) {
-			if(co.contractType.equals(OL_ContractType.DELIVERY)) {
-				co.FinancialTransactionVolume_eur = c.v_balanceElectricityDelivery_eur;
-			} else if(co.contractType.equals(OL_ContractType.TRANSPORT)) {
-				co.FinancialTransactionVolume_eur = c.v_balanceElectricityTransport_eur;			
-			} else if(co.contractType.equals(OL_ContractType.TAX)) {
-				co.FinancialTransactionVolume_eur = c.v_balanceElectricityTax_eur;			
-			}
-		} else if (co.energyCarrier == OL_EnergyCarrierType.METHANE) {
-			co.EnergyTransactionVolume_kWh = -c.v_totalMethaneUsed_kWh;
-		} else if (co.energyCarrier == OL_EnergyCarrierType.HYDROGEN) {
-			co.EnergyTransactionVolume_kWh = -c.v_totalHydrogenUsed_kWh;
-		} else if (co.energyCarrier == OL_EnergyCarrierType.HEAT) {
-			co.EnergyTransactionVolume_kWh = -c.v_totalHeatUsed_kWh;
-		} else if (co.energyCarrier == OL_EnergyCarrierType.DIESEL) {
-			co.EnergyTransactionVolume_kWh = -c.v_totalDieselUsed_kWh;
+	if (b_anylogicCostsForAllContracts) { // Account everything within anylogic, so that for all contracts only financialTransactionVolumes are non-zero, energyVolumes all zero.
+		f_calculateContractCosts(c);
+	} else { // Old method, which relies on cost-benefit module to calculate financial transactions for methane, hydrogen, diesel and heat.
+		for(J_Contract co: c.c_actorContracts) {
+			co.contractHolder = c.p_actorID;
+			if(co.energyCarrier == OL_EnergyCarrierType.ELECTRICITY) {
+				if(co.contractType.equals(OL_ContractType.DELIVERY)) {
+					co.FinancialTransactionVolume_eur = c.v_balanceElectricityDelivery_eur;
+				} else if(co.contractType.equals(OL_ContractType.TRANSPORT)) {
+					co.FinancialTransactionVolume_eur = c.v_balanceElectricityTransport_eur;			
+				} else if(co.contractType.equals(OL_ContractType.TAX)) {
+					co.FinancialTransactionVolume_eur = c.v_balanceElectricityTax_eur;			
+				}
+			} else if (co.energyCarrier == OL_EnergyCarrierType.METHANE) {
+				co.EnergyTransactionVolume_kWh = -c.v_totalMethaneUsed_kWh;
+			} else if (co.energyCarrier == OL_EnergyCarrierType.HYDROGEN) {
+				co.EnergyTransactionVolume_kWh = -c.v_totalHydrogenUsed_kWh;
+			} else if (co.energyCarrier == OL_EnergyCarrierType.HEAT) {
+				co.EnergyTransactionVolume_kWh = -c.v_totalHeatUsed_kWh;
+			} else if (co.energyCarrier == OL_EnergyCarrierType.DIESEL) {
+				co.EnergyTransactionVolume_kWh = -c.v_totalDieselUsed_kWh;
+			}		
+			j_dataOut.contractData.add(co);
+			
 		}
-		j_dataOut.contractData.add(co);
-		
 	}
 //});
 }
@@ -4492,6 +4523,188 @@ for( EnergyHolon e : pop_energyHolons ) {
 }
 ]]></Body>
 				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1682943799138</Id>
+					<Name><![CDATA[f_calculateContractCosts]]></Name>
+					<X>-750</X><Y>710</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[c]]></Name>
+						<Type><![CDATA[ConnectionOwner]]></Type>
+					</Parameter>
+					<Body><![CDATA[J_DeliveryContract methaneDeliveryContract = null;
+J_DeliveryContract hydrogenDeliveryContract = null;
+J_DeliveryContract dieselDeliveryContract = null;
+J_DeliveryContract heatDeliveryContract = null;
+
+J_TaxContract methaneTaxContract = null;
+J_TaxContract hydrogenTaxContract = null;
+J_TaxContract dieselTaxContract = null;
+J_TaxContract heatTaxContract = null;
+
+J_TransportContract methaneTransportContract = null;
+J_TransportContract hydrogenTransportContract = null;
+J_TransportContract dieselTransportContract = null;
+J_TransportContract heatTransportContract = null;
+
+J_ConnectionContract methaneConnectionContract = null;
+J_ConnectionContract hydrogenConnectionContract = null;
+J_ConnectionContract dieselConnectionContract = null;
+J_ConnectionContract heatConnectionContract = null;
+
+
+//for(J_Contract co: c.c_actorContracts) {
+for( int idx = 0 ; idx<c.c_actorContracts.size() ; idx++) {
+	J_Contract co = c.c_actorContracts.get(idx);
+	co.contractHolder = c.p_actorID;
+	
+	
+	if(co.energyCarrier == OL_EnergyCarrierType.ELECTRICITY) {
+		if(co.contractType.equals(OL_ContractType.DELIVERY)) {
+			co.FinancialTransactionVolume_eur = c.v_balanceElectricityDelivery_eur;
+		} else if(co.contractType.equals(OL_ContractType.TRANSPORT)) {
+			co.FinancialTransactionVolume_eur = c.v_balanceElectricityTransport_eur;			
+		} else if(co.contractType.equals(OL_ContractType.TAX)) {
+			co.FinancialTransactionVolume_eur = c.v_balanceElectricityTax_eur;			
+		}
+		j_dataOut.contractData.add(co);
+	} else if (co.energyCarrier == OL_EnergyCarrierType.METHANE) {
+		if(co.contractType.equals(OL_ContractType.DELIVERY)) {
+				methaneDeliveryContract = (J_DeliveryContract)co;
+				methaneDeliveryContract.idx = idx;
+			} else if(co.contractType.equals(OL_ContractType.TRANSPORT)) {
+				methaneTransportContract = (J_TransportContract) co;
+				methaneTransportContract.idx = idx;
+			} else if(co.contractType.equals(OL_ContractType.TAX)) {
+				methaneTaxContract = (J_TaxContract)co;
+				methaneTaxContract.idx = idx;
+			} else if(co.contractType.equals(OL_ContractType.CONNECTION)) {
+				methaneConnectionContract = (J_ConnectionContract)co;
+				methaneConnectionContract.idx = idx;
+			}
+			//co.EnergyTransactionVolume_kWh = -c.v_totalMethaneUsed_kWh;
+	} else if (co.energyCarrier == OL_EnergyCarrierType.HYDROGEN) {
+		if(co.contractType.equals(OL_ContractType.DELIVERY)) {
+				hydrogenDeliveryContract = (J_DeliveryContract)co;
+				hydrogenDeliveryContract.idx = idx;
+			} else if(co.contractType.equals(OL_ContractType.TRANSPORT)) {
+				hydrogenTransportContract = (J_TransportContract)co;
+				hydrogenTransportContract.idx = idx;
+			} else if(co.contractType.equals(OL_ContractType.TAX)) {
+				hydrogenTaxContract = (J_TaxContract)co;
+				hydrogenTaxContract.idx = idx;
+			} else if(co.contractType.equals(OL_ContractType.CONNECTION)) {
+				hydrogenConnectionContract = (J_ConnectionContract)co;
+				hydrogenConnectionContract.idx = idx;
+			}
+		//co.EnergyTransactionVolume_kWh = -c.v_totalHydrogenUsed_kWh;
+	} else if (co.energyCarrier == OL_EnergyCarrierType.HEAT) {
+		if(co.contractType.equals(OL_ContractType.DELIVERY)) {
+				heatDeliveryContract = (J_DeliveryContract)co;
+				heatDeliveryContract.idx = idx;
+			} else if(co.contractType.equals(OL_ContractType.TRANSPORT)) {
+				heatTransportContract = (J_TransportContract)co;
+				heatTransportContract.idx = idx;
+			} else if(co.contractType.equals(OL_ContractType.TAX)) {
+				heatTaxContract = (J_TaxContract)co;
+				heatTaxContract.idx = idx;
+			} else if(co.contractType.equals(OL_ContractType.CONNECTION)) {
+				heatConnectionContract = (J_ConnectionContract)co;
+				heatConnectionContract.idx = idx;
+			}
+		//co.EnergyTransactionVolume_kWh = -c.v_totalHeatUsed_kWh;
+	} else if (co.energyCarrier == OL_EnergyCarrierType.DIESEL) {
+		if(co.contractType.equals(OL_ContractType.DELIVERY)) {
+				dieselDeliveryContract = (J_DeliveryContract)co;
+				dieselDeliveryContract.idx = idx;
+			} else if(co.contractType.equals(OL_ContractType.TRANSPORT)) {
+				dieselTransportContract = (J_TransportContract)co;
+				dieselTransportContract.idx = idx;
+			} else if(co.contractType.equals(OL_ContractType.TAX)) {
+				dieselTaxContract = (J_TaxContract)co;
+				dieselTaxContract.idx = idx;
+			} else if(co.contractType.equals(OL_ContractType.CONNECTION)) {
+				dieselConnectionContract = (J_ConnectionContract)co;
+				dieselConnectionContract.idx = idx;
+			}
+		//co.EnergyTransactionVolume_kWh = -c.v_totalDieselUsed_kWh;
+	}			
+	
+	
+}
+
+//// Handle all methane costs
+double methaneTotalCostsForVAT_eur = 0;
+if (methaneDeliveryContract!= null) {
+	if (c.v_totalMethaneUsed_kWh > 0) {
+		methaneDeliveryContract.FinancialTransactionVolume_eur = -c.v_totalMethaneUsed_kWh * methaneDeliveryContract.deliveryPrice_eurpkWh;
+	} else {
+		methaneDeliveryContract.FinancialTransactionVolume_eur = c.v_totalMethaneUsed_kWh * methaneDeliveryContract.feedinPrice_eurpkWh;
+	}
+	methaneTotalCostsForVAT_eur += methaneDeliveryContract.FinancialTransactionVolume_eur + methaneDeliveryContract.annualFee_eur;
+	j_dataOut.contractData.add((J_Contract)methaneDeliveryContract);
+}
+if (methaneTransportContract!= null) {
+	// Transport tariffs don't apply for methane
+	methaneTotalCostsForVAT_eur += methaneTransportContract.annualFee_eur;
+	j_dataOut.contractData.add((J_Contract)methaneTransportContract);
+}
+if (methaneConnectionContract!= null) {	
+	// Connection contracts only have annualFee, no volume-dependent costs
+	methaneTotalCostsForVAT_eur += methaneConnectionContract.annualFee_eur;
+	j_dataOut.contractData.add((J_Contract)methaneTransportContract);
+}
+if (methaneTaxContract != null) {
+	if (c.v_totalMethaneUsed_kWh > 0) {
+		methaneTaxContract.FinancialTransactionVolume_eur = -c.v_totalMethaneUsed_kWh * methaneTaxContract.deliveryTax_eurpkWh;
+	} else {
+		methaneTaxContract.FinancialTransactionVolume_eur = c.v_totalMethaneUsed_kWh * methaneTaxContract.feedinTax_eurpkWh;
+	}
+	methaneTotalCostsForVAT_eur += methaneTaxContract.FinancialTransactionVolume_eur + methaneTaxContract.annualFee_eur ;
+	// Apply VAT to everything (effectively saldering of everything! Not really correct for methane...)
+	methaneTaxContract.FinancialTransactionVolume_eur += methaneTotalCostsForVAT_eur * methaneTaxContract.proportionalTax_pct + methaneTaxContract.annualFee_eur;
+	j_dataOut.contractData.add((J_Contract)methaneTaxContract);
+}
+
+//// Handle all diesel costs
+double dieselTotalCostsForVAT_eur = 0;
+if (dieselDeliveryContract!= null) {
+	if (c.v_totalDieselUsed_kWh > 0) {
+		dieselDeliveryContract.FinancialTransactionVolume_eur = -c.v_totalDieselUsed_kWh * dieselDeliveryContract.deliveryPrice_eurpkWh;
+	} else {
+		dieselDeliveryContract.FinancialTransactionVolume_eur = c.v_totalDieselUsed_kWh * dieselDeliveryContract.feedinPrice_eurpkWh;
+	}
+	dieselTotalCostsForVAT_eur += dieselDeliveryContract.FinancialTransactionVolume_eur + dieselDeliveryContract.annualFee_eur;
+	j_dataOut.contractData.add((J_Contract)dieselDeliveryContract);
+}
+if (dieselTransportContract!= null) {
+	// Transport tariffs don't apply for diesel
+	dieselTotalCostsForVAT_eur += dieselTransportContract.annualFee_eur;
+	j_dataOut.contractData.add((J_Contract)dieselTransportContract);
+}
+if (dieselConnectionContract!= null) {	
+	// Connection contracts only have annualFee, no volume-dependent costs
+	dieselTotalCostsForVAT_eur += dieselConnectionContract.annualFee_eur;
+	j_dataOut.contractData.add((J_Contract)dieselTransportContract);
+}
+if (dieselTaxContract != null) {
+	if (c.v_totalDieselUsed_kWh > 0) {
+		dieselTaxContract.FinancialTransactionVolume_eur = -c.v_totalDieselUsed_kWh * dieselTaxContract.deliveryTax_eurpkWh;
+	} else {
+		dieselTaxContract.FinancialTransactionVolume_eur = c.v_totalDieselUsed_kWh * dieselTaxContract.feedinTax_eurpkWh;
+	}
+	dieselTotalCostsForVAT_eur += dieselTaxContract.FinancialTransactionVolume_eur + dieselTaxContract.annualFee_eur ;
+	// Apply VAT to everything (effectively saldering of everything! Not really correct for diesel...)
+	dieselTaxContract.FinancialTransactionVolume_eur += dieselTotalCostsForVAT_eur * dieselTaxContract.proportionalTax_pct + dieselTaxContract.annualFee_eur;
+	j_dataOut.contractData.add((J_Contract)dieselTaxContract);
+}
+//j_dataOut.contractData.add(co);]]></Body>
+				</Function>
 			</Functions>
 			<TableFunctions>
 				<TableFunction AccessType="public" StaticFunction="false">
@@ -5013,7 +5226,7 @@ for( EnergyHolon e : pop_energyHolons ) {
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/example_total.txt]]></ClassName>
+						<ClassName><![CDATA[cases/industry_case/holontool_scenario.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -22388,6 +22601,7 @@ if (currentPowerDrawn_kW >= 0) {
 	v_balanceElectricity_eur -= transactionCostTransport_eur;
 	
 	transactionCostTax_eur = v_priceBandsTax.ceilingEntry( currentPowerDrawn_kW ).getValue() * v_electricityVolume_kWh;
+	//transactionCostTax_eur = v_electricityVolume_kWh * v_contractTax.deliveryTax_eurpkWh + v_contractTax.proportionalTax_pct*(v_electricityVolume_kWh * v_contractTax.deliveryTax_eurpkWh + transactionCostDelivery_eur + transactionCostTransport_eur);
 	v_balanceElectricityTax_eur -= transactionCostTax_eur;
 	v_balanceElectricity_eur -= transactionCostTax_eur;
 } else {
@@ -22400,6 +22614,7 @@ if (currentPowerDrawn_kW >= 0) {
 	v_balanceElectricity_eur -= transactionCostTransport_eur;
 	
 	transactionCostTax_eur = v_priceBandsTax.floorEntry( currentPowerDrawn_kW ).getValue() * v_electricityVolume_kWh;
+	//transactionCostTax_eur = v_electricityVolume_kWh * v_contractTax.feedinTax_eurpkWh + v_contractTax.proportionalTax_pct*(v_electricityVolume_kWh * v_contractTax.feedinTax_eurpkWh + transactionCostDelivery_eur + transactionCostTransport_eur);
 	v_balanceElectricityTax_eur -= transactionCostTax_eur;
 	v_balanceElectricity_eur -= transactionCostTax_eur;
 }
@@ -22638,9 +22853,9 @@ for( HashMap l : c_actorContractList) {
 				OL_DeliveryContractType deliveryContractType = OL_DeliveryContractType.valueOf((String)l.get("deliveryContractType"));
 				double deliveryPrice_eurpkWh = (double)l.get("deliveryPrice_eurpkWh");
 				double feedinPrice_eurpkWh = (double)l.get("feedinPrice_eurpkWh");
-				v_contractDelivery = new J_DeliveryContract(contractScope, deliveryContractType, energyCarrier, deliveryPrice_eurpkWh, feedinPrice_eurpkWh);
+				J_DeliveryContract contractDelivery = new J_DeliveryContract(contractScope, deliveryContractType, energyCarrier, deliveryPrice_eurpkWh, feedinPrice_eurpkWh);
 				//traceln("Delivery contract: " + v_contractDelivery);
-				c_actorContracts.add(v_contractDelivery);
+				c_actorContracts.add(contractDelivery);
 				//String contractScope = (String)l.get( "contractScope" );
 				mySupplier = findFirst(main.pop_energySuppliers, p->p.p_actorID.equals(contractScope)) ;
 				if (mySupplier != null) {
@@ -22675,8 +22890,8 @@ for( HashMap l : c_actorContractList) {
 				double DeliveryTax_eurpkWh = (double)l.get("taxDelivery_eurpkWh");
 				double taxFeedin_eurpkWh = (double)l.get("taxFeedin_eurpkWh");
 				double VAT_pct = (double)l.get("proportionalTax_pct");
-				v_contractTax = new J_TaxContract(contractScope, energyCarrier, DeliveryTax_eurpkWh, taxFeedin_eurpkWh, VAT_pct);
-				c_actorContracts.add(v_contractTax);
+				J_TaxContract contractTax = new J_TaxContract(contractScope, energyCarrier, DeliveryTax_eurpkWh, taxFeedin_eurpkWh, VAT_pct);
+				c_actorContracts.add(contractTax);
 				if (energyCarrier==OL_EnergyCarrierType.METHANE) {						
 						methaneDeliveryTax_eurpkWh=DeliveryTax_eurpkWh;
 						methaneVAT_pct=VAT_pct;
@@ -22689,15 +22904,15 @@ for( HashMap l : c_actorContractList) {
 			break;
 			case CONNECTION:
 				OL_ConnectionContractType connectionContractType = OL_ConnectionContractType.valueOf((String)l.get("connectionContractType"));
-				v_contractConnection = new J_ConnectionContract(contractScope, connectionContractType, energyCarrier, 0.0, 0.0, 0.0 );
-				c_actorContracts.add(v_contractConnection);
+				J_ConnectionContract contractConnection = new J_ConnectionContract(contractScope, connectionContractType, energyCarrier, 0.0, 0.0, 0.0 );
+				c_actorContracts.add(contractConnection);
 			break;
 			case TRANSPORT:
 				OL_TransportContractType transportContractType = OL_TransportContractType.valueOf((String)l.get("transportContractType"));
 				double bandwidthTreshold_kW = l.get("bandwidthTreshold_kW") == null ? 0.0 : (double)l.get("bandwidthTreshold_kW");
 				double bandwidthTariff_eurpkWh = l.get("bandwidthTariff_eurpkWh") == null ? 0.0 : (double)l.get("bandwidthTariff_eurpkWh");
-				v_contractTransport = new J_TransportContract(contractScope, transportContractType, energyCarrier, bandwidthTreshold_kW, bandwidthTariff_eurpkWh);			
-				c_actorContracts.add(v_contractTransport);
+				J_TransportContract contractTransport = new J_TransportContract(contractScope, transportContractType, energyCarrier, bandwidthTreshold_kW, bandwidthTariff_eurpkWh);			
+				c_actorContracts.add(contractTransport);
 			break;
 			default:
 				traceln("Unrecognized contract type!");
@@ -36061,6 +36276,15 @@ if (p_batteryAsset != null){
 					<ClassName><![CDATA[Main]]></ClassName>
 					<ItemName><![CDATA[p_forceBrownFieldNetload]]></ItemName>
 				</InputReference>
+    		</RunConfigurationInput>
+    		<RunConfigurationInput>
+				<Id>1682949398674</Id>
+				<Name><![CDATA[B anylogic costs for all contracts]]></Name>
+				<InputReference>
+					<PackageName><![CDATA[base]]></PackageName>
+					<ClassName><![CDATA[Main]]></ClassName>
+					<ItemName><![CDATA[b_anylogicCostsForAllContracts]]></ItemName>
+				</InputReference>
     		</RunConfigurationInput>		
 		</Inputs>
 		<Outputs>
@@ -36300,6 +36524,9 @@ if (p_batteryAsset != null){
 				</Parameter>
 				<Parameter>
 					<ParameterName><![CDATA[p_printHolontoolInputJsons]]></ParameterName>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[b_anylogicCostsForAllContracts]]></ParameterName>
 				</Parameter>
 			</Parameters>			
 			<PresentationProperties>
@@ -38480,6 +38707,7 @@ public class J_DeliveryContract extends base.J_Contract implements Serializable 
 	public OL_DeliveryContractType deliveryContractType; // Fixed of variable
 	public double deliveryPrice_eurpkWh;
 	public double feedinPrice_eurpkWh;
+	public double idx;
 	//public OL_EnergyCarrierType energyCarrier;
 	
 	  /**
@@ -38521,6 +38749,7 @@ public class J_TransportContract extends base.J_Contract implements Serializable
 	public OL_TransportContractType transportContractType; //
 	public double bandwidthTreshold_kW;
 	public double bandwidthTariff_eurpkWh;
+	public double idx;
 	//public OL_EnergyCarrierType energyCarrier;
 	
 	  /**
@@ -38558,6 +38787,7 @@ public class J_TaxContract extends base.J_Contract implements Serializable {
 	public double deliveryTax_eurpkWh;
 	public double feedinTax_eurpkWh;
 	public double proportionalTax_pct;
+	public double idx;
 	//public OL_EnergyCarrierType energyCarrier;
 	
 	  /**
@@ -38587,6 +38817,7 @@ public class J_ConnectionContract extends base.J_Contract implements Serializabl
 	public double nfATOstart_h = 0;
 	public double nfATOend_h = 0;
 	public double nfATOpower_kW = 0;
+	public double idx;
 	
     public J_ConnectionContract() {
     }
@@ -38717,7 +38948,7 @@ public class J_EAConversionCurtailerHeat extends J_EAConversion implements Seria
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/example_total.txt]]></Path>
+			<Path><![CDATA[cases/industry_case/holontool_scenario.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
@@ -38733,6 +38964,6 @@ public class J_EAConversionCurtailerHeat extends J_EAConversion implements Seria
 		<VersionMinor>0</VersionMinor>
 		<VersionBuild>5</VersionBuild>
     </RequiredLibraryReference>
-	<CloudModelUuid><![CDATA[19366d93-dc75-4c0d-bd1e-089f424a03e1]]></CloudModelUuid>
+	<CloudModelUuid><![CDATA[95697207-453e-4973-9aa8-db8a96c01e5d]]></CloudModelUuid>
 </Model>
 </AnyLogicWorkspace>
