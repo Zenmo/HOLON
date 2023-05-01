@@ -1715,7 +1715,7 @@ traceln(" ");
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1678980412868</Id>
-					<Name><![CDATA[v_cumulativeGridCapacityLS]]></Name>
+					<Name><![CDATA[v_cumulativeGridCapacityMSLS_kW]]></Name>
 					<X>-570</X><Y>1020</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1727,7 +1727,7 @@ traceln(" ");
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1678980423977</Id>
-					<Name><![CDATA[v_cumulativeGridCapacityHS]]></Name>
+					<Name><![CDATA[v_cumulativeGridCapacityHSMS_kW]]></Name>
 					<X>-570</X><Y>1040</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -2165,7 +2165,7 @@ traceln(" ");
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[false]]></Code>
+							<Code><![CDATA[true]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1677659229527</Id>
@@ -2702,7 +2702,7 @@ v_timeStepsElapsed ++;
 						<OccurrenceAtTime>true</OccurrenceAtTime>
 						<OccurrenceDate>1674115200000</OccurrenceDate>
 						<OccurrenceTime Class="CodeUnitValue">
-							<Code><![CDATA[8114]]></Code>
+							<Code><![CDATA[190]]></Code>
 							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
 						</OccurrenceTime>
 						<RecurrenceCode Class="CodeUnitValue">
@@ -3367,13 +3367,13 @@ for(ConnectionOwner c : pop_connectionOwners) {
 				co.FinancialTransactionVolume_eur = c.v_balanceElectricityTax_eur;			
 			}
 		} else if (co.energyCarrier == OL_EnergyCarrierType.METHANE) {
-			co.EnergyTransactionVolume_kWh = c.v_totalMethaneUsed_kWh;
+			co.EnergyTransactionVolume_kWh = -c.v_totalMethaneUsed_kWh;
 		} else if (co.energyCarrier == OL_EnergyCarrierType.HYDROGEN) {
-			co.EnergyTransactionVolume_kWh = c.v_totalHydrogenUsed_kWh;
+			co.EnergyTransactionVolume_kWh = -c.v_totalHydrogenUsed_kWh;
 		} else if (co.energyCarrier == OL_EnergyCarrierType.HEAT) {
-			co.EnergyTransactionVolume_kWh = c.v_totalHeatUsed_kWh;
+			co.EnergyTransactionVolume_kWh = -c.v_totalHeatUsed_kWh;
 		} else if (co.energyCarrier == OL_EnergyCarrierType.DIESEL) {
-			co.EnergyTransactionVolume_kWh = c.v_totalDieselUsed_kWh;
+			co.EnergyTransactionVolume_kWh = -c.v_totalDieselUsed_kWh;
 		}
 		j_dataOut.contractData.add(co);
 		
@@ -3517,8 +3517,8 @@ traceln("nb evs " + nbevs);
 // add Total Cost KPI data:
 j_simulationResults.updateData( roundToDecimal( v_gridNodePeakLoadElectricityHSMS_kW, 2 ),
 							roundToDecimal( v_gridNodePeakLoadElectricityMSLS_kW, 2 ),
-							v_cumulativeGridCapacityHS,
-							v_cumulativeGridCapacityLS,
+							v_cumulativeGridCapacityHSMS_kW,
+							v_cumulativeGridCapacityMSLS_kW,
 							v_netOverloadKPI_pct,
 							c_timesOfNodePeakLoads_h,
 							c_gridConnectionOverload_fr,
@@ -3999,26 +3999,26 @@ for ( ConnectionOwner c : pop_connectionOwners){
 for(GridNode h : c_gridNodesHSMS ) {
 //	v_gridNodePeakLoadElectricityHSMS_kW = max(v_gridNodePeakLoadElectricityHSMS_kW,abs(h.v_peakLoadFilteredElectricity_kW));
 	if ( p_forceBrownFieldNetload ) {
-		v_gridNodePeakLoadElectricityHSMS_kW += max(0,abs(h.v_peakLoadFilteredElectricity_kW)-h.p_capacity_kW);
+		v_gridNodePeakLoadElectricityHSMS_kW += max(h.p_capacity_kW,abs(h.v_peakLoadFilteredElectricity_kW));
 	} else {
 		v_gridNodePeakLoadElectricityHSMS_kW += abs(h.v_peakLoadFilteredElectricity_kW);
 	}
 	v_totalElectricityImport_MWh += h.v_electricityDrawn_kWh / 1000.0;
 	v_totalElectricityExport_MWh += h.v_electricityDelivered_kWh / 1000.0;
 	c_timesOfNodePeakLoads_h.put(h.p_agentID, h.v_timeOfPeakLoadFiltered_h);
-	v_cumulativeGridCapacityHS += h.p_capacity_kW;
+	v_cumulativeGridCapacityHSMS_kW += h.p_capacity_kW;
 }
 
 for(GridNode m : c_gridNodesMSLS ) {
 	if ( p_forceBrownFieldNetload ) {
-		v_gridNodePeakLoadElectricityMSLS_kW += max(0,abs(m.v_peakLoadFilteredElectricity_kW)-m.p_capacity_kW);
+		v_gridNodePeakLoadElectricityMSLS_kW += max(m.p_capacity_kW,abs(m.v_peakLoadFilteredElectricity_kW));
 	} else {
 		v_gridNodePeakLoadElectricityMSLS_kW += abs(m.v_peakLoadFilteredElectricity_kW);
 	}
 	v_MSLSnodePeakPositiveLoadElectricity_kW = max(v_MSLSnodePeakPositiveLoadElectricity_kW, m.v_peakPosLoadElectricity_kW);
 	v_MSLSnodePeakNegativeLoadElectricity_kW = max(v_MSLSnodePeakNegativeLoadElectricity_kW, -m.v_peakNegLoadElectricity_kW);
 	c_timesOfNodePeakLoads_h.put(m.p_agentID, m.v_timeOfPeakLoadFiltered_h);
-	v_cumulativeGridCapacityLS += m.p_capacity_kW;
+	v_cumulativeGridCapacityMSLS_kW += m.p_capacity_kW;
 	
 	if( c_gridNodesHSMS.size() == 0){
 		v_totalElectricityImport_MWh += m.v_electricityDrawn_kWh / 1000.0;
@@ -4026,7 +4026,7 @@ for(GridNode m : c_gridNodesMSLS ) {
 	}
 	
 	//traceln("MSLS node peak load unfiltered: " + m.v_peakLoadAbsoluteElectricity_kW + " kW");
-	traceln("");
+	traceln("Grid node " + m.p_agentID);
 	traceln("MSLS peak positive load filtered: " + roundToDecimal(m.v_peakPosLoadElectricity_kW/m.p_capacity_kW*100,2) + " % at time: " + m.v_timeOfPeakPosLoadFiltered_h + " h");
 	traceln("MSLS peak negative load filtered: " + roundToDecimal(m.v_peakNegLoadElectricity_kW/m.p_capacity_kW*100,2) + " % at time: " + m.v_timeOfPeakNegLoadFiltered_h + " h");
 }
@@ -4037,11 +4037,19 @@ for(GridConnection g: c_gridConnections){
 
 // If the energy system only has LS nodes, determine KPI on LS level, otherwise on HS
 if (c_gridNodesHSMS.size() == 0){
-	v_netOverloadKPI_pct = 100 * (max (0, v_gridNodePeakLoadElectricityMSLS_kW ) / v_cumulativeGridCapacityLS);
+	double cumulativeGridNodePeakLoadElectricityMSLS_kW=0;
+	for(GridNode m : c_gridNodesMSLS ) {		
+		cumulativeGridNodePeakLoadElectricityMSLS_kW += abs(m.v_peakLoadFilteredElectricity_kW);
+	}
+
+	v_netOverloadKPI_pct = 100 * (max (0, cumulativeGridNodePeakLoadElectricityMSLS_kW ) / v_cumulativeGridCapacityMSLS_kW);
 }
 else {
-	v_netOverloadKPI_pct = 100 * (max (0, v_gridNodePeakLoadElectricityHSMS_kW ) / v_cumulativeGridCapacityHS);
-	
+	double cumulativeGridNodePeakLoadElectricityHSMS_kW=0;
+	for(GridNode h : c_gridNodesHSMS ) {		
+		cumulativeGridNodePeakLoadElectricityHSMS_kW += abs(h.v_peakLoadFilteredElectricity_kW);
+	}
+	v_netOverloadKPI_pct = 100 * (max (0, cumulativeGridNodePeakLoadElectricityHSMS_kW ) / v_cumulativeGridCapacityHSMS_kW);	
 }
 ]]></Body>
 				</Function>
@@ -36048,6 +36056,15 @@ if (p_batteryAsset != null){
 					<ClassName><![CDATA[Main]]></ClassName>
 					<ItemName><![CDATA[p_policiesConfigJSON]]></ItemName>
 				</InputReference>
+    		</RunConfigurationInput>
+    		<RunConfigurationInput>
+				<Id>1682593211315</Id>
+				<Name><![CDATA[P force brown field netload]]></Name>
+				<InputReference>
+					<PackageName><![CDATA[base]]></PackageName>
+					<ClassName><![CDATA[Main]]></ClassName>
+					<ItemName><![CDATA[p_forceBrownFieldNetload]]></ItemName>
+				</InputReference>
     		</RunConfigurationInput>		
 		</Inputs>
 		<Outputs>
@@ -38718,6 +38735,6 @@ public class J_EAConversionCurtailerHeat extends J_EAConversion implements Seria
 		<VersionMinor>0</VersionMinor>
 		<VersionBuild>5</VersionBuild>
     </RequiredLibraryReference>
-	<CloudModelUuid><![CDATA[e569d61e-c83c-4dd8-bd04-495d4b3ed5b1]]></CloudModelUuid>
+	<CloudModelUuid><![CDATA[19366d93-dc75-4c0d-bd1e-089f424a03e1]]></CloudModelUuid>
 </Model>
 </AnyLogicWorkspace>
