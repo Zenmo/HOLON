@@ -3472,6 +3472,7 @@ traceln("Electricity delta in batteries: "+ batteryStoredEnergyDeltaSinceStart_M
 double energyProduced_MWh = 0;
 double electricityProduced_MWh = 0;
 double energyConsumed_MWh = 0;
+double totalDistanceTrucks_km = 0;
 for (EnergyAsset e : pop_energyAssets) {
 	double EnergyUsed_kWh = e.p_energyAssetInstance.getEnergyUsed_kWh();
 	//traceln("EnergyAsset " + e.getIndex() + " of type " + e.p_defaultEnergyAssetPresetName + " used " + roundToInt(EnergyUsed_kWh) + " kWh energy");
@@ -3489,7 +3490,17 @@ for (EnergyAsset e : pop_energyAssets) {
 		}
 		energyProduced_MWh -= roundToDecimal(EnergyUsed_kWh/1000,2);
 	}
+	if (e.p_energyAssetInstance instanceof J_EAEV) {
+		traceln("eTruck has traveled: " + ((J_EAEV)e.p_energyAssetInstance).mileage + " km");
+		totalDistanceTrucks_km+=((J_EAEV)e.p_energyAssetInstance).mileage;
+	}
+	if (e.p_energyAssetInstance instanceof J_EADieselVehicle) {
+		//traceln("dieseltrucks has traveled: " + ((J_EADieselVehicle)e.p_energyAssetInstance).mileage_km + " km");
+		totalDistanceTrucks_km+=((J_EADieselVehicle)e.p_energyAssetInstance).mileage_km;
+	}
 }
+
+//traceln("Trucks have traveled " + totalDistanceTrucks_km + " km");
 
 for (GCHouse h : Houses){
  	//energyConsumed_MWh -= h.v_totalHeatRecievedSun_kWh / 1000.0;
@@ -12139,7 +12150,7 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption ) {
 		m.p_energyAsset = c_vehicleAssets.get( v_vehicleIndex );
 		m.p_vehicleInstance = (J_EADieselVehicle)m.p_energyAsset.p_energyAssetInstance;
 		m.p_vehicleInstance = (J_EADieselVehicle)m.p_vehicleInstance;
-		m.p_mobilityPatternType = OL_MobilityPatternType.PRIVATE_VEHICLE;
+		m.p_mobilityPatternType = OL_MobilityPatternType.TRUCK;
 		((J_EADieselVehicle)m.p_vehicleInstance).setMobilityTracker( m );
 		m.f_getData();
 		v_vehicleIndex ++;
@@ -15034,7 +15045,8 @@ if( ProvidedParentConnection instanceof GridConnection ) {
 	p_energyAssetInstance = (J_EAConsumption)p_energyAssetInstance;
 	p_energyAssetInstance = new J_EAConsumption( this, capacityElectric_kW, capacityHeat_kW, capacityHydrogen_kW, capacityMethane_kW, main.p_timeStep_h );
 }
-p_energyAssetType = assetType;]]></Body>
+p_energyAssetType = assetType;
+//traceln("EnergyConsumption_kWhpkm: " + energyConsumption_kWhpkm);]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -31457,7 +31469,7 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption ) {
 		m.p_energyAsset = c_vehicleAssets.get( v_vehicleIndex );
 		m.p_vehicleInstance = (J_EADieselVehicle)m.p_energyAsset.p_energyAssetInstance;
 		m.p_vehicleInstance = (J_EADieselVehicle)m.p_vehicleInstance;
-		m.p_mobilityPatternType = OL_MobilityPatternType.PRIVATE_VEHICLE;
+		m.p_mobilityPatternType = OL_MobilityPatternType.TRUCK;
 		((J_EADieselVehicle)m.p_vehicleInstance).setMobilityTracker( m );
 		m.f_getData();
 		v_vehicleIndex ++;
@@ -37697,7 +37709,7 @@ public class J_EAEV extends base.J_EAStorageElectric implements Serializable {
 	private double energyConsumption_kWhpkm = 0.2;
 	private boolean availability = true;
 	private MobilityTracker mobilityTracker = null;
-	private double mileage = 0; 
+	public double mileage = 0; 
 	public double vehicleScaling;
 	public double idleTimeToNextTrip_MIN = 0;
 	public double maxSpreadChargingRatio = 0; // the charging ratio of a session if the vehicle needs to be full before departure
@@ -38610,7 +38622,7 @@ public class J_EADieselVehicle extends base.J_EAConsumption implements Serializa
 	private MobilityTracker mobilityTracker = null;
 	private boolean availability = false;
 	private double vehicleScaling;
-	private double mileage_km = 0;
+	public double mileage_km = 0;
 
     /**
      * Default constructor
