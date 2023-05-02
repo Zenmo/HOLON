@@ -2213,7 +2213,7 @@ traceln(" ");
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[false]]></Code>
+							<Code><![CDATA[true]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1681376013853</Id>
@@ -4506,7 +4506,39 @@ return -1;]]></Body>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[// Energy holons determine their relevant gridnodes based on their established members
+					<Body><![CDATA[for (ConnectionOwner owner : pop_connectionOwners ) {
+	owner.c_actorContracts.stream()
+      .filter(contract -> contract.energyCarrier.equals(OL_EnergyCarrierType.HEAT))
+      .filter(contract -> contract.contractType.equals(OL_ContractType.CONNECTION))
+      .forEach(contract -> {
+          // do something with the filtered agents
+          GridOperator myHeatGridOperator = findFirst(pop_gridOperators, p->p.p_actorID.equals(contract.contractScope)) ;
+		  traceln("HeatGrid Operator = "+myHeatGridOperator);
+          GridNode myHeatGridNode = null;
+          for (Agent subConnection : myHeatGridOperator.subConnections.getConnections())
+          {
+    			traceln("Checking: "+ subConnection);
+    			if (subConnection instanceof GridNode) 
+    			{
+        			traceln("GridNode found! ");
+        			GridNode candidate = (GridNode) subConnection;
+        			if (candidate.p_energyType.equals(OL_EnergyCarrierType.HEAT)) 
+        			{
+            			myHeatGridNode = candidate;
+            			owner.v_ownedGridConnection.l_parentNodeHeat.connectTo( myHeatGridNode );	
+						owner.v_ownedGridConnection.p_parentNodeHeatID = myHeatGridNode.p_agentID;	
+						owner.v_ownedGridConnection.f_connectToParentNode();
+						traceln("Heat Grid Node found and linked! "+myHeatGridNode );
+			      	   		break;
+        			}
+    			}
+		  }	
+          //System.out.println(contract);
+      });
+   
+}
+
+// Energy holons determine their relevant gridnodes based on their established members
 for( EnergyHolon EH : pop_energyHolons ) {
 	for( Agent member : EH.subConnectionsElectricity.getConnections() ) {
 		if( member instanceof EnergyHolon) {   // upper nested holon looks at the higher level gridNode
@@ -4526,6 +4558,7 @@ for( EnergyHolon EH : pop_energyHolons ) {
 for( EnergyHolon e : pop_energyHolons ) {
 	e.f_initialize(); // This function is called here because gridNodes need to be created before holons can link to them.
 }
+
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -5338,7 +5371,7 @@ if (taxContract != null) {
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[Casus_TVW_CMS_ref_BIG_actors.json]]></ClassName>
+						<ClassName><![CDATA[casusTVW_LTDH_actors_parent_heat_from_contract_test.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -5356,7 +5389,7 @@ if (taxContract != null) {
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[Casus_TVW_CMS_ref_BIG_gridnodes.json]]></ClassName>
+						<ClassName><![CDATA[casusTVW_LTDH_gridnodes.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -5374,7 +5407,7 @@ if (taxContract != null) {
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[Casus_TVW_CMS_ref_BIG_DHHT_gridconnections.json]]></ClassName>
+						<ClassName><![CDATA[casusTVW_LTDH_gridconnections.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -5411,7 +5444,7 @@ if (taxContract != null) {
 					<Url><![CDATA[../CaseDefinitions/industry_case/industry_case_policies.txt]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[Casus_TVW_CMS_ref_BIG_policies.json]]></ClassName>
+						<ClassName><![CDATA[casusTVW_LTDH_policies.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>UTF-8</CharsetName>
@@ -5429,7 +5462,7 @@ if (taxContract != null) {
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/holontool_scenario.txt]]></ClassName>
+						<ClassName><![CDATA[CASUS_TVW_site_hybride_clean_parentheatfromoperatorcontract.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -23110,6 +23143,9 @@ for( HashMap l : c_actorContractList) {
 				OL_ConnectionContractType connectionContractType = OL_ConnectionContractType.valueOf((String)l.get("connectionContractType"));
 				J_ConnectionContract contractConnection = new J_ConnectionContract(contractScope, connectionContractType, energyCarrier, 0.0, 0.0, 0.0, annualFee_eur);
 				c_actorContracts.add(contractConnection);
+				
+				
+					
 			break;
 			case TRANSPORT:
 				OL_TransportContractType transportContractType = OL_TransportContractType.valueOf((String)l.get("transportContractType"));
@@ -31507,16 +31543,41 @@ else if (EA.p_energyAssetInstance instanceof J_EAStorage ) {
 } 
 else if (EA.p_energyAssetInstance instanceof J_EAConversion) {
 	c_conversionAssets.add(EA);
-	if (EA.p_energyAssetType == OL_EnergyAssetType.GAS_BURNER || EA.p_energyAssetInstance instanceof J_EAConversionHeatPump || EA.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet ) {
-		if (p_primaryHeatingAsset == null) {
-			p_primaryHeatingAsset = EA;
-		} else if (p_secondaryHeatingAsset == null) {
-			p_secondaryHeatingAsset = EA;
-		} else {
-			traceln("House " + p_agentID + " already has two heating systems!");
-		}
-		//traceln("heatingAsset class " + p_spaceHeatingAsset.getClass().toString());
-	}
+	if (EA.p_energyAssetType == OL_EnergyAssetType.GAS_BURNER || EA.p_energyAssetInstance instanceof J_EAConversionHeatPump || EA.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet || EA.p_energyAssetInstance instanceof J_EAConversionElectricHeater ) {
+		switch (p_heatingType) {
+        	case HEATPUMP_AIR:
+        		p_primaryHeatingAsset = EA;
+        	break;
+        	case HEATPUMP_GASPEAK:
+				p_primaryHeatingAsset = p_primaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionHeatPump? EA : p_primaryHeatingAsset;
+	            p_secondaryHeatingAsset = p_secondaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionGasBurner? EA : p_secondaryHeatingAsset;
+            break;
+            case HEATPUMP_BOILERPEAK:    // ambigue wat we met boiler bedoelen; eboiler of grootschalige DH_boiler = gasburner!
+                p_primaryHeatingAsset = p_primaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionHeatPump? EA : p_primaryHeatingAsset;
+                p_secondaryHeatingAsset = p_secondaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionGasBurner? EA : p_secondaryHeatingAsset;
+                p_secondaryHeatingAsset = p_secondaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionElectricHeater? EA : p_secondaryHeatingAsset;                                          
+            break;
+            case GASBURNER:
+                p_primaryHeatingAsset = p_primaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionGasBurner? EA : p_primaryHeatingAsset;
+                p_secondaryHeatingAsset = p_secondaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionGasCHP? EA : p_secondaryHeatingAsset;
+            break;
+            case DISTRICTHEAT:
+                if( EA.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet ){
+					p_primaryHeatingAsset = EA;
+				}
+				else {
+					p_secondaryHeatingAsset = EA;
+					// set water/water heatpump source energy-asset
+					//if( EA.p_energyAssetInstance instanceof J_EAConversionHeatPump && ((J_EAConversionHeatPump)EA.p_energyAssetInstance).getAmbientTempType().equals("WATER") && p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatDeliverySet ) {
+					if( EA.p_energyAssetInstance instanceof J_EAConversionHeatPump ){	
+						EA.p_linkedSourceEnergyAsset = p_primaryHeatingAsset;
+						EA.p_energyAssetInstance.updateAmbientTemperature( EA.p_linkedSourceEnergyAsset.p_energyAssetInstance.getCurrentTemperature() );
+					}
+				}	
+            break;
+            default: throw new IllegalStateException("Invalid DistrictHeating HeatingType: " + p_heatingType);
+      	}
+    }
 	else if (EA.p_energyAssetInstance instanceof J_EAConversionCurtailer) {
 		p_curtailer = EA;
 	} 
@@ -39158,23 +39219,23 @@ public class J_EAConversionCurtailerHeat extends J_EAConversion implements Seria
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[Casus_TVW_CMS_ref_BIG_policies.json]]></Path>
+			<Path><![CDATA[CASUS_TVW_site_hybride_clean_parentheatfromoperatorcontract.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/holontool_scenario.txt]]></Path>
+			<Path><![CDATA[casusTVW_LTDH_actors_parent_heat_from_contract_test.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[Casus_TVW_CMS_ref_BIG_actors.json]]></Path>
+			<Path><![CDATA[casusTVW_LTDH_gridnodes.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[Casus_TVW_CMS_ref_BIG_DHHT_gridconnections.json]]></Path>
+			<Path><![CDATA[casusTVW_LTDH_gridconnections.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[Casus_TVW_CMS_ref_BIG_gridnodes.json]]></Path>
+			<Path><![CDATA[casusTVW_LTDH_policies.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
