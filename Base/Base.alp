@@ -3576,7 +3576,7 @@ traceln("Energy consumed: "+ energyConsumed_MWh + " MWh");
 traceln("Energy consumed heatstorages: "+ energyConsumed_thermalModels_MWh + " MWh");
 traceln("Energy produced: "+ energyProduced_MWh + " MWh");
 //traceln("Electricity consumed: " + electricityConsumed_MWh + " MWh");
-traceln("Electricity produced: "+ electricityProduced_MWh + " MWh (only by solar and wind");
+traceln("Electricity produced: "+ electricityProduced_MWh + " MWh (by solar, wind, CHP, etc.)");
 // TODO: Make sure this calculation is correct when all energy carriers are 'active'! Only checked for electricity
 traceln("");
 //Total selfconsumption, selfsufficiency
@@ -4371,7 +4371,7 @@ for(HashMap data : parsedJSONGridNodes)
 	//traceln(data.toString());
 
 	//GN = add_pop_gridNodes();
-	GN = add_pop_gridNodes(nodeID, nodeparent, nodetype, energytype, nodecapacity, null, null, nodeoperator, null);
+	GN = add_pop_gridNodes(nodeID, nodeparent, nodetype, energytype, nodecapacity, null, null, nodeoperator, null, false);
 	
 	//( nodeID, nodeparent, nodetype, energytype, nodecapacity, null, null, nodeoperator );
 	
@@ -5675,6 +5675,9 @@ if (taxContract != null) {
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_energyAssetList]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[b_transportBufferValid]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -9158,7 +9161,7 @@ geupdate vanuit
 				<Variable Class="Parameter">
 					<Id>1676386542136</Id>
 					<Name><![CDATA[p_energyAssetList]]></Name>
-					<X>50</X><Y>230</Y>
+					<X>50</X><Y>250</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -9170,6 +9173,30 @@ geupdate vanuit
 						<ParameterEditor>
 							<Id>1676386542134</Id>
 							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1683816606479</Id>
+					<Name><![CDATA[b_transportBufferValid]]></Name>
+					<X>50</X><Y>220</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[boolean]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[false]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1683816606477</Id>
+							<EditorContolType>CHECK_BOX</EditorContolType>
 							<MinSliderValue><![CDATA[0]]></MinSliderValue>
 							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
 							<DelimeterType>NO_DELIMETER</DelimeterType>
@@ -9348,7 +9375,7 @@ geupdate vanuit
 				<Variable Class="CollectionVariable">
 					<Id>1676387442080</Id>
 					<Name><![CDATA[c_energyAssetsData]]></Name>
-					<X>50</X><Y>250</Y>
+					<X>50</X><Y>270</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>false</PresentationFlag>
@@ -9579,12 +9606,15 @@ if( v_currentLoadElectricityLowPassed_kW > v_peakPosLoadElectricity_kW ) { // st
 	v_timeOfPeakPosLoadFiltered_h = time(HOUR);
 }
 
-if (p_energyType.equals(OL_EnergyCarrierType.HEAT)) { // Thermal load unbalance goes into transportBuffer
-	double v_powerFraction_fr = Double.isNaN( -v_currentLoadHeat_kW / p_transportBuffer.getHeatCapacity_kW() )? 0 : -v_currentLoadHeat_kW / p_transportBuffer.getHeatCapacity_kW();
+if (p_energyType.equals(OL_EnergyCarrierType.HEAT) & b_transportBufferValid ) { // Thermal load unbalance goes into transportBuffer
+//	double v_powerFraction_fr = Double.isNaN( -v_currentLoadHeat_kW / p_transportBuffer.getHeatCapacity_kW() )? 0 : -v_currentLoadHeat_kW / p_transportBuffer.getHeatCapacity_kW();
+	double v_powerFraction_fr = -v_currentLoadHeat_kW / p_transportBuffer.getHeatCapacity_kW();
 	//p_transportBuffer.operate(v_powerFraction_fr);
 	//traceln("DistrictHeating network heatcapacity = "+ p_transportBuffer.getHeatCapacity_kW()+" kW, water temperature " + p_transportBuffer.getCurrentTemperature() + " deg C, buffer power fraction " + v_powerFraction_fr * 100 + " %, transportbuffer HeatCapacity_kW " + p_transportBuffer.getHeatCapacity_kW());
 	p_transportBuffer.ownerAsset.f_updateAllFlows(v_powerFraction_fr);
 	//traceln("DistrictHeating network water temperature " + p_transportBuffer.getCurrentTemperature() + " deg C, buffer power fraction " + v_powerFraction_fr * 100 + " %, transportbuffer HeatCapacity_kW " + p_transportBuffer.getHeatCapacity_kW());
+} else if(abs(v_currentLoadHeat_kW)>0.001) {
+	traceln("Non-zero heat-load on district heating network without valid transport buffer!");
 }
 
 //traceln("GridNode " + p_agentID + " update at time " + time(HOUR));
@@ -9715,7 +9745,7 @@ if( p_energyAssetList != null) {
 				storageAsset.set_p_energyAssetType( OL_EnergyAssetType.valueOf((String)l.get( "type" ) ));
 				storageAsset.set_p_defaultEnergyAssetPresetName( (String)l.get( "name" ));
 				if( storageAsset.p_energyAssetType == OL_EnergyAssetType.STORAGE_HEAT){
-				    double capacityHeat_kW2 = l.get( "capacityHeat_kW") == null? 0.0: Double.valueOf( l.get( "capacityHeat_kW").toString()).doubleValue();
+				    double capacityHeat_kW = l.get( "capacityHeat_kW") == null? 0.0: Double.valueOf( l.get( "capacityHeat_kW").toString()).doubleValue();
 					double lossFactor_WpK = l.get( "lossFactor_WpK" ) == null? 0.0: Double.valueOf( l.get( "lossFactor_WpK" ).toString()).doubleValue();
 					double heatCapacity_JpK = l.get( "heatCapacity_JpK" ) == null? 0.0: Double.valueOf( l.get( "heatCapacity_JpK" ).toString()).doubleValue();
 					double minTemperature_degC = l.get( "minTemp_degC" ) == null? 40.0: Double.valueOf( l.get( "minTemp_degC" ).toString()).doubleValue(); // provide default values
@@ -9732,16 +9762,20 @@ if( p_energyAssetList != null) {
 					traceln("Heat Storage init: minTemperature = "+minTemperature_degC+", maxTemperature_degC = "+maxTemperature_degC+", setTemperature_degC = "+setTemperature_degC+", initialTemperature_degC = "+initialTemperature_degC);
 					
 					
-					storageAsset.p_energyAssetInstance = new J_EAStorageHeat(storageAsset, OL_EAStorageTypes.HEATBUFFER, capacityHeat_kW2, lossFactor_WpK, main.p_timeStep_h, initialTemperature_degC, minTemperature_degC, maxTemperature_degC, setTemperature_degC, heatCapacity_JpK, ambientTempType2);	
+					storageAsset.p_energyAssetInstance = new J_EAStorageHeat(storageAsset, OL_EAStorageTypes.HEATBUFFER, capacityHeat_kW, lossFactor_WpK, main.p_timeStep_h, initialTemperature_degC, minTemperature_degC, maxTemperature_degC, setTemperature_degC, heatCapacity_JpK, ambientTempType2);	
 					p_transportBuffer = (J_EAStorageHeat)storageAsset.p_energyAssetInstance;
 					p_transportBuffer.updateAmbientTemperature( main.p_undergroundTemperature_degC );
+					if(heatCapacity_JpK > 0 & capacityHeat_kW > 0) {
+						b_transportBufferValid = true;
+					}
+				
 				}
 				else{
 					traceln("F_instantiateEnergyAssets: ERROR, storage asset type not available");
 				}
 				//storageAsset.f_connectToParentNode( this );
 				main.c_storageAssets.add(storageAsset);
-				
+
 			break;
 			default:
 				traceln("not a valid energy asset category." + assetCategory);
@@ -31687,7 +31721,7 @@ public void f_connectToChild(Agent ConnectingChildNode){
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1677512068434</Id>
-					<Name><![CDATA[b_localBuffer]]></Name>
+					<Name><![CDATA[b_validLocalBuffer]]></Name>
 					<X>50</X><Y>340</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -31812,18 +31846,7 @@ if (l_ownerActor.getConnectedAgent() instanceof EnergyHolon){
 	electricitySurplussHolon_kW = ((EnergyHolon)l_ownerActor.getConnectedAgent()).v_electricitySurplus_kW + v_previousPowerElectricity_kW; // From last timestep! So compensate for own electric power
 	//traceln("DH function! Electricity surpluss in HOLON: " + electricitySurplussHolon_kW + ", own power " + v_previousPowerElectricity_kW,1 );
 }
-
-
-// first update parameters of any heatpumps if present // [GH] This logic should only be run once, not every timestep!
-for(EnergyAsset e : c_energyAssets) {
-	if(e.p_energyAssetInstance instanceof J_EAConversionHeatPump) {
-		if ( ((J_EAConversionHeatPump)e.p_energyAssetInstance).getAmbientTempType().equals("WATER") && b_residualHeatLTSource ) {
-			//traceln("water ambientTempType for LTresidual heat with heatpump check!");
-			e.f_setLinkedVariable("WATER", e.p_linkedSourceEnergyAsset );
-			e.p_energyAssetInstance.updateAmbientTemperature( e.p_baseTemperatureReference );
-		}
-	}
-}		
+	
 //		((J_EAConversionHeatPump)e.p_energyAssetInstance).updateParameters(main.p_undergroundTemperature_degC, storageTemp_degC); // update heatpump temp levels!
 
 tempSetpoint_degC = p_ThermalStorageAsset.p_energyAssetInstance.getSetTemperature_degC();
@@ -31885,7 +31908,7 @@ p_primaryHeatingAsset.f_updateAllFlows( p_primaryHeatingAsset.v_powerFraction_fr
 if( b_bivalentSystem ) {
 	p_secondaryHeatingAsset.f_updateAllFlows(p_secondaryHeatingAsset.v_powerFraction_fr);
 }
-if( b_localBuffer ) {
+if( b_validLocalBuffer ) {
 	//traceln("Thermal storage asset heatCapacity: " + p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW());
 	//traceln("Total heating power: " +totalHeatingPower_kWth);
 	//traceln("heatTransferToNetwork_kW: " + heatTransferToNetwork_kW);
@@ -32108,10 +32131,25 @@ traceln("NetConnection connecting to " + numberOfEnergyAssets + " EnergyAssets")
 					<Body><![CDATA[// one time setting of booleans marking system configuration for use in transparant logic switching
 b_monovalentSystem = p_primaryHeatingAsset instanceof EnergyAsset & p_secondaryHeatingAsset == null? true : false;
 b_bivalentSystem = p_primaryHeatingAsset instanceof EnergyAsset & p_secondaryHeatingAsset != null? true : false;
-b_localBuffer = p_ThermalStorageAsset instanceof EnergyAsset? true : false;
 b_residualHeatLTSource = p_residualHeatLTSource instanceof EnergyAsset? true : false;
 
-]]></Body>
+// Check if buffer is present and has physically correct parameters
+if (p_ThermalStorageAsset instanceof EnergyAsset) {
+	if(p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW() > 0 & ((J_EAStorageHeat)p_ThermalStorageAsset.p_energyAssetInstance).getHeatCapacity_JpK()> 0 ) {
+		b_validLocalBuffer = true;
+	}
+}
+
+// first update parameters of any heatpumps if present // [GH] This logic should only be run once, not every timestep! updateAmbientTemp should also be triggered from main.
+for(EnergyAsset e : c_energyAssets) {
+	if(e.p_energyAssetInstance instanceof J_EAConversionHeatPump) {
+		if ( ((J_EAConversionHeatPump)e.p_energyAssetInstance).getAmbientTempType().equals("WATER") && b_residualHeatLTSource ) {
+			//traceln("water ambientTempType for LTresidual heat with heatpump check!");
+			e.f_setLinkedVariable("WATER", e.p_linkedSourceEnergyAsset );
+			e.p_energyAssetInstance.updateAmbientTemperature( e.p_baseTemperatureReference );
+		}
+	}
+}	]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
