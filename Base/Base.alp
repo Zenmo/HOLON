@@ -1762,6 +1762,66 @@ traceln(" ");
 						<Type><![CDATA[double]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1683718894234</Id>
+					<Name><![CDATA[v_timeSeriesRuntime_ms]]></Name>
+					<X>400</X><Y>620</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1683718916458</Id>
+					<Name><![CDATA[v_gridNodesRuntime_ms]]></Name>
+					<X>400</X><Y>680</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1683718921466</Id>
+					<Name><![CDATA[v_gridConnectionsRuntime_ms]]></Name>
+					<X>400</X><Y>650</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1683718924632</Id>
+					<Name><![CDATA[v_incentivesRuntime_ms]]></Name>
+					<X>400</X><Y>740</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1683718924634</Id>
+					<Name><![CDATA[v_financialsRuntime_ms]]></Name>
+					<X>400</X><Y>710</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1658496701675</Id>
 					<Name><![CDATA[p_timeStep_h]]></Name>
@@ -1807,7 +1867,7 @@ traceln(" ");
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[true]]></Code>
+							<Code><![CDATA[false]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1658752734131</Id>
@@ -2046,7 +2106,7 @@ traceln(" ");
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[false]]></Code>
+							<Code><![CDATA[true]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1663577621791</Id>
@@ -2672,7 +2732,7 @@ traceln(" ");
 							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
 						</Timeout>
 						<Rate Class="CodeUnitValue">
-							<Code><![CDATA[1]]></Code>
+							<Code><![CDATA[1/p_timeStep_h]]></Code>
 							<Unit Class="RateUnits"><![CDATA[PER_HOUR]]></Unit>
 						</Rate>
 						<OccurrenceAtTime>true</OccurrenceAtTime>
@@ -2688,19 +2748,29 @@ traceln(" ");
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
 					<Action><![CDATA[// Update tijdreeksen in leesbare variabelen
+double startTime = System.currentTimeMillis();
 f_updateTimeseries();
+v_timeSeriesRuntime_ms += (System.currentTimeMillis()-startTime);
 
 // Operate assets on each gridConnection
+startTime = System.currentTimeMillis();
 f_calculateGridConnectionFlows();
+v_gridConnectionsRuntime_ms += (System.currentTimeMillis()-startTime);
 
 // Calculate grid node flows
+startTime = System.currentTimeMillis();
 f_calculateGridnodeFlows();
+v_gridNodesRuntime_ms += (System.currentTimeMillis()-startTime);
 
 // Financial accounting of energy flows
+startTime = System.currentTimeMillis();
 f_calculateFinancialFlows();
+v_financialsRuntime_ms += (System.currentTimeMillis()-startTime);
 
 // Update elektriciteitsprijzen
+startTime = System.currentTimeMillis();
 f_determinePricesForNextTimestep();
+v_incentivesRuntime_ms += (System.currentTimeMillis()-startTime);
 
 if (b_addKpiVisuals) {
 	kpiVisuals(0).f_updateVisuals();
@@ -3472,16 +3542,21 @@ traceln("Electricity delta in batteries: "+ batteryStoredEnergyDeltaSinceStart_M
 double energyProduced_MWh = 0;
 double electricityProduced_MWh = 0;
 double energyConsumed_MWh = 0;
+//testing
+double energyConsumed_thermalModels_MWh = 0;   //tesing
 for (EnergyAsset e : pop_energyAssets) {
 	double EnergyUsed_kWh = e.p_energyAssetInstance.getEnergyUsed_kWh();
 	//traceln("EnergyAsset " + e.getIndex() + " of type " + e.p_defaultEnergyAssetPresetName + " used " + roundToInt(EnergyUsed_kWh) + " kWh energy");
 
 	if (EnergyUsed_kWh > 0) {
-		if (e.p_energyAssetInstance instanceof J_EAConversionCurtailer) {
+		if (e.p_energyAssetInstance instanceof J_EAConversionCurtailer || e.p_energyAssetInstance instanceof J_EAConversionCurtailerHeat) {
 			energyProduced_MWh -= roundToDecimal(EnergyUsed_kWh/1000,2);
 			v_totalEnergyCurtailed_MWh += roundToDecimal(EnergyUsed_kWh/1000,2);
 		} else {
 			energyConsumed_MWh += roundToDecimal(EnergyUsed_kWh/1000,3);
+		}
+		if( e.p_energyAssetInstance instanceof J_EAStorageHeat && e.p_energyAssetInstance.electricityConsumption_kW == 0) {
+			energyConsumed_thermalModels_MWh +=  roundToDecimal(EnergyUsed_kWh/1000,3);
 		}
 	} else {
 		if( e.p_energyAssetType == OL_EnergyAssetType.PHOTOVOLTAIC ||  e.p_energyAssetType == OL_EnergyAssetType.WINDMILL ){
@@ -3498,7 +3573,9 @@ for (GCHouse h : Houses){
 traceln("");
 traceln("__--** Totals **--__");
 traceln("Energy consumed: "+ energyConsumed_MWh + " MWh");
+traceln("Energy consumed heatstorages: "+ energyConsumed_thermalModels_MWh + " MWh");
 traceln("Energy produced: "+ energyProduced_MWh + " MWh");
+//traceln("Electricity consumed: " + electricityConsumed_MWh + " MWh");
 traceln("Electricity produced: "+ electricityProduced_MWh + " MWh (only by solar and wind");
 // TODO: Make sure this calculation is correct when all energy carriers are 'active'! Only checked for electricity
 traceln("");
@@ -3509,19 +3586,20 @@ if ( energyProduced_MWh > 0 ){
 }
 traceln("Model-wide selfconsumption: " + totalSelfConsumption_fr + "%");
 double totalElectricitySelfConsumption_fr = 0;
-if ( energyProduced_MWh > 0 ){
+if ( electricityProduced_MWh > 0 ){
 	totalElectricitySelfConsumption_fr = 1 - v_totalElectricityExport_MWh/electricityProduced_MWh;
 }
 
 traceln("Model-wide electricity selfconsumption: " + totalElectricitySelfConsumption_fr + "%");
 double totalSelfSufficiency_fr = 1 - (v_totalElectricityImport_MWh + v_totalMethaneImport_MWh + 
 v_totalHydrogenImport_MWh + v_totalDieselImport_MWh - batteryStoredEnergyDeltaSinceStart_MWh ) / energyConsumed_MWh; // Doesn't account for changes in battery-SOC!
-traceln("Model-wide selfsufficiency (via import calc): " + totalSelfSufficiency_fr);
+
 traceln( "import electricity " + v_totalElectricityImport_MWh);
 traceln( "import methane " + v_totalMethaneImport_MWh);
 traceln( "importdiesel " + v_totalDieselImport_MWh);
 traceln( "consumed  " + energyConsumed_MWh);
 
+traceln("Model-wide selfsufficiency (via import calc): " + totalSelfSufficiency_fr);
 double totalSelfSufficiency_fr_check = (energyProduced_MWh - (v_totalElectricityExport_MWh + v_totalMethaneExport_MWh + v_totalHydrogenExport_MWh))/energyConsumed_MWh;
 traceln("Model-wide selfsufficiency (via export calc): " + totalSelfSufficiency_fr_check);
 
@@ -3778,9 +3856,14 @@ for (EnergyHolon e : pop_energyHolons) {
 	e.f_updateIncentives();
 }
 
-for (ConnectionOwner c : pop_connectionOwners) {
-	c.f_updateIncentives();
-}]]></Body>
+
+//if (p_parallelize) {
+	c_connectionOwners.parallelStream().forEach(co -> co.f_updateIncentives());	
+//} else {
+	for (ConnectionOwner c : pop_connectionOwners) {
+		c.f_updateIncentives();
+	}
+//}]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -3935,15 +4018,21 @@ c_globalBatteryChargingProfile_kWhph.computeIfAbsent( timeIndex, k -> totalBatte
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>false</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[for (ConnectionOwner c : pop_connectionOwners) {
-	c.f_updateFinances();
-}
+					<Body><![CDATA[//if (p_parallelize) {
+//	c_connectionOwners.parallelStream().forEach(co -> co.f_updateFinances());
+//} else {
+	for (ConnectionOwner c : pop_connectionOwners) {
+		c.f_updateFinances();
+	}
+//}
+
 for (EnergyHolon h : pop_energyHolons) {
 	h.f_updateFinances();
 }
 for (EnergySupplier e : pop_energySuppliers) {
 	e.f_updateFinances();
-}]]></Body>
+}
+]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -5462,7 +5551,7 @@ if (taxContract != null) {
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[CASUS_TVW_site_hybride_clean_parentheatfromoperatorcontract.txt]]></ClassName>
+						<ClassName><![CDATA[holontool_scenario.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -10074,9 +10163,10 @@ subConnections.sendToAllConnected(msg);]]></OnReceive>
     			<TimePlot>
 					<Id>1670317113685</Id>
 					<Name><![CDATA[plot]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>270</X><Y>180</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
+					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
@@ -12536,10 +12626,10 @@ v_selfSufficiency_fr = 1 - (v_electricityDrawnFromGrid_kWh + v_heatDrawn_kWh + v
 
 v_maxConnectionLoad_fr = max(v_maxConnectionLoad_fr, abs(v_currentPowerElectricity_kW / v_allowedCapacity_kW ));
 
-if (main.b_addKpiVisuals) {
+/*if (main.b_addKpiVisuals) {
 	pl_SOC.updateData();
 	pl_powerFlows.updateData();
-}
+}*/
 
 v_electricityTotalsCheck = v_electricityConsumedFixedProfile_kWh + v_electricityConvertedToX_kWh + v_electricityChargedByEVs_kWh  + v_electricityDeliveredToGrid_kWh 
 - v_electricityProducedPV_kWh - v_electricityProducedWind_kWh - v_electricityDrawnFromGrid_kWh ;]]></Body>
@@ -13832,6 +13922,7 @@ return level;]]></Body>
     			<TimePlot>
 					<Id>1668439095469</Id>
 					<Name><![CDATA[pl_powerFlows]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>0</X><Y>520</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -13979,6 +14070,7 @@ return level;]]></Body>
     			<TimePlot>
 					<Id>1668968408696</Id>
 					<Name><![CDATA[pl_SOC]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>530</X><Y>520</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -14375,88 +14467,12 @@ return level;]]></Body>
 					</Font>
 					<Alignment>LEFT</Alignment>
 				</Text>
-    			<TimePlot>
-					<Id>1675770089415</Id>
-					<Name><![CDATA[plotCheck]]></Name>
-					<X>-410</X><Y>780</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<AutoUpdate>true</AutoUpdate>
-					<OccurrenceAtTime>true</OccurrenceAtTime>
-					<OccurrenceDate>1675843200000</OccurrenceDate>
-					<OccurrenceTime Class="CodeUnitValue">
-						<Code><![CDATA[0]]></Code>
-						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
-					</OccurrenceTime>
-					<RecurrenceCode Class="CodeUnitValue">
-						<Code><![CDATA[0.25]]></Code>
-						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
-					</RecurrenceCode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Width>350</Width>
-					<Height>210</Height>
-					<BackgroundColor/>
-					<BorderColor/>
-					<ChartArea>
-						<XOffset>50</XOffset>
-						<YOffset>30</YOffset>
-						<Width>270</Width>
-						<Height>120</Height>
-						<BackgroundColor>-1</BackgroundColor>
-						<BorderColor>-16777216</BorderColor>
-						<GridColor>-12566464</GridColor>
-					</ChartArea>
-					<Legend>
-						<Place>SOUTH</Place>
-						<TextColor>-16777216</TextColor>
-						<Size>30</Size>
-					</Legend>
-					<Labels>
-						<HorLabelsPosition>DEFAULT</HorLabelsPosition>
-						<VerLabelsPosition>DEFAULT</VerLabelsPosition>
-						<TextColor>-12566464</TextColor>
-					</Labels>
-					<ShowLegend>true</ShowLegend>
-					<TimeWindowsMovementType>MOVEMENT_WITH_TIME</TimeWindowsMovementType>		
-					<TimeWindowUnits>DAY</TimeWindowUnits>
-					<VerScaleFromExpression><![CDATA[0]]></VerScaleFromExpression>
-					<VerScaleToExpression><![CDATA[1]]></VerScaleToExpression>
-					<VerScaleType>AUTO</VerScaleType>
-					<DrawLine>true</DrawLine>
-					<Interpolation>LINEAR</Interpolation>
-					<DatasetExpression>  
-						<Title><![CDATA[Dataset Title]]></Title>
-					<Id>0</Id>
-					<Expression><![CDATA[my_dataset]]></Expression>
-					<Color>-12799119</Color>
-					<Expression2><![CDATA[v_fixedConsumptionElectric_kW + 
-v_electricHobConsumption_kW +
-v_conversionPowerElectric_kW +
-v_batteryPowerElectric_kW +
-v_evChargingPowerElectric_kW - 
-v_pvProductionElectric_kW -
-v_windProductionElectric_kW -
-v_currentPowerElectricity_kW
-
-]]></Expression2>
-					<Expression2Flag>true</Expression2Flag>
-						<PointStyle>NONE</PointStyle>
-						<LineWidth>1.0</LineWidth>
-					</DatasetExpression>
-					<SamplesToKeep>1000</SamplesToKeep>
-					<TimeWindowExpression><![CDATA[1]]></TimeWindowExpression>
-					<FillAreaUnderLine>false</FillAreaUnderLine>
-					<LabelFormat>MODEL_TIME_UNITS</LabelFormat>
-    			</TimePlot>
 				<Rectangle>
 					<Id>1676476049154</Id>
 					<Name><![CDATA[rectangle4]]></Name>
 					<X>1460</X><Y>180</Y>
 					<Label><X>10</X><Y>10</Y></Label>
-					<PublicFlag>true</PublicFlag>
+					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
@@ -14478,7 +14494,7 @@ v_currentPowerElectricity_kW
 					<Name><![CDATA[text11]]></Name>
 					<X>1790</X><Y>184</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
+					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D</DrawMode>
@@ -14494,83 +14510,6 @@ v_currentPowerElectricity_kW
 					</Font>
 					<Alignment>LEFT</Alignment>
 				</Text>
-    			<TimePlot>
-					<Id>1676476110567</Id>
-					<Name><![CDATA[pl_SOC4]]></Name>
-					<X>1460</X><Y>220</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<AutoUpdate>true</AutoUpdate>
-					<OccurrenceAtTime>true</OccurrenceAtTime>
-					<OccurrenceDate>1668499200000</OccurrenceDate>
-					<OccurrenceTime Class="CodeUnitValue">
-						<Code><![CDATA[0]]></Code>
-						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
-					</OccurrenceTime>
-					<RecurrenceCode Class="CodeUnitValue">
-						<Code><![CDATA[15]]></Code>
-						<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
-					</RecurrenceCode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Width>500</Width>
-					<Height>280</Height>
-					<BackgroundColor/>
-					<BorderColor/>
-					<ChartArea>
-						<XOffset>50</XOffset>
-						<YOffset>30</YOffset>
-						<Width>420</Width>
-						<Height>200</Height>
-						<BackgroundColor>-1</BackgroundColor>
-						<BorderColor>-16777216</BorderColor>
-						<GridColor>-12566464</GridColor>
-					</ChartArea>
-					<Legend>
-						<Place>SOUTH</Place>
-						<TextColor>-16777216</TextColor>
-						<Size>20</Size>
-					</Legend>
-					<Labels>
-						<HorLabelsPosition>DEFAULT</HorLabelsPosition>
-						<VerLabelsPosition>DEFAULT</VerLabelsPosition>
-						<TextColor>-12566464</TextColor>
-					</Labels>
-					<ShowLegend>true</ShowLegend>
-					<TimeWindowsMovementType>MOVEMENT_WITH_TIME</TimeWindowsMovementType>		
-					<TimeWindowUnits>MODEL_TIME_UNIT</TimeWindowUnits>
-					<VerScaleFromExpression><![CDATA[0]]></VerScaleFromExpression>
-					<VerScaleToExpression><![CDATA[0.4]]></VerScaleToExpression>
-					<VerScaleType>FIXED</VerScaleType>
-					<DrawLine>true</DrawLine>
-					<Interpolation>LINEAR</Interpolation>
-					<DatasetExpression>  
-						<Title><![CDATA[gasprice]]></Title>
-					<Id>1676476110563</Id>
-					<Expression><![CDATA[my_dataset7]]></Expression>
-					<Color>-5952982</Color>
-					<Expression2><![CDATA[v_gasHeatingCost_eurpkWh_TEMPORARY]]></Expression2>
-					<Expression2Flag>true</Expression2Flag>
-						<PointStyle>NONE</PointStyle>
-						<LineWidth>1.0</LineWidth>
-					</DatasetExpression>
-					<DatasetExpression>  
-						<Title><![CDATA[electricity price]]></Title>
-					<Id>1676476110564</Id>
-					<Expression><![CDATA[my_dataset]]></Expression>
-					<Color>-13447886</Color>
-					<Expression2><![CDATA[v_eHeatingCost_eurpkWh_TEMPORARY]]></Expression2>
-					<Expression2Flag>true</Expression2Flag>
-						<PointStyle>NONE</PointStyle>
-						<LineWidth>1.0</LineWidth>
-					</DatasetExpression>
-					<SamplesToKeep>1000</SamplesToKeep>
-					<TimeWindowExpression><![CDATA[48]]></TimeWindowExpression>
-					<FillAreaUnderLine>false</FillAreaUnderLine>
-					<LabelFormat>HH_mm</LabelFormat>
-    			</TimePlot>
 			</Presentation>
 
 				</Level>
@@ -15729,9 +15668,10 @@ return v_currentConsumptionElectricity_kW;
     			<TimePlot>
 					<Id>1668420180250</Id>
 					<Name><![CDATA[plot]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>430</X><Y>300</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
+					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
@@ -15827,9 +15767,10 @@ return v_currentConsumptionElectricity_kW;
     			<TimePlot>
 					<Id>1676462939101</Id>
 					<Name><![CDATA[temperaturePlot]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>400</X><Y>570</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
+					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
@@ -30604,282 +30545,11 @@ v_batterySOC_fr = p_batteryAsset.p_energyAssetInstance.getCurrentStateOfCharge()
 
 			<Presentation>
     			<TimePlot>
-					<Id>1673873774259</Id>
-					<Name><![CDATA[pl_SOC1]]></Name>
-					<X>820</X><Y>1070</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<AutoUpdate>true</AutoUpdate>
-					<OccurrenceAtTime>true</OccurrenceAtTime>
-					<OccurrenceDate>1668499200000</OccurrenceDate>
-					<OccurrenceTime Class="CodeUnitValue">
-						<Code><![CDATA[0]]></Code>
-						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
-					</OccurrenceTime>
-					<RecurrenceCode Class="CodeUnitValue">
-						<Code><![CDATA[15]]></Code>
-						<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
-					</RecurrenceCode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Width>560</Width>
-					<Height>320</Height>
-					<BackgroundColor/>
-					<BorderColor/>
-					<ChartArea>
-						<XOffset>50</XOffset>
-						<YOffset>30</YOffset>
-						<Width>480</Width>
-						<Height>200</Height>
-						<BackgroundColor>-1</BackgroundColor>
-						<BorderColor>-16777216</BorderColor>
-						<GridColor>-12566464</GridColor>
-					</ChartArea>
-					<Legend>
-						<Place>SOUTH</Place>
-						<TextColor>-16777216</TextColor>
-						<Size>60</Size>
-					</Legend>
-					<Labels>
-						<HorLabelsPosition>DEFAULT</HorLabelsPosition>
-						<VerLabelsPosition>DEFAULT</VerLabelsPosition>
-						<TextColor>-12566464</TextColor>
-					</Labels>
-					<ShowLegend>true</ShowLegend>
-					<TimeWindowsMovementType>MOVEMENT_WITH_TIME</TimeWindowsMovementType>		
-					<TimeWindowUnits>MODEL_TIME_UNIT</TimeWindowUnits>
-					<VerScaleFromExpression><![CDATA[0]]></VerScaleFromExpression>
-					<VerScaleToExpression><![CDATA[1]]></VerScaleToExpression>
-					<VerScaleType>AUTO</VerScaleType>
-					<DrawLine>true</DrawLine>
-					<Interpolation>LINEAR</Interpolation>
-					<DatasetExpression>  
-						<Title><![CDATA[Current house temperature]]></Title>
-					<Id>1673873774256</Id>
-					<Expression><![CDATA[my_dataset7]]></Expression>
-					<Color>-16777088</Color>
-					<Expression2><![CDATA[v_currentIndoorTemp_degC]]></Expression2>
-					<Expression2Flag>true</Expression2Flag>
-						<PointStyle>NONE</PointStyle>
-						<LineWidth>1.0</LineWidth>
-					</DatasetExpression>
-					<DatasetExpression>  
-						<Title><![CDATA[Buffer temp]]></Title>
-					<Id>0</Id>
-					<Expression><![CDATA[my_dataset]]></Expression>
-					<Color>-14774017</Color>
-					<Expression2><![CDATA[p_heatBuffer == null ? 0 : ((J_EAStorageHeat)p_heatBuffer.p_energyAssetInstance).getCurrentTemperature()]]></Expression2>
-					<Expression2Flag>true</Expression2Flag>
-						<PointStyle>NONE</PointStyle>
-						<LineWidth>1.0</LineWidth>
-					</DatasetExpression>
-					<DatasetExpression>  
-						<Title><![CDATA[Outside temp]]></Title>
-					<Id>0</Id>
-					<Expression><![CDATA[my_dataset8]]></Expression>
-					<Color>-60269</Color>
-					<Expression2><![CDATA[main.v_currentAmbientTemperature_degC]]></Expression2>
-					<Expression2Flag>true</Expression2Flag>
-						<PointStyle>NONE</PointStyle>
-						<LineWidth>1.0</LineWidth>
-					</DatasetExpression>
-					<SamplesToKeep>1000</SamplesToKeep>
-					<TimeWindowExpression><![CDATA[24]]></TimeWindowExpression>
-					<FillAreaUnderLine>false</FillAreaUnderLine>
-					<LabelFormat>HH_mm</LabelFormat>
-    			</TimePlot>
-    			<TimePlot>
-					<Id>1674040679812</Id>
-					<Name><![CDATA[pl_heatingAssets]]></Name>
-					<X>820</X><Y>770</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<AutoUpdate>true</AutoUpdate>
-					<OccurrenceAtTime>true</OccurrenceAtTime>
-					<OccurrenceDate>1668499200000</OccurrenceDate>
-					<OccurrenceTime Class="CodeUnitValue">
-						<Code><![CDATA[0]]></Code>
-						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
-					</OccurrenceTime>
-					<RecurrenceCode Class="CodeUnitValue">
-						<Code><![CDATA[5]]></Code>
-						<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
-					</RecurrenceCode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Width>560</Width>
-					<Height>320</Height>
-					<BackgroundColor/>
-					<BorderColor/>
-					<ChartArea>
-						<XOffset>50</XOffset>
-						<YOffset>30</YOffset>
-						<Width>480</Width>
-						<Height>200</Height>
-						<BackgroundColor>-1</BackgroundColor>
-						<BorderColor>-16777216</BorderColor>
-						<GridColor>-12566464</GridColor>
-					</ChartArea>
-					<Legend>
-						<Place>SOUTH</Place>
-						<TextColor>-16777216</TextColor>
-						<Size>60</Size>
-					</Legend>
-					<Labels>
-						<HorLabelsPosition>DEFAULT</HorLabelsPosition>
-						<VerLabelsPosition>DEFAULT</VerLabelsPosition>
-						<TextColor>-12566464</TextColor>
-					</Labels>
-					<ShowLegend>true</ShowLegend>
-					<TimeWindowsMovementType>MOVEMENT_WITH_TIME</TimeWindowsMovementType>		
-					<TimeWindowUnits>DAY</TimeWindowUnits>
-					<VerScaleFromExpression><![CDATA[0]]></VerScaleFromExpression>
-					<VerScaleToExpression><![CDATA[1]]></VerScaleToExpression>
-					<VerScaleType>AUTO</VerScaleType>
-					<DrawLine>true</DrawLine>
-					<Interpolation>LINEAR</Interpolation>
-					<DatasetExpression>  
-						<Title><![CDATA[Primary Heating Consumption Elektricity]]></Title>
-					<Id>1674040679809</Id>
-					<Expression><![CDATA[my_dataset7]]></Expression>
-					<Color>-16777088</Color>
-					<Expression2><![CDATA[p_primaryHeatingAsset.v_currentConsumptionElectricity_kW]]></Expression2>
-					<Expression2Flag>true</Expression2Flag>
-						<PointStyle>NONE</PointStyle>
-						<LineWidth>1.0</LineWidth>
-					</DatasetExpression>
-					<DatasetExpression>  
-						<Title><![CDATA[Primary Heating Consumption Gas]]></Title>
-					<Id>0</Id>
-					<Expression><![CDATA[my_dataset]]></Expression>
-					<Color>-14774017</Color>
-					<Expression2><![CDATA[p_primaryHeatingAsset.v_currentConsumptionMethane_kW]]></Expression2>
-					<Expression2Flag>true</Expression2Flag>
-						<PointStyle>NONE</PointStyle>
-						<LineWidth>1.0</LineWidth>
-					</DatasetExpression>
-					<DatasetExpression>  
-						<Title><![CDATA[Secondary Heating Consumption Elektricity]]></Title>
-					<Id>0</Id>
-					<Expression><![CDATA[my_dataset8]]></Expression>
-					<Color>-6632142</Color>
-					<Expression2><![CDATA[p_secondaryHeatingAsset == null ? 0: p_secondaryHeatingAsset.v_currentConsumptionElectricity_kW]]></Expression2>
-					<Expression2Flag>true</Expression2Flag>
-						<PointStyle>NONE</PointStyle>
-						<LineWidth>1.0</LineWidth>
-					</DatasetExpression>
-					<DatasetExpression>  
-						<Title><![CDATA[Secondary Heating Consumption Gas]]></Title>
-					<Id>0</Id>
-					<Expression><![CDATA[my_dataset9]]></Expression>
-					<Color>-16744448</Color>
-					<Expression2><![CDATA[p_secondaryHeatingAsset == null ? 0: p_secondaryHeatingAsset.v_currentConsumptionMethane_kW]]></Expression2>
-					<Expression2Flag>true</Expression2Flag>
-						<PointStyle>NONE</PointStyle>
-						<LineWidth>1.0</LineWidth>
-					</DatasetExpression>
-					<DatasetExpression>  
-						<Title><![CDATA[Heat recieving from sun]]></Title>
-					<Id>0</Id>
-					<Expression><![CDATA[my_dataset10]]></Expression>
-					<Color>-10496</Color>
-					<Expression2><![CDATA[v_heatRecievingFromSun_kW]]></Expression2>
-					<Expression2Flag>true</Expression2Flag>
-						<PointStyle>NONE</PointStyle>
-						<LineWidth>1.0</LineWidth>
-					</DatasetExpression>
-					<SamplesToKeep>1000</SamplesToKeep>
-					<TimeWindowExpression><![CDATA[1]]></TimeWindowExpression>
-					<FillAreaUnderLine>false</FillAreaUnderLine>
-					<LabelFormat>HH_mm</LabelFormat>
-    			</TimePlot>
-    			<TimePlot>
-					<Id>1674397022338</Id>
-					<Name><![CDATA[pl_SOCx]]></Name>
-					<X>1050</X><Y>520</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<AutoUpdate>true</AutoUpdate>
-					<OccurrenceAtTime>true</OccurrenceAtTime>
-					<OccurrenceDate>1668499200000</OccurrenceDate>
-					<OccurrenceTime Class="CodeUnitValue">
-						<Code><![CDATA[0]]></Code>
-						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
-					</OccurrenceTime>
-					<RecurrenceCode Class="CodeUnitValue">
-						<Code><![CDATA[5]]></Code>
-						<Unit Class="TimeUnits"><![CDATA[MINUTE]]></Unit>
-					</RecurrenceCode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Width>500</Width>
-					<Height>280</Height>
-					<BackgroundColor/>
-					<BorderColor/>
-					<ChartArea>
-						<XOffset>50</XOffset>
-						<YOffset>30</YOffset>
-						<Width>420</Width>
-						<Height>160</Height>
-						<BackgroundColor>-1</BackgroundColor>
-						<BorderColor>-16777216</BorderColor>
-						<GridColor>-12566464</GridColor>
-					</ChartArea>
-					<Legend>
-						<Place>SOUTH</Place>
-						<TextColor>-16777216</TextColor>
-						<Size>60</Size>
-					</Legend>
-					<Labels>
-						<HorLabelsPosition>DEFAULT</HorLabelsPosition>
-						<VerLabelsPosition>DEFAULT</VerLabelsPosition>
-						<TextColor>-12566464</TextColor>
-					</Labels>
-					<ShowLegend>true</ShowLegend>
-					<TimeWindowsMovementType>MOVEMENT_WITH_TIME</TimeWindowsMovementType>		
-					<TimeWindowUnits>MODEL_TIME_UNIT</TimeWindowUnits>
-					<VerScaleFromExpression><![CDATA[0]]></VerScaleFromExpression>
-					<VerScaleToExpression><![CDATA[1]]></VerScaleToExpression>
-					<VerScaleType>FIXED</VerScaleType>
-					<DrawLine>true</DrawLine>
-					<Interpolation>LINEAR</Interpolation>
-					<DatasetExpression>  
-						<Title><![CDATA[SOC vehicle]]></Title>
-					<Id>1674397022335</Id>
-					<Expression><![CDATA[my_dataset7]]></Expression>
-					<Color>-8355840</Color>
-					<Expression2><![CDATA[v_vehicleSOC_fr]]></Expression2>
-					<Expression2Flag>true</Expression2Flag>
-						<PointStyle>NONE</PointStyle>
-						<LineWidth>1.0</LineWidth>
-					</DatasetExpression>
-					<DatasetExpression>  
-						<Title><![CDATA[SOC battery]]></Title>
-					<Id>0</Id>
-					<Expression><![CDATA[my_dataset]]></Expression>
-					<Color>-14774017</Color>
-					<Expression2><![CDATA[v_batterySOC_fr]]></Expression2>
-					<Expression2Flag>true</Expression2Flag>
-						<PointStyle>NONE</PointStyle>
-						<LineWidth>1.0</LineWidth>
-					</DatasetExpression>
-					<SamplesToKeep>1000</SamplesToKeep>
-					<TimeWindowExpression><![CDATA[48]]></TimeWindowExpression>
-					<FillAreaUnderLine>false</FillAreaUnderLine>
-					<LabelFormat>HH_mm</LabelFormat>
-    			</TimePlot>
-    			<TimePlot>
 					<Id>1674899851745</Id>
 					<Name><![CDATA[HeatpumpPlot]]></Name>
 					<X>1970</X><Y>110</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
+					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
@@ -30940,73 +30610,6 @@ v_batterySOC_fr = p_batteryAsset.p_energyAssetInstance.getCurrentStateOfCharge()
 					<TimeWindowExpression><![CDATA[25]]></TimeWindowExpression>
 					<FillAreaUnderLine>false</FillAreaUnderLine>
 					<LabelFormat>dd_MM</LabelFormat>
-    			</TimePlot>
-    			<TimePlot>
-					<Id>1676974325361</Id>
-					<Name><![CDATA[plot]]></Name>
-					<X>1990</X><Y>410</Y>
-					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<AutoUpdate>true</AutoUpdate>
-					<OccurrenceAtTime>true</OccurrenceAtTime>
-					<OccurrenceDate>1677052800000</OccurrenceDate>
-					<OccurrenceTime Class="CodeUnitValue">
-						<Code><![CDATA[0]]></Code>
-						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
-					</OccurrenceTime>
-					<RecurrenceCode Class="CodeUnitValue">
-						<Code><![CDATA[1]]></Code>
-						<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
-					</RecurrenceCode>
-					<EmbeddedIcon>false</EmbeddedIcon>
-					<Width>450</Width>
-					<Height>250</Height>
-					<BackgroundColor/>
-					<BorderColor/>
-					<ChartArea>
-						<XOffset>50</XOffset>
-						<YOffset>30</YOffset>
-						<Width>370</Width>
-						<Height>160</Height>
-						<BackgroundColor>-1</BackgroundColor>
-						<BorderColor>-16777216</BorderColor>
-						<GridColor>-12566464</GridColor>
-					</ChartArea>
-					<Legend>
-						<Place>SOUTH</Place>
-						<TextColor>-16777216</TextColor>
-						<Size>30</Size>
-					</Legend>
-					<Labels>
-						<HorLabelsPosition>DEFAULT</HorLabelsPosition>
-						<VerLabelsPosition>DEFAULT</VerLabelsPosition>
-						<TextColor>-12566464</TextColor>
-					</Labels>
-					<ShowLegend>true</ShowLegend>
-					<TimeWindowsMovementType>MOVEMENT_WITH_TIME</TimeWindowsMovementType>		
-					<TimeWindowUnits>DAY</TimeWindowUnits>
-					<VerScaleFromExpression><![CDATA[0]]></VerScaleFromExpression>
-					<VerScaleToExpression><![CDATA[1]]></VerScaleToExpression>
-					<VerScaleType>AUTO</VerScaleType>
-					<DrawLine>true</DrawLine>
-					<Interpolation>LINEAR</Interpolation>
-					<DatasetExpression>  
-						<Title><![CDATA[COP warmtepomp]]></Title>
-					<Id>0</Id>
-					<Expression><![CDATA[my_dataset]]></Expression>
-					<Color>-2354116</Color>
-					<Expression2><![CDATA[v_copHeatpump]]></Expression2>
-					<Expression2Flag>true</Expression2Flag>
-						<PointStyle>NONE</PointStyle>
-						<LineWidth>1.0</LineWidth>
-					</DatasetExpression>
-					<SamplesToKeep>1000</SamplesToKeep>
-					<TimeWindowExpression><![CDATA[2]]></TimeWindowExpression>
-					<FillAreaUnderLine>false</FillAreaUnderLine>
-					<LabelFormat>MODEL_TIME_UNITS</LabelFormat>
     			</TimePlot>
 			</Presentation>
 
@@ -31705,9 +31308,10 @@ p_ThermalStorageAsset.f_updateAllFlows(p_ThermalStorageAsset.v_powerFraction_fr)
     			<TimePlot>
 					<Id>1676923662594</Id>
 					<Name><![CDATA[pl_SOC1]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>740</X><Y>800</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
+					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
@@ -32209,10 +31813,8 @@ if (l_ownerActor.getConnectedAgent() instanceof EnergyHolon){
 	//traceln("DH function! Electricity surpluss in HOLON: " + electricitySurplussHolon_kW + ", own power " + v_previousPowerElectricity_kW,1 );
 }
 
-DHnetworkTemp_degC = l_parentNodeHeat.getConnectedAgent().p_transportBuffer.getCurrentTemperature();
 
-
-// first update parameters of any heatpumps if present
+// first update parameters of any heatpumps if present // [GH] This logic should only be run once, not every timestep!
 for(EnergyAsset e : c_energyAssets) {
 	if(e.p_energyAssetInstance instanceof J_EAConversionHeatPump) {
 		if ( ((J_EAConversionHeatPump)e.p_energyAssetInstance).getAmbientTempType().equals("WATER") && b_residualHeatLTSource ) {
@@ -32236,8 +31838,10 @@ b_storageBelowNetworkTemp = storageTemp_degC < DHnetworkTemp_degC;
 
 //traceln("network temperature: "+DHnetworkTemp_degC+", bivalent system? :"+b_bivalentSystem+", localBuffer? :"+b_localBuffer +", storage below setpoint ? : "+b_storageBelowSetpoint + ", storage below minimumTemp? "+b_storageBelowMinimum+", storage below network temp: "+b_storageBelowNetworkTemp);
 
+DHnetworkTemp_degC = l_parentNodeHeat.getConnectedAgent().p_transportBuffer.getCurrentTemperature();
 v_bufferTemp_degC = storageTemp_degC;
 double heatTransferToNetworkCoefficient_kWpK = 100;
+//traceln("storageTemp_degC: " + storageTemp_degC + ", DHnetworkTemp_degC: " + DHnetworkTemp_degC);
 double heatTransferToNetwork_kW = max( storageTemp_degC - DHnetworkTemp_degC, 0 ) * heatTransferToNetworkCoefficient_kWpK;
 //traceln("storageTemp_degC: "+storageTemp_degC+", network current temp_degC: " + DHnetworkTemp_degC + ", heatTransferToNetwork_kW: "+heatTransferToNetwork_kW);
 
@@ -32254,6 +31858,7 @@ if( b_monovalentSystem ) {
 	//traceln("DHGRC storage temp: "+storageTemp_degC+", LT-residual temp: "+p_residualHeatLTSource.p_energyAssetInstance.getCurrentTemperature()+", primary source temp = "+ p_primaryHeatingAsset.p_energyAssetInstance.getCurrentTemperature()+", primary source above target temp: "+b_primarySourceTempAboveTargetTemp);	
 }
 else if( b_bivalentSystem ) {
+	//traceln("bivalent DHsystem logic");
 	p_primaryHeatingAsset.v_powerFraction_fr = 0;
 	p_secondaryHeatingAsset.v_powerFraction_fr = 0;
 	if (p_hasSmartFlexAssets ) {
@@ -32272,7 +31877,49 @@ else if( b_bivalentSystem ) {
 		//traceln("DHGRC storage temp: "+storageTemp_degC+", LT-residual temp: "+p_residualHeatLTSource.p_energyAssetInstance.getCurrentTemperature()+", primary source temp = "+ p_primaryHeatingAsset.p_energyAssetInstance.getCurrentTemperature()+", primary source above target temp: "+b_primarySourceTempAboveTargetTemp+", second temp: "+p_secondaryHeatingAsset.p_energyAssetInstance.getCurrentTemperature()+", second above target temp: "+b_secondarySourceTempAboveTargetTemp);	
 }
 
+// Block (passive energy flows if too cold
+//heatTransferToNetwork_kW = b_storageBelowNetworkTemp? 0 : heatTransferToNetwork_kW;
 
+p_primaryHeatingAsset.f_updateAllFlows( p_primaryHeatingAsset.v_powerFraction_fr );
+
+if( b_bivalentSystem ) {
+	p_secondaryHeatingAsset.f_updateAllFlows(p_secondaryHeatingAsset.v_powerFraction_fr);
+}
+if( b_localBuffer ) {
+	//traceln("Thermal storage asset heatCapacity: " + p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW());
+	//traceln("Total heating power: " +totalHeatingPower_kWth);
+	//traceln("heatTransferToNetwork_kW: " + heatTransferToNetwork_kW);
+	p_ThermalStorageAsset.v_powerFraction_fr = ( totalHeatingPower_kWth - heatTransferToNetwork_kW ) / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW();
+	p_ThermalStorageAsset.f_updateAllFlows(p_ThermalStorageAsset.v_powerFraction_fr);
+}
+
+//traceln("District heating " + p_parentNodeHeatID + " storage temperature " + storageTemp_degC + " degC" + ", district heating network temperature " + p_parentNodeHeat.p_transportBuffer.getCurrentTemperature() + " deg C" );
+
+for( EnergyAsset EA : c_conversionAssets ){
+	v_currentPowerElectricity_kW += EA.v_currentConsumptionElectricity_kW - EA.v_currentProductionElectricity_kW;
+	v_conversionPowerElectric_kW += EA.v_currentConsumptionElectricity_kW - EA.v_currentProductionElectricity_kW; // Only for monitoring/plots, not 'functional'
+	v_currentPowerMethane_kW += EA.v_currentConsumptionMethane_kW - EA.v_currentProductionMethane_kW;
+	v_currentPowerHydrogen_kW += EA.v_currentConsumptionHydrogen_kW - EA.v_currentProductionHydrogen_kW;
+	v_currentPowerHeat_kW += EA.v_currentConsumptionHeat_kW - EA.v_currentProductionHeat_kW;
+	v_currentPowerDiesel_kW += EA.v_currentConsumptionDiesel_kW; // Because f_updateAllFlows is not called for dieseltrucks, this value always remains zero!
+}
+
+for( EnergyAsset EA : c_productionAssets ){
+	EA.f_updateAllFlows( EA.v_powerFraction_fr );
+	v_currentPowerHeat_kW += EA.v_currentConsumptionHeat_kW - EA.v_currentProductionHeat_kW;
+//	EA.p_energyAssetInstance.energyUsed_kWh += EA.v_currentProductionHeat_kW;
+//	EA.v_currentProductionHeat_kW = 0;
+//	}
+//traceln("Source accounting : b_sourceTempAboveStorageTemp = " + b_sourceTempAboveStorageTemp +", energyUsed_kWh ="+EA.p_energyAssetInstance.energyUsed_kWh);
+}
+
+
+v_currentPowerHeat_kW += p_ThermalStorageAsset.v_currentConsumptionHeat_kW - p_ThermalStorageAsset.v_currentProductionHeat_kW;
+//for ( EnergyAsset EA : c_storageAssets ) {
+//	v_currentPowerHeat_kW += EA.v_currentConsumptionHeat_kW - EA.v_currentProductionHeat_kW;
+//}
+
+//traceln("GCDistrictHeating f_operateAssetsDistrictHeating debug: v_currentpowerHeat_kW: "+ v_currentPowerHeat_kW + " heatTransferToNetwork_kW =  " + heatTransferToNetwork_kW + ", difference = " + (v_currentPowerHeat_kW + heatTransferToNetwork_kW) );
 		
 /*
 if ( p_heatingType == OL_GridConnectionHeatingType.GASFIRED ) {
@@ -32332,46 +31979,7 @@ if ( p_heatingType == OL_GridConnectionHeatingType.GASFIRED ) {
 	traceln("new type logic needed");
 }
 */
-// Block (passive energy flows if too cold
-//heatTransferToNetwork_kW = b_storageBelowNetworkTemp? 0 : heatTransferToNetwork_kW;
-
-p_primaryHeatingAsset.f_updateAllFlows( p_primaryHeatingAsset.v_powerFraction_fr );
-
-if( b_bivalentSystem ) {
-	p_secondaryHeatingAsset.f_updateAllFlows(p_secondaryHeatingAsset.v_powerFraction_fr);
-}
-if( b_localBuffer ) {
-	p_ThermalStorageAsset.v_powerFraction_fr = ( totalHeatingPower_kWth - heatTransferToNetwork_kW ) / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW();
-	p_ThermalStorageAsset.f_updateAllFlows(p_ThermalStorageAsset.v_powerFraction_fr);
-}
-
-//traceln("District heating " + p_parentNodeHeatID + " storage temperature " + storageTemp_degC + " degC" + ", district heating network temperature " + p_parentNodeHeat.p_transportBuffer.getCurrentTemperature() + " deg C" );
-
-for( EnergyAsset EA : c_conversionAssets ){
-	v_currentPowerElectricity_kW += EA.v_currentConsumptionElectricity_kW - EA.v_currentProductionElectricity_kW;
-	v_conversionPowerElectric_kW += EA.v_currentConsumptionElectricity_kW - EA.v_currentProductionElectricity_kW; // Only for monitoring/plots, not 'functional'
-	v_currentPowerMethane_kW += EA.v_currentConsumptionMethane_kW - EA.v_currentProductionMethane_kW;
-	v_currentPowerHydrogen_kW += EA.v_currentConsumptionHydrogen_kW - EA.v_currentProductionHydrogen_kW;
-	v_currentPowerHeat_kW += EA.v_currentConsumptionHeat_kW - EA.v_currentProductionHeat_kW;
-	v_currentPowerDiesel_kW += EA.v_currentConsumptionDiesel_kW; // Because f_updateAllFlows is not called for dieseltrucks, this value always remains zero!
-}
-
-for( EnergyAsset EA : c_productionAssets ){
-	EA.f_updateAllFlows( EA.v_powerFraction_fr );
-	v_currentPowerHeat_kW += EA.v_currentConsumptionHeat_kW - EA.v_currentProductionHeat_kW;
-//	EA.p_energyAssetInstance.energyUsed_kWh += EA.v_currentProductionHeat_kW;
-//	EA.v_currentProductionHeat_kW = 0;
-//	}
-//traceln("Source accounting : b_sourceTempAboveStorageTemp = " + b_sourceTempAboveStorageTemp +", energyUsed_kWh ="+EA.p_energyAssetInstance.energyUsed_kWh);
-}
-
-
-v_currentPowerHeat_kW += p_ThermalStorageAsset.v_currentConsumptionHeat_kW - p_ThermalStorageAsset.v_currentProductionHeat_kW;
-//for ( EnergyAsset EA : c_storageAssets ) {
-//	v_currentPowerHeat_kW += EA.v_currentConsumptionHeat_kW - EA.v_currentProductionHeat_kW;
-//}
-
-//traceln("GCDistrictHeating f_operateAssetsDistrictHeating debug: v_currentpowerHeat_kW: "+ v_currentPowerHeat_kW + " heatTransferToNetwork_kW =  " + heatTransferToNetwork_kW + ", difference = " + (v_currentPowerHeat_kW + heatTransferToNetwork_kW) );]]></Body>
+]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -32430,8 +32038,8 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 			p_secondaryHeatingAsset = p_secondaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionGasBurner? EA : p_secondaryHeatingAsset;
 		break;
 		case GASFIRED_CHPPEAK:
-			p_primaryHeatingAsset = p_primaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionGasBurner? EA : p_primaryHeatingAsset;
-			p_secondaryHeatingAsset = p_secondaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionGasCHP? EA : p_secondaryHeatingAsset;
+			p_primaryHeatingAsset = p_primaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionGasCHP? EA : p_primaryHeatingAsset;
+			p_secondaryHeatingAsset = p_secondaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionGasBurner? EA : p_secondaryHeatingAsset;
 		break;
 		case DISTRICT_EBOILER_CHP:
 			p_primaryHeatingAsset = p_primaryHeatingAsset == null && EA.p_energyAssetInstance instanceof J_EAConversionElectricHeater? EA : p_primaryHeatingAsset;
@@ -32606,6 +32214,7 @@ switch (p_heatingType) {
     			<TimePlot>
 					<Id>1678448899357</Id>
 					<Name><![CDATA[pl_SOC1]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>1030</X><Y>500</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -32693,6 +32302,7 @@ switch (p_heatingType) {
     			<TimePlot>
 					<Id>1678452019907</Id>
 					<Name><![CDATA[pl_SOC2]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>760</X><Y>840</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -36675,7 +36285,7 @@ if (p_batteryAsset != null){
 					<ExtendedProperties>
 						<Font Name="Dialog" Size="11" Style="0"/>
 						<LabelText><![CDATA[Simulate visuals]]></LabelText>
-						<DefaultValueCode><![CDATA[true]]></DefaultValueCode>
+						<DefaultValueCode><![CDATA[false]]></DefaultValueCode>
 						<LinkTo>false</LinkTo>
 	 				</ExtendedProperties>
 				</Control>
@@ -36731,9 +36341,6 @@ if (p_batteryAsset != null){
 				</Parameter>
 				<Parameter>
 					<ParameterName><![CDATA[b_addKpiVisuals]]></ParameterName>
-					<ParameterValue Class="CodeValue">
-						<Code><![CDATA[true]]></Code>
-					</ParameterValue>
 				</Parameter>
 				<Parameter>
 					<ParameterName><![CDATA[p_undergroundTemperature_degC]]></ParameterName>
@@ -38344,7 +37951,7 @@ public class J_EAConversionElectricHeater extends J_EAConversion implements Seri
 
     @Override
     public double[] operate(double ratioOfCapacity) {
-		traceln("I convert now! GasBurner @ " + (ratioOfCapacity * 100) + " %, capacity: " + capacityElectric_kW);
+		//traceln("I convert now! ElectricHeater @ " + (ratioOfCapacity * 100) + " %, capacity: " + capacityElectric_kW);
 		this.heatProduction_kW = capacityElectric_kW * ratioOfCapacity * eta_r;
 		this.electricityConsumption_kW = capacityElectric_kW * ratioOfCapacity;
 
@@ -39219,10 +38826,6 @@ public class J_EAConversionCurtailerHeat extends J_EAConversion implements Seria
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[CASUS_TVW_site_hybride_clean_parentheatfromoperatorcontract.txt]]></Path>
-			<ReferencedFromUserCode>false</ReferencedFromUserCode>
-		</Resource>
-		<Resource>
 			<Path><![CDATA[casusTVW_LTDH_actors_parent_heat_from_contract_test.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
@@ -39238,6 +38841,10 @@ public class J_EAConversionCurtailerHeat extends J_EAConversion implements Seria
 			<Path><![CDATA[casusTVW_LTDH_policies.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
+		<Resource>
+			<Path><![CDATA[holontool_scenario.txt]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+		</Resource>
 	</ModelResources>
     <RequiredLibraryReference>
 		<LibraryName><![CDATA[com.anylogic.libraries.modules.markup_descriptors]]></LibraryName>
@@ -39251,6 +38858,6 @@ public class J_EAConversionCurtailerHeat extends J_EAConversion implements Seria
 		<VersionMinor>0</VersionMinor>
 		<VersionBuild>5</VersionBuild>
     </RequiredLibraryReference>
-	<CloudModelUuid><![CDATA[73f45602-3a88-460e-ab95-e35de91ec3a5]]></CloudModelUuid>
+	<CloudModelUuid><![CDATA[055a05a5-7d61-46ee-b419-198f3c465fff]]></CloudModelUuid>
 </Model>
 </AnyLogicWorkspace>
