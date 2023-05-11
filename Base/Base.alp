@@ -3491,7 +3491,7 @@ for (EnergyAsset e : pop_energyAssets) {
 		energyProduced_MWh -= roundToDecimal(EnergyUsed_kWh/1000,2);
 	}
 	if (e.p_energyAssetInstance instanceof J_EAEV) {
-		traceln("eTruck has traveled: " + ((J_EAEV)e.p_energyAssetInstance).mileage + " km");
+		//traceln("eTruck has traveled: " + ((J_EAEV)e.p_energyAssetInstance).mileage + " km");
 		totalDistanceTrucks_km+=((J_EAEV)e.p_energyAssetInstance).mileage;
 	}
 	if (e.p_energyAssetInstance instanceof J_EADieselVehicle) {
@@ -4553,7 +4553,8 @@ for( EnergyHolon e : pop_energyHolons ) {
 						<Name><![CDATA[a]]></Name>
 						<Type><![CDATA[Actor]]></Type>
 					</Parameter>
-					<Body><![CDATA[double v_totalMethaneUsed_kWh = 0;
+					<Body><![CDATA[double v_totalElectricityUsed_kWh = 0;
+double v_totalMethaneUsed_kWh = 0;
 double v_totalDieselUsed_kWh = 0;
 double v_totalHydrogenUsed_kWh = 0;
 double v_totalHeatUsed_kWh = 0;
@@ -4569,6 +4570,7 @@ if (a instanceof ConnectionOwner) {
 	ConnectionOwner c = (ConnectionOwner)a;
 	p_actorID = c.p_actorID;
 	c_actorContracts = c.c_actorContracts;
+	v_totalElectricityUsed_kWh = c.v_totalElectricityUsed_kWh;
 	v_totalMethaneUsed_kWh = c.v_totalMethaneUsed_kWh;
 	v_totalDieselUsed_kWh = c.v_totalDieselUsed_kWh;
 	v_totalHydrogenUsed_kWh = c.v_totalHydrogenUsed_kWh;
@@ -4580,6 +4582,7 @@ if (a instanceof ConnectionOwner) {
 	EnergyHolon c = (EnergyHolon)a;
 	p_actorID = c.p_actorID;
 	c_actorContracts = c.c_actorContracts;
+	v_totalElectricityUsed_kWh = c.v_electricityImported_kWh-c.v_electricityExported_kWh;
 	v_totalMethaneUsed_kWh = c.v_methaneImported_kWh - c.v_methaneExported_kWh;
 	v_totalDieselUsed_kWh = c.v_dieselImported_kWh;
 	v_totalHydrogenUsed_kWh = c.v_hydrogenImported_kWh - c.v_hydrogenExported_kWh;
@@ -4622,8 +4625,9 @@ for( int idx = 0 ; idx<c_actorContracts.size() ; idx++) {
 			co.FinancialTransactionVolume_eur = -v_balanceElectricityTransport_eur;			
 		} else if(co.contractType.equals(OL_ContractType.TAX)) {
 			co.FinancialTransactionVolume_eur = -v_balanceElectricityTax_eur;			
-		}
+		} 
 		co.FinancialTransactionVolume_eur += co.annualFee_eur;
+		co.EnergyTransactionVolume_kWh += v_totalElectricityUsed_kWh;
 		j_dataOut.contractData.add(co);
 	} else if (co.energyCarrier == OL_EnergyCarrierType.METHANE) {
 		if(co.contractType.equals(OL_ContractType.DELIVERY)) {
@@ -4639,7 +4643,7 @@ for( int idx = 0 ; idx<c_actorContracts.size() ; idx++) {
 				methaneConnectionContract = (J_ConnectionContract)co;
 				methaneConnectionContract.idx = idx;
 			}
-			//co.EnergyTransactionVolume_kWh = -c.v_totalMethaneUsed_kWh;
+			//co.EnergyTransactionVolume_kWh = c.v_totalMethaneUsed_kWh;
 	} else if (co.energyCarrier == OL_EnergyCarrierType.HYDROGEN) {
 		if(co.contractType.equals(OL_ContractType.DELIVERY)) {
 				hydrogenDeliveryContract = (J_DeliveryContract)co;
@@ -4654,7 +4658,7 @@ for( int idx = 0 ; idx<c_actorContracts.size() ; idx++) {
 				hydrogenConnectionContract = (J_ConnectionContract)co;
 				hydrogenConnectionContract.idx = idx;
 			}
-		//co.EnergyTransactionVolume_kWh = -c.v_totalHydrogenUsed_kWh;
+		//co.EnergyTransactionVolume_kWh = c.v_totalHydrogenUsed_kWh;
 	} else if (co.energyCarrier == OL_EnergyCarrierType.HEAT) {
 		if(co.contractType.equals(OL_ContractType.DELIVERY)) {
 				heatDeliveryContract = (J_DeliveryContract)co;
@@ -4669,7 +4673,7 @@ for( int idx = 0 ; idx<c_actorContracts.size() ; idx++) {
 				heatConnectionContract = (J_ConnectionContract)co;
 				heatConnectionContract.idx = idx;
 			}
-		//co.EnergyTransactionVolume_kWh = -c.v_totalHeatUsed_kWh;
+		//co.EnergyTransactionVolume_kWh = c.v_totalHeatUsed_kWh;
 	} else if (co.energyCarrier == OL_EnergyCarrierType.DIESEL) {
 		if(co.contractType.equals(OL_ContractType.DELIVERY)) {
 				dieselDeliveryContract = (J_DeliveryContract)co;
@@ -4684,7 +4688,7 @@ for( int idx = 0 ; idx<c_actorContracts.size() ; idx++) {
 				dieselConnectionContract = (J_ConnectionContract)co;
 				dieselConnectionContract.idx = idx;
 			}
-		//co.EnergyTransactionVolume_kWh = -c.v_totalDieselUsed_kWh;
+		//co.EnergyTransactionVolume_kWh = c.v_totalDieselUsed_kWh;
 	}		
 }
 
@@ -4693,164 +4697,7 @@ f_contractCostsPerEnergyCarrier(v_totalDieselUsed_kWh, dieselDeliveryContract, d
 f_contractCostsPerEnergyCarrier(v_totalHydrogenUsed_kWh, hydrogenDeliveryContract, hydrogenConnectionContract, hydrogenTransportContract, hydrogenTaxContract);
 f_contractCostsPerEnergyCarrier(v_totalHeatUsed_kWh, heatDeliveryContract, heatConnectionContract, heatTransportContract, heatTaxContract);
 
-/*
-//// Handle all methane costs
-double methaneTotalCostsForVAT_eur = 0;
-if (methaneDeliveryContract!= null) {
-	if (v_totalMethaneUsed_kWh > 0) {
-		methaneDeliveryContract.FinancialTransactionVolume_eur = v_totalMethaneUsed_kWh * methaneDeliveryContract.deliveryPrice_eurpkWh;
-	} else {
-		methaneDeliveryContract.FinancialTransactionVolume_eur = v_totalMethaneUsed_kWh * methaneDeliveryContract.feedinPrice_eurpkWh;
-	}
-	methaneDeliveryContract.FinancialTransactionVolume_eur += methaneDeliveryContract.annualFee_eur;
-	methaneTotalCostsForVAT_eur += methaneDeliveryContract.FinancialTransactionVolume_eur;
-
-	j_dataOut.contractData.add((J_Contract)methaneDeliveryContract);
-}
-if (methaneTransportContract!= null) {
-	// Transport tariffs don't apply for methane
-	methaneTransportContract.FinancialTransactionVolume_eur += methaneTransportContract.annualFee_eur;
-	methaneTotalCostsForVAT_eur += methaneTransportContract.FinancialTransactionVolume_eur;
-	j_dataOut.contractData.add((J_Contract)methaneTransportContract);
-}
-if (methaneConnectionContract!= null) {	
-	// Connection contracts only have annualFee, no volume-dependent costs
-	methaneConnectionContract.FinancialTransactionVolume_eur += methaneConnectionContract.annualFee_eur;
-	methaneTotalCostsForVAT_eur += methaneConnectionContract.FinancialTransactionVolume_eur;
-	j_dataOut.contractData.add((J_Contract)methaneTransportContract);
-}
-if (methaneTaxContract != null) {
-	if (v_totalMethaneUsed_kWh > 0) {
-		methaneTaxContract.FinancialTransactionVolume_eur = v_totalMethaneUsed_kWh * methaneTaxContract.deliveryTax_eurpkWh;
-	} else {
-		methaneTaxContract.FinancialTransactionVolume_eur = v_totalMethaneUsed_kWh * methaneTaxContract.feedinTax_eurpkWh;
-	}
-	methaneTaxContract.FinancialTransactionVolume_eur += methaneTaxContract.annualFee_eur;
-	methaneTotalCostsForVAT_eur += methaneTaxContract.FinancialTransactionVolume_eur;
-	// Apply VAT to everything (effectively saldering of everything! Not really correct for methane...)
-	methaneTaxContract.FinancialTransactionVolume_eur += methaneTotalCostsForVAT_eur * methaneTaxContract.proportionalTax_pct + methaneTaxContract.annualFee_eur;
-	j_dataOut.contractData.add((J_Contract)methaneTaxContract);
-}
-
-//// Handle all diesel costs
-double dieselTotalCostsForVAT_eur = 0;
-if (dieselDeliveryContract!= null) {
-	if (v_totalDieselUsed_kWh > 0) {
-		dieselDeliveryContract.FinancialTransactionVolume_eur = v_totalDieselUsed_kWh * dieselDeliveryContract.deliveryPrice_eurpkWh;
-	} else {
-		dieselDeliveryContract.FinancialTransactionVolume_eur = v_totalDieselUsed_kWh * dieselDeliveryContract.feedinPrice_eurpkWh;
-	}
-	dieselDeliveryContract.FinancialTransactionVolume_eur += dieselDeliveryContract.annualFee_eur;
-	dieselTotalCostsForVAT_eur += dieselDeliveryContract.FinancialTransactionVolume_eur;
-
-	j_dataOut.contractData.add((J_Contract)dieselDeliveryContract);
-}
-if (dieselTransportContract!= null) {
-	// Transport tariffs don't apply for diesel
-	dieselTransportContract.FinancialTransactionVolume_eur += dieselTransportContract.annualFee_eur;
-	dieselTotalCostsForVAT_eur += dieselTransportContract.FinancialTransactionVolume_eur;
-
-	j_dataOut.contractData.add((J_Contract)dieselTransportContract);
-}
-if (dieselConnectionContract!= null) {	
-	// Connection contracts only have annualFee, no volume-dependent costs
-	dieselConnectionContract.FinancialTransactionVolume_eur += dieselConnectionContract.annualFee_eur;
-	dieselTotalCostsForVAT_eur += dieselConnectionContract.FinancialTransactionVolume_eur;
-
-	j_dataOut.contractData.add((J_Contract)dieselTransportContract);
-}
-if (dieselTaxContract != null) {
-	if (v_totalDieselUsed_kWh > 0) {
-		dieselTaxContract.FinancialTransactionVolume_eur = v_totalDieselUsed_kWh * dieselTaxContract.deliveryTax_eurpkWh;
-	} else {
-		dieselTaxContract.FinancialTransactionVolume_eur = v_totalDieselUsed_kWh * dieselTaxContract.feedinTax_eurpkWh;
-	}
-	dieselTaxContract.FinancialTransactionVolume_eur += dieselTaxContract.annualFee_eur;
-	dieselTotalCostsForVAT_eur += dieselTaxContract.FinancialTransactionVolume_eur;
-
-	// Apply VAT to everything (effectively saldering of everything! Not really correct for diesel...)
-	dieselTaxContract.FinancialTransactionVolume_eur += dieselTotalCostsForVAT_eur * dieselTaxContract.proportionalTax_pct + dieselTaxContract.annualFee_eur;
-	j_dataOut.contractData.add((J_Contract)dieselTaxContract);
-}
-
-//// Handle all hydrogen costs
-double hydrogenTotalCostsForVAT_eur = 0;
-if (hydrogenDeliveryContract!= null) {
-	if (v_totalHydrogenUsed_kWh > 0) {
-		hydrogenDeliveryContract.FinancialTransactionVolume_eur = v_totalHydrogenUsed_kWh * hydrogenDeliveryContract.deliveryPrice_eurpkWh;
-	} else {
-		hydrogenDeliveryContract.FinancialTransactionVolume_eur = v_totalHydrogenUsed_kWh * hydrogenDeliveryContract.feedinPrice_eurpkWh;
-	}
-	hydrogenDeliveryContract.FinancialTransactionVolume_eur += hydrogenDeliveryContract.annualFee_eur;
-	hydrogenTotalCostsForVAT_eur += hydrogenDeliveryContract.FinancialTransactionVolume_eur;
-
-	j_dataOut.contractData.add((J_Contract)hydrogenDeliveryContract);
-}
-if (hydrogenTransportContract!= null) {
-	// Transport tariffs don't apply for hydrogen
-	hydrogenTransportContract.FinancialTransactionVolume_eur += hydrogenTransportContract.annualFee_eur;
-	hydrogenTotalCostsForVAT_eur += hydrogenTransportContract.FinancialTransactionVolume_eur;
-
-	j_dataOut.contractData.add((J_Contract)hydrogenTransportContract);
-}
-if (hydrogenConnectionContract!= null) {	
-	// Connection contracts only have annualFee, no volume-dependent costs
-	hydrogenConnectionContract.FinancialTransactionVolume_eur += hydrogenConnectionContract.annualFee_eur;
-	hydrogenTotalCostsForVAT_eur += hydrogenConnectionContract.FinancialTransactionVolume_eur;
-
-	j_dataOut.contractData.add((J_Contract)hydrogenTransportContract);
-}
-if (hydrogenTaxContract != null) {
-	if (v_totalHydrogenUsed_kWh > 0) {
-		hydrogenTaxContract.FinancialTransactionVolume_eur = v_totalHydrogenUsed_kWh * hydrogenTaxContract.deliveryTax_eurpkWh;
-	} else {
-		hydrogenTaxContract.FinancialTransactionVolume_eur = v_totalHydrogenUsed_kWh * hydrogenTaxContract.feedinTax_eurpkWh;
-	}
-	hydrogenTaxContract.FinancialTransactionVolume_eur += hydrogenTaxContract.annualFee_eur ;
-	hydrogenTotalCostsForVAT_eur += hydrogenTaxContract.FinancialTransactionVolume_eur
-	
-	// Apply VAT to everything (effectively saldering of everything! Not really correct for hydrogen...)
-	hydrogenTaxContract.FinancialTransactionVolume_eur += hydrogenTotalCostsForVAT_eur * hydrogenTaxContract.proportionalTax_pct + hydrogenTaxContract.annualFee_eur;
-	j_dataOut.contractData.add((J_Contract)hydrogenTaxContract);
-}
-
-//// Handle all heat costs
-double heatTotalCostsForVAT_eur = 0;
-if (heatDeliveryContract!= null) {
-	if (v_totalHeatUsed_kWh > 0) {
-		heatDeliveryContract.FinancialTransactionVolume_eur = v_totalHeatUsed_kWh * heatDeliveryContract.deliveryPrice_eurpkWh;
-	} else {
-		heatDeliveryContract.FinancialTransactionVolume_eur = v_totalHeatUsed_kWh * heatDeliveryContract.feedinPrice_eurpkWh;
-	}
-	heatDeliveryContract.FinancialTransactionVolume_eur += heatDeliveryContract.annualFee_eur;
-	heatTotalCostsForVAT_eur += heatDeliveryContract.FinancialTransactionVolume_eur;
-	j_dataOut.contractData.add((J_Contract)heatDeliveryContract);
-}
-if (heatTransportContract!= null) {
-	// Transport tariffs don't apply for heat
-	heatTransportContract.FinancialTransactionVolume_eur += heatTransportContract.annualFee_eur;
-	heatTotalCostsForVAT_eur += heatTransportContract.FinancialTransactionVolume_eur;
-	j_dataOut.contractData.add((J_Contract)heatTransportContract);
-}
-if (heatConnectionContract!= null) {	
-	// Connection contracts only have annualFee, no volume-dependent costs
-	heatConnectionContract.FinancialTransactionVolume_eur += heatConnectionContract.annualFee_eur;
-	heatTotalCostsForVAT_eur += heatConnectionContract.FinancialTransactionVolume_eur;
-	j_dataOut.contractData.add((J_Contract)heatTransportContract);
-}
-if (heatTaxContract != null) {
-	if (v_totalHeatUsed_kWh > 0) {
-		heatTaxContract.FinancialTransactionVolume_eur = v_totalHeatUsed_kWh * heatTaxContract.deliveryTax_eurpkWh;
-	} else {
-		heatTaxContract.FinancialTransactionVolume_eur = v_totalHeatUsed_kWh * heatTaxContract.feedinTax_eurpkWh;
-	}
-	heatTotalCostsForVAT_eur += heatTaxContract.FinancialTransactionVolume_eur + heatTaxContract.annualFee_eur ;
-	// Apply VAT to everything (effectively saldering of everything! Not really correct for heat...)
-	heatTaxContract.FinancialTransactionVolume_eur += heatTotalCostsForVAT_eur * heatTaxContract.proportionalTax_pct + heatTaxContract.annualFee_eur;
-	j_dataOut.contractData.add((J_Contract)heatTaxContract);
-}
-//j_dataOut.contractData.add(co);
-*/]]></Body>
+]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -4892,18 +4739,23 @@ if (deliveryContract!= null) {
 	deliveryContract.FinancialTransactionVolume_eur += deliveryContract.annualFee_eur;
 	totalCostsForVAT_eur += deliveryContract.FinancialTransactionVolume_eur;
 
+	deliveryContract.EnergyTransactionVolume_kWh += energyUsed_kWh;
 	j_dataOut.contractData.add((J_Contract)deliveryContract);
 }
 if (transportContract!= null) {
 	// Transport tariffs don't apply for energy
 	transportContract.FinancialTransactionVolume_eur += transportContract.annualFee_eur;
 	totalCostsForVAT_eur += transportContract.FinancialTransactionVolume_eur;
+	
+	transportContract.EnergyTransactionVolume_kWh += energyUsed_kWh;
 	j_dataOut.contractData.add((J_Contract)transportContract);
 }
 if (connectionContract!= null) {	
 	// Connection contracts only have annualFee, no volume-dependent costs
 	connectionContract.FinancialTransactionVolume_eur += connectionContract.annualFee_eur;
 	totalCostsForVAT_eur += connectionContract.FinancialTransactionVolume_eur;
+	
+	connectionContract.EnergyTransactionVolume_kWh += energyUsed_kWh;
 	j_dataOut.contractData.add((J_Contract)transportContract);
 }
 if (taxContract != null) {
@@ -4916,6 +4768,8 @@ if (taxContract != null) {
 	totalCostsForVAT_eur += taxContract.FinancialTransactionVolume_eur;
 	// Apply VAT to everything
 	taxContract.FinancialTransactionVolume_eur += totalCostsForVAT_eur * taxContract.proportionalTax_pct;
+	
+	taxContract.EnergyTransactionVolume_kWh += energyUsed_kWh;
 	j_dataOut.contractData.add((J_Contract)taxContract);
 }]]></Body>
 				</Function>
@@ -5440,7 +5294,7 @@ if (taxContract != null) {
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/industry_case/holontool_scenario.txt]]></ClassName>
+						<ClassName><![CDATA[holontool_bedrijventerrein_scenario_endpoint.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -39169,7 +39023,7 @@ public class J_EAConversionCurtailerHeat extends J_EAConversion implements Seria
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/industry_case/holontool_scenario.txt]]></Path>
+			<Path><![CDATA[holontool_bedrijventerrein_scenario_endpoint.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
