@@ -38900,17 +38900,13 @@ public class J_EAConversionGasCHP extends base.J_EAConversion implements Seriali
 	    this.outputTemperature_degC = outputTemperature_degC;
 	}
 
-    @Override
+	@Override
     public double[] operate(double ratioOfCapacity) {
 		//traceln("CHP can produce " + capacityElectric_kW + " kW electricity");
     	this.electricityProduction_kW = capacityElectric_kW * ratioOfCapacity;
-    	if (this.capacityHeat_kW == 0) { // When no capacityHeat_kW is provided, assume energy not going into electricity, goes into heat (so total 100% efficiency!, eta_r is efficiency from methane to electricity only)
-    		this.heatProduction_kW = electricityProduction_kW*(1/eta_r-1);
-    	} else { // When heatCapacity_kW is provided, use that to calculate total heat production using the ratioOfCapacity directly
-    		this.heatProduction_kW = capacityHeat_kW * ratioOfCapacity;
-    	}
-		this.methaneConsumption_kW = (electricityProduction_kW )/ eta_r ;	// So eta_r is the efficiency of electricity production only!
-
+		this.heatProduction_kW = capacityHeat_kW * ratioOfCapacity;
+		
+		this.methaneConsumption_kW = (electricityProduction_kW  + heatProduction_kW )/ eta_r ;
 
 		this.energyUsed_kWh += timestep_h * (methaneConsumption_kW - heatProduction_kW - electricityProduction_kW)  ; // This represents losses!
 		//double[] arr = {this.electricityProduction_kW, this.methaneProduction_kW, this.hydrogenProduction_kW, this.heatProduction_kW, this.electricityConsumption_kW, this.methaneConsumption_kW, this.hydrogenConsumption_kW, this.heatConsumption_kW };
