@@ -167,6 +167,10 @@
 				<Id>1684331909482</Id>
 				<Name><![CDATA[FARM]]></Name>
 			</Option>
+			<Option>
+				<Id>1684397551611</Id>
+				<Name><![CDATA[AGROENERGYHUB]]></Name>
+			</Option>
 		</OptionList>
 		<OptionList>
 			<Id>1659118426374</Id>
@@ -2738,7 +2742,7 @@ v_timeStepsElapsed ++;
 						<OccurrenceAtTime>true</OccurrenceAtTime>
 						<OccurrenceDate>1674115200000</OccurrenceDate>
 						<OccurrenceTime Class="CodeUnitValue">
-							<Code><![CDATA[190]]></Code>
+							<Code><![CDATA[4284]]></Code>
 							<Unit Class="TimeUnits"><![CDATA[HOUR]]></Unit>
 						</OccurrenceTime>
 						<RecurrenceCode Class="CodeUnitValue">
@@ -3493,8 +3497,12 @@ for (EnergyAsset e : pop_energyAssets) {
 			energyConsumed_MWh += roundToDecimal(EnergyUsed_kWh/1000,3);
 		}
 	} else {
-		if( e.p_energyAssetType == OL_EnergyAssetType.PHOTOVOLTAIC ||  e.p_energyAssetType == OL_EnergyAssetType.WINDMILL ){
+		if( e.p_energyAssetType == OL_EnergyAssetType.PHOTOVOLTAIC ||  e.p_energyAssetType == OL_EnergyAssetType.WINDMILL){
 			electricityProduced_MWh -= roundToDecimal(EnergyUsed_kWh/1000,2);
+		}
+		if( e.p_energyAssetType == OL_EnergyAssetType.METHANE_CHP ) { // Unreachable code; CHP will always have positive EnergyUsed_kWh!
+			//electricityProduced_MWh += roundToDecimal(e/1000,2); // Total electricity produced is not stored in CHP asset!
+			traceln("CHP electricity production not counted!");
 		}
 		energyProduced_MWh -= roundToDecimal(EnergyUsed_kWh/1000,2);
 	}
@@ -3518,13 +3526,13 @@ traceln("");
 traceln("__--** Totals **--__");
 traceln("Energy consumed: "+ energyConsumed_MWh + " MWh");
 traceln("Energy produced: "+ energyProduced_MWh + " MWh");
-traceln("Electricity produced: "+ electricityProduced_MWh + " MWh (only by solar and wind");
-// TODO: Make sure this calculation is correct when all energy carriers are 'active'! Only checked for electricity
+//traceln("Electricity produced: "+ electricityProduced_MWh + " MWh (only by solar and wind");
+
 traceln("");
 //Total selfconsumption, selfsufficiency
 double totalSelfConsumption_fr = 0;
 if ( energyProduced_MWh > 0 ){
-	totalSelfConsumption_fr = 1 - (v_totalElectricityExport_MWh + v_totalMethaneExport_MWh + v_totalHydrogenExport_MWh)/energyProduced_MWh;
+	totalSelfConsumption_fr = 1 - (v_totalElectricityExport_MWh + max(0,v_totalMethaneExport_MWh-v_totalMethaneImport_MWh) + max(0,v_totalHydrogenExport_MWh-v_totalHydrogenImport_MWh))/energyProduced_MWh;
 }
 traceln("Model-wide selfconsumption: " + totalSelfConsumption_fr + "%");
 double totalElectricitySelfConsumption_fr = 0;
@@ -3532,17 +3540,17 @@ if ( energyProduced_MWh > 0 ){
 	totalElectricitySelfConsumption_fr = 1 - v_totalElectricityExport_MWh/electricityProduced_MWh;
 }
 
-traceln("Model-wide electricity selfconsumption: " + totalElectricitySelfConsumption_fr + "%");
-double totalSelfSufficiency_fr = 1 - (v_totalElectricityImport_MWh + v_totalMethaneImport_MWh + 
-v_totalHydrogenImport_MWh + v_totalDieselImport_MWh - batteryStoredEnergyDeltaSinceStart_MWh ) / energyConsumed_MWh; // Doesn't account for changes in battery-SOC!
+// traceln("Model-wide electricity selfconsumption: " + totalElectricitySelfConsumption_fr + "%"); // Doesn't include CHP electricity production
+double totalSelfSufficiency_fr = 1 - (v_totalElectricityImport_MWh + max(0,v_totalMethaneImport_MWh - v_totalMethaneExport_MWh) + 
+max(0,v_totalHydrogenImport_MWh - v_totalHydrogenExport_MWh) + v_totalDieselImport_MWh - batteryStoredEnergyDeltaSinceStart_MWh ) / energyConsumed_MWh;
 traceln("Model-wide selfsufficiency (via import calc): " + totalSelfSufficiency_fr);
-traceln( "import electricity " + v_totalElectricityImport_MWh);
-traceln( "import methane " + v_totalMethaneImport_MWh);
-traceln( "importdiesel " + v_totalDieselImport_MWh);
-traceln( "consumed  " + energyConsumed_MWh);
-
-double totalSelfSufficiency_fr_check = (energyProduced_MWh - (v_totalElectricityExport_MWh + v_totalMethaneExport_MWh + v_totalHydrogenExport_MWh))/energyConsumed_MWh;
+double totalSelfSufficiency_fr_check = (energyProduced_MWh - (v_totalElectricityExport_MWh + max(0,v_totalMethaneExport_MWh-v_totalMethaneImport_MWh) + max(0,v_totalHydrogenExport_MWh-v_totalHydrogenImport_MWh)))/energyConsumed_MWh;
 traceln("Model-wide selfsufficiency (via export calc): " + totalSelfSufficiency_fr_check);
+
+traceln( "import electricity: " + v_totalElectricityImport_MWh + " MWh");
+traceln( "export electricity: " + v_totalElectricityExport_MWh + " MWh");
+traceln( "nett import methane: " + (v_totalMethaneImport_MWh-v_totalMethaneExport_MWh) + " MWh");
+traceln( "import diesel: " + v_totalDieselImport_MWh + " MWh");
 
 
 traceln("MS node peak load: " + v_gridNodePeakLoadElectricityMSLS_kW + " kW at hour: " + c_timesOfNodePeakLoads_h);
@@ -3566,8 +3574,8 @@ if (nbcars != 0){
 else {
 	shareElectricvehiclesInHouseholds = 0;
 }
-traceln("nb cars " + nbevs / nbcars);
-traceln("nb evs " + nbevs);
+//traceln("nb cars " + nbevs / nbcars);
+//traceln("nb evs " + nbevs);
 
 // add Total Cost KPI data:
 j_simulationResults.updateData( roundToDecimal( v_gridNodePeakLoadElectricityHSMS_kW, 2 ),
@@ -12831,7 +12839,7 @@ if ( p_ThermalStorageAsset == null ) {
 					p_primaryHeatingAsset.v_powerFraction_fr = min(1,powerDemand_kW / p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
 					//traceln("Running manageHeatingAsset for single heating asset");
 			} else {
-				traceln("House " + p_agentID + " has a single unsupported heating asset!");
+				traceln("GridConnection " + p_agentID + " has a single unsupported heating asset!");
 			}
 		}
 	} else { // Two heating assets
@@ -33700,13 +33708,28 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 	}
 } else if (EA.p_energyAssetInstance instanceof J_EAConversion) {
 	c_conversionAssets.add(EA);
-	if (EA.p_energyAssetInstance instanceof J_EAConversionGasBurner || EA.p_energyAssetInstance instanceof J_EAConversionHeatPump || EA.p_energyAssetInstance instanceof J_EAConversionHydrogenBurner ) {
-		p_primaryHeatingAsset = EA;
-		//traceln("heatingAsset class " + p_spaceHeatingAsset.getClass().toString());
+	if(p_gridConnectionType == OL_GridConnectionType.AGROENERGYHUB) {
+	
+		if (EA.p_energyAssetInstance instanceof J_EAConversionGasCHP) {
+			p_primaryHeatingAsset = EA;
+		} else if (EA.p_energyAssetInstance instanceof J_EAConversionGasBurner || EA.p_energyAssetInstance instanceof J_EAConversionHeatPump || EA.p_energyAssetInstance instanceof J_EAConversionHydrogenBurner ) {
+			p_secondaryHeatingAsset = EA;
+			if (EA.p_energyAssetInstance instanceof J_EAConversionHeatPump) {
+				((J_EAConversionHeatPump)p_secondaryHeatingAsset.p_energyAssetInstance).outputTemperature_degC = 80; // For pastorizing milk
+			}
+			//traceln("heatingAsset class " + p_spaceHeatingAsset.getClass().toString());
+		} else {
+			traceln("f_connectToChild in EnergyAsset: Exception! EnergyAsset " + ConnectingParentNode.getId() + " is of unknown type or null! ");
+		}
+	} else {
+		if (EA.p_energyAssetInstance instanceof J_EAConversionGasBurner || EA.p_energyAssetInstance instanceof J_EAConversionHeatPump || EA.p_energyAssetInstance instanceof J_EAConversionHydrogenBurner ) {
+			p_primaryHeatingAsset = EA;
+		} else {
+			traceln("f_connectToChild in EnergyAsset: Exception! EnergyAsset " + ConnectingParentNode.getId() + " is of unknown type or null! ");
+		}
 	}
-} else {
-	traceln("f_connectToChild in EnergyAsset: Exception! EnergyAsset " + ConnectingParentNode.getId() + " is of unknown type or null! ");
-}]]></Body>
+}
+]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -33764,11 +33787,15 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[// Determine EV charging
-//f_manageCharging();
-
-// Determine house heating
-f_manageHeatingAssets();
+					<Body><![CDATA[if(p_gridConnectionType == OL_GridConnectionType.AGROENERGYHUB) {
+	f_operateFlexAssets_agroenergyhub();
+	//traceln("Agroenergyhub logic!");
+} else {
+	
+	// Determine house heating
+	f_manageHeatingAssets();
+	
+}
 
 for( EnergyAsset c : c_conversionAssets ) {	
 	v_currentPowerElectricity_kW += c.v_currentConsumptionElectricity_kW - c.v_currentProductionElectricity_kW;
@@ -33777,7 +33804,67 @@ for( EnergyAsset c : c_conversionAssets ) {
 	v_currentPowerHydrogen_kW += c.v_currentConsumptionHydrogen_kW - c.v_currentProductionHydrogen_kW;
 	v_currentPowerHeat_kW += c.v_currentConsumptionHeat_kW - c.v_currentProductionHeat_kW;
 	v_currentPowerDiesel_kW += c.v_currentConsumptionDiesel_kW;
-}]]></Body>
+}	
+]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1684397492292</Id>
+					<Name><![CDATA[f_operateFlexAssets_agroenergyhub]]></Name>
+					<X>800</X><Y>510</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[// TODO: This only works for fixed heat demands; also need to implement heating of a building modeled as a ThermalStorageAsset! [GH 21/11/2022]
+double heatDemand_kW = v_currentPowerHeat_kW;
+//traceln("Heat demand agroenergyhub:" + heatDemand_kW);
+if ( p_ThermalStorageAsset == null ) {
+	if ( p_secondaryHeatingAsset == null ) { // Just one heating asset
+		if ( p_primaryHeatingAsset== null ) {
+			//traceln("No heating assets for house " + p_agentID);
+		} else {
+			if ( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionGasBurner || p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatPump) { // when there is only a gas burner or DH set
+					p_primaryHeatingAsset.v_powerFraction_fr = min(1,heatDemand_kW / p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
+					//traceln("Running manageHeatingAsset for single heating asset");
+			} else {
+				traceln("GridConnection " + p_agentID + " has a single unsupported heating asset!");
+			}
+		}
+	} else { // Two heating assets
+		if ( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionGasCHP & p_secondaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatPump) { // Heatpump and gasburner, switch based on heatpump COP)
+			//((J_EAConversionHeatPump)p_primaryHeatingAsset.p_energyAssetInstance).updateAmbientTemp(main.v_currentAmbientTemperature_degC); // update heatpump temp levels! <-- waarom dit gebeurt al in de main (peter 21-02-23)
+			double HP_COP = ((J_EAConversionHeatPump)p_secondaryHeatingAsset.p_energyAssetInstance).getCOP();
+			double HP_powerDemand_kW = heatDemand_kW / HP_COP;
+			
+			if ( -v_currentPowerElectricity_kW > HP_powerDemand_kW) { // Use heatpump when it can be done selfsufficiently
+				//traceln("HeatPump in operation with COP " + HP_COP);
+				p_primaryHeatingAsset.v_powerFraction_fr = 0;
+				p_secondaryHeatingAsset.v_powerFraction_fr = min(1,HP_powerDemand_kW / p_secondaryHeatingAsset.p_energyAssetInstance.getElectricCapacity_kW());
+			} else { // CHP when there is no electricity surpluss
+				//traceln("CHP capacityHeat_kW: " + p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
+				p_primaryHeatingAsset.v_powerFraction_fr = min(1,heatDemand_kW / p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
+				p_secondaryHeatingAsset.v_powerFraction_fr = 0;//min(1,currentDHWdemand_kW / p_secondaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
+			}
+		} else {
+			traceln("**** EXCEPTION ****: Unsupported combination of heatings systems in GridConnection " + p_agentID);
+			p_primaryHeatingAsset.v_powerFraction_fr = 0;
+			p_secondaryHeatingAsset.v_powerFraction_fr = 0;
+			//p_ThermalStorageAsset.v_powerFraction_fr = 0;
+		}
+		p_secondaryHeatingAsset.f_updateAllFlows(p_secondaryHeatingAsset.v_powerFraction_fr);
+	}
+	if (p_primaryHeatingAsset != null) {
+		p_primaryHeatingAsset.f_updateAllFlows(p_primaryHeatingAsset.v_powerFraction_fr);
+	}
+} else { // TODO: Implement thermostat functionality for thermal storage asset. Where to get temp setpoint?
+	traceln("No thermostat functionality available to manage p_thermalStorageAsset!!");
+	p_primaryHeatingAsset.f_updateAllFlows(0);
+	p_secondaryHeatingAsset.f_updateAllFlows(0);
+	p_ThermalStorageAsset.f_updateAllFlows(0);
+}
+]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -37562,7 +37649,7 @@ public class J_EAStorageHeat extends base.J_EAStorage implements Serializable {
  */
 public class J_EAConversionHeatPump extends base.J_EAConversion implements Serializable {
 	private double capacityHeat_kW = 0;
-	private double efficiency_r;
+	private double COP_r;
 	private double belowZeroHeatpumpEtaReductionFactor;
 	private OL_EnergyCarrierType energyCarrierProduced = OL_EnergyCarrierType.HEAT;
 	private OL_EnergyCarrierType energyCarrierConsumed = OL_EnergyCarrierType.ELECTRICITY;
@@ -37588,8 +37675,8 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
 	    this.eta_r = eta_r;
 	    this.baseTemperature_degC = baseTemperature_degC;
 	    this.outputTemperature_degC = outputTemperature_degC;
-	    this.efficiency_r = eta_r * ( 273.15 + outputTemperature_degC ) / ( outputTemperature_degC - baseTemperature_degC );
-	    this.capacityHeat_kW = capacityElectric_kW * this.efficiency_r;
+	    this.COP_r = eta_r * ( 273.15 + outputTemperature_degC ) / ( outputTemperature_degC - baseTemperature_degC );
+	    this.capacityHeat_kW = capacityElectric_kW * this.COP_r;
 	    this.ambientTempType = ambientTempType;
 	    this.sourceAssetHeatPower_kW = sourceAssetHeatPower_kW;
 	    this.belowZeroHeatpumpEtaReductionFactor = belowZeroHeatpumpEtaReductionFactor;
@@ -37601,19 +37688,19 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
 		if ( this.baseTemperature_degC > this.outputTemperature_degC) {
 			traceln("**** EXCEPTION **** Heatpump baseTemperature ( " + baseTemperature_degC + ") > outputTemperature ( " + outputTemperature_degC + ") ");
 		}
-		this.efficiency_r = this.eta_r * ( 273.15 + outputTemperature_degC ) / ( outputTemperature_degC - baseTemperature_degC );
+		this.COP_r = this.eta_r * ( 273.15 + outputTemperature_degC ) / ( outputTemperature_degC - baseTemperature_degC );
 		
 		// water heatpump should take sourceAsset power transfer limitations into account (e.g. residual heat). Ugly but effectively limiting heat power output.
     	
 		if( this.sourceAssetHeatPower_kW > 0) {
-	    	this.capacityHeat_kW = min( this.capacityHeat_kW, this.sourceAssetHeatPower_kW / (1 - (1 / efficiency_r )));
+	    	this.capacityHeat_kW = min( this.capacityHeat_kW, this.sourceAssetHeatPower_kW / (1 - (1 / COP_r )));
 	    	//traceln("Water water heatpump heat capacity limited from source! =" + this.capacityHeat_kW);
 		} 
 		else {
-				this.capacityHeat_kW = this.capacityElectric_kW * this.efficiency_r; 
+				this.capacityHeat_kW = this.capacityElectric_kW * this.COP_r; 
 				//traceln("heatpump updating temp: " + baseTemperature_degC);
 				if( baseTemperature_degC < 0 ) {
-					efficiency_r = efficiency_r / belowZeroHeatpumpEtaReductionFactor;
+					COP_r = COP_r / belowZeroHeatpumpEtaReductionFactor;
 				}
 		}
     	//traceln("J_EAConversionHeatpump capacityHeat_kW = "+ this.capacityHeat_kW + ", sourceAssetHeatPower_kW " + this.sourceAssetHeatPower_kW );
@@ -37625,20 +37712,24 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
     	
 		//traceln("J_EAHeatpump capacityHeat_kW = " + this.capacityHeat_kW + ", baseTemperature = "+ baseTemperature_degC + ", outputtemperature = "+ outputTemperature_degC);
 		updateParameters(baseTemperature_degC, outputTemperature_degC);
-	    this.capacityHeat_kW = capacityElectric_kW * efficiency_r;
+		this.COP_r = this.eta_r * ( 273.15 + outputTemperature_degC ) / ( outputTemperature_degC - baseTemperature_degC );
+	    this.capacityHeat_kW = capacityElectric_kW * COP_r;
 	}
 
 	public double getCOP() {
-		return this.efficiency_r;
+		//traceln("Heatpump output temperature: " + this.outputTemperature_degC);
+
+		return this.COP_r;
+
 	}
 
 	@Override
 	public double[] operate(double ratioOfCapacity) {
-		//traceln("this "+ this.toString() + ", " + ratioOfCapacity * this.capacityElectric_kW + " **** " + ratioOfCapacity * this.capacityHeat_kW / this.efficiency_r);
-		this.electricityConsumption_kW = min(ratioOfCapacity * this.capacityElectric_kW, ratioOfCapacity * this.capacityHeat_kW / this.efficiency_r);
+		//traceln("this "+ this.toString() + ", " + ratioOfCapacity * this.capacityElectric_kW + " **** " + ratioOfCapacity * this.capacityHeat_kW / this.COP_r);
+		this.electricityConsumption_kW = min(ratioOfCapacity * this.capacityElectric_kW, ratioOfCapacity * this.capacityHeat_kW / this.COP_r);
 		this.totalElectricityConsumed_kWh += electricityConsumption_kW * timestep_h ;
 		//this.electricityConsumption_kW = ratioOfCapacity * this.capacityElectric_kW;
-    	this.heatProduction_kW = this.electricityConsumption_kW * this.efficiency_r;
+    	this.heatProduction_kW = this.electricityConsumption_kW * this.COP_r;
     	// account energy extracted by water/water heatpumps:
     	//traceln("test water heatpump EA code for heat consumption. ambientTempType = " + this.ambientTempType);
     	
@@ -37659,7 +37750,7 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
     	//traceln("energyUsed_kWh " + energyUsed_kWh );
     	//double[] arr = {this.electricityProduction_kW, this.methaneProduction_kW, this.hydrogenProduction_kW, this.heatProduction_kW, this.electricityConsumption_kW, this.methaneConsumption_kW, this.hydrogenConsumption_kW, this.heatConsumption_kW };
     	//return arr;
-    	//traceln("J_EAConversionHeatPump operate function debug | operating @ "+ratioOfCapacity*100+" % capacity ** capacityElectric_kW = "+capacityElectric_kW+", eta_r = "+eta_r+", baseTemperature_degC = "+baseTemperature_degC+", deliveryTemp_degC = "+outputTemperature_degC+", efficiency_r = "+efficiency_r+", capacityHeat_kW = "+capacityHeat_kW+". ");
+    	//traceln("J_EAConversionHeatPump operate function debug | operating @ "+ratioOfCapacity*100+" % capacity ** capacityElectric_kW = "+capacityElectric_kW+", eta_r = "+eta_r+", baseTemperature_degC = "+baseTemperature_degC+", deliveryTemp_degC = "+outputTemperature_degC+", COP_r = "+COP_r+", capacityHeat_kW = "+capacityHeat_kW+". ");
     	return returnEnergyFlows();
 	}
 
@@ -38804,18 +38895,22 @@ public class J_EAConversionGasCHP extends base.J_EAConversion implements Seriali
 	    this.ownerAsset = ownerAssetAgent;
 	    this.capacityElectric_kW = capacityElectric_kW;
 	    this.eta_r = efficiency;
-	    this.capacityHeat_kW = capacityHeat_kW; // Energy not going into electricity, goes into heat (so total 100% efficiency!)
+	    this.capacityHeat_kW = capacityHeat_kW; 
 	    this.timestep_h = timestep_h;
 	    this.outputTemperature_degC = outputTemperature_degC;
 	}
 
     @Override
     public double[] operate(double ratioOfCapacity) {
-		//traceln("I convert now! GasBurner @ " + (ratioOfCapacity * 100) + " %");
+		//traceln("CHP can produce " + capacityElectric_kW + " kW electricity");
     	this.electricityProduction_kW = capacityElectric_kW * ratioOfCapacity;
-		this.heatProduction_kW = capacityHeat_kW * ratioOfCapacity;
-		
-		this.methaneConsumption_kW = (electricityProduction_kW  + heatProduction_kW )/ eta_r ;
+    	if (this.capacityHeat_kW == 0) { // When no capacityHeat_kW is provided, assume energy not going into electricity, goes into heat (so total 100% efficiency!, eta_r is efficiency from methane to electricity only)
+    		this.heatProduction_kW = electricityProduction_kW*(1/eta_r-1);
+    	} else { // When heatCapacity_kW is provided, use that to calculate total heat production using the ratioOfCapacity directly
+    		this.heatProduction_kW = capacityHeat_kW * ratioOfCapacity;
+    	}
+		this.methaneConsumption_kW = (electricityProduction_kW )/ eta_r ;	// So eta_r is the efficiency of electricity production only!
+
 
 		this.energyUsed_kWh += timestep_h * (methaneConsumption_kW - heatProduction_kW - electricityProduction_kW)  ; // This represents losses!
 		//double[] arr = {this.electricityProduction_kW, this.methaneProduction_kW, this.hydrogenProduction_kW, this.heatProduction_kW, this.electricityConsumption_kW, this.methaneConsumption_kW, this.hydrogenConsumption_kW, this.heatConsumption_kW };
@@ -39199,6 +39294,6 @@ public class J_EAConversionCurtailerHeat extends J_EAConversion implements Seria
 		<VersionMinor>0</VersionMinor>
 		<VersionBuild>5</VersionBuild>
     </RequiredLibraryReference>
-	<CloudModelUuid><![CDATA[7ce215d6-49e7-439a-887e-622ba5f6c538]]></CloudModelUuid>
+	<CloudModelUuid><![CDATA[d89c9287-e7ed-4161-8ff5-f5a68a12ae5e]]></CloudModelUuid>
 </Model>
 </AnyLogicWorkspace>
