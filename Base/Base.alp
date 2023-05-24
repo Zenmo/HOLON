@@ -299,6 +299,10 @@
 				<Id>1684332070404</Id>
 				<Name><![CDATA[LIVESTOCK]]></Name>
 			</Option>
+			<Option>
+				<Id>1684917236306</Id>
+				<Name><![CDATA[STORAGE_GAS]]></Name>
+			</Option>
 		</OptionList>
 		<OptionList>
 			<Id>1659525715752</Id>
@@ -374,6 +378,10 @@
 			<Option>
 				<Id>1674311988696</Id>
 				<Name><![CDATA[HEATBUFFER]]></Name>
+			</Option>
+			<Option>
+				<Id>1684917094693</Id>
+				<Name><![CDATA[GAS]]></Name>
 			</Option>
 		</OptionList>
 		<OptionList>
@@ -4139,6 +4147,15 @@ else {
 	v_totalDieselImport_MWh += g.v_dieselDrawn_kWh / 1000;
 }
 
+// Assume 'infinite storage' of methane within model-scope; only nett total import/export counts.
+if (v_totalMethaneImport_MWh > v_totalMethaneExport_MWh) {
+	v_totalMethaneImport_MWh = v_totalMethaneImport_MWh - v_totalMethaneExport_MWh;
+	v_totalMethaneExport_MWh = 0;
+} else {
+	v_totalMethaneExport_MWh = v_totalMethaneExport_MWh - v_totalMethaneImport_MWh;
+	v_totalMethaneImport_MWh = 0;
+}
+
 // Assume 'infinite storage' of hydrogen within model-scope; only nett total import/export counts.
 if (v_totalHydrogenImport_MWh > v_totalHydrogenExport_MWh) {
 	v_totalHydrogenImport_MWh = v_totalHydrogenImport_MWh - v_totalHydrogenExport_MWh;
@@ -5738,6 +5755,9 @@ if (taxContract != null) {
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[p_gasBuffer]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>true</ReplicationFlag>
@@ -11468,7 +11488,7 @@ import java.io.*;]]></Import>
 				<Variable Class="Parameter">
 					<Id>1668695364192</Id>
 					<Name><![CDATA[p_batteryAsset]]></Name>
-					<X>480</X><Y>380</Y>
+					<X>510</X><Y>360</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -11650,7 +11670,7 @@ import java.io.*;]]></Import>
 				<Variable Class="Parameter">
 					<Id>1676965009213</Id>
 					<Name><![CDATA[p_curtailer]]></Name>
-					<X>510</X><Y>260</Y>
+					<X>490</X><Y>240</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -11777,6 +11797,27 @@ import java.io.*;]]></Import>
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1684919785784</Id>
+					<Name><![CDATA[p_gasBuffer]]></Name>
+					<X>510</X><Y>380</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[EnergyAsset]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1684919785782</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1658751085004</Id>
 					<Name><![CDATA[c_electricityFlows]]></Name>
@@ -11859,7 +11900,7 @@ import java.io.*;]]></Import>
 				<Variable Class="CollectionVariable">
 					<Id>1659962626907</Id>
 					<Name><![CDATA[c_storageAssets]]></Name>
-					<X>490</X><Y>240</Y>
+					<X>490</X><Y>260</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -12449,6 +12490,14 @@ if( p_energyAssetList != null) {
 					p_ThermalStorageAsset.p_energyAssetInstance.updateAmbientTemperature( main.v_currentAmbientTemperature_degC );
 			
 				}
+				else if (storageAsset.p_energyAssetType == OL_EnergyAssetType.STORAGE_GAS){
+					double capacityGas_kW = l.get( "capacityGas_kW") == null? 0.0: Double.valueOf( l.get( "capacityGas_kW" ).toString()).doubleValue();
+					double storageCapacity_kWh = l.get( "storageCapacity_kWh" ) == null? 0.0: Double.valueOf( l.get( "storageCapacity_kWh").toString()).doubleValue();
+					double initialStateOfCharge_r = l.get( "stateOfCharge_r" ) == null? 0.0: Double.valueOf( l.get( "stateOfCharge_r" ).toString()).doubleValue();
+					storageAsset.p_energyAssetInstance = new J_EAStorageGas(storageAsset, capacityGas_kW, storageCapacity_kWh, initialStateOfCharge_r, main.p_timeStep_h);
+					p_gasBuffer = storageAsset;
+					//traceln("gasBuffer gasCapacity_kW: " + p_gasBuffer.p_energyAssetInstance.getGasCapacity_kW() + " kW");
+				}
 				else {
 					traceln("F_instantiateEnergyAssets: ERROR, storage asset type not available");
 				}
@@ -12537,7 +12586,7 @@ if (main.b_addKpiVisuals) {
 }
 
 v_electricityTotalsCheck = v_electricityConsumedFixedProfile_kWh + v_electricityConvertedToX_kWh + v_electricityChargedByEVs_kWh  + v_electricityDeliveredToGrid_kWh 
-- v_electricityProducedPV_kWh - v_electricityProducedWind_kWh - v_electricityDrawnFromGrid_kWh ;]]></Body>
+- v_electricityProducedPV_kWh - v_electricityProducedWind_kWh - v_electricityDrawnFromGrid_kWh - v_xConvertedToElectricity_kWh;]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -17753,13 +17802,13 @@ v_electricHeatingConsumption_kW = 0;
 v_batteryConsumption_kW = 0;
 
 for( GridConnection g : realAgent.getConnectedAgent().c_electricityGridConnections){
-	v_localProduction_kW += g.v_pvProductionElectric_kW + g.v_windProductionElectric_kW;
+	v_localProduction_kW += g.v_pvProductionElectric_kW + g.v_windProductionElectric_kW - min(0,g.v_conversionPowerElectric_kW);
 	v_batteryProduction_kW += g.v_batteryPowerElectric_kW < 0 ? -g.v_batteryPowerElectric_kW : 0;
 	v_vehicleProduction_kW += g.v_evChargingPowerElectric_kW < 0 ? g.v_evChargingPowerElectric_kW : 0;
 	
 	v_vehicleConsumption_kW += g.v_evChargingPowerElectric_kW > 0 ? g.v_evChargingPowerElectric_kW : 0;
 	v_fixedConsumptionProfiles_kW += g.v_fixedConsumptionElectric_kW + g.v_electricHobConsumption_kW;
-	v_electricHeatingConsumption_kW += g.v_conversionPowerElectric_kW;
+	v_electricHeatingConsumption_kW += max(0,g.v_conversionPowerElectric_kW);
 	v_batteryConsumption_kW += g.v_batteryPowerElectric_kW > 0 ? g.v_batteryPowerElectric_kW : 0;
 
 }
@@ -29304,6 +29353,9 @@ void f_heatWithHybridHeatpump() {
 				<Parameter>
 					<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
 				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_gasBuffer]]></Name>
+				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -31153,6 +31205,9 @@ public void f_batteryManagementPrice( double batterySOC ){
 				<Parameter>
 					<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
 				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_gasBuffer]]></Name>
+				</Parameter>
 			</Parameters>
 			<StartupCode><![CDATA[v_dayTempSetpoint_degC = 23;
 v_nightTempSetpoint_degC = 15;
@@ -31872,6 +31927,9 @@ public void f_connectToChild(Agent ConnectingChildNode){
 				</Parameter>
 				<Parameter>
 					<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_gasBuffer]]></Name>
 				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
@@ -32846,6 +32904,9 @@ public void f_operateFlexAssets(){
 				<Parameter>
 					<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
 				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_gasBuffer]]></Name>
+				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -33301,6 +33362,9 @@ if (CurtailerAsset.p_energyAssetInstance.getElectricCapacity_kW()>0) {
 				<Parameter>
 					<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
 				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_gasBuffer]]></Name>
+				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -33570,6 +33634,9 @@ public void f_operateFlexAssets(){
 				<Parameter>
 					<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
 				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_gasBuffer]]></Name>
+				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -33663,6 +33730,23 @@ public void f_operateFlexAssets(){
 			</ScaleRuler>
 			<CurrentLevel>1665480522863</CurrentLevel>
 			<ConnectionsId>1665480522859</ConnectionsId>
+			<Variables>
+				<Variable Class="PlainVariable">
+					<Id>1684919215378</Id>
+					<Name><![CDATA[v_previousPowerMethane_kW]]></Name>
+					<X>1120</X><Y>470</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+			</Variables>
 			<Functions>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -33789,6 +33873,15 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[if(p_gridConnectionType == OL_GridConnectionType.AGROENERGYHUB) {
 	f_operateFlexAssets_agroenergyhub();
+	for( EnergyAsset c : c_storageAssets ) {	
+		v_currentPowerElectricity_kW += c.v_currentConsumptionElectricity_kW - c.v_currentProductionElectricity_kW;
+		v_conversionPowerElectric_kW += c.v_currentConsumptionElectricity_kW - c.v_currentProductionElectricity_kW;
+		v_currentPowerMethane_kW += c.v_currentConsumptionMethane_kW - c.v_currentProductionMethane_kW;
+		v_currentPowerHydrogen_kW += c.v_currentConsumptionHydrogen_kW - c.v_currentProductionHydrogen_kW;
+		v_currentPowerHeat_kW += c.v_currentConsumptionHeat_kW - c.v_currentProductionHeat_kW;
+		v_currentPowerDiesel_kW += c.v_currentConsumptionDiesel_kW;
+	}
+	
 	//traceln("Agroenergyhub logic!");
 } else {
 	
@@ -33804,7 +33897,10 @@ for( EnergyAsset c : c_conversionAssets ) {
 	v_currentPowerHydrogen_kW += c.v_currentConsumptionHydrogen_kW - c.v_currentProductionHydrogen_kW;
 	v_currentPowerHeat_kW += c.v_currentConsumptionHeat_kW - c.v_currentProductionHeat_kW;
 	v_currentPowerDiesel_kW += c.v_currentConsumptionDiesel_kW;
-}	
+}
+
+v_previousPowerMethane_kW = v_currentPowerMethane_kW;
+
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -33817,52 +33913,64 @@ for( EnergyAsset c : c_conversionAssets ) {
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[// TODO: This only works for fixed heat demands; also need to implement heating of a building modeled as a ThermalStorageAsset! [GH 21/11/2022]
+					<Body><![CDATA[
 double heatDemand_kW = v_currentPowerHeat_kW;
+double biogasSupply_kW = 0;
+if(l_ownerActor.getConnectedAgent() instanceof ConnectionOwner) {
+	if(((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_holonParent instanceof EnergyHolon ) {
+		EnergyHolon holonParent = (EnergyHolon)(((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_holonParent);
+		biogasSupply_kW = -holonParent.v_methaneVolume_kWh/main.p_timeStep_h + v_previousPowerMethane_kW;
+	}
+}
+
+//traceln("BiogasSupply from mestvergister: " + biogasSupply_kW + " kW");
 //traceln("Heat demand agroenergyhub:" + heatDemand_kW);
-if ( p_ThermalStorageAsset == null ) {
-	if ( p_secondaryHeatingAsset == null ) { // Just one heating asset
-		if ( p_primaryHeatingAsset== null ) {
-			//traceln("No heating assets for house " + p_agentID);
-		} else {
-			if ( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionGasBurner || p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatPump) { // when there is only a gas burner or DH set
-					p_primaryHeatingAsset.v_powerFraction_fr = min(1,heatDemand_kW / p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
-					//traceln("Running manageHeatingAsset for single heating asset");
-			} else {
-				traceln("GridConnection " + p_agentID + " has a single unsupported heating asset!");
-			}
-		}
-	} else { // Two heating assets
-		if ( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionGasCHP & p_secondaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatPump) { // Heatpump and gasburner, switch based on heatpump COP)
-			//((J_EAConversionHeatPump)p_primaryHeatingAsset.p_energyAssetInstance).updateAmbientTemp(main.v_currentAmbientTemperature_degC); // update heatpump temp levels! <-- waarom dit gebeurt al in de main (peter 21-02-23)
-			double HP_COP = ((J_EAConversionHeatPump)p_secondaryHeatingAsset.p_energyAssetInstance).getCOP();
-			double HP_powerDemand_kW = heatDemand_kW / HP_COP;
-			
-			if ( -v_currentPowerElectricity_kW > HP_powerDemand_kW) { // Use heatpump when it can be done selfsufficiently
-				//traceln("HeatPump in operation with COP " + HP_COP);
-				p_primaryHeatingAsset.v_powerFraction_fr = 0;
-				p_secondaryHeatingAsset.v_powerFraction_fr = min(1,HP_powerDemand_kW / p_secondaryHeatingAsset.p_energyAssetInstance.getElectricCapacity_kW());
-			} else { // CHP when there is no electricity surpluss
-				//traceln("CHP capacityHeat_kW: " + p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
+
+if ( p_secondaryHeatingAsset == null ) { // Just one heating asset
+	if ( p_primaryHeatingAsset== null ) {
+		//traceln("No heating assets for house " + p_agentID);
+	} else {
+		if ( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionGasBurner || p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatPump) { // when there is only a gas burner or DH set
 				p_primaryHeatingAsset.v_powerFraction_fr = min(1,heatDemand_kW / p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
-				p_secondaryHeatingAsset.v_powerFraction_fr = 0;//min(1,currentDHWdemand_kW / p_secondaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
-			}
+				//traceln("Running manageHeatingAsset for single heating asset");
 		} else {
-			traceln("**** EXCEPTION ****: Unsupported combination of heatings systems in GridConnection " + p_agentID);
-			p_primaryHeatingAsset.v_powerFraction_fr = 0;
-			p_secondaryHeatingAsset.v_powerFraction_fr = 0;
-			//p_ThermalStorageAsset.v_powerFraction_fr = 0;
+			traceln("GridConnection " + p_agentID + " has a single unsupported heating asset!");
 		}
-		p_secondaryHeatingAsset.f_updateAllFlows(p_secondaryHeatingAsset.v_powerFraction_fr);
 	}
-	if (p_primaryHeatingAsset != null) {
-		p_primaryHeatingAsset.f_updateAllFlows(p_primaryHeatingAsset.v_powerFraction_fr);
+} else { // Two heating assets
+	if ( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionGasCHP & p_secondaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatPump) { // Heatpump and gasburner, switch based on heatpump COP)
+		//((J_EAConversionHeatPump)p_primaryHeatingAsset.p_energyAssetInstance).updateAmbientTemp(main.v_currentAmbientTemperature_degC); // update heatpump temp levels! <-- waarom dit gebeurt al in de main (peter 21-02-23)
+		double HP_COP = ((J_EAConversionHeatPump)p_secondaryHeatingAsset.p_energyAssetInstance).getCOP();
+		double HP_powerDemand_kW = heatDemand_kW / HP_COP;
+		
+		if ( (-v_currentPowerElectricity_kW > HP_powerDemand_kW | p_gasBuffer.p_energyAssetInstance.getCurrentStateOfCharge() < 0.1) & p_gasBuffer.p_energyAssetInstance.getCurrentStateOfCharge() < 0.9) { // Use heatpump when it can be done selfsufficiently or when methane supply is zero
+			//traceln("HeatPump in operation with COP " + HP_COP);
+			p_primaryHeatingAsset.v_powerFraction_fr = 0;
+			p_secondaryHeatingAsset.v_powerFraction_fr = min(1,HP_powerDemand_kW / p_secondaryHeatingAsset.p_energyAssetInstance.getElectricCapacity_kW());
+		} else { // CHP when there is no electricity surpluss
+			//traceln("CHP capacityHeat_kW: " + p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
+			p_primaryHeatingAsset.v_powerFraction_fr = min(1,heatDemand_kW / p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
+			p_secondaryHeatingAsset.v_powerFraction_fr = 0;//min(1,currentDHWdemand_kW / p_secondaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
+		}
+	} else {
+		traceln("**** EXCEPTION ****: Unsupported combination of heatings systems in GridConnection " + p_agentID);
+		p_primaryHeatingAsset.v_powerFraction_fr = 0;
+		p_secondaryHeatingAsset.v_powerFraction_fr = 0;
+		//p_ThermalStorageAsset.v_powerFraction_fr = 0;
 	}
-} else { // TODO: Implement thermostat functionality for thermal storage asset. Where to get temp setpoint?
-	traceln("No thermostat functionality available to manage p_thermalStorageAsset!!");
-	p_primaryHeatingAsset.f_updateAllFlows(0);
-	p_secondaryHeatingAsset.f_updateAllFlows(0);
-	p_ThermalStorageAsset.f_updateAllFlows(0);
+	p_secondaryHeatingAsset.f_updateAllFlows(p_secondaryHeatingAsset.v_powerFraction_fr);
+}
+if (p_primaryHeatingAsset != null) {
+	p_primaryHeatingAsset.f_updateAllFlows(p_primaryHeatingAsset.v_powerFraction_fr);
+}
+
+if (p_gasBuffer != null & p_primaryHeatingAsset != null) {
+	if (p_secondaryHeatingAsset != null) {
+		p_gasBuffer.v_powerFraction_fr = (biogasSupply_kW - p_primaryHeatingAsset.v_currentConsumptionMethane_kW - p_secondaryHeatingAsset.v_currentConsumptionMethane_kW)/p_gasBuffer.p_energyAssetInstance.getGasCapacity_kW();
+	} else {
+		p_gasBuffer.v_powerFraction_fr = (biogasSupply_kW - p_primaryHeatingAsset.v_currentConsumptionMethane_kW) / p_gasBuffer.p_energyAssetInstance.getGasCapacity_kW();
+	}
+	p_gasBuffer.f_updateAllFlows(p_gasBuffer.v_powerFraction_fr);
 }
 ]]></Body>
 				</Function>
@@ -34052,6 +34160,9 @@ public void f_batteryManagementPrice( double batterySOC ){
 				</Parameter>
 				<Parameter>
 					<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
+				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_gasBuffer]]></Name>
 				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
@@ -36083,6 +36194,9 @@ public void f_operateFlexAssets(){
 				<Parameter>
 					<Name><![CDATA[p_irradianceRecievingSurface_m2]]></Name>
 				</Parameter>
+				<Parameter>
+					<Name><![CDATA[p_gasBuffer]]></Name>
+				</Parameter>
 			</Parameters>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -37151,6 +37265,7 @@ public class J_EA {
 	 protected EnergyAsset ownerAsset;
 	 protected double capacityElectric_kW;
 	 protected double capacityHeat_kW;
+	 protected double capacityGas_kW;
 	 protected double energyUsed_kWh = 0.0;
   	 protected double timestep_h;
   	 public double eta_r;
@@ -37178,10 +37293,11 @@ public class J_EA {
     /**
      * Constructor initializing the fields
      */
-    public J_EA(EnergyAsset ownerAsset, double capacityElectric_kW, double capacityHeat_kW) {
+    public J_EA(EnergyAsset ownerAsset, double capacityElectric_kW, double capacityHeat_kW, double capacityGas_kW) {
 		this.ownerAsset = ownerAsset;
 		this.capacityElectric_kW = capacityElectric_kW;
 		this.capacityHeat_kW = capacityHeat_kW;
+		this.capacityGas_kW = capacityGas_kW;
     }
 
     public void resetFlows() {
@@ -37235,6 +37351,10 @@ public class J_EA {
     	return capacityElectric_kW;
     }
 
+    public double getGasCapacity_kW() {
+    	return capacityGas_kW;
+    }
+    
     public double getEnergyUsed_kWh() {
     	return energyUsed_kWh;
     }
@@ -37420,6 +37540,119 @@ public class J_EAStorageElectric extends base.J_EAStorage implements Serializabl
 		double availableCapacity_kW;
 		if ( stateOfCharge_r * storageCapacity_kWh  > capacityElectric_kW * timestep_h) {
 			availableCapacity_kW = capacityElectric_kW;
+		}
+		else {
+			availableCapacity_kW =  stateOfCharge_r * storageCapacity_kWh / timestep_h; // Allow to drain completely
+		}
+		return availableCapacity_kW;
+	}
+	
+	public double getStorageCapacity_kWh() {
+		return storageCapacity_kWh;
+	}
+
+	public double getTotalChargeAmount_kWh() {
+		return charged_kWh;
+	}
+	public double getTotalDischargeAmount_kWh() {
+		return discharged_kWh;
+	}
+
+
+	/**
+	 * This number is here for model snapshot storing purpose<br>
+	 * It needs to be changed when this class gets changed
+	 */
+	private static final long serialVersionUID = 1L;
+
+}]]></Text>
+		</JavaClass>
+		<!--   =========   Java Class   ========  -->
+		<JavaClass>
+			<Id>1659446215929</Id>
+			<Name><![CDATA[J_EAStorageGas]]></Name>
+			<Text><![CDATA[/**
+ * J_EAStorageGas
+ */
+public class J_EAStorageGas extends base.J_EAStorage implements Serializable {
+
+	private OL_EnergyCarrierType storageMedium = OL_EnergyCarrierType.METHANE;
+	private double lossFactor_r = 0;
+	protected double discharged_kWh = 0;
+	protected double charged_kWh = 0;
+	//public double capacityGas_kW = 0;
+
+    /**
+     * Default constructor
+     */
+    public J_EAStorageGas() {
+    }
+
+    /**
+     * Constructor initializing the fields
+     */
+    public J_EAStorageGas(EnergyAsset ownerAsset, double capacityGas_kW, double storageCapacity_kWh, double stateOfCharge_r, double timestep_h ) {
+		this.ownerAsset = ownerAsset;
+		this.capacityGas_kW = capacityGas_kW;
+		this.storageCapacity_kWh = storageCapacity_kWh;
+		this.stateOfCharge_r = stateOfCharge_r;
+		this.timestep_h = timestep_h;
+    }
+
+	@Override
+	public void calculateLoss() {
+		//no loss for gas storage modeled.
+	}
+
+	@Override
+	public double[] operate(double ratioOfChargeCapacity_r) {
+    	double discharge_kW = 0;
+    	double deltaEnergy_kWh;   // to check the request with the energy currently in storage
+    	//double sign = ratioOfChargeCapacity_r / abs( ratioOfChargeCapacity_r ); // charge or discharge
+
+    	deltaEnergy_kWh = ( ratioOfChargeCapacity_r * capacityGas_kW * timestep_h ) ;
+    	deltaEnergy_kWh = - min( -deltaEnergy_kWh, (stateOfCharge_r * storageCapacity_kWh) ); // Prevent negative charge
+    	deltaEnergy_kWh = min(deltaEnergy_kWh, (1 - stateOfCharge_r) * storageCapacity_kWh ); // Prevent overcharge
+
+		discharge_kW = -deltaEnergy_kWh / timestep_h;
+
+		methaneProduction_kW = max(discharge_kW, 0);
+		methaneConsumption_kW = max(-discharge_kW, 0);
+		discharged_kWh += methaneProduction_kW * timestep_h;
+		charged_kWh += methaneConsumption_kW * timestep_h;
+		
+		updateStateOfCharge( discharge_kW );
+		//double[] arr = {electricityProduction_kW, methaneProduction_kW, hydrogenProduction_kW, heatProduction_kW, electricityConsumption_kW, methaneConsumption_kW, hydrogenConsumption_kW, heatConsumption_kW };
+    	//return arr;
+		return returnEnergyFlows();
+	}
+
+	@Override
+	public String toString() {
+		return 
+			"type = " + this.getClass().toString() + " " +
+			"ownerAsset = " + ownerAsset +" " +
+			"stateOfCharge_r = " + this.stateOfCharge_r+" "+
+			"storageCapacity_kWh = " + this.storageCapacity_kWh +" "+
+			"capacityGas_kW = " + this.capacityGas_kW +" "+
+			"discharged_kWh " + this.discharged_kWh+" "+
+			"charged_kWh " + this.charged_kWh+" ";
+	}
+
+	@Override
+	public void updateStateOfCharge( double discharge_kW ) {
+		stateOfCharge_r -= ( discharge_kW * timestep_h ) / storageCapacity_kWh;
+	}
+
+	@Override
+	public double getCurrentStateOfCharge() {
+    	return stateOfCharge_r;
+	}
+
+	public double getCapacityAvailable_kW() {
+		double availableCapacity_kW;
+		if ( stateOfCharge_r * storageCapacity_kWh  > capacityGas_kW * timestep_h) {
+			availableCapacity_kW = capacityGas_kW;
 		}
 		else {
 			availableCapacity_kW =  stateOfCharge_r * storageCapacity_kWh / timestep_h; // Allow to drain completely
