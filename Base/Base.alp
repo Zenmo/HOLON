@@ -171,6 +171,10 @@
 				<Id>1684397551611</Id>
 				<Name><![CDATA[AGROENERGYHUB]]></Name>
 			</Option>
+			<Option>
+				<Id>1685518612022</Id>
+				<Name><![CDATA[VILLAGE]]></Name>
+			</Option>
 		</OptionList>
 		<OptionList>
 			<Id>1659118426374</Id>
@@ -310,6 +314,10 @@
 			<Option>
 				<Id>1685030175392</Id>
 				<Name><![CDATA[BIOGAS_METHANE_CONVERTER]]></Name>
+			</Option>
+			<Option>
+				<Id>1685518641145</Id>
+				<Name><![CDATA[METHANE_DEMAND]]></Name>
 			</Option>
 		</OptionList>
 		<OptionList>
@@ -2740,6 +2748,7 @@ v_timeStepsElapsed ++;
 				<Event>
 					<Id>1674058522977</Id>
 					<Name><![CDATA[pauseEvent]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>640</X><Y>460</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -3559,7 +3568,8 @@ if ( energyProduced_MWh > 0 ){
 double totalSelfSufficiency_fr = 1 - (v_totalElectricityImport_MWh + max(0,v_totalMethaneImport_MWh - v_totalMethaneExport_MWh) + 
 max(0,v_totalHydrogenImport_MWh - v_totalHydrogenExport_MWh) + v_totalDieselImport_MWh - batteryStoredEnergyDeltaSinceStart_MWh ) / energyConsumed_MWh;
 traceln("Model-wide selfsufficiency (via import calc): " + totalSelfSufficiency_fr);
-double totalSelfSufficiency_fr_check = (energyProduced_MWh - (v_totalElectricityExport_MWh + max(0,v_totalMethaneExport_MWh-v_totalMethaneImport_MWh) + max(0,v_totalHydrogenExport_MWh-v_totalHydrogenImport_MWh)))/energyConsumed_MWh;
+double totalSelfSufficiency_fr_check = (energyProduced_MWh - (v_totalElectricityExport_MWh + max(0,v_totalMethaneExport_MWh-v_totalMethaneImport_MWh) + 
+max(0,v_totalHydrogenExport_MWh-v_totalHydrogenImport_MWh)))/energyConsumed_MWh;
 traceln("Model-wide selfsufficiency (via export calc): " + totalSelfSufficiency_fr_check);
 
 traceln( "import electricity: " + v_totalElectricityImport_MWh + " MWh");
@@ -12741,6 +12751,10 @@ for(EnergyAsset e : c_consumptionAssets) {
 		e.f_updateAllFlows(0);		
 	}
 	else if( e.p_energyAssetType == OL_EnergyAssetType.DIESEL_DEMAND ) {
+		e.v_powerFraction_fr = 1.0/8760;
+		e.f_updateAllFlows( e.v_powerFraction_fr );	
+	}	
+	else if( e.p_energyAssetType == OL_EnergyAssetType.METHANE_DEMAND ) {
 		e.v_powerFraction_fr = 1.0/8760;
 		e.f_updateAllFlows( e.v_powerFraction_fr );	
 	}	
@@ -33713,12 +33727,21 @@ if (EA.p_energyAssetInstance instanceof J_EAConsumption) {
 	c_conversionAssets.add(EA);
 	if(p_gridConnectionType == OL_GridConnectionType.AGROENERGYHUB) {
 	
-		if (EA.p_energyAssetInstance instanceof J_EAConversionGasCHP) {
-			p_primaryHeatingAsset = EA;
-		} else if (EA.p_energyAssetInstance instanceof J_EAConversionGasBurner || EA.p_energyAssetInstance instanceof J_EAConversionHeatPump || EA.p_energyAssetInstance instanceof J_EAConversionHydrogenBurner ) {
-			p_secondaryHeatingAsset = EA;
+		if (EA.p_energyAssetInstance instanceof J_EAConversionGasBurner || EA.p_energyAssetInstance instanceof J_EAConversionHydrogenBurner) {
+			if (p_primaryHeatingAsset==null) {
+				p_primaryHeatingAsset = EA;
+			} else { 
+				p_secondaryHeatingAsset = EA;
+			}
+		} else if ( EA.p_energyAssetInstance instanceof J_EAConversionHeatPump  || EA.p_energyAssetInstance instanceof J_EAConversionGasCHP) {
+			if (p_primaryHeatingAsset==null) {
+				p_primaryHeatingAsset = EA;
+			} else { 
+				p_secondaryHeatingAsset = p_primaryHeatingAsset;
+				p_primaryHeatingAsset = EA;
+			}
 			if (EA.p_energyAssetInstance instanceof J_EAConversionHeatPump) {
-				((J_EAConversionHeatPump)p_secondaryHeatingAsset.p_energyAssetInstance).outputTemperature_degC = 80; // For pastorizing milk
+				((J_EAConversionHeatPump)p_primaryHeatingAsset.p_energyAssetInstance).outputTemperature_degC = 80; // For pastorizing milk
 			}
 			//traceln("heatingAsset class " + p_spaceHeatingAsset.getClass().toString());
 		} else 	if (EA.p_energyAssetInstance instanceof J_EAConversionCurtailer || EA.p_energyAssetInstance instanceof J_EAConversionCurtailerHeat) {
@@ -33852,7 +33875,7 @@ if ( p_secondaryHeatingAsset == null ) { // Just one heating asset
 	if ( p_primaryHeatingAsset== null ) {
 		//traceln("No heating assets for house " + p_agentID);
 	} else {
-		if ( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionGasBurner || p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatPump) { // when there is only a gas burner or DH set
+		if ( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionGasBurner || p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHeatPump || p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionHydrogenBurner) { // when there is only a gas burner or DH set
 				p_primaryHeatingAsset.v_powerFraction_fr = min(1,heatDemand_kW / p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
 				//traceln("Running manageHeatingAsset for single heating asset");
 		} else {
@@ -33865,11 +33888,21 @@ if ( p_secondaryHeatingAsset == null ) { // Just one heating asset
 		double HP_COP = ((J_EAConversionHeatPump)p_secondaryHeatingAsset.p_energyAssetInstance).getCOP();
 		double HP_powerDemand_kW = heatDemand_kW / HP_COP;
 		// Decide to use CHP or HeatPump to fulfill heat demand based on 'SoC' of gasbuffer and current electricity use on site
-		if ( (-v_currentPowerElectricity_kW > 0.5*p_connectionCapacity_kW*2*(p_gasBuffer.p_energyAssetInstance.getCurrentStateOfCharge()-0.5) | p_gasBuffer.p_energyAssetInstance.getCurrentStateOfCharge() < 0.05) & p_gasBuffer.p_energyAssetInstance.getCurrentStateOfCharge() < 0.95) { // Use heatpump when it can be done selfsufficiently or when methane supply is zero
+		if ( (-v_currentPowerElectricity_kW > 0.5*p_connectionCapacity_kW*2*(p_gasBuffer.p_energyAssetInstance.getCurrentStateOfCharge()-0.5) | p_gasBuffer.p_energyAssetInstance.getCurrentStateOfCharge() < 0.05) & p_gasBuffer.p_energyAssetInstance.getCurrentStateOfCharge() < 0.9) { // Use heatpump when it can be done selfsufficiently or when methane supply is zero
 			//traceln("HeatPump in operation with COP " + HP_COP);
 			p_primaryHeatingAsset.v_powerFraction_fr = 0;
 			p_secondaryHeatingAsset.v_powerFraction_fr = min(1,HP_powerDemand_kW / p_secondaryHeatingAsset.p_energyAssetInstance.getElectricCapacity_kW());
 		} else { // CHP when there is no electricity surpluss
+			//traceln("CHP capacityHeat_kW: " + p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
+			p_primaryHeatingAsset.v_powerFraction_fr = min(1,heatDemand_kW / p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
+			p_secondaryHeatingAsset.v_powerFraction_fr = 0;//min(1,currentDHWdemand_kW / p_secondaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
+		}
+	} else if ( p_primaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionGasCHP & p_secondaryHeatingAsset.p_energyAssetInstance instanceof J_EAConversionGasBurner) { // Heatpump and gasburner, switch based on heatpump COP)
+		if ( p_gasBuffer.p_energyAssetInstance.getCurrentStateOfCharge() < 0.05) { // Use regular gas burner when biogas buffer is nearly empty
+			//traceln("HeatPump in operation with COP " + HP_COP);
+			p_primaryHeatingAsset.v_powerFraction_fr = 0;
+			p_secondaryHeatingAsset.v_powerFraction_fr = min(1,heatDemand_kW / p_secondaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
+		} else { // CHP when there is sufficient biogas
 			//traceln("CHP capacityHeat_kW: " + p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
 			p_primaryHeatingAsset.v_powerFraction_fr = min(1,heatDemand_kW / p_primaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
 			p_secondaryHeatingAsset.v_powerFraction_fr = 0;//min(1,currentDHWdemand_kW / p_secondaryHeatingAsset.p_energyAssetInstance.getHeatCapacity_kW());
@@ -33895,7 +33928,9 @@ if (p_gasBuffer != null & p_primaryHeatingAsset != null) {
 	p_gasBuffer.f_updateAllFlows(p_gasBuffer.v_powerFraction_fr);
 }
 
-f_manageCurtailer(p_curtailer);]]></Body>
+if (p_curtailer != null) {
+	f_manageCurtailer(p_curtailer);
+}]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
