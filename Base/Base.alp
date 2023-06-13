@@ -4222,10 +4222,18 @@ if (c_gridNodesHSMS.size() == 0){
 }
 else {
 	double cumulativeGridNodePeakLoadElectricityHSMS_kW=0;
-	for(GridNode h : c_gridNodesHSMS ) {		
-		cumulativeGridNodePeakLoadElectricityHSMS_kW += abs(h.v_peakLoadFilteredElectricity_kW);
+	if (c_gridNodesHSMS.size() == 1 & c_gridNodesMSLS.size() == 1) { // laat netload KPI negatief worden als er maar 1 node is!
+		for(GridNode h : c_gridNodesHSMS ) {		
+			cumulativeGridNodePeakLoadElectricityHSMS_kW += (h.v_peakLoadFilteredElectricity_kW);
+		}	
+		v_netOverloadKPI_pct = 100 * (cumulativeGridNodePeakLoadElectricityHSMS_kW / v_cumulativeGridCapacityHSMS_kW);	
+	} else {
+		for(GridNode h : c_gridNodesHSMS ) {		
+			cumulativeGridNodePeakLoadElectricityHSMS_kW += abs(h.v_peakLoadFilteredElectricity_kW);
+		}
+		v_netOverloadKPI_pct = 100 * (max (0, cumulativeGridNodePeakLoadElectricityHSMS_kW ) / v_cumulativeGridCapacityHSMS_kW);	
 	}
-	v_netOverloadKPI_pct = 100 * (max (0, cumulativeGridNodePeakLoadElectricityHSMS_kW ) / v_cumulativeGridCapacityHSMS_kW);	
+
 }
 ]]></Body>
 				</Function>
