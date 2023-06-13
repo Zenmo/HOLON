@@ -112,10 +112,6 @@
 				<Name><![CDATA[SEMIDETACHED]]></Name>
 			</Option>
 			<Option>
-				<Id>1659118307632</Id>
-				<Name><![CDATA[CORNER]]></Name>
-			</Option>
-			<Option>
 				<Id>1659118321493</Id>
 				<Name><![CDATA[TERRACED]]></Name>
 			</Option>
@@ -3434,6 +3430,7 @@ for(ConnectionOwner c : pop_connectionOwners) {
 		String holonString = c.p_holonParent == null ? null : c.p_holonParent.p_actorID;
 //		c.j_ActorData.updateData(c.p_actorID, c.p_actorType, c.p_parentActorID, c.p_energySupplier.toString(), c.v_ownedGridConnection.toString(), c.v_energySupplierDistrictHeat.toString(), roundToDecimal( c.v_electricityVolume_kWh, 2 ), roundToDecimal( c.v_heatVolume_kWh, 2), roundToDecimal( c.v_methaneVolume_kWh, 2), roundToDecimal( c.v_hydrogenVolume_kWh, 2 ), c.v_electricityContractType.toString(), c.v_heatContractType.toString(), c.v_methaneContractType.toString(), c.v_hydrogenContractType.toString(), roundToDecimal( c.v_balanceElectricity_eur, 2), roundToDecimal( c.v_balanceHeat_eur, 2), roundToDecimal( c.v_balanceMethane_eur, 2), roundToDecimal( c.v_balanceHydrogen_eur, 2));
 		
+		//traceln("actor : "+  c.p_actorID);
 		c.j_ActorData.updateData(
 			c.p_actorID, c.p_actorType, c.p_gridOperator.p_actorID, holonString, c.p_electricitySupplier.p_actorID, c.v_ownedGridConnection.p_agentID, 
 			null, roundToDecimal( c.v_totalElectricityUsed_kWh, 2 ), roundToDecimal( c.v_totalHeatUsed_kWh, 2), roundToDecimal( c.v_totalMethaneUsed_kWh, 2), 
@@ -3636,7 +3633,7 @@ if (nbcars != 0){
 else {
 	shareElectricvehiclesInHouseholds = 0;
 }
-traceln("nb cars " + nbevs / nbcars);
+traceln("nb cars " + nbcars);
 traceln("nb evs " + nbevs);
 
 // add Total Cost KPI data:
@@ -5562,7 +5559,7 @@ if (taxContract != null) {
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[holontool_scenario.txt]]></ClassName>
+						<ClassName><![CDATA[cases/tvwoutput.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -12464,8 +12461,34 @@ if( p_energyAssetList != null) {
 			case CONSUMPTION:
 				EnergyAsset consumerAsset = main.add_pop_energyAssets();
 				consumerAsset.set_p_parentAgentID( this.p_agentID );
-				consumerAsset.set_p_energyAssetType( OL_EnergyAssetType.valueOf((String)l.get( "type" ) ));
-				consumerAsset.set_p_defaultEnergyAssetPresetName( (String)l.get( "name" ));
+				String assetType = (String)l.get( "type" ); 
+				consumerAsset.set_p_energyAssetType( OL_EnergyAssetType.valueOf(assetType) );
+				
+				//Carefull, this fix was needed for the TVW casus. It assumes that the other cases do not have 'Building' gridconnections.
+				//As the building gridconnections will get the store_other_electricity profiles.
+				//It also assumes that hot water is ONLY for households (that was always the case in the option lists anyway, but in fact not very robust)
+
+				if ( assetType.equals("DIESEL_VEHICLE")){
+					consumerAsset.set_p_defaultEnergyAssetPresetName( (String)l.get( "name" ));
+				}
+				else if( assetType.equals("ELECTRICITY_DEMAND")){
+					if ( p_gridConnectionCategory == OL_GridConnectionCategory.HOUSE) {
+						consumerAsset.set_p_defaultEnergyAssetPresetName( "House_other_electricity"); 
+					}
+					if ( p_gridConnectionCategory == OL_GridConnectionCategory.BUILDING) {
+						consumerAsset.set_p_defaultEnergyAssetPresetName( "Store_other_electricity");
+					}
+					else {
+						consumerAsset.set_p_defaultEnergyAssetPresetName( (String)l.get( "name" ));
+					}
+				}
+				else if (assetType.equals("HOT_WATER_CONSUMPTION")){
+					consumerAsset.set_p_defaultEnergyAssetPresetName( "House_hot_water");
+				}
+				else {
+					traceln("Consumption asset type should not occur or is not processed correctly");
+				}
+				
 				double yearlyDemandElectricity_kWh = l.get( "yearlyDemandElectricity_kWh") == null? 0.0: Double.valueOf( l.get( "yearlyDemandElectricity_kWh").toString()).doubleValue();
 				double yearlyDemandHeat_kWh = l.get( "yearlyDemandHeat_kWh") == null? 0.0: Double.valueOf( l.get( "yearlyDemandHeat_kWh").toString()).doubleValue();
 				double yearlyDemandHydrogen_kWh = l.get( "yearlyDemandHydrogen_kWh") == null? 0.0: Double.valueOf( l.get( "yearlyDemandHydrogen_kWh").toString()).doubleValue();
@@ -12733,7 +12756,7 @@ for(EnergyAsset e : c_consumptionAssets) {
 				case "INDUSTRY_STEEL_ELECTRICITY_DEMAND" :
 					e.f_updateElectricityFlows( main.v_currentIndustrySteelElectricityDemand_fr );
 				break;
-				case "House_other_electricity":
+				case "HOUSE_other_electricity":
 					double randomizer = 0.7 + uniform(0.0, 0.6);
 					e.f_updateElectricityFlows( main.v_currentHouseHoldOtherElectricityDemand_fr * randomizer );
 				break;
@@ -22759,6 +22782,7 @@ if (v_contractConnection.connectionContractType.equals(OL_ConnectionContractType
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[// Connect to energy supplier (can be a holon!)
+traceln(p_actorID + " is looking for its supplier");
 Actor mySupplier = null;
 mySupplier = findFirst(main.pop_energySuppliers, p->p.p_actorID.equals(v_contractDelivery.contractScope)) ;
 if (mySupplier != null) {
@@ -22792,6 +22816,7 @@ if (myGridoperator != null) {
 	traceln("Connection owner --> f_connectToParentActor --> no grid operator found, this should not be happening");
 }
 
+traceln(p_actorID + " finished looking for supplier");
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -34495,6 +34520,21 @@ if(p_ownerActor instanceof ConnectionOwner) {
 						<Type><![CDATA[int]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1686682721694</Id>
+					<Name><![CDATA[v_cumulativeMileage]]></Name>
+					<X>60</X><Y>180</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1667742419409</Id>
 					<Name><![CDATA[p_mobilityPatternType]]></Name>
@@ -34751,6 +34791,7 @@ else if(p_vehicleInstance instanceof J_EADieselVehicle){
 }
 
 v_away = false;
+v_cumulativeMileage += v_tripDist_km;
 v_tripDist_km = distances.get( v_tripIndex ); // Update upcoming trip distance
 
 //traceln( date() +  " truck komt terug, km: " + v_tripDist_km);]]></Action>
@@ -34818,7 +34859,7 @@ nextActivityEndTimer.restart( endtimes.get(0) - time( MINUTE ), MINUTE);
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>false</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[int rowIndex = getIndex() % 200;
+					<Body><![CDATA[int rowIndex = uniform_discr(1, 200);//getIndex() % 200;
 v_tripPatternIndex = rowIndex;
 
 int nbTrips = roundToInt(p_gridConnection.main.inputHouseholdTrips.getCellNumericValue("sheet1", rowIndex + 2, 2));
@@ -38892,7 +38933,7 @@ public class J_EAConversionCurtailerHeat extends J_EAConversion implements Seria
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[holontool_scenario.txt]]></Path>
+			<Path><![CDATA[cases/tvwoutput.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
@@ -38908,6 +38949,6 @@ public class J_EAConversionCurtailerHeat extends J_EAConversion implements Seria
 		<VersionMinor>0</VersionMinor>
 		<VersionBuild>5</VersionBuild>
     </RequiredLibraryReference>
-	<CloudModelUuid><![CDATA[055a05a5-7d61-46ee-b419-198f3c465fff]]></CloudModelUuid>
+	<CloudModelUuid><![CDATA[2a66b263-0d4d-4f4c-8eef-d69ec76b8bbe]]></CloudModelUuid>
 </Model>
 </AnyLogicWorkspace>
