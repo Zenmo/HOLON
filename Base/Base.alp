@@ -2368,6 +2368,30 @@ traceln(" ");
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1687945257520</Id>
+					<Name><![CDATA[p_hybridHeatPumpCOPThreshold]]></Name>
+					<X>-820</X><Y>420</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[2.6]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1687945257518</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1661504944109</Id>
 					<Name><![CDATA[parsedJSONGridNodes]]></Name>
@@ -4109,6 +4133,7 @@ boolean b_congestionPricingConsumption = policyMap.get( "Grid_MS_congestion_pric
 //boolean b_congestionPricingProduction = policyMap.get( "Grid_MS_congestion_pricing_production_eurpkWh" ) == null ? false : Boolean.parseBoolean( policyMap.get("Grid_MS_congestion_pricing_production_eurpkWh") );
 //double v_capacitypricing_households_kW = policyMap.get( "Capacitypricing_households_kW" ) == null? 0.0 : Double.parseDouble(policyMap.get( "Capacitypricing_households_kW" )) ;
 //double v_capacitypricing_households_eur = policyMap.get( "Capacitypricing_households_eur" ) == null? 0 : Double.parseDouble(policyMap.get( "Capacitypricing_households_eur" ));
+p_hybridHeatPumpCOPThreshold = policyMap.get( "p_hybridHeatPumpCOPThreshold" ) == null ? 2.0 : Double.parseDouble( policyMap.get("p_hybridHeatPumpCOPThreshold") );
 
 // get global energy pricing values
 /*double v_fixedElectricityPrice_eurpkWh = Double.parseDouble( policyMap.get("Fixed_electricity_price_eurpkWh") );
@@ -5085,7 +5110,6 @@ if (connectionContract!= null) {
 	connectionContract.FinancialTransactionVolume_eur += connectionContract.annualFee_eur;
 	totalCostsForVAT_eur += connectionContract.FinancialTransactionVolume_eur;
 	j_dataOut.contractData.add((J_Contract)connectionContract);
-
 }
 if (taxContract != null) {
 	if (energyUsed_kWh > 0) {
@@ -5621,7 +5645,7 @@ if (taxContract != null) {
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/tvwoutput.json]]></ClassName>
+						<ClassName><![CDATA[Casus_TVW_base_challenge_allhybrid30.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -13409,26 +13433,40 @@ for ( int i = 0; i < copiedVehicleList.size(); i++ ){
 					<Body><![CDATA[double HP_COP = ((J_EAConversionHeatPump)p_primaryHeatingAsset.p_energyAssetInstance).getCOP();
 boolean isGasCheaper = false;
 
-if(l_ownerActor.getConnectedAgent() instanceof ConnectionOwner) {
-	if( ((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_electricitySupplier instanceof EnergySupplier){
-		v_gasHeatingCost_eurpkWh_TEMPORARY = ((EnergySupplier)((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_electricitySupplier).p_fixedMethanePrice_eurpkWh;
+if( p_hasSmartFlexAssets ) {
+
+	if(l_ownerActor.getConnectedAgent() instanceof ConnectionOwner) {
+		v_gasHeatingCost_eurpkWh_TEMPORARY = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).f_getMethanePrice();
+		v_eHeatingCost_eurpkWh_TEMPORARY = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).f_getAveragedElectricityPrice( v_currentPowerElectricity_kW, p_primaryHeatingAsset.p_energyAssetInstance.getElectricCapacity_kW() ) / HP_COP;
+		//v_gasHeatingCost_eurpkWh_TEMPORARY = 6;
+		//v_eHeatingCost_eurpkWh_TEMPORARY = 5;
+		isGasCheaper = v_gasHeatingCost_eurpkWh_TEMPORARY < v_eHeatingCost_eurpkWh_TEMPORARY ? true:false;
+		
+/*	if( ((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_electricitySupplier instanceof EnergySupplier){
+		//v_gasHeatingCost_eurpkWh_TEMPORARY = ((EnergySupplier)((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_electricitySupplier).p_fixedMethanePrice_eurpkWh;
 		v_eHeatingCost_eurpkWh_TEMPORARY = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).f_getAveragedElectricityPrice( v_currentPowerElectricity_kW, p_primaryHeatingAsset.p_energyAssetInstance.getElectricCapacity_kW() ) / HP_COP;
 		isGasCheaper = v_gasHeatingCost_eurpkWh_TEMPORARY < v_eHeatingCost_eurpkWh_TEMPORARY ? true:false;
 	}
-	else { // in case supplier is a holon
-		EnergySupplier es = (EnergySupplier)((EnergyHolon)((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_electricitySupplier).p_electricitySupplier;
-		//EnergySupplier es = new EnergySupplier();
-		//if( ((EnergyHolon)((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_energySupplier).p_energySupplier instanceof EnergySupplier ) {
-		//	es = (EnergySupplier)((EnergyHolon)((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_energySupplier).p_energySupplier;
-		//}
+	else  { // in case supplier is a holon
+	//	EnergySupplier es = (EnergySupplier)((EnergyHolon)((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_electricitySupplier).p_electricitySupplier;
+	//	EnergySupplier es = new EnergySupplier();
+		if( ((EnergyHolon)((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_energySupplier).p_energySupplier instanceof EnergySupplier ) {
+		///	es = (EnergySupplier)((EnergyHolon)((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_energySupplier).p_energySupplier;
+		}
 		// in case of nested holons!
-		//else if( ((EnergyHolon)((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_energySupplier).p_energySupplier instanceof EnergyHolon ) {
+		else if( ((EnergyHolon)((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_energySupplier).p_energySupplier instanceof EnergyHolon ) {
 		//	es = (EnergySupplier)((EnergyHolon)((EnergyHolon)((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_energySupplier).p_energySupplier).p_energySupplier;
-		//}	
-		v_gasHeatingCost_eurpkWh_TEMPORARY = es.p_fixedMethanePrice_eurpkWh;
+		}	
+		//v_gasHeatingCost_eurpkWh_TEMPORARY = es.p_fixedMethanePrice_eurpkWh;
 		v_eHeatingCost_eurpkWh_TEMPORARY = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).f_getAveragedElectricityPrice( v_currentPowerElectricity_kW, p_primaryHeatingAsset.p_energyAssetInstance.getElectricCapacity_kW() ) / HP_COP;
-		isGasCheaper = v_gasHeatingCost_eurpkWh_TEMPORARY < v_eHeatingCost_eurpkWh_TEMPORARY ? true:false;
+		
 	}
+*/
+	}
+}
+else {
+	traceln("HP_COP: "+HP_COP+", threshold: "+main.p_hybridHeatPumpCOPThreshold);
+	isGasCheaper = HP_COP < main.p_hybridHeatPumpCOPThreshold? true:false;
 }
 
 return isGasCheaper;]]></Body>
@@ -13499,11 +13537,13 @@ p_primaryHeatingAsset.v_powerFraction_fr = powerFraction_heatPump_fr;
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[
 // Heatpump and gasburner, switch based on heatpump COP)
-if (v_currentIndoorTemp_degC < v_tempSetpoint_degC - p_heatingKickinTreshold_degC) {
+if (v_currentIndoorTemp_degC < ( v_tempSetpoint_degC - p_heatingKickinTreshold_degC) ) {
 	
 	J_EAConversionHeatPump HP = (J_EAConversionHeatPump)p_primaryHeatingAsset.p_energyAssetInstance;
 	//HP.updateAmbientTemp(main.v_currentAmbientTemperature_degC); // update heatpump temp levels! <-- waarom dit gebeurt al in de main (peter 21-02-23)
 	boolean gasCheaper = f_calcCheapestHeatingPrice();
+	traceln("isGasCheaper: "+gasCheaper);
+	
 	if ( gasCheaper ) { // heat with gas
 		double powerDemand_kW = (v_tempSetpoint_degC - v_currentIndoorTemp_degC) * ((J_EAStorageHeat)p_ThermalStorageAsset.p_energyAssetInstance).getHeatCapacity_JpK() / 3.6e6;
 		p_primaryHeatingAsset.v_powerFraction_fr = 0;
@@ -36882,6 +36922,9 @@ if (p_batteryAsset != null){
 				<Parameter>
 					<ParameterName><![CDATA[b_anylogicCostsForAllContracts]]></ParameterName>
 				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_hybridHeatPumpCOPThreshold]]></ParameterName>
+				</Parameter>
 			</Parameters>			
 			<PresentationProperties>
 				<EnableZoomAndPanning>true</EnableZoomAndPanning>
@@ -39510,7 +39553,7 @@ public class J_EAConversionCurtailerHeat extends J_EAConversion implements Seria
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/tvwoutput.json]]></Path>
+			<Path><![CDATA[Casus_TVW_base_challenge_allhybrid30.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
@@ -39526,6 +39569,6 @@ public class J_EAConversionCurtailerHeat extends J_EAConversion implements Seria
 		<VersionMinor>0</VersionMinor>
 		<VersionBuild>5</VersionBuild>
     </RequiredLibraryReference>
-	<CloudModelUuid><![CDATA[6dd6e2d3-0c53-4383-9c25-8d1d9c7d5b99]]></CloudModelUuid>
+	<CloudModelUuid><![CDATA[4a9e8c90-1f5c-4765-ae68-846e87eb7d39]]></CloudModelUuid>
 </Model>
 </AnyLogicWorkspace>
