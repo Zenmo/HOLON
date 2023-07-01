@@ -1867,7 +1867,7 @@ traceln(" ");
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[false]]></Code>
+							<Code><![CDATA[true]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1658752734131</Id>
@@ -4103,6 +4103,8 @@ for(GridOperator g : pop_gridOperators) {
 		g.v_congestionPriceConsumption_eurpkWh = v_congestionPrice_eurpkWh;
 		g.v_congestionPriceProduction_eurpkWh = - v_congestionPrice_eurpkWh;
 		g.v_congestionThreshold_fr = v_congestionThreshold_fr;
+		g.b_applyCongestionPriceWithConsumption = true;
+		g.b_applyCongestionPriceWithProduction = true;
 	}
 	//g.b_congestionPricingConsumption = b_congestionPricingConsumption;
 	//g.b_congestionPricingProduction = b_congestionPricingProduction;
@@ -4182,12 +4184,16 @@ if (c_gridNodesHSMS.size() == 0){
 
 	v_netOverloadKPI_pct = 100 * (max (0, cumulativeGridNodePeakLoadElectricityMSLS_kW ) / v_cumulativeGridCapacityMSLS_kW);
 }
-else {
+else if (c_gridNodesHSMS.size() > 1) {
 	double cumulativeGridNodePeakLoadElectricityHSMS_kW=0;
 	for(GridNode h : c_gridNodesHSMS ) {		
 		cumulativeGridNodePeakLoadElectricityHSMS_kW += abs(h.v_peakLoadFilteredElectricity_kW);
 	}
 	v_netOverloadKPI_pct = 100 * (max (0, cumulativeGridNodePeakLoadElectricityHSMS_kW ) / v_cumulativeGridCapacityHSMS_kW);	
+}
+else {
+	double HSMSPeakLoad_kW = c_gridNodesHSMS.get(0).v_peakLoadFilteredElectricity_kW;
+	v_netOverloadKPI_pct = 100 * HSMSPeakLoad_kW / v_cumulativeGridCapacityHSMS_kW;
 }
 ]]></Body>
 				</Function>
@@ -23270,12 +23276,13 @@ v_priceBandsTransport.put(-99999.0, 0.0);
 v_priceBandsTransport.put(0.0, 0.0);
 v_priceBandsTransport.put(99999.0, 0.0);
 if (v_contractTransport.transportContractType.equals(OL_TransportContractType.BANDWIDTH)) {
-	traceln("Setting capacity tariff for " + p_actorID);
+	//traceln("Setting capacity tariff for " + p_actorID);
 	v_priceBandsTransport.put(-99999.0, v_contractTransport.bandwidthTariff_eurpkWh);
 	v_priceBandsTransport.put(-v_contractTransport.bandwidthTreshold_kW, 0.0);
 	v_priceBandsTransport.put(0.0, 0.0);
 	v_priceBandsTransport.put(v_contractTransport.bandwidthTreshold_kW, 0.0);	
 	v_priceBandsTransport.put(99999.0, v_contractTransport.bandwidthTariff_eurpkWh);
+	//traceln(v_priceBandsTransport.toString());
 } else {
 	v_priceBandsTransport.put(-99999.0, 0.0);
 	v_priceBandsTransport.put(0.0, 0.0);
@@ -23382,6 +23389,7 @@ return price;]]></Body>
 					<Body><![CDATA[double availablePower, availablePowerDelivery, availablePowerTransport, availablePowerTax = 0;
 
 if( currentPowerDrawn_kW >= 0 ){
+	traceln("positive loop");
 	// Check if one of the pricebands is at a 'breakpoint'	
 	if( currentPowerDrawn_kW == v_priceBandsDelivery.ceilingKey( currentPowerDrawn_kW )){
 		availablePowerDelivery = v_priceBandsDelivery.higherKey( currentPowerDrawn_kW ) - currentPowerDrawn_kW;
@@ -23400,32 +23408,33 @@ if( currentPowerDrawn_kW >= 0 ){
 	}		
 }
 else {
+	traceln("negative loop");
 	if( currentPowerDrawn_kW == v_priceBandsDelivery.floorKey( currentPowerDrawn_kW )){
 		availablePowerDelivery = v_priceBandsDelivery.higherKey( currentPowerDrawn_kW ) - currentPowerDrawn_kW;
-	} 	else {
+	} 	
+	else {
 		availablePowerDelivery = v_priceBandsDelivery.ceilingKey( currentPowerDrawn_kW ) - currentPowerDrawn_kW;
 	}
+	
 	if( currentPowerDrawn_kW == v_priceBandsTransport.floorKey( currentPowerDrawn_kW )){
 		availablePowerTransport = v_priceBandsTransport.higherKey( currentPowerDrawn_kW ) - currentPowerDrawn_kW;
-	} 	else {
+	} 	
+	else {
 		availablePowerTransport = v_priceBandsTransport.ceilingKey( currentPowerDrawn_kW ) - currentPowerDrawn_kW;
 	}
+	
 	if( currentPowerDrawn_kW == v_priceBandsTax.floorKey( currentPowerDrawn_kW )){
 		availablePowerTax = v_priceBandsTax.higherKey( currentPowerDrawn_kW ) - currentPowerDrawn_kW;
-	} 	else {
+	} 	
+	else {
 		availablePowerTax = v_priceBandsTax.ceilingKey( currentPowerDrawn_kW ) - currentPowerDrawn_kW;
 	}		
 	
-	/*
-	if(currentPowerDrawn_kW == v_priceBandsDelivery.floorKey( currentPowerDrawn_kW ) ){
-		availablePower = v_priceBandsDelivery.higherKey( currentPowerDrawn_kW ) - currentPowerDrawn_kW;
-	}
-	else{
-		availablePower = v_priceBandsDelivery.ceilingKey( currentPowerDrawn_kW ) - currentPowerDrawn_kW;
-		
-	}*/
 }
 
+traceln( "available power delivery = " + availablePowerDelivery );
+traceln( "available power transport = " + availablePowerTransport );
+traceln( "available power tax = " + availablePowerTax );
 
 availablePower = min(min(availablePowerDelivery, availablePowerTransport), availablePowerTax);
 //traceln(availablePower);
@@ -23454,23 +23463,41 @@ return availablePower;]]></Body>
 double availablePower_kW = 0; 
 double addedPrice_eurpkWh;
 double addedPower_kW;
+double currentPowerRequestLevel_kW;
 
 boolean isDemandMet = false;
-
 double loopcount = 1;
+
+traceln( " ");
+traceln( "starting demand: " + baseDemand_kW);
+traceln("Power request: " + requestedPower_kW);
+
 while (! isDemandMet ) { // Loop door de treemap tot je requestedPower_kW bereikt
-	addedPrice_eurpkWh = f_getElectricityPrice(baseDemand_kW+availablePower_kW);
-	addedPower_kW = f_getAvailablePowerAtPrice(baseDemand_kW+availablePower_kW);
+	traceln( " ");
+	traceln( "loop " + loopcount + ", available Power: " + availablePower_kW);
+	currentPowerRequestLevel_kW = roundToDecimal( availablePower_kW + baseDemand_kW, 5);
+	traceln("Current power request level = " + currentPowerRequestLevel_kW) ;
 	
-	if(addedPower_kW + availablePower_kW >= requestedPower_kW) {
-		addedPower_kW = requestedPower_kW-availablePower_kW;
-		price_eurph += addedPrice_eurpkWh*addedPower_kW;
+	addedPrice_eurpkWh = f_getElectricityPrice(currentPowerRequestLevel_kW);
+	addedPower_kW = f_getAvailablePowerAtPrice(currentPowerRequestLevel_kW);
+	availablePower_kW += addedPower_kW;
+	traceln("Added power " + addedPower_kW);
+	
+	if(availablePower_kW >= requestedPower_kW) {
+		//addedPower_kW = requestedPower_kW - availablePower_kW;
+		price_eurph += addedPrice_eurpkWh * addedPower_kW;
 		isDemandMet = true;
-		//traceln("f_getAveragedElectricityPrice: demand met price-band: " + loopcount);
-	} else {
+	} 
+	else {
 		availablePower_kW += addedPower_kW;
 		price_eurph += addedPrice_eurpkWh * addedPower_kW;		
 		loopcount += 1;
+	}
+	
+	if (loopcount > 4){ 
+		isDemandMet = true;
+		traceln( v_priceBandsTransport.toString());
+		getEngine().pause();
 	}
 }
 
@@ -28427,8 +28454,8 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1665508939525</Id>
-					<Name><![CDATA[b_congestionPricingConsumption]]></Name>
-					<X>60</X><Y>420</Y>
+					<Name><![CDATA[b_applyCongestionPriceWithConsumption]]></Name>
+					<X>80</X><Y>160</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -28436,14 +28463,14 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[boolean]]></Type>        
 						<InitialValue Class="CodeValue">
-							<Code><![CDATA[true]]></Code>
+							<Code><![CDATA[false]]></Code>
 						</InitialValue>
 					</Properties>
 				</Variable>
 				<Variable Class="PlainVariable">
 					<Id>1665508951785</Id>
-					<Name><![CDATA[b_congestionPricingProduction]]></Name>
-					<X>60</X><Y>440</Y>
+					<Name><![CDATA[b_applyCongestionPriceWithProduction]]></Name>
+					<X>80</X><Y>180</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -28451,7 +28478,7 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[boolean]]></Type>        
 						<InitialValue Class="CodeValue">
-							<Code><![CDATA[true]]></Code>
+							<Code><![CDATA[false]]></Code>
 						</InitialValue>
 					</Properties>
 				</Variable>
@@ -28588,7 +28615,7 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 					<Id>1674907095514</Id>
 					<Name><![CDATA[p_capacitypricing_households_kW]]></Name>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>60</X><Y>220</Y>
+					<X>60</X><Y>250</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -28610,7 +28637,7 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 					<Id>1674907099647</Id>
 					<Name><![CDATA[p_capacitypricing_households_eur]]></Name>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>60</X><Y>240</Y>
+					<X>60</X><Y>270</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -28632,7 +28659,7 @@ v_currentBalanceNat_eur -= v_currentNettElectricityVolume_kWh * v_currentVariabl
 					<Id>1674907106415</Id>
 					<Name><![CDATA[p_hasCapacityPricing]]></Name>
 					<ExcludeFromBuild>true</ExcludeFromBuild>
-					<X>60</X><Y>200</Y>
+					<X>60</X><Y>230</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -28794,14 +28821,14 @@ else {
 		if (currentLoad_kW > 0) {
 			n.v_congestionMode = "Overconsumption";
 			n.v_currentCongestionPrice_eurpkWh = (abs(currentLoad_kW) / n.p_capacity_kW - v_congestionThreshold_fr ) / ( 1 - v_congestionThreshold_fr) * v_congestionPriceConsumption_eurpkWh;
-			if( b_congestionPricingConsumption ) {
+			if( b_applyCongestionPriceWithConsumption ) {
 				n.f_setCongestionTariff(n.v_currentCongestionPrice_eurpkWh, v_congestionAllowanceLevel_kW);
 				//n.f_setProductionCongestionTariff(n.v_currentCongestionPrice_eurpkWh, v_congestionAllowanceLevel_kW); 
 			}
 		} else {
 			n.v_congestionMode = "Overproduction";
 			n.v_currentCongestionPrice_eurpkWh = (abs(currentLoad_kW) / n.p_capacity_kW - v_congestionThreshold_fr ) / ( 1 - v_congestionThreshold_fr) * v_congestionPriceProduction_eurpkWh;
-			if( b_congestionPricingProduction ) {
+			if( b_applyCongestionPriceWithProduction ) {
 				n.f_setCongestionTariff(n.v_currentCongestionPrice_eurpkWh, v_congestionAllowanceLevel_kW);
 				//n.f_setProductionCongestionTariff(n.v_currentCongestionPrice_eurpkWh, v_congestionAllowanceLevel_kW); 
 			}
@@ -30241,6 +30268,7 @@ v_copHeatpump = hp.getCOP();
 
 
 if ( p_hasSmartFlexAssets ) {
+	traceln( "heatpump requesting power 2" + hp.getElectricCapacity_kW());
 	avgElectricityPrice_eurpkWh = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).f_getAveragedElectricityPrice( v_currentPowerElectricity_kW, hp.getElectricCapacity_kW() );
 	//traceln("avg electircity rprice for HP: " + avgElectricityPrice_eurpkWh);
 }
