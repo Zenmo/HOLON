@@ -3566,8 +3566,8 @@ for (EnergyAsset e : pop_energyAssets) {
 		energyProduced_MWh -= roundToDecimal(EnergyUsed_kWh/1000,2);
 	}
 	if (e.p_energyAssetInstance instanceof J_EAEV) {
-		traceln("eTruck has traveled: " + ((J_EAEV)e.p_energyAssetInstance).mileage + " km");
-		totalDistanceTrucks_km+=((J_EAEV)e.p_energyAssetInstance).mileage;
+		//traceln("eTruck has traveled: " + ((J_EAEV)e.p_energyAssetInstance).mileage + " km");
+		totalDistanceTrucks_km += ((J_EAEV)e.p_energyAssetInstance).mileage;
 	}
 	if (e.p_energyAssetInstance instanceof J_EADieselVehicle) {
 		//traceln("dieseltrucks has traveled: " + ((J_EADieselVehicle)e.p_energyAssetInstance).mileage_km + " km");
@@ -3967,6 +3967,13 @@ v_epexForecast_eurpkWh += (nationalEnergyMarket.tf_dayAheadElectricityPricing_eu
 					<Body><![CDATA[double currentElectricityImport_kW = 0;
 double currentElectricityExport_kW = 0;
 
+for(GridNode n : c_gridNodesMSLS) {
+	n.f_addGridBatteryLoad();
+}
+for(GridNode n : c_gridNodesHSMS) {
+	n.f_sumLoads();
+}
+
 for(GridNode n : c_gridNodesHeat) {
 	n.f_calculateEnergyBalance();
 }
@@ -4276,15 +4283,24 @@ for(EnergyAsset e : c_storageAssets ) {
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[if (p_parallelize) {
 	c_gridConnections.parallelStream().forEach(gc -> gc.f_calculateEnergyBalance());
-} else {
-	
+} 
+else {
 	for(GridConnection gc : c_gridConnections) {
-		//gc.f_operateFixedConsumptionAssets();
-		//gc.f_operateFlexAssets();
-		//gc.f_updateFlows();
-		gc.f_calculateEnergyBalance();
+		if( gc.p_gridConnectionCategory != OL_GridConnectionCategory.GRIDBATTERY){
+		  	gc.f_calculateEnergyBalance();
+		 }
 	}
 }
+
+//ONly MS LS nodes have gridbatteries, so we dont need to do the HSMS nodes.
+for(GridNode n : c_gridNodesMSLS) {
+	n.f_sumLoads();
+}
+
+for(GCGridBattery b : GridBatteries) {
+	b.f_calculateEnergyBalance();
+}
+
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -9022,6 +9038,18 @@ geupdate vanuit
 						<Type><![CDATA[double]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1688375257135</Id>
+					<Name><![CDATA[v_electricLoadRatioExclBattery]]></Name>
+					<X>50</X><Y>660</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1658477613290</Id>
 					<Name><![CDATA[p_agentID]]></Name>
@@ -9550,19 +9578,13 @@ for( Agent a : subConnections.getConnections() )
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1660122738707</Id>
-					<Name><![CDATA[f_calculateEnergyBalance]]></Name>
+					<Name><![CDATA[f_sumLoads]]></Name>
 					<X>780</X><Y>200</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[// clear energy-balance for the next timestep
-/*c_electricityFlows.clear();
-c_methaneFlows.clear();
-c_hydrogenFlows.clear();
-c_heatFlows.clear();*/
-
-v_currentLoadElectricity_kW = 0;
+					<Body><![CDATA[v_currentLoadElectricity_kW = 0;
 v_currentLoadMethane_kW = 0;
 v_currentLoadHydrogen_kW = 0;
 v_currentLoadHeat_kW = 0;
@@ -9574,19 +9596,15 @@ for( Agent a : subConnections.getConnections() )
 	if( a instanceof GridNode ) {
 		switch(p_energyType) {
 			case ELECTRICITY:
-				//c_electricityFlows.put(a, ((GridNode) a).v_currentLoadElectricity_kW);
 				v_currentLoadElectricity_kW += ((GridNode) a).v_currentLoadElectricity_kW;
 			break;
 			case METHANE:
-				//c_methaneFlows.put(a, ((GridNode) a).v_currentLoadMethane_kW);
 				v_currentLoadMethane_kW += ((GridNode) a).v_currentLoadMethane_kW;
 			break;
 			case HYDROGEN:
-				//c_hydrogenFlows.put(a, ((GridNode) a).v_currentLoadHydrogen_kW);
 				v_currentLoadHydrogen_kW += ((GridNode) a).v_currentLoadHydrogen_kW;
 			break;
 			case HEAT:
-				//c_heatFlows.put(a, ((GridNode) a).v_currentLoadHeat_kW);
 				v_currentLoadHeat_kW += ((GridNode) a).v_currentLoadHeat_kW;
 			break;
 			default:
@@ -9598,76 +9616,35 @@ for( Agent a : subConnections.getConnections() )
 	if( a instanceof GridConnection ) {
 		switch(p_energyType) {
 			case ELECTRICITY:
-				//c_electricityFlows.put(a, ((GridConnection) a).v_currentPowerElectricity_kW);
-				v_currentLoadElectricity_kW += ((GridConnection) a).v_currentPowerElectricity_kW;
-
+				if (((GridConnection) a).p_gridConnectionCategory != OL_GridConnectionCategory.GRIDBATTERY){
+					v_currentLoadElectricity_kW += ((GridConnection) a).v_currentPowerElectricity_kW;
+				}
 			break;
 			case METHANE:
-				//c_methaneFlows.put(a, ((GridConnection) a).v_currentPowerMethane_kW);
 				v_currentLoadMethane_kW += ((GridConnection) a).v_currentPowerMethane_kW;
-
 			break;
 			case HYDROGEN:
-				//c_hydrogenFlows.put(a, ((GridConnection) a).v_currentPowerHydrogen_kW);
 				v_currentLoadHydrogen_kW += ((GridConnection) a).v_currentPowerHydrogen_kW;
-
 			break;
 			case HEAT:
-				//c_heatFlows.put(a, ((GridConnection) a).v_currentPowerHeat_kW);
 				v_currentLoadHeat_kW += ((GridConnection) a).v_currentPowerHeat_kW;
-
 			break;
 			default:
-				//
 			break;
 		}
 	}
 }
 
-// Low-pass filtered grid load
-//double lowPassFraction = min(1,1*1.2*main.p_timeStep_h); // smaller value results in more filtering
-v_currentLoadElectricityLowPassed_kW += v_lowPassFactor_fr * ( v_currentLoadElectricity_kW - v_currentLoadElectricityLowPassed_kW );
-
-if( abs( v_currentLoadElectricity_kW ) > abs(v_peakLoadAbsoluteElectricity_kW) ) { // store maximum absolute load, but retain sign!
-	v_peakLoadAbsoluteElectricity_kW = ( v_currentLoadElectricity_kW );
-	//v_timeOfPeakLoad_h = time(HOUR);
-}
-
-if( abs( v_currentLoadElectricityLowPassed_kW ) > abs(v_peakLoadFilteredElectricity_kW) ) { // store maximum absolute load, but retain sign!
-	v_peakLoadFilteredElectricity_kW = ( v_currentLoadElectricityLowPassed_kW );
-	v_timeOfPeakLoadFiltered_h = time(HOUR);
-}
-
-if( v_currentLoadElectricityLowPassed_kW < v_peakNegLoadElectricity_kW ) { // store peak negative load and time
-	v_peakNegLoadElectricity_kW = v_currentLoadElectricityLowPassed_kW ;
-	v_timeOfPeakNegLoadFiltered_h = time(HOUR);
-}
-
-if( v_currentLoadElectricityLowPassed_kW > v_peakPosLoadElectricity_kW ) { // store peak negative load and time
-	v_peakPosLoadElectricity_kW = v_currentLoadElectricityLowPassed_kW ;
-	v_timeOfPeakPosLoadFiltered_h = time(HOUR);
-}
-
-if (p_energyType.equals(OL_EnergyCarrierType.HEAT) & b_transportBufferValid ) { // Thermal load unbalance goes into transportBuffer
-//	double v_powerFraction_fr = Double.isNaN( -v_currentLoadHeat_kW / p_transportBuffer.getHeatCapacity_kW() )? 0 : -v_currentLoadHeat_kW / p_transportBuffer.getHeatCapacity_kW();
-	double v_powerFraction_fr = -v_currentLoadHeat_kW / p_transportBuffer.getHeatCapacity_kW();
-	//p_transportBuffer.operate(v_powerFraction_fr);
-	//traceln("DistrictHeating network heatcapacity = "+ p_transportBuffer.getHeatCapacity_kW()+" kW, water temperature " + p_transportBuffer.getCurrentTemperature() + " deg C, buffer power fraction " + v_powerFraction_fr * 100 + " %, transportbuffer HeatCapacity_kW " + p_transportBuffer.getHeatCapacity_kW());
-	p_transportBuffer.ownerAsset.f_updateAllFlows(v_powerFraction_fr);
-	//traceln("DistrictHeating network water temperature " + p_transportBuffer.getCurrentTemperature() + " deg C, buffer power fraction " + v_powerFraction_fr * 100 + " %, transportbuffer HeatCapacity_kW " + p_transportBuffer.getHeatCapacity_kW());
-} else if(abs(v_currentLoadHeat_kW)>0.001) {
-	traceln("Non-zero heat-load on district heating network without valid transport buffer!");
-}
-
-//traceln("GridNode " + p_agentID + " update at time " + time(HOUR));
-f_nodeMetering();]]></Body>
+if( p_energyType == OL_EnergyCarrierType.ELECTRICITY ){
+	v_electricLoadRatioExclBattery = v_currentLoadElectricity_kW / p_capacity_kW;
+}]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1660216693598</Id>
 					<Name><![CDATA[f_nodeMetering]]></Name>
-					<X>780</X><Y>220</Y>
+					<X>780</X><Y>260</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -9826,6 +9803,72 @@ if( p_energyAssetList != null) {
 	}
 //traceln("GridConnection "+this.p_agentID+" has finished initializing its energyAssets!");
 }]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1688370981599</Id>
+					<Name><![CDATA[f_calculateEnergyBalance]]></Name>
+					<X>780</X><Y>240</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[// Low-pass filtered grid load
+//double lowPassFraction = min(1,1*1.2*main.p_timeStep_h); // smaller value results in more filtering
+v_currentLoadElectricityLowPassed_kW += v_lowPassFactor_fr * ( v_currentLoadElectricity_kW - v_currentLoadElectricityLowPassed_kW );
+
+if( abs( v_currentLoadElectricity_kW ) > abs(v_peakLoadAbsoluteElectricity_kW) ) { // store maximum absolute load, but retain sign!
+	v_peakLoadAbsoluteElectricity_kW = ( v_currentLoadElectricity_kW );
+	//v_timeOfPeakLoad_h = time(HOUR);
+}
+
+if( abs( v_currentLoadElectricityLowPassed_kW ) > abs(v_peakLoadFilteredElectricity_kW) ) { // store maximum absolute load, but retain sign!
+	v_peakLoadFilteredElectricity_kW = ( v_currentLoadElectricityLowPassed_kW );
+	v_timeOfPeakLoadFiltered_h = time(HOUR);
+}
+
+if( v_currentLoadElectricityLowPassed_kW < v_peakNegLoadElectricity_kW ) { // store peak negative load and time
+	v_peakNegLoadElectricity_kW = v_currentLoadElectricityLowPassed_kW ;
+	v_timeOfPeakNegLoadFiltered_h = time(HOUR);
+}
+
+if( v_currentLoadElectricityLowPassed_kW > v_peakPosLoadElectricity_kW ) { // store peak negative load and time
+	v_peakPosLoadElectricity_kW = v_currentLoadElectricityLowPassed_kW ;
+	v_timeOfPeakPosLoadFiltered_h = time(HOUR);
+}
+
+if (p_energyType.equals(OL_EnergyCarrierType.HEAT) & b_transportBufferValid ) { // Thermal load unbalance goes into transportBuffer
+//	double v_powerFraction_fr = Double.isNaN( -v_currentLoadHeat_kW / p_transportBuffer.getHeatCapacity_kW() )? 0 : -v_currentLoadHeat_kW / p_transportBuffer.getHeatCapacity_kW();
+	double v_powerFraction_fr = -v_currentLoadHeat_kW / p_transportBuffer.getHeatCapacity_kW();
+	//p_transportBuffer.operate(v_powerFraction_fr);
+	//traceln("DistrictHeating network heatcapacity = "+ p_transportBuffer.getHeatCapacity_kW()+" kW, water temperature " + p_transportBuffer.getCurrentTemperature() + " deg C, buffer power fraction " + v_powerFraction_fr * 100 + " %, transportbuffer HeatCapacity_kW " + p_transportBuffer.getHeatCapacity_kW());
+	p_transportBuffer.ownerAsset.f_updateAllFlows(v_powerFraction_fr);
+	//traceln("DistrictHeating network water temperature " + p_transportBuffer.getCurrentTemperature() + " deg C, buffer power fraction " + v_powerFraction_fr * 100 + " %, transportbuffer HeatCapacity_kW " + p_transportBuffer.getHeatCapacity_kW());
+} else if(abs(v_currentLoadHeat_kW)>0.001) {
+	traceln("Non-zero heat-load on district heating network without valid transport buffer!");
+}
+
+//traceln("GridNode " + p_agentID + " update at time " + time(HOUR));
+f_nodeMetering();]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1688372319365</Id>
+					<Name><![CDATA[f_addGridBatteryLoad]]></Name>
+					<X>780</X><Y>220</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[
+for( Agent a : subConnections.getConnections() ) {
+	if ( a instanceof GCGridBattery){
+		v_currentLoadElectricity_kW += ((GCGridBattery)a).v_currentPowerElectricity_kW;
+	}	
+}
+]]></Body>
 				</Function>
 			</Functions>
 			<AgentLinks>
@@ -10837,7 +10880,7 @@ import java.io.*;]]></Import>
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[double]]></Type>        
 						<InitialValue Class="CodeValue">
-							<Code><![CDATA[0.01]]></Code>
+							<Code><![CDATA[0.7]]></Code>
 						</InitialValue>
 					</Properties>
 				</Variable>
@@ -18175,7 +18218,7 @@ for(UI_GridNode n : kpiVisuals.uI_GridNodes){
 					<X>570</X><Y>400</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
-					<PresentationFlag>false</PresentationFlag>
+					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
 					<EmbeddedIcon>false</EmbeddedIcon>
@@ -23389,7 +23432,6 @@ return price;]]></Body>
 					<Body><![CDATA[double availablePower, availablePowerDelivery, availablePowerTransport, availablePowerTax = 0;
 
 if( currentPowerDrawn_kW >= 0 ){
-	traceln("positive loop");
 	// Check if one of the pricebands is at a 'breakpoint'	
 	if( currentPowerDrawn_kW == v_priceBandsDelivery.ceilingKey( currentPowerDrawn_kW )){
 		availablePowerDelivery = v_priceBandsDelivery.higherKey( currentPowerDrawn_kW ) - currentPowerDrawn_kW;
@@ -23408,7 +23450,6 @@ if( currentPowerDrawn_kW >= 0 ){
 	}		
 }
 else {
-	traceln("negative loop");
 	if( currentPowerDrawn_kW == v_priceBandsDelivery.floorKey( currentPowerDrawn_kW )){
 		availablePowerDelivery = v_priceBandsDelivery.higherKey( currentPowerDrawn_kW ) - currentPowerDrawn_kW;
 	} 	
@@ -23432,12 +23473,7 @@ else {
 	
 }
 
-traceln( "available power delivery = " + availablePowerDelivery );
-traceln( "available power transport = " + availablePowerTransport );
-traceln( "available power tax = " + availablePowerTax );
-
 availablePower = min(min(availablePowerDelivery, availablePowerTransport), availablePowerTax);
-//traceln(availablePower);
 return availablePower;]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -23468,23 +23504,22 @@ double currentPowerRequestLevel_kW;
 boolean isDemandMet = false;
 double loopcount = 1;
 
-traceln( " ");
-traceln( "starting demand: " + baseDemand_kW);
-traceln("Power request: " + requestedPower_kW);
+//traceln( " ");
+//traceln( "starting demand: " + baseDemand_kW);
+//traceln("Power request: " + requestedPower_kW);
 
 while (! isDemandMet ) { // Loop door de treemap tot je requestedPower_kW bereikt
-	traceln( " ");
-	traceln( "loop " + loopcount + ", available Power: " + availablePower_kW);
+	//traceln( " ");
+	//traceln( "loop " + loopcount + ", available Power: " + availablePower_kW);
 	currentPowerRequestLevel_kW = roundToDecimal( availablePower_kW + baseDemand_kW, 5);
-	traceln("Current power request level = " + currentPowerRequestLevel_kW) ;
+	//traceln("Current power request level = " + currentPowerRequestLevel_kW) ;
 	
 	addedPrice_eurpkWh = f_getElectricityPrice(currentPowerRequestLevel_kW);
 	addedPower_kW = f_getAvailablePowerAtPrice(currentPowerRequestLevel_kW);
-	availablePower_kW += addedPower_kW;
-	traceln("Added power " + addedPower_kW);
+	//traceln("Added power " + addedPower_kW);
 	
-	if(availablePower_kW >= requestedPower_kW) {
-		//addedPower_kW = requestedPower_kW - availablePower_kW;
+	if(addedPower_kW + availablePower_kW >= requestedPower_kW) {
+		addedPower_kW = requestedPower_kW - availablePower_kW;
 		price_eurph += addedPrice_eurpkWh * addedPower_kW;
 		isDemandMet = true;
 	} 
@@ -23493,13 +23528,11 @@ while (! isDemandMet ) { // Loop door de treemap tot je requestedPower_kW bereik
 		price_eurph += addedPrice_eurpkWh * addedPower_kW;		
 		loopcount += 1;
 	}
-	
-	if (loopcount > 4){ 
-		isDemandMet = true;
-		traceln( v_priceBandsTransport.toString());
-		getEngine().pause();
-	}
+	//traceln("price added " + addedPrice_eurpkWh);
 }
+//traceln("total price " + price_eurph);
+//getEngine().pause();
+
 
 return price_eurph / requestedPower_kW;
 
@@ -30268,7 +30301,6 @@ v_copHeatpump = hp.getCOP();
 
 
 if ( p_hasSmartFlexAssets ) {
-	traceln( "heatpump requesting power 2" + hp.getElectricCapacity_kW());
 	avgElectricityPrice_eurpkWh = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).f_getAveragedElectricityPrice( v_currentPowerElectricity_kW, hp.getElectricCapacity_kW() );
 	//traceln("avg electircity rprice for HP: " + avgElectricityPrice_eurpkWh);
 }
@@ -33611,6 +33643,11 @@ public void f_batteryManagementBalance( double batterySOC ){
 @Override
 public void f_batteryManagementPrice( double batterySOC ){
 	f_batteryManagementPriceHolon( batterySOC );
+}
+
+@Override
+public void f_calculateEnergyBalance(){
+	f_calculateEnergyBalance_overwrite();
 }]]></AdditionalClassCode>
 			<ClientAreaTopLeft><X>0</X><Y>0</Y></ClientAreaTopLeft>
 			<ExtendsReference>
@@ -33856,6 +33893,30 @@ public void f_batteryManagementPrice( double batterySOC ){
 						</InitialValue>
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1688378513154</Id>
+					<Name><![CDATA[v_batteryPowerFraction]]></Name>
+					<X>800</X><Y>510</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1688378859893</Id>
+					<Name><![CDATA[modus]]></Name>
+					<X>800</X><Y>530</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[int]]></Type>        
+					</Properties>
+				</Variable>
 			</Variables>
 			<Functions>
 				<Function AccessType="default" StaticFunction="false">
@@ -33863,7 +33924,7 @@ public void f_batteryManagementPrice( double batterySOC ){
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1666956397906</Id>
 					<Name><![CDATA[f_connectToChild_overwrite]]></Name>
-					<X>780</X><Y>132</Y>
+					<X>780</X><Y>150</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -33939,7 +34000,7 @@ traceln("NetConnection connecting to " + numberOfEnergyAssets + " EnergyAssets")
 	v_batterySOC_fr = p_batteryAsset.p_energyAssetInstance.getCurrentStateOfCharge();
 	
 	if( p_batteryOperationMode == OL_BatteryOperationMode.BALANCE){
-		f_batteryManagementBalance(v_batterySOC_fr);
+		f_batteryManagementGridLoad(v_batterySOC_fr);
 	}
 	else if (p_batteryOperationMode == OL_BatteryOperationMode.PRICE){
 		f_batteryManagementPrice(v_batterySOC_fr);
@@ -34227,6 +34288,120 @@ if(p_ownerActor instanceof ConnectionOwner) {
 			p_batteryAsset.v_powerFraction_fr = max(-1,min(1, chargeSetpoint_kW / p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW())); // Convert to powerFraction and limit power
 			//traceln("HOLON surpluss " + currentHolonElectricitySurplus_kW + "kW, Battery charging power " + p_batteryAsset.v_powerFraction_fr*p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW() + " kW at " + currentBatteryStateOfCharge*100 + " % SOC");
 		}
+	}
+}]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1688369593905</Id>
+					<Name><![CDATA[f_calculateEnergyBalance_overwrite]]></Name>
+					<X>780</X><Y>180</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[v_previousPowerElectricity_kW = v_currentPowerElectricity_kW;
+v_currentPowerElectricity_kW = 0;
+v_currentPowerMethane_kW = 0;
+v_currentPowerHydrogen_kW = 0;
+v_currentPowerHeat_kW = 0;
+v_currentPowerDiesel_kW = 0;
+v_fixedConsumptionElectric_kW = 0;
+v_electricHobConsumption_kW = 0;
+v_evChargingPowerElectric_kW = 0;
+v_batteryPowerElectric_kW = 0;
+v_windProductionElectric_kW = 0;
+v_pvProductionElectric_kW = 0;
+v_conversionPowerElectric_kW = 0;
+
+f_operateFlexAssets();
+f_connectionMetering();
+
+// Total Energy Use and Production
+v_totalEnergyUsed_kWh = 0;
+v_totalEnergyProduced_kWh = 0;
+for (EnergyAsset EA : c_energyAssets ) {
+	double energyUse_kWh=EA.p_energyAssetInstance.getEnergyUsed_kWh();
+	if (EA.p_energyAssetInstance instanceof J_EAConversionCurtailer) {
+		v_totalEnergyProduced_kWh -= max(0, energyUse_kWh);
+	} else {
+		v_totalEnergyUsed_kWh += max(0, energyUse_kWh);
+		v_totalEnergyProduced_kWh -= min(0, energyUse_kWh);
+	}
+}
+
+v_selfConsumption_fr = 1 - (v_electricityDeliveredToGrid_kWh + v_heatDelivered_kWh + v_methaneDelivered_kWh + v_hydrogenDelivered_kWh + v_dieselDelivered_kWh ) / v_totalEnergyProduced_kWh; // Doesn't make sense to sum different energy carriers!
+v_selfSufficiency_fr = 1 - (v_electricityDrawnFromGrid_kWh + v_heatDrawn_kWh + v_methaneDrawn_kWh + v_hydrogenDrawn_kWh + v_dieselDrawn_kWh) / v_totalEnergyUsed_kWh; // Need to account for energy in storages
+v_maxConnectionLoad_fr = max(v_maxConnectionLoad_fr, abs(v_currentPowerElectricity_kW / v_allowedCapacity_kW ));
+
+v_electricityTotalsCheck = v_electricityConsumedFixedProfile_kWh + v_electricityConvertedToX_kWh + v_electricityChargedByEVs_kWh  + v_electricityDeliveredToGrid_kWh 
+- v_electricityProducedPV_kWh - v_electricityProducedWind_kWh - v_electricityDrawnFromGrid_kWh ;]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1688370073165</Id>
+					<Name><![CDATA[f_batteryManagementGridLoad]]></Name>
+					<X>800</X><Y>490</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[Battery_SOC]]></Name>
+						<Type><![CDATA[double]]></Type>
+					</Parameter>
+					<Body><![CDATA[if( getDayOfYear(date()) < 100 || getDayOfYear(date()) > 250) { // winter modus
+
+	if (((J_EAStorageElectric)p_batteryAsset.p_energyAssetInstance).getStorageCapacity_kWh() != 0){
+		GridNode node = l_parentNodeElectric.getConnectedAgent();
+		double powerFraction = 0;
+		double batteryPower = p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW();
+		
+		if (Battery_SOC > 0 & node.v_electricLoadRatioExclBattery > 1 ){
+			powerFraction = max( -1, -(node.v_currentLoadElectricity_kW - node.p_capacity_kW ) / batteryPower );
+		}
+		//Als je leeg bent moet je laden zelfs als er belasting is, anders raak je in de winter niet vol
+		else if ( Battery_SOC < 0.80 & node.v_electricLoadRatioExclBattery < 1){
+			powerFraction = min ( 1, (node.p_capacity_kW - node.v_currentLoadElectricity_kW ) /  batteryPower );
+		}
+		else if ( Battery_SOC > 0.8 & node.v_electricLoadRatioExclBattery < - 1){
+			powerFraction = min( 1, -(node.v_currentLoadElectricity_kW + node.p_capacity_kW ) / batteryPower);
+		}
+		v_batteryPowerFraction = powerFraction;
+		p_batteryAsset.v_powerFraction_fr = powerFraction;
+	}
+}
+else { //zomer modus 
+	if (((J_EAStorageElectric)p_batteryAsset.p_energyAssetInstance).getStorageCapacity_kWh() != 0){
+		GridNode node = l_parentNodeElectric.getConnectedAgent();
+		double powerFraction = 0;
+		double batteryPower = p_batteryAsset.p_energyAssetInstance.getElectricCapacity_kW();
+		
+		if (Battery_SOC > 0 & node.v_electricLoadRatioExclBattery > 1 ){
+			powerFraction = max( -1, -(node.v_currentLoadElectricity_kW - node.p_capacity_kW ) / batteryPower );
+		}
+		else if( Battery_SOC < 1 & node.v_electricLoadRatioExclBattery < -1){
+			powerFraction = min( 1, -(node.v_currentLoadElectricity_kW + node.p_capacity_kW ) / batteryPower);
+		}
+		else if ( Battery_SOC < 0.50 & node.v_currentLoadElectricity_kW < 0){
+			powerFraction = 1;
+		}
+		//Als je leeg bent moet je laden zelfs als er belasting is, anders heb je niet genoeg als het nodig is
+		else if ( Battery_SOC < 0.30 & node.v_electricLoadRatioExclBattery < 1){
+			powerFraction = min ( 1, (node.p_capacity_kW - node.v_currentLoadElectricity_kW ) /  batteryPower );
+		}
+
+		else if ( Battery_SOC > 0.5 & node.v_currentLoadElectricity_kW > 0){
+			powerFraction = -1;
+		}
+		//Als je vol bent moet je ontladen zelfs als de zon schijnt, anders kun je niet laden als er echt overbelsting is. Echter, de belastingpiek is hoger dan deze productiepiek, dus deze mag op 0.8 staan 
+		else if ( Battery_SOC > 0.80 & node.v_electricLoadRatioExclBattery < -1){
+			powerFraction = min ( 1, (node.p_capacity_kW - node.v_currentLoadElectricity_kW ) /  batteryPower );
+		}
+		v_batteryPowerFraction = powerFraction;
+		p_batteryAsset.v_powerFraction_fr = powerFraction;
 	}
 }]]></Body>
 				</Function>
