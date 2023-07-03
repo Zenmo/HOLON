@@ -1899,7 +1899,7 @@ traceln(" ");
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[false]]></Code>
+							<Code><![CDATA[true]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1658752734131</Id>
@@ -2305,7 +2305,7 @@ traceln(" ");
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[true]]></Code>
+							<Code><![CDATA[false]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1681376013853</Id>
@@ -3604,13 +3604,19 @@ double energyConsumed_thermalModels_MWh = 0;   //tesing
 double totalDistanceTrucks_km = 0;
 for (EnergyAsset e : pop_energyAssets) {
 	double EnergyUsed_kWh = e.p_energyAssetInstance.getEnergyUsed_kWh();
+	double electricityProduced_kWh = 0;
 	//traceln("EnergyAsset " + e.getIndex() + " of type " + e.p_defaultEnergyAssetPresetName + " used " + roundToInt(EnergyUsed_kWh) + " kWh energy");
 
 	if (EnergyUsed_kWh > 0) {
 		if (e.p_energyAssetInstance instanceof J_EAConversionCurtailer || e.p_energyAssetInstance instanceof J_EAConversionCurtailerHeat) {
 			energyProduced_MWh -= roundToDecimal(EnergyUsed_kWh/1000,2);
 			v_totalEnergyCurtailed_MWh += roundToDecimal(EnergyUsed_kWh/1000,2);
-		} else {
+		} else if( e.p_energyAssetInstance instanceof J_EAConversionGasCHP ) {
+			energyConsumed_MWh += roundToDecimal(EnergyUsed_kWh/1000,3);
+			electricityProduced_kWh = e.p_energyAssetInstance.getElectricityProduced_kWh();
+			electricityProduced_MWh += roundToDecimal(electricityProduced_kWh/1000,2);
+		}
+		else {
 			energyConsumed_MWh += roundToDecimal(EnergyUsed_kWh/1000,3);
 		}
 		if( e.p_energyAssetInstance instanceof J_EAStorageHeat && e.p_energyAssetInstance.electricityConsumption_kW == 0) {
@@ -5645,7 +5651,7 @@ if (taxContract != null) {
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[Casus_TVW_base_sandbox_hwp.txt]]></ClassName>
+						<ClassName><![CDATA[Casus_TVW_allheatnetwork_buurtholonen_uit.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -10318,7 +10324,6 @@ subConnections.sendToAllConnected(msg);]]></OnReceive>
     			<TimePlot>
 					<Id>1670317113685</Id>
 					<Name><![CDATA[plot]]></Name>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>270</X><Y>180</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -14169,7 +14174,6 @@ return level;]]></Body>
     			<TimePlot>
 					<Id>1668439095469</Id>
 					<Name><![CDATA[pl_powerFlows]]></Name>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>0</X><Y>520</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -36928,7 +36932,7 @@ if (p_batteryAsset != null){
 			</Parameters>			
 			<PresentationProperties>
 				<EnableZoomAndPanning>true</EnableZoomAndPanning>
-				<ExecutionMode><![CDATA[virtualTime]]></ExecutionMode>
+				<ExecutionMode><![CDATA[realTimeScaled]]></ExecutionMode>
 				<Title><![CDATA[MainModel : Simulation]]></Title>	
 				<EnableDeveloperPanel>true</EnableDeveloperPanel>
 				<ShowDeveloperPanelOnStart>false</ShowDeveloperPanelOnStart>
@@ -37252,6 +37256,7 @@ public class J_EA {
 	 // debugging purposes!
 	 protected double heatProduced_kWh = 0.0;
 	 protected double heatConsumed_kWh = 0.0;
+	 protected double electricityProduced_kWh = 0.0;
 
     /**
      * Default constructor
@@ -37326,6 +37331,10 @@ public class J_EA {
     public double getEnergyUsed_kWh() {
     	return energyUsed_kWh;
     }
+    
+    public double getElectricityProduced_kWh() {
+    	return electricityProduced_kWh;
+	}
 
     public double getSetTemperature_degC() {
     	return 0;
@@ -39175,6 +39184,7 @@ public class J_EAConversionGasCHP extends base.J_EAConversion implements Seriali
 		//double[] arr = {this.electricityProduction_kW, this.methaneProduction_kW, this.hydrogenProduction_kW, this.heatProduction_kW, this.electricityConsumption_kW, this.methaneConsumption_kW, this.hydrogenConsumption_kW, this.heatConsumption_kW };
     	//return arr;
 		this.heatProduced_kWh += this.heatProduction_kW * timestep_h;
+		this.electricityProduced_kWh += this.electricityProduction_kW * timestep_h;
 		//this.electricityProduced_kWh = this.electricityProduction_kW * timestep_h;
 				
 		return returnEnergyFlows();
@@ -39191,6 +39201,7 @@ public class J_EAConversionGasCHP extends base.J_EAConversion implements Seriali
 			"capacityElectric_kW = " + this.capacityElectric_kW +" "+
 			"capacityHeat_kW = " + this.capacityHeat_kW +" "+
 			"eta_r = " + this.eta_r+" "+
+			"energyUsed_kWh"+ this.energyUsed_kWh+" "+
 			"heatProduced_kWh = " + this.heatProduced_kWh + " ";
 	}
 	
@@ -39553,7 +39564,7 @@ public class J_EAConversionCurtailerHeat extends J_EAConversion implements Seria
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[Casus_TVW_base_sandbox_hwp.txt]]></Path>
+			<Path><![CDATA[Casus_TVW_allheatnetwork_buurtholonen_uit.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
