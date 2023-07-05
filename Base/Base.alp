@@ -1867,7 +1867,7 @@ traceln(" ");
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[true]]></Code>
+							<Code><![CDATA[false]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1658752734131</Id>
@@ -9042,6 +9042,18 @@ geupdate vanuit
 					<Id>1688375257135</Id>
 					<Name><![CDATA[v_electricLoadRatioExclBattery]]></Name>
 					<X>50</X><Y>660</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1688386508390</Id>
+					<Name><![CDATA[v_lowPasCongestionPrice_eurpkWh]]></Name>
+					<X>50</X><Y>710</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18605,6 +18617,16 @@ for(UI_GridNode n : kpiVisuals.uI_GridNodes){
 					<Expression><![CDATA[my_dataset3]]></Expression>
 					<Color>-8388480</Color>
 					<Expression2><![CDATA[v_congestionPrice_eurpkWh]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>
+						<PointStyle>NONE</PointStyle>
+						<LineWidth>1.0</LineWidth>
+					</DatasetExpression>
+					<DatasetExpression>  
+						<Title><![CDATA[low pas price]]></Title>
+					<Id>0</Id>
+					<Expression><![CDATA[my_dataset]]></Expression>
+					<Color>-23296</Color>
+					<Expression2><![CDATA[p_gridNode.v_lowPasCongestionPrice_eurpkWh]]></Expression2>
 					<Expression2Flag>true</Expression2Flag>
 						<PointStyle>NONE</PointStyle>
 						<LineWidth>1.0</LineWidth>
@@ -28849,20 +28871,24 @@ else {
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[for( GridNode n : c_electricityGridNodes ){
 	double currentLoad_kW = n.v_currentLoadElectricityLowPassed_kW;
+	double currentcongestionPrice = n.v_lowPasCongestionPrice_eurpkWh;
 	if ( abs(currentLoad_kW) > v_congestionThreshold_fr * n.p_capacity_kW  ){
 		n.v_congested = true;
 		if (currentLoad_kW > 0) {
 			n.v_congestionMode = "Overconsumption";
 			n.v_currentCongestionPrice_eurpkWh = (abs(currentLoad_kW) / n.p_capacity_kW - v_congestionThreshold_fr ) / ( 1 - v_congestionThreshold_fr) * v_congestionPriceConsumption_eurpkWh;
+			n.v_lowPasCongestionPrice_eurpkWh = 0.5 * n.v_lowPasCongestionPrice_eurpkWh + 0.5 * n.v_currentCongestionPrice_eurpkWh;
 			if( b_applyCongestionPriceWithConsumption ) {
-				n.f_setCongestionTariff(n.v_currentCongestionPrice_eurpkWh, v_congestionAllowanceLevel_kW);
+				n.f_setCongestionTariff(n.v_lowPasCongestionPrice_eurpkWh, v_congestionAllowanceLevel_kW);
 				//n.f_setProductionCongestionTariff(n.v_currentCongestionPrice_eurpkWh, v_congestionAllowanceLevel_kW); 
 			}
-		} else {
+		} 
+		else {
 			n.v_congestionMode = "Overproduction";
 			n.v_currentCongestionPrice_eurpkWh = (abs(currentLoad_kW) / n.p_capacity_kW - v_congestionThreshold_fr ) / ( 1 - v_congestionThreshold_fr) * v_congestionPriceProduction_eurpkWh;
+			n.v_lowPasCongestionPrice_eurpkWh = 0.5 * n.v_lowPasCongestionPrice_eurpkWh + 0.5 * n.v_currentCongestionPrice_eurpkWh;
 			if( b_applyCongestionPriceWithProduction ) {
-				n.f_setCongestionTariff(n.v_currentCongestionPrice_eurpkWh, v_congestionAllowanceLevel_kW);
+				n.f_setCongestionTariff(n.v_lowPasCongestionPrice_eurpkWh, v_congestionAllowanceLevel_kW);
 				//n.f_setProductionCongestionTariff(n.v_currentCongestionPrice_eurpkWh, v_congestionAllowanceLevel_kW); 
 			}
 		}
@@ -28878,6 +28904,7 @@ else {
 			if (c_congestedGNConsumption.contains(n)){ c_congestedGNConsumption.remove(c_congestedGNConsumption.indexOf(n));}
 		}
 	}
+	
 }
 
 ]]></Body>
@@ -33905,18 +33932,6 @@ public void f_calculateEnergyBalance(){
 						<Type><![CDATA[double]]></Type>        
 					</Properties>
 				</Variable>
-				<Variable Class="PlainVariable">
-					<Id>1688378859893</Id>
-					<Name><![CDATA[modus]]></Name>
-					<X>800</X><Y>530</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
-						<Type><![CDATA[int]]></Type>        
-					</Properties>
-				</Variable>
 			</Variables>
 			<Functions>
 				<Function AccessType="default" StaticFunction="false">
@@ -34462,6 +34477,7 @@ else { //zomer modus
     			<TimePlot>
 					<Id>1682065741241</Id>
 					<Name><![CDATA[SOC_plot]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>840</X><Y>790</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
