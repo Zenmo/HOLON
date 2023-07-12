@@ -112,10 +112,6 @@
 				<Name><![CDATA[SEMIDETACHED]]></Name>
 			</Option>
 			<Option>
-				<Id>1659118307632</Id>
-				<Name><![CDATA[CORNER]]></Name>
-			</Option>
-			<Option>
 				<Id>1659118321493</Id>
 				<Name><![CDATA[TERRACED]]></Name>
 			</Option>
@@ -2372,6 +2368,30 @@ traceln(" ");
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1687945257520</Id>
+					<Name><![CDATA[p_hybridHeatPumpCOPThreshold]]></Name>
+					<X>-820</X><Y>420</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[double]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[2.6]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1687945257518</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 				<Variable Class="CollectionVariable">
 					<Id>1661504944109</Id>
 					<Name><![CDATA[parsedJSONGridNodes]]></Name>
@@ -3470,6 +3490,7 @@ for(ConnectionOwner c : pop_connectionOwners) {
 		String holonString = c.p_holonParent == null ? null : c.p_holonParent.p_actorID;
 //		c.j_ActorData.updateData(c.p_actorID, c.p_actorType, c.p_parentActorID, c.p_energySupplier.toString(), c.v_ownedGridConnection.toString(), c.v_energySupplierDistrictHeat.toString(), roundToDecimal( c.v_electricityVolume_kWh, 2 ), roundToDecimal( c.v_heatVolume_kWh, 2), roundToDecimal( c.v_methaneVolume_kWh, 2), roundToDecimal( c.v_hydrogenVolume_kWh, 2 ), c.v_electricityContractType.toString(), c.v_heatContractType.toString(), c.v_methaneContractType.toString(), c.v_hydrogenContractType.toString(), roundToDecimal( c.v_balanceElectricity_eur, 2), roundToDecimal( c.v_balanceHeat_eur, 2), roundToDecimal( c.v_balanceMethane_eur, 2), roundToDecimal( c.v_balanceHydrogen_eur, 2));
 		
+		//traceln("actor : "+  c.p_actorID);
 		c.j_ActorData.updateData(
 			c.p_actorID, c.p_actorType, c.p_gridOperator.p_actorID, holonString, c.p_electricitySupplier.p_actorID, c.v_ownedGridConnection.p_agentID, 
 			null, roundToDecimal( c.v_totalElectricityUsed_kWh, 2 ), roundToDecimal( c.v_totalHeatUsed_kWh, 2), roundToDecimal( c.v_totalMethaneUsed_kWh, 2), 
@@ -3583,13 +3604,19 @@ double energyConsumed_thermalModels_MWh = 0;   //tesing
 double totalDistanceTrucks_km = 0;
 for (EnergyAsset e : pop_energyAssets) {
 	double EnergyUsed_kWh = e.p_energyAssetInstance.getEnergyUsed_kWh();
+	double electricityProduced_kWh = 0;
 	//traceln("EnergyAsset " + e.getIndex() + " of type " + e.p_defaultEnergyAssetPresetName + " used " + roundToInt(EnergyUsed_kWh) + " kWh energy");
 
 	if (EnergyUsed_kWh > 0) {
 		if (e.p_energyAssetInstance instanceof J_EAConversionCurtailer || e.p_energyAssetInstance instanceof J_EAConversionCurtailerHeat) {
 			energyProduced_MWh -= roundToDecimal(EnergyUsed_kWh/1000,2);
 			v_totalEnergyCurtailed_MWh += roundToDecimal(EnergyUsed_kWh/1000,2);
-		} else {
+		} else if( e.p_energyAssetInstance instanceof J_EAConversionGasCHP ) {
+			energyConsumed_MWh += roundToDecimal(EnergyUsed_kWh/1000,3);
+			electricityProduced_kWh = e.p_energyAssetInstance.getElectricityProduced_kWh();
+			electricityProduced_MWh += roundToDecimal(electricityProduced_kWh/1000,2);
+		}
+		else {
 			energyConsumed_MWh += roundToDecimal(EnergyUsed_kWh/1000,3);
 		}
 		if( e.p_energyAssetInstance instanceof J_EAStorageHeat && e.p_energyAssetInstance.electricityConsumption_kW == 0) {
@@ -4043,6 +4070,7 @@ for(EnergyAsset e : pop_energyAssets) {
 }
 final double totalEVLoad_kWhph = currentEVLoad_kWhph;
 final double totalEHGVLoad_kWhph = currentEHGVLoad_kWhph;
+//traceln("f_calculateGridNodeFlows check: totalEVLoad_kWhph "+totalEVLoad_kWhph);
 c_globalEVChargingProfile_kWhph.computeIfPresent( timeIndex, (key, val) -> roundToDecimal( val + totalEVLoad_kWhph, 2 ));
 c_globalEVChargingProfile_kWhph.computeIfAbsent( timeIndex, k -> totalEVLoad_kWhph );
 
@@ -4112,6 +4140,7 @@ boolean b_congestionPricingConsumption = policyMap.get( "Grid_MS_congestion_pric
 //boolean b_congestionPricingProduction = policyMap.get( "Grid_MS_congestion_pricing_production_eurpkWh" ) == null ? false : Boolean.parseBoolean( policyMap.get("Grid_MS_congestion_pricing_production_eurpkWh") );
 //double v_capacitypricing_households_kW = policyMap.get( "Capacitypricing_households_kW" ) == null? 0.0 : Double.parseDouble(policyMap.get( "Capacitypricing_households_kW" )) ;
 //double v_capacitypricing_households_eur = policyMap.get( "Capacitypricing_households_eur" ) == null? 0 : Double.parseDouble(policyMap.get( "Capacitypricing_households_eur" ));
+p_hybridHeatPumpCOPThreshold = policyMap.get( "p_hybridHeatPumpCOPThreshold" ) == null ? 2.0 : Double.parseDouble( policyMap.get("p_hybridHeatPumpCOPThreshold") );
 
 // get global energy pricing values
 /*double v_fixedElectricityPrice_eurpkWh = Double.parseDouble( policyMap.get("Fixed_electricity_price_eurpkWh") );
@@ -9851,15 +9880,16 @@ if( p_energyAssetList != null) {
 					double minTemperature_degC = l.get( "minTemp_degC" ) == null? 40.0: Double.valueOf( l.get( "minTemp_degC" ).toString()).doubleValue(); // provide default values
 					double maxTemperature_degC = l.get( "maxTemp_degC" ) == null? 90.0: Double.valueOf( l.get( "maxTemp_degC" ).toString()).doubleValue();
 					double setTemperature_degC = l.get( "setTemp_degC" ) == null? 60.0: Double.valueOf( l.get( "setTemp_degC" ).toString()).doubleValue();
-					double initialTemperature_degC = l.get( "initial_temperature_degC" ) == null? 0.0 : Double.valueOf( l.get( "initial_temperature_degC" ).toString()).doubleValue();		
+					double initialTemperature_degC = l.get( "initialTemperature_degC" ) == null? 0.0 : Double.valueOf( l.get( "initialTemperature_degC" ).toString()).doubleValue();		
 					String ambientTempType2 = (String)l.get( "ambientTempType" ) == null? "": (String)l.get( "ambientTempType" );
 					
 					// minTemperature_degC = 35; // TO DELETE TEMP FIX
 					// setTemperature_degC = uniform_discr(38, 45); // TO DELETE TEMP FIX
 					// initialTemperature_degC = uniform_discr(70,80) * 1.0; // TO DELETE TEMP FIX
 					// heatCapacity_JpK = heatCapacity_JpK * uniform(0.7, 1.3); // TO DELETE TEMP FIX
+					traceln("heatstorage asset initialisation check! minTemp = "+minTemperature_degC+", maxTemperature_degC = "+maxTemperature_degC+", setTemp_degC = "+ setTemperature_degC+", initialTemperature_degC = "+initialTemperature_degC);
 					
-					traceln("Heat Storage init: minTemperature = "+minTemperature_degC+", maxTemperature_degC = "+maxTemperature_degC+", setTemperature_degC = "+setTemperature_degC+", initialTemperature_degC = "+initialTemperature_degC);
+					//traceln("Heat Storage init: minTemperature = "+minTemperature_degC+", maxTemperature_degC = "+maxTemperature_degC+", setTemperature_degC = "+setTemperature_degC+", initialTemperature_degC = "+initialTemperature_degC);
 					
 					
 					storageAsset.p_energyAssetInstance = new J_EAStorageHeat(storageAsset, OL_EAStorageTypes.HEATBUFFER, capacityHeat_kW, lossFactor_WpK, main.p_timeStep_h, initialTemperature_degC, minTemperature_degC, maxTemperature_degC, setTemperature_degC, heatCapacity_JpK, ambientTempType2);	
@@ -10297,7 +10327,6 @@ subConnections.sendToAllConnected(msg);]]></OnReceive>
     			<TimePlot>
 					<Id>1670317113685</Id>
 					<Name><![CDATA[plot]]></Name>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>270</X><Y>180</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -12574,8 +12603,38 @@ if( p_energyAssetList != null) {
 			case CONSUMPTION:
 				EnergyAsset consumerAsset = main.add_pop_energyAssets();
 				consumerAsset.set_p_parentAgentID( this.p_agentID );
-				consumerAsset.set_p_energyAssetType( OL_EnergyAssetType.valueOf((String)l.get( "type" ) ));
-				consumerAsset.set_p_defaultEnergyAssetPresetName( (String)l.get( "name" ));
+				String assetType = (String)l.get( "type" ); 
+				consumerAsset.set_p_energyAssetType( OL_EnergyAssetType.valueOf(assetType) );
+				
+				//Carefull, this fix was needed for the TVW casus. It assumes that the other cases do not have 'Building' gridconnections.
+				//As the building gridconnections will get the store_other_electricity profiles.
+				//It also assumes that hot water is ONLY for households (that was always the case in the option lists anyway, but in fact not very robust)
+
+				//if ( assetType.equals("DIESEL_VEHICLE")){
+				//	consumerAsset.set_p_defaultEnergyAssetPresetName( (String)l.get( "name" ));
+				//}
+				if( assetType.equals("ELECTRICITY_DEMAND") & ((String)l.get( "name" )).contains("TEMPLATE") ){
+					//traceln("Adding template assets!");
+					if ( p_gridConnectionCategory == OL_GridConnectionCategory.HOUSE) {
+						consumerAsset.set_p_defaultEnergyAssetPresetName( "House_other_electricity"); 
+					} else if ( p_gridConnectionCategory == OL_GridConnectionCategory.BUILDING) {
+						consumerAsset.set_p_defaultEnergyAssetPresetName( "Store_other_electricity");
+					} else {
+						consumerAsset.set_p_defaultEnergyAssetPresetName( (String)l.get( "name" ));
+					}
+				}
+				else if (assetType.equals("HOT_WATER_CONSUMPTION")){
+					if ( p_gridConnectionCategory == OL_GridConnectionCategory.HOUSE) {
+						consumerAsset.set_p_defaultEnergyAssetPresetName( "House_hot_water");
+					} else {
+						consumerAsset.set_p_defaultEnergyAssetPresetName( (String)l.get( "name" ));
+					}
+				}
+				else {
+					consumerAsset.set_p_defaultEnergyAssetPresetName( (String)l.get( "name" ));
+					//traceln("Consumption asset type should not occur or is not processed correctly for assetName:" + (String)l.get( "name" ));
+				}
+
 				double yearlyDemandElectricity_kWh = l.get( "yearlyDemandElectricity_kWh") == null? 0.0: Double.valueOf( l.get( "yearlyDemandElectricity_kWh").toString()).doubleValue();
 				double yearlyDemandHeat_kWh = l.get( "yearlyDemandHeat_kWh") == null? 0.0: Double.valueOf( l.get( "yearlyDemandHeat_kWh").toString()).doubleValue();
 				double yearlyDemandHydrogen_kWh = l.get( "yearlyDemandHydrogen_kWh") == null? 0.0: Double.valueOf( l.get( "yearlyDemandHydrogen_kWh").toString()).doubleValue();
@@ -12664,6 +12723,7 @@ if( p_energyAssetList != null) {
 					double initialTemperature_degC = l.get( "initialTemperature_degC" ) == null? 0.0 : Double.valueOf( l.get( "initialTemperature_degC" ).toString()).doubleValue();		
 					String ambientTempType2 = (String)l.get( "ambientTempType" ) == null ? "": (String)l.get( "ambientTempType" );					
 					
+					traceln("gridconnection heatstorage asset initialisation check! minTemp = "+minTemperature_degC+", maxTemperature_degC = "+maxTemperature_degC+", setTemp_degC = "+ setTemperature_degC+", initialTemperature_degC = "+initialTemperature_degC);
 					storageAsset.p_energyAssetInstance = new J_EAStorageHeat(storageAsset, OL_EAStorageTypes.HEATBUFFER, capacityHeat_kW2, lossFactor_WpK, main.p_timeStep_h, initialTemperature_degC, minTemperature_degC, maxTemperature_degC, setTemperature_degC, heatCapacity_JpK, ambientTempType2);	
 					
 				}
@@ -12863,6 +12923,7 @@ for(EnergyAsset e : c_consumptionAssets) {
 					e.f_updateElectricityFlows( main.v_currentIndustrySteelElectricityDemand_fr );
 				break;
 				case "House_other_electricity":
+					//traceln("WRONG!! " + e.p_defaultEnergyAssetPresetName);
 					double randomizer = 0.7 + uniform(0.0, 0.6);
 					e.f_updateElectricityFlows( main.v_currentHouseHoldOtherElectricityDemand_fr * randomizer );
 				break;
@@ -12885,6 +12946,7 @@ for(EnergyAsset e : c_consumptionAssets) {
 		//v_currentPowerHeat_kW += e.v_currentConsumptionHeat_kW - e.v_currentProductionHeat_kW; // PowerFlows van consumption assets worden al in f_calculateEnergyBalance opgeteld, dus dit is dubbel!
 	}
 	else if( e.p_energyAssetType == OL_EnergyAssetType.HEAT_DEMAND ) {
+		//traceln("Heat demand asset ID: " + e.getName());
 		switch(e.p_defaultEnergyAssetPresetName) {
 			case "INDUSTRY_OTHER_HEAT_DEMAND":
 				e.f_updateAllFlows( main.v_currentIndustryOtherHeatDemand_fr );
@@ -13386,26 +13448,40 @@ for ( int i = 0; i < copiedVehicleList.size(); i++ ){
 					<Body><![CDATA[double HP_COP = ((J_EAConversionHeatPump)p_primaryHeatingAsset.p_energyAssetInstance).getCOP();
 boolean isGasCheaper = false;
 
-if(l_ownerActor.getConnectedAgent() instanceof ConnectionOwner) {
-	if( ((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_electricitySupplier instanceof EnergySupplier){
-		v_gasHeatingCost_eurpkWh_TEMPORARY = ((EnergySupplier)((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_electricitySupplier).p_fixedMethanePrice_eurpkWh;
+if( p_hasSmartFlexAssets ) {
+
+	if(l_ownerActor.getConnectedAgent() instanceof ConnectionOwner) {
+		v_gasHeatingCost_eurpkWh_TEMPORARY = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).f_getMethanePrice();
+		v_eHeatingCost_eurpkWh_TEMPORARY = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).f_getAveragedElectricityPrice( v_currentPowerElectricity_kW, p_primaryHeatingAsset.p_energyAssetInstance.getElectricCapacity_kW() ) / HP_COP;
+		//v_gasHeatingCost_eurpkWh_TEMPORARY = 6;
+		//v_eHeatingCost_eurpkWh_TEMPORARY = 5;
+		isGasCheaper = v_gasHeatingCost_eurpkWh_TEMPORARY < v_eHeatingCost_eurpkWh_TEMPORARY ? true:false;
+		
+/*	if( ((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_electricitySupplier instanceof EnergySupplier){
+		//v_gasHeatingCost_eurpkWh_TEMPORARY = ((EnergySupplier)((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_electricitySupplier).p_fixedMethanePrice_eurpkWh;
 		v_eHeatingCost_eurpkWh_TEMPORARY = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).f_getAveragedElectricityPrice( v_currentPowerElectricity_kW, p_primaryHeatingAsset.p_energyAssetInstance.getElectricCapacity_kW() ) / HP_COP;
 		isGasCheaper = v_gasHeatingCost_eurpkWh_TEMPORARY < v_eHeatingCost_eurpkWh_TEMPORARY ? true:false;
 	}
-	else { // in case supplier is a holon
-		EnergySupplier es = (EnergySupplier)((EnergyHolon)((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_electricitySupplier).p_electricitySupplier;
-		//EnergySupplier es = new EnergySupplier();
-		//if( ((EnergyHolon)((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_energySupplier).p_energySupplier instanceof EnergySupplier ) {
-		//	es = (EnergySupplier)((EnergyHolon)((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_energySupplier).p_energySupplier;
-		//}
+	else  { // in case supplier is a holon
+	//	EnergySupplier es = (EnergySupplier)((EnergyHolon)((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_electricitySupplier).p_electricitySupplier;
+	//	EnergySupplier es = new EnergySupplier();
+		if( ((EnergyHolon)((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_energySupplier).p_energySupplier instanceof EnergySupplier ) {
+		///	es = (EnergySupplier)((EnergyHolon)((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_energySupplier).p_energySupplier;
+		}
 		// in case of nested holons!
-		//else if( ((EnergyHolon)((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_energySupplier).p_energySupplier instanceof EnergyHolon ) {
+		else if( ((EnergyHolon)((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_energySupplier).p_energySupplier instanceof EnergyHolon ) {
 		//	es = (EnergySupplier)((EnergyHolon)((EnergyHolon)((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_energySupplier).p_energySupplier).p_energySupplier;
-		//}	
-		v_gasHeatingCost_eurpkWh_TEMPORARY = es.p_fixedMethanePrice_eurpkWh;
+		}	
+		//v_gasHeatingCost_eurpkWh_TEMPORARY = es.p_fixedMethanePrice_eurpkWh;
 		v_eHeatingCost_eurpkWh_TEMPORARY = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).f_getAveragedElectricityPrice( v_currentPowerElectricity_kW, p_primaryHeatingAsset.p_energyAssetInstance.getElectricCapacity_kW() ) / HP_COP;
-		isGasCheaper = v_gasHeatingCost_eurpkWh_TEMPORARY < v_eHeatingCost_eurpkWh_TEMPORARY ? true:false;
+		
 	}
+*/
+	}
+}
+else {
+	traceln("HP_COP: "+HP_COP+", threshold: "+main.p_hybridHeatPumpCOPThreshold);
+	isGasCheaper = HP_COP < main.p_hybridHeatPumpCOPThreshold? true:false;
 }
 
 return isGasCheaper;]]></Body>
@@ -13476,11 +13552,13 @@ p_primaryHeatingAsset.v_powerFraction_fr = powerFraction_heatPump_fr;
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[
 // Heatpump and gasburner, switch based on heatpump COP)
-if (v_currentIndoorTemp_degC < v_tempSetpoint_degC - p_heatingKickinTreshold_degC) {
+if (v_currentIndoorTemp_degC < ( v_tempSetpoint_degC - p_heatingKickinTreshold_degC) ) {
 	
 	J_EAConversionHeatPump HP = (J_EAConversionHeatPump)p_primaryHeatingAsset.p_energyAssetInstance;
 	//HP.updateAmbientTemp(main.v_currentAmbientTemperature_degC); // update heatpump temp levels! <-- waarom dit gebeurt al in de main (peter 21-02-23)
 	boolean gasCheaper = f_calcCheapestHeatingPrice();
+	traceln("isGasCheaper: "+gasCheaper);
+	
 	if ( gasCheaper ) { // heat with gas
 		double powerDemand_kW = (v_tempSetpoint_degC - v_currentIndoorTemp_degC) * ((J_EAStorageHeat)p_ThermalStorageAsset.p_energyAssetInstance).getHeatCapacity_JpK() / 3.6e6;
 		p_primaryHeatingAsset.v_powerFraction_fr = 0;
@@ -14106,7 +14184,6 @@ return level;]]></Body>
     			<TimePlot>
 					<Id>1668439095469</Id>
 					<Name><![CDATA[pl_powerFlows]]></Name>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>0</X><Y>520</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -22918,6 +22995,7 @@ if (v_contractConnection.connectionContractType.equals(OL_ConnectionContractType
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[// Connect to energy supplier (can be a holon!)
+traceln(p_actorID + " is looking for its supplier");
 Actor mySupplier = null;
 mySupplier = findFirst(main.pop_energySuppliers, p->p.p_actorID.equals(v_contractDelivery.contractScope)) ;
 if (mySupplier != null) {
@@ -22951,6 +23029,7 @@ if (myGridoperator != null) {
 	traceln("Connection owner --> f_connectToParentActor --> no grid operator found, this should not be happening");
 }
 
+traceln(p_actorID + " finished looking for supplier");
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -31962,7 +32041,7 @@ public void f_connectToChild(Agent ConnectingChildNode){
 				<Variable Class="PlainVariable">
 					<Id>1678448870527</Id>
 					<Name><![CDATA[v_chpElectricityPrice]]></Name>
-					<X>1120</X><Y>430</Y>
+					<X>1120</X><Y>470</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -31994,6 +32073,21 @@ public void f_connectToChild(Agent ConnectingChildNode){
 							<DelimeterType>NO_DELIMETER</DelimeterType>
 						</ParameterEditor>
 					</Properties>                 
+				</Variable>
+				<Variable Class="CollectionVariable">
+					<Id>1688462266916</Id>
+					<Name><![CDATA[c_electricityPriceList]]></Name>
+					<X>1120</X><Y>490</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" AccessType="public" StaticVariable="false">
+						<CollectionClass><![CDATA[ArrayList]]></CollectionClass>
+						<ElementClass><![CDATA[Double]]></ElementClass>
+						<ValueElementClass><![CDATA[String]]></ValueElementClass>
+					</Properties>
+
 				</Variable>
 			</Variables>
 			<Functions>
@@ -32039,7 +32133,7 @@ b_storageBelowMinimum = storageTemp_degC < minBufferTemp_degC;
 b_storageBelowNetworkTemp = storageTemp_degC < DHnetworkTemp_degC;
 
 
-//traceln("network temperature: "+DHnetworkTemp_degC+", bivalent system? :"+b_bivalentSystem+", localBuffer? :"+b_localBuffer +", storage below setpoint ? : "+b_storageBelowSetpoint + ", storage below minimumTemp? "+b_storageBelowMinimum+", storage below network temp: "+b_storageBelowNetworkTemp);
+// traceln("network temperature: "+DHnetworkTemp_degC+", bivalent system? :"+b_bivalentSystem+", storage current Temp = "+storageTemp_degC+", storage minTemp = "+minBufferTemp_degC+", storage below setpoint ? : "+b_storageBelowSetpoint + ", storage below minimumTemp? "+b_storageBelowMinimum+", storage below network temp: "+b_storageBelowNetworkTemp);
 
 DHnetworkTemp_degC = l_parentNodeHeat.getConnectedAgent().p_transportBuffer.getCurrentTemperature();
 v_bufferTemp_degC = storageTemp_degC;
@@ -32345,6 +32439,25 @@ for(EnergyAsset e : c_energyAssets) {
 v_electricityPriceLowPassed_eurpkWh += v_lowPassFactor_fr * ( v_chpElectricityPrice - v_electricityPriceLowPassed_eurpkWh );
 //v_currentPriceLevel = f_getPriceLevel( v_currentElectricityPriceConsumption_eurpkWh );
 
+c_electricityPriceList.add( v_chpElectricityPrice );
+if (c_electricityPriceList.size() > 30) {
+    c_electricityPriceList.remove(0);
+}
+
+double runningAverage = c_electricityPriceList.stream()
+        .mapToDouble(Double::doubleValue)
+        .average()
+        .orElse(0.0);
+
+double variance = c_electricityPriceList.stream()
+        .mapToDouble(value -> Math.pow(value - runningAverage, 2))
+        .average()
+        .orElse(0.0);
+
+
+double standardDeviation = Math.sqrt(variance);
+double currentDeviation = Math.abs(v_chpElectricityPrice - runningAverage) / standardDeviation;
+
 GridNode superNodeElectric = l_parentNodeElectric.getConnectedAgent().superConnection.getConnectedAgent();
 switch (p_heatingType) {
 	case GASFIRED_CHPPEAK:
@@ -32362,11 +32475,22 @@ switch (p_heatingType) {
  			p_primaryHeatingAsset.v_powerFraction_fr = 1; 
 			p_secondaryHeatingAsset.v_powerFraction_fr = 1;	
 		}
-		else if ( superNodeElectric.v_currentLoadElectricity_kW < 0 && p_ThermalStorageAsset.p_energyAssetInstance.getCurrentTemperature() < p_ThermalStorageAsset.p_energyAssetInstance.getMaxTemperature_degC() ){
-			p_primaryHeatingAsset.v_powerFraction_fr = 1;
+		//else if ( superNodeElectric.v_currentLoadElectricity_kW < 0 && p_ThermalStorageAsset.p_energyAssetInstance.getCurrentTemperature() < p_ThermalStorageAsset.p_energyAssetInstance.getMaxTemperature_degC() ){
+		else if( v_chpElectricityPrice < ( runningAverage - 3.0 * standardDeviation ) && p_ThermalStorageAsset.p_energyAssetInstance.getCurrentTemperature() < p_ThermalStorageAsset.p_energyAssetInstance.getMaxTemperature_degC() - 1 ){
+			p_primaryHeatingAsset.v_powerFraction_fr = 0.5;
 		}
-		else if( v_chpElectricityPrice > (v_electricityPriceLowPassed_eurpkWh + p_pricelevelHighDifFromAvg_eurpkWh) && p_ThermalStorageAsset.p_energyAssetInstance.getCurrentTemperature() < p_ThermalStorageAsset.p_energyAssetInstance.getMaxTemperature_degC() ){
-			p_secondaryHeatingAsset.v_powerFraction_fr = 1;
+		else if( v_chpElectricityPrice < ( runningAverage - 1.0 * standardDeviation ) && p_ThermalStorageAsset.p_energyAssetInstance.getCurrentTemperature() < p_ThermalStorageAsset.p_energyAssetInstance.getMaxTemperature_degC() - 1 ){
+			p_primaryHeatingAsset.v_powerFraction_fr = 0.25;
+		}
+		else if( v_chpElectricityPrice > ( runningAverage + 4.0 * standardDeviation ) && p_ThermalStorageAsset.p_energyAssetInstance.getCurrentTemperature() < p_ThermalStorageAsset.p_energyAssetInstance.getMaxTemperature_degC() - 1 ){
+			p_secondaryHeatingAsset.v_powerFraction_fr = 0.5;
+		}
+		else if( v_chpElectricityPrice > ( runningAverage + 3.0 * standardDeviation ) && p_ThermalStorageAsset.p_energyAssetInstance.getCurrentTemperature() < p_ThermalStorageAsset.p_energyAssetInstance.getMaxTemperature_degC() - 1 ){
+			p_secondaryHeatingAsset.v_powerFraction_fr = 0.25;
+		}		
+		else if ( p_ThermalStorageAsset.p_energyAssetInstance.getCurrentTemperature() < p_ThermalStorageAsset.p_energyAssetInstance.getSetTemperature_degC() ) {
+			p_primaryHeatingAsset.v_powerFraction_fr = 0.5;
+			p_secondaryHeatingAsset.v_powerFraction_fr = 0.5;
 		}
 	break;
 	default:
@@ -34881,6 +35005,21 @@ if(p_ownerActor instanceof ConnectionOwner) {
 						<Type><![CDATA[int]]></Type>        
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1686682721694</Id>
+					<Name><![CDATA[v_cumulativeMileage]]></Name>
+					<X>60</X><Y>180</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1667742419409</Id>
 					<Name><![CDATA[p_mobilityPatternType]]></Name>
@@ -35137,6 +35276,7 @@ else if(p_vehicleInstance instanceof J_EADieselVehicle){
 }
 
 v_away = false;
+v_cumulativeMileage += v_tripDist_km;
 v_tripDist_km = distances.get( v_tripIndex ); // Update upcoming trip distance
 
 //traceln( date() +  " truck komt terug, km: " + v_tripDist_km);]]></Action>
@@ -35204,7 +35344,7 @@ nextActivityEndTimer.restart( endtimes.get(0) - time( MINUTE ), MINUTE);
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>false</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[int rowIndex = getIndex() % 200;
+					<Body><![CDATA[int rowIndex = uniform_discr(1, 200);//getIndex() % 200;
 v_tripPatternIndex = rowIndex;
 
 int nbTrips = roundToInt(p_gridConnection.main.inputHouseholdTrips.getCellNumericValue("sheet1", rowIndex + 2, 2));
@@ -36233,13 +36373,15 @@ public void f_operateFlexAssets(){
 // For residual heat, check heat transfer condition = source temperature > network temperature!
 double networkTemp_degC = l_parentNodeHeat.getConnectedAgent().p_transportBuffer.getCurrentTemperature();
 double networkMaxTemp_degC = l_parentNodeHeat.getConnectedAgent().p_transportBuffer.getMaxTemperature_degC();
-boolean b_heatFlowToNetwork = p_deliveryTemp_degC > ( networkTemp_degC + 1 ) && networkTemp_degC < networkMaxTemp_degC; // delta T of 2 degrees for heat exchanger.
+double networkSetTemp_degC = l_parentNodeHeat.getConnectedAgent().p_transportBuffer.getSetTemperature_degC();
+//boolean b_heatFlowToNetwork = p_deliveryTemp_degC > ( networkTemp_degC + 1 ) && networkTemp_degC < networkMaxTemp_degC; // delta T of 2 degrees for heat exchanger.
+boolean b_heatFlowToNetwork = l_parentNodeHeat.getConnectedAgent().b_transportBufferValid && p_deliveryTemp_degC > ( networkTemp_degC + 1 ) && networkTemp_degC < (networkSetTemp_degC + 5); // delta T of 2 degrees for heat exchanger.
 
 // double heatTransferToNetworkCoefficient_kWpK = 100;
 // double heatTransferToNetwork_kW = max( p_deliveryTemp_degC - networkTemp_degC, 0 ) * heatTransferToNetworkCoefficient_kWpK;
 p_curtailer.v_powerFraction_fr = 0;
 
-if( !b_heatFlowToNetwork ) {
+if( !b_heatFlowToNetwork) {
 	//traceln("curtail residual heat!");
 	p_curtailer.v_powerFraction_fr = 1;
 }
@@ -36841,6 +36983,9 @@ if (p_batteryAsset != null){
 				<Parameter>
 					<ParameterName><![CDATA[b_anylogicCostsForAllContracts]]></ParameterName>
 				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[p_hybridHeatPumpCOPThreshold]]></ParameterName>
+				</Parameter>
 			</Parameters>			
 			<PresentationProperties>
 				<EnableZoomAndPanning>true</EnableZoomAndPanning>
@@ -37168,6 +37313,7 @@ public class J_EA {
 	 // debugging purposes!
 	 protected double heatProduced_kWh = 0.0;
 	 protected double heatConsumed_kWh = 0.0;
+	 protected double electricityProduced_kWh = 0.0;
 
     /**
      * Default constructor
@@ -37243,6 +37389,10 @@ public class J_EA {
     public double getEnergyUsed_kWh() {
     	return energyUsed_kWh;
     }
+    
+    public double getElectricityProduced_kWh() {
+    	return electricityProduced_kWh;
+	}
 
     public double getSetTemperature_degC() {
     	return 0;
@@ -37878,7 +38028,7 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
 		} 
 		else {
 				this.capacityHeat_kW = this.capacityElectric_kW * this.COP_r; 
-				traceln("heatpump updating temp: " + baseTemperature_degC);
+				//traceln("heatpump updating temp: " + baseTemperature_degC);
 				if( baseTemperature_degC < 0 ) {
 					COP_r = COP_r / belowZeroHeatpumpEtaReductionFactor;
 				}
@@ -38586,6 +38736,7 @@ public class J_EAConversionElectricHeater extends J_EAConversion implements Seri
 		this.energyUsed_kWh += timestep_h * (electricityConsumption_kW - heatProduction_kW); // This represents losses!
 		//double[] arr = {this.electricityProduction_kW, this.methaneProduction_kW, this.hydrogenProduction_kW, this.heatProduction_kW, this.electricityConsumption_kW, this.methaneConsumption_kW, this.hydrogenConsumption_kW, this.heatConsumption_kW };
     	//return arr;
+		this.heatProduced_kWh += timestep_h * heatProduction_kW;
 		return returnEnergyFlows();
     }
 
@@ -38595,7 +38746,13 @@ public class J_EAConversionElectricHeater extends J_EAConversion implements Seri
 
 	@Override
 	public String toString() {
-		return super.toString();
+		return 
+			"ownerAsset = " + ownerAsset +" " +
+			"capacityElectric_kW = " + this.capacityElectric_kW +" "+
+			"capacityHeat_kW = " + this.capacityHeat_kW +" "+
+			"eta_r = " + this.eta_r+" "+
+			"energyUsed_kWh"+ this.energyUsed_kWh+" "+
+			"heatProduced_kWh = " + this.heatProduced_kWh + " ";
 	}
 	
 	@Override
@@ -39092,6 +39249,7 @@ public class J_EAConversionGasCHP extends base.J_EAConversion implements Seriali
 		//double[] arr = {this.electricityProduction_kW, this.methaneProduction_kW, this.hydrogenProduction_kW, this.heatProduction_kW, this.electricityConsumption_kW, this.methaneConsumption_kW, this.hydrogenConsumption_kW, this.heatConsumption_kW };
     	//return arr;
 		this.heatProduced_kWh += this.heatProduction_kW * timestep_h;
+		this.electricityProduced_kWh += this.electricityProduction_kW * timestep_h;
 		//this.electricityProduced_kWh = this.electricityProduction_kW * timestep_h;
 				
 		return returnEnergyFlows();
@@ -39108,6 +39266,7 @@ public class J_EAConversionGasCHP extends base.J_EAConversion implements Seriali
 			"capacityElectric_kW = " + this.capacityElectric_kW +" "+
 			"capacityHeat_kW = " + this.capacityHeat_kW +" "+
 			"eta_r = " + this.eta_r+" "+
+			"energyUsed_kWh"+ this.energyUsed_kWh+" "+
 			"heatProduced_kWh = " + this.heatProduced_kWh + " ";
 	}
 	
@@ -39486,6 +39645,6 @@ public class J_EAConversionCurtailerHeat extends J_EAConversion implements Seria
 		<VersionMinor>0</VersionMinor>
 		<VersionBuild>5</VersionBuild>
     </RequiredLibraryReference>
-	<CloudModelUuid><![CDATA[6dd6e2d3-0c53-4383-9c25-8d1d9c7d5b99]]></CloudModelUuid>
+	<CloudModelUuid><![CDATA[d5048a0b-55df-4ee4-9938-b3cf9046b43e]]></CloudModelUuid>
 </Model>
 </AnyLogicWorkspace>
