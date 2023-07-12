@@ -2305,7 +2305,7 @@ traceln(" ");
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[false]]></Code>
+							<Code><![CDATA[true]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1681376013853</Id>
@@ -5653,7 +5653,7 @@ if (taxContract != null) {
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[Casus_TVW_hwp_20_buurtholon.txt]]></ClassName>
+						<ClassName><![CDATA[holontool_scenario.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -12610,27 +12610,31 @@ if( p_energyAssetList != null) {
 				//As the building gridconnections will get the store_other_electricity profiles.
 				//It also assumes that hot water is ONLY for households (that was always the case in the option lists anyway, but in fact not very robust)
 
-				if ( assetType.equals("DIESEL_VEHICLE")){
-					consumerAsset.set_p_defaultEnergyAssetPresetName( (String)l.get( "name" ));
-				}
-				else if( assetType.equals("ELECTRICITY_DEMAND")){
+				//if ( assetType.equals("DIESEL_VEHICLE")){
+				//	consumerAsset.set_p_defaultEnergyAssetPresetName( (String)l.get( "name" ));
+				//}
+				if( assetType.equals("ELECTRICITY_DEMAND") & ((String)l.get( "name" )).contains("TEMPLATE") ){
+					//traceln("Adding template assets!");
 					if ( p_gridConnectionCategory == OL_GridConnectionCategory.HOUSE) {
 						consumerAsset.set_p_defaultEnergyAssetPresetName( "House_other_electricity"); 
-					}
-					if ( p_gridConnectionCategory == OL_GridConnectionCategory.BUILDING) {
+					} else if ( p_gridConnectionCategory == OL_GridConnectionCategory.BUILDING) {
 						consumerAsset.set_p_defaultEnergyAssetPresetName( "Store_other_electricity");
-					}
-					else {
+					} else {
 						consumerAsset.set_p_defaultEnergyAssetPresetName( (String)l.get( "name" ));
 					}
 				}
 				else if (assetType.equals("HOT_WATER_CONSUMPTION")){
-					consumerAsset.set_p_defaultEnergyAssetPresetName( "House_hot_water");
+					if ( p_gridConnectionCategory == OL_GridConnectionCategory.HOUSE) {
+						consumerAsset.set_p_defaultEnergyAssetPresetName( "House_hot_water");
+					} else {
+						consumerAsset.set_p_defaultEnergyAssetPresetName( (String)l.get( "name" ));
+					}
 				}
 				else {
-					traceln("Consumption asset type should not occur or is not processed correctly");
+					consumerAsset.set_p_defaultEnergyAssetPresetName( (String)l.get( "name" ));
+					//traceln("Consumption asset type should not occur or is not processed correctly for assetName:" + (String)l.get( "name" ));
 				}
-				
+
 				double yearlyDemandElectricity_kWh = l.get( "yearlyDemandElectricity_kWh") == null? 0.0: Double.valueOf( l.get( "yearlyDemandElectricity_kWh").toString()).doubleValue();
 				double yearlyDemandHeat_kWh = l.get( "yearlyDemandHeat_kWh") == null? 0.0: Double.valueOf( l.get( "yearlyDemandHeat_kWh").toString()).doubleValue();
 				double yearlyDemandHydrogen_kWh = l.get( "yearlyDemandHydrogen_kWh") == null? 0.0: Double.valueOf( l.get( "yearlyDemandHydrogen_kWh").toString()).doubleValue();
@@ -12918,7 +12922,8 @@ for(EnergyAsset e : c_consumptionAssets) {
 				case "INDUSTRY_STEEL_ELECTRICITY_DEMAND" :
 					e.f_updateElectricityFlows( main.v_currentIndustrySteelElectricityDemand_fr );
 				break;
-				case "HOUSE_other_electricity":
+				case "House_other_electricity":
+					//traceln("WRONG!! " + e.p_defaultEnergyAssetPresetName);
 					double randomizer = 0.7 + uniform(0.0, 0.6);
 					e.f_updateElectricityFlows( main.v_currentHouseHoldOtherElectricityDemand_fr * randomizer );
 				break;
@@ -12941,6 +12946,7 @@ for(EnergyAsset e : c_consumptionAssets) {
 		//v_currentPowerHeat_kW += e.v_currentConsumptionHeat_kW - e.v_currentProductionHeat_kW; // PowerFlows van consumption assets worden al in f_calculateEnergyBalance opgeteld, dus dit is dubbel!
 	}
 	else if( e.p_energyAssetType == OL_EnergyAssetType.HEAT_DEMAND ) {
+		//traceln("Heat demand asset ID: " + e.getName());
 		switch(e.p_defaultEnergyAssetPresetName) {
 			case "INDUSTRY_OTHER_HEAT_DEMAND":
 				e.f_updateAllFlows( main.v_currentIndustryOtherHeatDemand_fr );
@@ -36983,7 +36989,7 @@ if (p_batteryAsset != null){
 			</Parameters>			
 			<PresentationProperties>
 				<EnableZoomAndPanning>true</EnableZoomAndPanning>
-				<ExecutionMode><![CDATA[realTimeScaled]]></ExecutionMode>
+				<ExecutionMode><![CDATA[virtualTime]]></ExecutionMode>
 				<Title><![CDATA[MainModel : Simulation]]></Title>	
 				<EnableDeveloperPanel>true</EnableDeveloperPanel>
 				<ShowDeveloperPanelOnStart>false</ShowDeveloperPanelOnStart>
@@ -38022,7 +38028,7 @@ public class J_EAConversionHeatPump extends base.J_EAConversion implements Seria
 		} 
 		else {
 				this.capacityHeat_kW = this.capacityElectric_kW * this.COP_r; 
-				traceln("heatpump updating temp: " + baseTemperature_degC);
+				//traceln("heatpump updating temp: " + baseTemperature_degC);
 				if( baseTemperature_degC < 0 ) {
 					COP_r = COP_r / belowZeroHeatpumpEtaReductionFactor;
 				}
@@ -39623,7 +39629,7 @@ public class J_EAConversionCurtailerHeat extends J_EAConversion implements Seria
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[Casus_TVW_hwp_20_buurtholon.txt]]></Path>
+			<Path><![CDATA[holontool_scenario.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
@@ -39639,6 +39645,6 @@ public class J_EAConversionCurtailerHeat extends J_EAConversion implements Seria
 		<VersionMinor>0</VersionMinor>
 		<VersionBuild>5</VersionBuild>
     </RequiredLibraryReference>
-	<CloudModelUuid><![CDATA[4a9e8c90-1f5c-4765-ae68-846e87eb7d39]]></CloudModelUuid>
+	<CloudModelUuid><![CDATA[d5048a0b-55df-4ee4-9938-b3cf9046b43e]]></CloudModelUuid>
 </Model>
 </AnyLogicWorkspace>
