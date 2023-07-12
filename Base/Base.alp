@@ -4070,6 +4070,7 @@ for(EnergyAsset e : pop_energyAssets) {
 }
 final double totalEVLoad_kWhph = currentEVLoad_kWhph;
 final double totalEHGVLoad_kWhph = currentEHGVLoad_kWhph;
+//traceln("f_calculateGridNodeFlows check: totalEVLoad_kWhph "+totalEVLoad_kWhph);
 c_globalEVChargingProfile_kWhph.computeIfPresent( timeIndex, (key, val) -> roundToDecimal( val + totalEVLoad_kWhph, 2 ));
 c_globalEVChargingProfile_kWhph.computeIfAbsent( timeIndex, k -> totalEVLoad_kWhph );
 
@@ -5651,7 +5652,7 @@ if (taxContract != null) {
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[casus_TVW_warmtenet_gemeentelijk.txt]]></ClassName>
+						<ClassName><![CDATA[Casus_TVW_hwp_20_buurtholon.txt]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -32481,7 +32482,8 @@ switch (p_heatingType) {
 			p_secondaryHeatingAsset.v_powerFraction_fr = 0.25;
 		}		
 		else if ( p_ThermalStorageAsset.p_energyAssetInstance.getCurrentTemperature() < p_ThermalStorageAsset.p_energyAssetInstance.getSetTemperature_degC() ) {
-			p_primaryHeatingAsset.v_powerFraction_fr = 1;
+			p_primaryHeatingAsset.v_powerFraction_fr = 0.5;
+			p_secondaryHeatingAsset.v_powerFraction_fr = 0.5;
 		}
 	break;
 	default:
@@ -36364,13 +36366,15 @@ public void f_operateFlexAssets(){
 // For residual heat, check heat transfer condition = source temperature > network temperature!
 double networkTemp_degC = l_parentNodeHeat.getConnectedAgent().p_transportBuffer.getCurrentTemperature();
 double networkMaxTemp_degC = l_parentNodeHeat.getConnectedAgent().p_transportBuffer.getMaxTemperature_degC();
-boolean b_heatFlowToNetwork = p_deliveryTemp_degC > ( networkTemp_degC + 1 ) && networkTemp_degC < networkMaxTemp_degC; // delta T of 2 degrees for heat exchanger.
+double networkSetTemp_degC = l_parentNodeHeat.getConnectedAgent().p_transportBuffer.getSetTemperature_degC();
+//boolean b_heatFlowToNetwork = p_deliveryTemp_degC > ( networkTemp_degC + 1 ) && networkTemp_degC < networkMaxTemp_degC; // delta T of 2 degrees for heat exchanger.
+boolean b_heatFlowToNetwork = l_parentNodeHeat.getConnectedAgent().b_transportBufferValid && p_deliveryTemp_degC > ( networkTemp_degC + 1 ) && networkTemp_degC < (networkSetTemp_degC + 5); // delta T of 2 degrees for heat exchanger.
 
 // double heatTransferToNetworkCoefficient_kWpK = 100;
 // double heatTransferToNetwork_kW = max( p_deliveryTemp_degC - networkTemp_degC, 0 ) * heatTransferToNetworkCoefficient_kWpK;
 p_curtailer.v_powerFraction_fr = 0;
 
-if( !b_heatFlowToNetwork ) {
+if( !b_heatFlowToNetwork) {
 	//traceln("curtail residual heat!");
 	p_curtailer.v_powerFraction_fr = 1;
 }
@@ -38724,6 +38728,7 @@ public class J_EAConversionElectricHeater extends J_EAConversion implements Seri
 		this.energyUsed_kWh += timestep_h * (electricityConsumption_kW - heatProduction_kW); // This represents losses!
 		//double[] arr = {this.electricityProduction_kW, this.methaneProduction_kW, this.hydrogenProduction_kW, this.heatProduction_kW, this.electricityConsumption_kW, this.methaneConsumption_kW, this.hydrogenConsumption_kW, this.heatConsumption_kW };
     	//return arr;
+		this.heatProduced_kWh += timestep_h * heatProduction_kW;
 		return returnEnergyFlows();
     }
 
@@ -38733,7 +38738,13 @@ public class J_EAConversionElectricHeater extends J_EAConversion implements Seri
 
 	@Override
 	public String toString() {
-		return super.toString();
+		return 
+			"ownerAsset = " + ownerAsset +" " +
+			"capacityElectric_kW = " + this.capacityElectric_kW +" "+
+			"capacityHeat_kW = " + this.capacityHeat_kW +" "+
+			"eta_r = " + this.eta_r+" "+
+			"energyUsed_kWh"+ this.energyUsed_kWh+" "+
+			"heatProduced_kWh = " + this.heatProduced_kWh + " ";
 	}
 	
 	@Override
@@ -39610,11 +39621,7 @@ public class J_EAConversionCurtailerHeat extends J_EAConversion implements Seria
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[Casus_TVW all heatnetwork buurtholon.txt]]></Path>
-			<ReferencedFromUserCode>false</ReferencedFromUserCode>
-		</Resource>
-		<Resource>
-			<Path><![CDATA[casus_TVW_warmtenet_gemeentelijk.txt]]></Path>
+			<Path><![CDATA[Casus_TVW_hwp_20_buurtholon.txt]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
