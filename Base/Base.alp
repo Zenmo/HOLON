@@ -2782,6 +2782,7 @@ v_timeStepsElapsed ++;
 				<Event>
 					<Id>1674058522977</Id>
 					<Name><![CDATA[pauseEvent]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>640</X><Y>460</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -3966,13 +3967,6 @@ v_epexForecast_eurpkWh += (nationalEnergyMarket.tf_dayAheadElectricityPricing_eu
 					<Body><![CDATA[double currentElectricityImport_kW = 0;
 double currentElectricityExport_kW = 0;
 
-/*for(GridNode n : c_gridNodesMSLS) {
-	n.f_addGridBatteryLoad();
-}
-for(GridNode n : c_gridNodesHSMS) {
-	n.f_sumLoads();
-}*/
-
 for(GridNode n : c_gridNodesHeat) {
 	n.f_calculateEnergyBalance();
 }
@@ -4285,22 +4279,10 @@ for(EnergyAsset e : c_storageAssets ) {
 } 
 else {
 	for(GridConnection gc : c_gridConnections) {
-		//if( gc.p_gridConnectionCategory != OL_GridConnectionCategory.GRIDBATTERY){
-		  	gc.f_calculateEnergyBalance();
-		 //}
+		gc.f_calculateEnergyBalance();
 	}
 }
 
-/* This code deviates from the intended solver-structure of the model
-//ONly MS LS nodes have gridbatteries, so we dont need to do the HSMS nodes.
-for(GridNode n : c_gridNodesMSLS) {
-	n.f_sumLoads();
-}
-
-for(GCGridBattery b : GridBatteries) {
-	b.f_calculateEnergyBalance();
-}
-*/
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -34308,12 +34290,10 @@ if(p_ownerActor instanceof ConnectionOwner) {
 		double currentHolonElectricitySurplus_kW = 0;
 		double HolonConnectionCapacity_kW = 0;
 		double v_previousPowerBattery_kW = p_batteryAsset.v_currentConsumptionElectricity_kW-p_batteryAsset.v_currentProductionElectricity_kW;
-		if(((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_holonParent instanceof EnergyHolon ) { // get electricity balance from holon 
-			
-			//traceln("Previous battery power: " + v_previousPowerElectricity_kW);
+		//traceln("Previous battery power: " + v_previousPowerElectricity_kW);
+		if(((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_holonParent instanceof EnergyHolon ) { // get electricity balance from holon 			
 			currentHolonElectricitySurplus_kW = ((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_holonParent.v_electricitySurplus_kW + v_previousPowerBattery_kW;
-			//v_electricityPriceLowPassed_eurpkWh += v_lowPassFactor_fr * ( currentHolonElectricitySurplus_kW - v_electricityPriceLowPassed_eurpkWh );			
-			HolonConnectionCapacity_kW = 0.9*((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_holonParent.v_allowedCapacity_kW; // Use only 90% of capacity for robustness against delay
+			HolonConnectionCapacity_kW = 0.9*((ConnectionOwner)l_ownerActor.getConnectedAgent()).p_holonParent.v_allowedCapacity_kW; // Use only 90% of capacity for robustness against delay			
 		} else { // Get gridload directly from node
 			GridNode node = l_parentNodeElectric.getConnectedAgent();
 			currentHolonElectricitySurplus_kW = node.v_currentLoadElectricity_kW + v_previousPowerBattery_kW;			
@@ -34335,8 +34315,7 @@ if(p_ownerActor instanceof ConnectionOwner) {
 		} else if (main.v_totalInstalledWindPower_kW == 0 & main.v_totalInstalledPVPower_kW > 50) {		// this logic should activate for the buurtelektrificatie-casus	
 			SOC_setp_fr = (0.7 + 0.2 * Math.sin(2*Math.PI*(time(HOUR)-10)/24))-2*main.v_SolarYieldForecast_fr; // Sinusoidal setpoint: aim for high SOC at 18:00h
 			//traceln("Previous battery power: " + v_previousPowerElectricity_kW + ", previous holon surpluss: " + currentHolonElectricitySurplus_kW);
-			FeedforwardGain_kWpKw = 0.0; // Feedforward based on current surpluss in holon
-			//traceln("Hello!");
+			FeedforwardGain_kWpKw = 0.0; // Feedforward based on current surpluss in holon			
 		} else { // this logic should activate for the bedrijventerrein-casus	
 			FeedforwardGain_kWpKw = 0.1; // Feedforward based on current surpluss in holon
 			SOC_setp_fr = (0.5 + 0.35 * Math.sin(2*Math.PI*(time(HOUR)-10)/24))*(1-0.8*main.v_WindYieldForecast_fr); // Sinusoidal setpoint: aim for low SOC at 6:00h, high SOC at 18:00h. 
