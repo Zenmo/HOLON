@@ -14283,7 +14283,6 @@ return level;]]></Body>
     			<TimePlot>
 					<Id>1668439095469</Id>
 					<Name><![CDATA[pl_powerFlows]]></Name>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>0</X><Y>520</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -17950,7 +17949,7 @@ f_checkModelConsistency();
 				<Variable Class="PlainVariable">
 					<Id>1670933944857</Id>
 					<Name><![CDATA[v_electricHeatingConsumption_kW]]></Name>
-					<X>60</X><Y>410</Y>
+					<X>60</X><Y>430</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -17962,7 +17961,7 @@ f_checkModelConsistency();
 				<Variable Class="PlainVariable">
 					<Id>1670934339512</Id>
 					<Name><![CDATA[v_batteryConsumption_kW]]></Name>
-					<X>60</X><Y>430</Y>
+					<X>60</X><Y>450</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -17974,7 +17973,19 @@ f_checkModelConsistency();
 				<Variable Class="PlainVariable">
 					<Id>1675683786853</Id>
 					<Name><![CDATA[v_congestionPrice_eurpkWh]]></Name>
-					<X>60</X><Y>470</Y>
+					<X>60</X><Y>490</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[double]]></Type>        
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1689596764390</Id>
+					<Name><![CDATA[v_electricCookingPower_kW]]></Name>
+					<X>60</X><Y>410</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -18085,6 +18096,7 @@ v_vehicleConsumption_kW = 0;
 v_fixedConsumptionProfiles_kW = 0;
 v_electricHeatingConsumption_kW = 0;
 v_batteryConsumption_kW = 0;
+v_electricCookingPower_kW = 0;
 
 for( GridConnection g : realAgent.getConnectedAgent().c_electricityGridConnections){
 	v_localProduction_kW += g.v_pvProductionElectric_kW + g.v_windProductionElectric_kW - min(0,g.v_conversionPowerElectric_kW);
@@ -18092,8 +18104,9 @@ for( GridConnection g : realAgent.getConnectedAgent().c_electricityGridConnectio
 	v_vehicleProduction_kW += g.v_evChargingPowerElectric_kW < 0 ? g.v_evChargingPowerElectric_kW : 0;
 	
 	v_vehicleConsumption_kW += g.v_evChargingPowerElectric_kW > 0 ? g.v_evChargingPowerElectric_kW : 0;
-	v_fixedConsumptionProfiles_kW += g.v_fixedConsumptionElectric_kW + g.v_electricHobConsumption_kW;
-	v_electricHeatingConsumption_kW += max(0,g.v_conversionPowerElectric_kW);
+	v_fixedConsumptionProfiles_kW += g.v_fixedConsumptionElectric_kW ;
+	v_electricCookingPower_kW += g.v_electricHobConsumption_kW;
+	v_electricHeatingConsumption_kW += max(0,g.v_conversionPowerElectric_kW - g.v_electricHobConsumption_kW);
 	v_batteryConsumption_kW += g.v_batteryPowerElectric_kW > 0 ? g.v_batteryPowerElectric_kW : 0;
 
 }
@@ -18657,6 +18670,14 @@ for(UI_GridNode n : kpiVisuals.uI_GridNodes){
 					<Expression2><![CDATA[v_batteryConsumption_kW]]></Expression2>
 					<Expression2Flag>true</Expression2Flag>  
 							<Title><![CDATA[charging Battery [kW]]]></Title>
+					</DatasetExpression>
+					<DatasetExpression>
+					<Id>0</Id>
+					<Expression><![CDATA[my_dataset]]></Expression>
+					<Color>-2461482</Color>
+					<Expression2><![CDATA[v_electricCookingPower_kW]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>  
+							<Title><![CDATA[e-cooking power [kW]]]></Title>
 					</DatasetExpression>
 					<SamplesToKeep>10000</SamplesToKeep>
 					<VerScaleToExpression><![CDATA[1]]></VerScaleToExpression>
@@ -30061,16 +30082,20 @@ else {
 
 for (EnergyAsset e: c_conversionAssets) {
 	if ( e.p_energyAssetType == OL_EnergyAssetType.GAS_PIT){
-		e.f_updateAllFlows( p_cookingTracker.v_ratio);
+		e.f_updateAllFlows( p_cookingTracker.v_ratio );
 		double heatIntoHouse_kW = e.v_currentProductionHeat_kW;
 		p_ThermalStorageAsset.v_powerFraction_fr += heatIntoHouse_kW / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW();
 	}
 	else if( e.p_energyAssetType == OL_EnergyAssetType.ELECTRIC_HOB){
-		e.f_updateAllFlows( p_cookingTracker.v_ratio);
+		e.f_updateAllFlows( p_cookingTracker.v_ratio );
 		v_electricHobConsumption_kW += e.v_currentConsumptionElectricity_kW; // PowerFlows van consumption assets worden in f_calculateEnergyBalance opgeteld, dus ken dit niet toe aan totale consumptie!
 		double heatIntoHouse_kW = e.v_currentProductionHeat_kW;
 		p_ThermalStorageAsset.v_powerFraction_fr += heatIntoHouse_kW / p_ThermalStorageAsset.p_energyAssetInstance.getHeatCapacity_kW();
 	}
+	traceln( "Cooking asset tracker ratio: " + p_cookingTracker.v_ratio);
+	traceln ( "current asset consumption: " + e.v_currentConsumptionElectricity_kW);
+	traceln( "current consumption " + v_electricHobConsumption_kW);
+	traceln( "");
 }
 
 //add heating from sunrays to heatmodel power
@@ -36081,7 +36106,7 @@ for (int i = 0; i < nbOfCookingSessions; i++){
 	ratios.add(ratio);
 }
 
-v_ratio = ratios.get(0);
+v_ratio = 0; //ratios.get(0);
 nextActivityStartTimer.restart( starttimes.get(0) - time( MINUTE ), MINUTE);
 nextActivityEndTimer.restart( endtimes.get(0) - time( MINUTE ), MINUTE);
 
