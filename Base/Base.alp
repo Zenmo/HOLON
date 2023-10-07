@@ -4144,16 +4144,6 @@ boolean b_congestionPricingConsumption = policyMap.get( "Grid_MS_congestion_pric
 //double v_capacitypricing_households_eur = policyMap.get( "Capacitypricing_households_eur" ) == null? 0 : Double.parseDouble(policyMap.get( "Capacitypricing_households_eur" ));
 p_hybridHeatPumpCOPThreshold = policyMap.get( "p_hybridHeatPumpCOPThreshold" ) == null ? 2.0 : Double.parseDouble( policyMap.get("p_hybridHeatPumpCOPThreshold") );
 
-// get global energy pricing values
-/*double v_fixedElectricityPrice_eurpkWh = Double.parseDouble( policyMap.get("Fixed_electricity_price_eurpkWh") );
-double v_energySupplierMarginOnElectricityPrice_eurpkWh = Double.parseDouble( policyMap.get("Energy_supplier_electricity_price_margin_eurpkWh") );
-double v_fixedElectricityFeedInTariff_eurpkWh = Double.parseDouble( policyMap.get("Fixed_electricity_feed_in_tariff_eurpkWh") );
-double v_fixedHeatPrice_eurpkWh = Double.parseDouble( policyMap.get( "Fixed_heat_price_eurpkWh" ) );
-double v_fixedMethanePrice_eurpkWh = Double.parseDouble( policyMap.get( "Fixed_methane_price_eurpkWh" ) );
-double v_fixedHydrogenPrice_eurpkWh = Double.parseDouble( policyMap.get( "Fixed_hydrogen_price_eurpkWh" ) );
-double v_fixedDieselPrice_eurpkWh = Double.parseDouble( policyMap.get( "Fixed_diesel_price_eurpkWh" ) );
-boolean v_salderenActive = Boolean.parseBoolean(policyMap.get("Salderen"));*/
-//traceln("Capacitypricing_households_kW:" + policyMap.get( "Capacitypricing_households_kW" ));
 
 // get global battery charging parameter(s)
 int v_timeBufferForSpreadCharging_min = Integer.parseInt( policyMap.get("Time_buffer_for_spread_charging_min") );
@@ -5689,7 +5679,7 @@ return value;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[cases/buurtfixHolon.json]]></ClassName>
+						<ClassName><![CDATA[cases/buurtfix.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -9818,7 +9808,10 @@ v_loadFactor_fr = v_averageAbsoluteLoadElectricity_kW / abs(v_peakLoadAbsoluteEl
 					<Body><![CDATA[for (GridConnection gc: c_electricityGridConnections){
 	//traceln("Gc "+ gc.toString() + ", price "+ price_eurpkWh + ", allowance "+ allowance_kW +".");
 	ConnectionOwner owner = ((ConnectionOwner)gc.l_ownerActor.getConnectedAgent());
-	owner.v_currentNodalPrice_eurpkWh = price_eurpkWh;
+	if (owner.v_contractTransport.transportContractType.equals(OL_TransportContractType.NODALPRICING)) {
+		owner.v_currentNodalPrice_eurpkWh = price_eurpkWh;	
+	}
+
 }
 for (EnergyHolon e: c_energyHolons){
 	e.v_currentNodalPrice_eurpkWh = price_eurpkWh;
@@ -23306,6 +23299,7 @@ f_setElectricityPriceBands();
 	//v_priceBandsDelivery.replace(99999.0, v_contractDelivery.deliveryPrice_eurpkWh + v_electricityVariablePrice_eurpkWh );
 	v_priceBandsDelivery.replace(99999999.0, v_electricityVariablePrice_eurpkWh);
 }
+
 if (v_contractTransport.transportContractType.equals(OL_TransportContractType.NODALPRICING)) {
 	v_priceBandsTransport.replace(-99999999.0, v_currentNodalPrice_eurpkWh);
 	v_priceBandsTransport.replace(99999999.0, v_currentNodalPrice_eurpkWh);
@@ -23315,6 +23309,8 @@ if (v_contractTax.proportionalTax_pct != 0.0) { // Add VAT (BTW), over all other
 	v_priceBandsTax.replace(-99999999.0, v_contractTax.feedinTax_eurpkWh + v_contractTax.proportionalTax_pct*(v_contractDelivery.feedinPrice_eurpkWh + v_electricityVariablePrice_eurpkWh + v_currentNodalPrice_eurpkWh + v_contractTax.feedinTax_eurpkWh));
 	v_priceBandsTax.replace(99999999.0, v_contractTax.deliveryTax_eurpkWh + v_contractTax.proportionalTax_pct*(v_contractDelivery.deliveryPrice_eurpkWh + v_electricityVariablePrice_eurpkWh + v_currentNodalPrice_eurpkWh + v_contractTax.deliveryTax_eurpkWh));
 }
+
+
 
 /*
 if( p_capacityTariffApplicable ){
@@ -39870,7 +39866,7 @@ public class J_EAConversionCurtailerHeat extends J_EAConversion implements Seria
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[cases/buurtfixHolon.json]]></Path>
+			<Path><![CDATA[cases/buurtfix.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
