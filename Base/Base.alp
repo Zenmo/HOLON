@@ -4,7 +4,7 @@
 	         AnyLogic Project File 
 *************************************************	         
 -->
-<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.8.4.202307181708" AlpVersion="8.8.2">
+<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.8.4.202307181709" AlpVersion="8.8.2">
 <Model>
 	<Id>1658477103134</Id>
 	<Name><![CDATA[Base]]></Name>
@@ -2303,7 +2303,7 @@ traceln(" ");
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[true]]></Code>
+							<Code><![CDATA[false]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1681376013853</Id>
@@ -4563,8 +4563,8 @@ for(HashMap data : parsedJSONGridConnections) {
 			GC = add_Houses();
 			
 			//THESE VALUES ARE HARDCODED TO CREATE HETEROGENEOUS BEHAVIOR AND BECAUSE THE DATAMODEL DOES NOT ALLOW THIS YET
-			pricelevel_low_dif_from_avg_eurpkWh =  uniform_discr(1,25) / 100.0; 
-			pricelevel_high_dif_from_avg_eurpkWh = 0.25 - pricelevel_low_dif_from_avg_eurpkWh;
+			pricelevel_low_dif_from_avg_eurpkWh =  uniform_discr(1,20) / 100.0; 
+			pricelevel_high_dif_from_avg_eurpkWh = 0.20 - pricelevel_low_dif_from_avg_eurpkWh;
 
 			gridConnectionBatteryMode = OL_BatteryOperationMode.HOUSEHOLD_LOAD;
 			double lowPassFilterHousehold = 0.03; // -->> deze moet uiteindelijk naar datamodel. Moet configureerbaar zijn.
@@ -5689,7 +5689,7 @@ return value;]]></Body>
 					<Url><![CDATA[]]></Url>
 					<ResourceReference>
 						<PackageName><![CDATA[base]]></PackageName>
-						<ClassName><![CDATA[holontool_scenario.txt]]></ClassName>
+						<ClassName><![CDATA[cases/buurtfixHolon.json]]></ClassName>
 					</ResourceReference>
 					<FileMode>READ</FileMode>
 					<CharsetName>null</CharsetName>
@@ -9046,7 +9046,7 @@ geupdate vanuit
 					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
 						<Type><![CDATA[double]]></Type>        
 						<InitialValue Class="CodeValue">
-							<Code><![CDATA[min(1, 0.8*1.2 * main.p_timeStep_h) //0.2 ]]></Code>
+							<Code><![CDATA[0.35//min(1, 0.8*1.2 * main.p_timeStep_h) //0.2 ]]></Code>
 						</InitialValue>
 					</Properties>
 				</Variable>
@@ -14409,7 +14409,6 @@ return level;]]></Body>
     			<TimePlot>
 					<Id>1668968408696</Id>
 					<Name><![CDATA[pl_SOC]]></Name>
-					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>530</X><Y>520</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -23272,7 +23271,7 @@ v_totalDieselUsed_kWh += v_dieselVolume_kWh;]]></Body>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[if (v_contractDelivery.deliveryContractType==OL_DeliveryContractType.ELECTRICITY_VARIABLE) {
+					<Body><![CDATA[if (v_contractDelivery.deliveryContractType == OL_DeliveryContractType.ELECTRICITY_VARIABLE) {
 	if (p_electricitySupplier instanceof EnergySupplier) {
 		v_electricityVariablePrice_eurpkWh = ((EnergySupplier)p_electricitySupplier).f_getVariableEnergyPrice();
 	} else if (p_electricitySupplier instanceof EnergyHolon) {
@@ -23303,17 +23302,18 @@ f_setElectricityPriceBands();
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[if (v_contractDelivery.deliveryContractType.equals(OL_DeliveryContractType.ELECTRICITY_VARIABLE)) {
-	v_priceBandsDelivery.replace(-99999.0, v_contractDelivery.feedinPrice_eurpkWh + v_electricityVariablePrice_eurpkWh );
-	v_priceBandsDelivery.replace(99999.0, v_contractDelivery.deliveryPrice_eurpkWh + v_electricityVariablePrice_eurpkWh );
+	v_priceBandsDelivery.replace(-99999999.0, v_contractDelivery.feedinPrice_eurpkWh + v_electricityVariablePrice_eurpkWh );
+	//v_priceBandsDelivery.replace(99999.0, v_contractDelivery.deliveryPrice_eurpkWh + v_electricityVariablePrice_eurpkWh );
+	v_priceBandsDelivery.replace(99999999.0, v_electricityVariablePrice_eurpkWh);
 }
 if (v_contractTransport.transportContractType.equals(OL_TransportContractType.NODALPRICING)) {
-	v_priceBandsTransport.replace(-99999.0, v_currentNodalPrice_eurpkWh);
-	v_priceBandsTransport.replace(99999.0, v_currentNodalPrice_eurpkWh);
+	v_priceBandsTransport.replace(-99999999.0, v_currentNodalPrice_eurpkWh);
+	v_priceBandsTransport.replace(99999999.0, v_currentNodalPrice_eurpkWh);
 }
 
 if (v_contractTax.proportionalTax_pct != 0.0) { // Add VAT (BTW), over all other cost components. At this point assumes there are only 2 price-bands, for delivery and feedin! No other 'steps'! Not true for capacity-tariff (bandbreedtemodel)!
-	v_priceBandsTax.replace(-99999.0, v_contractTax.feedinTax_eurpkWh + v_contractTax.proportionalTax_pct*(v_contractDelivery.feedinPrice_eurpkWh + v_electricityVariablePrice_eurpkWh + v_currentNodalPrice_eurpkWh + v_contractTax.feedinTax_eurpkWh));
-	v_priceBandsTax.replace(99999.0, v_contractTax.deliveryTax_eurpkWh + v_contractTax.proportionalTax_pct*(v_contractDelivery.deliveryPrice_eurpkWh + v_electricityVariablePrice_eurpkWh + v_currentNodalPrice_eurpkWh + v_contractTax.deliveryTax_eurpkWh));
+	v_priceBandsTax.replace(-99999999.0, v_contractTax.feedinTax_eurpkWh + v_contractTax.proportionalTax_pct*(v_contractDelivery.feedinPrice_eurpkWh + v_electricityVariablePrice_eurpkWh + v_currentNodalPrice_eurpkWh + v_contractTax.feedinTax_eurpkWh));
+	v_priceBandsTax.replace(99999999.0, v_contractTax.deliveryTax_eurpkWh + v_contractTax.proportionalTax_pct*(v_contractDelivery.deliveryPrice_eurpkWh + v_electricityVariablePrice_eurpkWh + v_currentNodalPrice_eurpkWh + v_contractTax.deliveryTax_eurpkWh));
 }
 
 /*
@@ -30477,7 +30477,7 @@ switch (p_chargingAttitudeVehicles) {
 	break;
 	case CHEAP:
 		f_chargeOnPrice( v_currentElectricityPriceConsumption_eurpkWh, max(0, availableChargingCapacity));
-		//f_chargeOnPrice2( max(0, availableChargingCapacity));
+		//f_chargeOnPriceSimpler( max(0, availableChargingCapacity));
 	break;
 	default:
 		traceln("Incorrect charging mode in household @f_manageCharging_overwrite");
@@ -39870,7 +39870,7 @@ public class J_EAConversionCurtailerHeat extends J_EAConversion implements Seria
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 		<Resource>
-			<Path><![CDATA[holontool_scenario.txt]]></Path>
+			<Path><![CDATA[cases/buurtfixHolon.json]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 		</Resource>
 	</ModelResources>
@@ -39886,6 +39886,6 @@ public class J_EAConversionCurtailerHeat extends J_EAConversion implements Seria
 		<VersionMinor>0</VersionMinor>
 		<VersionBuild>5</VersionBuild>
     </RequiredLibraryReference>
-	<CloudModelUuid><![CDATA[d9c5cecf-9f60-4c92-8fd3-b33814d19638]]></CloudModelUuid>
+	<CloudModelUuid><![CDATA[130957de-2065-45a4-bd5b-d49efb79fe3f]]></CloudModelUuid>
 </Model>
 </AnyLogicWorkspace>
